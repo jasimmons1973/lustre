@@ -1905,8 +1905,14 @@ int ll_update_inode(struct inode *inode, struct lustre_md *md)
 	}
 
 	if (body->mbo_valid & OBD_MD_TSTATE) {
+		/* Set LLIF_FILE_RESTORING if restore ongoing and
+		 * clear it when done to ensure to start again
+		 * glimpsing updated attrs
+		 */
 		if (body->mbo_t_state & MS_RESTORE)
 			set_bit(LLIF_FILE_RESTORING, &lli->lli_flags);
+		else
+			clear_bit(LLIF_FILE_RESTORING, &lli->lli_flags);
 	}
 
 	return 0;
