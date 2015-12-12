@@ -48,8 +48,11 @@ static int lnet_tbnob;			/* track text buf allocation */
 #define LNET_MAX_TEXTBUF_NOB     (64 << 10)	/* bound allocation */
 #define LNET_SINGLE_TEXTBUF_NOB  (4 << 10)
 
+#define SPACESTR " \t\v\r\n"
+#define DELIMITERS ":()[]"
+
 static void
-lnet_syntax(char *name, char *str, int offset, int width)
+lnet_syntax(const char *name, const char *str, int offset, int width)
 {
 	static char dots[LNET_SINGLE_TEXTBUF_NOB];
 	static char dashes[LNET_SINGLE_TEXTBUF_NOB];
@@ -358,6 +361,42 @@ lnet_net_alloc(__u32 net_id, struct list_head *net_list)
 	return net;
 }
 
+static int
+lnet_ni_add_interface(struct lnet_ni *ni, char *iface)
+{
+	int niface = 0;
+
+	if (!ni)
+		return -ENOMEM;
+
+	/* Allocate a separate piece of memory and copy
+	 * into it the string, so we don't have
+	 * a depencency on the tokens string.  This way we
+	 * can free the tokens at the end of the function.
+	 * The newly allocated ni_interfaces[] can be
+	 * freed when freeing the NI */
+	while (niface < LNET_MAX_INTERFACES &&
+	       ni->ni_interfaces[niface])
+		niface++;
+
+	if (niface >= LNET_MAX_INTERFACES) {
+		LCONSOLE_ERROR_MSG(0x115, "Too many interfaces "
+				   "for net %s\n",
+				   libcfs_net2str(LNET_NIDNET(ni->ni_nid)));
+		return -EINVAL;
+	}
+
+	ni->ni_interfaces[niface] = kstrdup(iface, GFP_KERNEL);
+
+	if (!ni->ni_interfaces[niface]) {
+		CERROR("Can't allocate net interface name\n");
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+/* allocate and add to the provided network */
 struct lnet_ni *
 lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el, char *iface)
 {
@@ -434,24 +473,33 @@ lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el, char *iface)
 		goto failed;
 	list_add_tail(&ni->ni_netlist, &net->net_ni_added);
 
+	/* if an interface name is provided then make sure to add in that
+	 * interface name in NI */
+	if (iface)
+		if (lnet_ni_add_interface(ni, iface) != 0)
+			goto failed;
+
 	return ni;
  failed:
 	lnet_ni_free(ni);
 	return NULL;
 }
 
+/*
+ * Parse the networks string and create the matching set of NIs on the
+ * nilist.
+ */
 int
 lnet_parse_networks(struct list_head *netlist, char *networks)
 {
-	struct cfs_expr_list *el = NULL;
+	struct cfs_expr_list *net_el = NULL;
+	struct cfs_expr_list *ni_el = NULL;
 	char *tokens;
 	char *str;
-	char *tmp;
 	struct lnet_net *net;
 	struct lnet_ni *ni = NULL;
 	__u32 net_id;
 	int nnets = 0;
-	struct list_head *temp_node;
 
 	if (!networks) {
 		CERROR("networks string is undefined\n");
@@ -471,84 +519,108 @@ lnet_parse_networks(struct list_head *netlist, char *networks)
 		return -ENOMEM;
 	}
 
-	tmp = tokens;
 	str = tokens;
 
-	while (str && *str) {
-		char *comma = strchr(str, ',');
-		char *bracket = strchr(str, '(');
-		char *square = strchr(str, '[');
-		char *iface;
-		int niface;
+	/*
+	 * Main parser loop.
+	 *
+	 * NB we don't check interface conflicts here; it's the LNDs
+	 * responsibility (if it cares at all)
+	 */
+	do {
+		char *nistr;
+		char *elstr;
+		char *name;
 		int rc;
 
 		/*
-		 * NB we don't check interface conflicts here; it's the LNDs
-		 * responsibility (if it cares at all)
+		 * Parse a network string into its components.
+		 *
+		 * <name>{"("...")"}{"["<el>"]"}
 		 */
-		if (square && (!comma || square < comma)) {
-			/*
-			 * i.e: o2ib0(ib0)[1,2], number between square
-			 * brackets are CPTs this NI needs to be bond
-			 */
-			if (bracket && bracket > square) {
-				tmp = square;
+
+		/* Network name (mandatory)
+		 */
+		while (isspace(*str))
+			*str++ = '\0';
+		if (!*str)
+			break;
+		name = str;
+		str += strcspn(str, SPACESTR ":()[],");
+		while (isspace(*str))
+			*str++ = '\0';
+
+		/* Interface list (optional) */
+		if (*str == '(') {
+			*str++ = '\0';
+			nistr = str;
+			str += strcspn(str, ")");
+			if (*str != ')') {
+				str = nistr;
 				goto failed_syntax;
 			}
-
-			tmp = strchr(square, ']');
-			if (!tmp) {
-				tmp = square;
-				goto failed_syntax;
-			}
-
-			rc = cfs_expr_list_parse(square, tmp - square + 1,
-						 0, LNET_CPT_NUMBER - 1, &el);
-			if (rc) {
-				tmp = square;
-				goto failed_syntax;
-			}
-
-			while (square <= tmp)
-				*square++ = ' ';
+			do {
+				*str++ = '\0';
+			} while (isspace(*str));
+		} else {
+			nistr = NULL;
 		}
 
-		if (!bracket || (comma && comma < bracket)) {
-			/* no interface list specified */
-
-			if (comma)
-				*comma++ = 0;
-			net_id = libcfs_str2net(strim(str));
-
-			if (net_id == LNET_NIDNET(LNET_NID_ANY)) {
-				LCONSOLE_ERROR_MSG(0x113,
-						   "Unrecognised network type\n");
-				tmp = str;
+		/* CPT expression (optional) */
+		if (*str == '[') {
+			elstr = str;
+			str += strcspn(str, "]");
+			if (*str != ']') {
+				str = elstr;
 				goto failed_syntax;
 			}
-
-			if (LNET_NETTYP(net_id) != LOLND) { /* LO is implicit */
-				net = lnet_net_alloc(net_id, netlist);
-				if (!net ||
-				    !lnet_ni_alloc(net, el, NULL))
-					goto failed;
+			rc = cfs_expr_list_parse(elstr, str - elstr + 1,
+						0, LNET_CPT_NUMBER - 1,
+						&net_el);
+			if (rc) {
+				str = elstr;
+				goto failed_syntax;
 			}
+			*elstr = '\0';
+			do {
+				*str++ = '\0';
+			} while (isspace(*str));
+		}
 
-			if (el) {
-				cfs_expr_list_free(el);
-				el = NULL;
+		/* Bad delimiters */
+		if (*str && strchr(DELIMITERS, *str))
+			goto failed_syntax;
+
+		/* go to the next net if it exits */
+		str += strcspn(str, ",");
+		if (*str == ',')
+			*str++ = '\0';
+
+		/*
+		 * At this point the name is properly terminated.
+		 */
+		net_id = libcfs_str2net(name);
+		if (net_id == LNET_NIDNET(LNET_NID_ANY)) {
+			LCONSOLE_ERROR_MSG(0x113,
+					"Unrecognised network type\n");
+			str = name;
+			goto failed_syntax;
+		}
+
+		if (LNET_NETTYP(net_id) == LOLND) {
+			/* Loopback is implicit, and there can be only one. */
+			if (net_el) {
+				cfs_expr_list_free(net_el);
+				net_el = NULL;
 			}
-
-			str = comma;
+			/* Should we error out instead? */
 			continue;
 		}
 
-		*bracket = 0;
-		net_id = libcfs_str2net(strim(str));
-		if (net_id == LNET_NIDNET(LNET_NID_ANY)) {
-			tmp = str;
-			goto failed_syntax;
-		}
+		/*
+		 * All network paramaters are now known.
+		 */
+		nnets++;
 
 		/* always allocate a net, since we will eventually add an
 		 * interface to it, or we will fail, in which case we'll
@@ -557,88 +629,107 @@ lnet_parse_networks(struct list_head *netlist, char *networks)
 		if (IS_ERR_OR_NULL(net))
 			goto failed;
 
-		ni = lnet_ni_alloc(net, el, NULL);
-		if (IS_ERR_OR_NULL(ni))
-			goto failed;
-
-		if (el) {
-			cfs_expr_list_free(el);
-			el = NULL;
-		}
-
-		niface = 0;
-		iface = bracket + 1;
-
-		bracket = strchr(iface, ')');
-		if (!bracket) {
-			tmp = iface;
-			goto failed_syntax;
-		}
-
-		*bracket = 0;
-		do {
-			comma = strchr(iface, ',');
-			if (comma)
-				*comma++ = 0;
-
-			iface = strim(iface);
-			if (!*iface) {
-				tmp = iface;
-				goto failed_syntax;
-			}
-
-			if (niface == LNET_MAX_INTERFACES) {
-				LCONSOLE_ERROR_MSG(0x115,
-						   "Too many interfaces for net %s\n",
-						   libcfs_net2str(net_id));
-				goto failed;
-			}
-
+		if (!nistr) {
 			/*
-			 * Allocate a separate piece of memory and copy
-			 * into it the string, so we don't have
-			 * a depencency on the tokens string.  This way we
-			 * can free the tokens at the end of the function.
-			 * The newly allocated ni_interfaces[] can be
-			 * freed when freeing the NI
+			 * No interface list was specified, allocate a
+			 * ni using the defaults.
 			 */
-			ni->ni_interfaces[niface] = kstrdup(iface, GFP_KERNEL);
-			if (!ni->ni_interfaces[niface]) {
-				CERROR("Can't allocate net interface name\n");
+			ni = lnet_ni_alloc(net, net_el, NULL);
+			if (IS_ERR_OR_NULL(ni))
 				goto failed;
-			}
-			niface++;
-			iface = comma;
-		} while (iface);
 
-		str = bracket + 1;
-		comma = strchr(bracket + 1, ',');
-		if (comma) {
-			*comma = 0;
-			str = strim(str);
-			if (*str) {
-				tmp = str;
-				goto failed_syntax;
+			if (net_el) {
+				cfs_expr_list_free(net_el);
+				net_el = NULL;
 			}
-			str = comma + 1;
 			continue;
 		}
 
-		str = strim(str);
-		if (*str) {
-			tmp = str;
-			goto failed_syntax;
-		}
-	}
+		do {
+			elstr = NULL;
 
-	list_for_each(temp_node, netlist)
-		nnets++;
+			/* Interface name (mandatory) */
+			while (isspace(*nistr))
+				*nistr++ = '\0';
+			name = nistr;
+			nistr += strcspn(nistr, SPACESTR "[],");
+			while (isspace(*nistr))
+				*nistr++ = '\0';
+
+			/* CPT expression (optional) */
+			if (*nistr == '[') {
+				elstr = nistr;
+				nistr += strcspn(nistr, "]");
+				if (*nistr != ']') {
+					str = elstr;
+					goto failed_syntax;
+				}
+				rc = cfs_expr_list_parse(elstr,
+							nistr - elstr + 1,
+							0, LNET_CPT_NUMBER - 1,
+							&ni_el);
+				if (rc != 0) {
+					str = elstr;
+					goto failed_syntax;
+				}
+				*elstr = '\0';
+				do {
+					*nistr++ = '\0';
+				} while (isspace(*nistr));
+			} else {
+				ni_el = net_el;
+			}
+
+			/*
+			 * End of single interface specificaton,
+			 * advance to the start of the next one, if
+			 * any.
+			 */
+			if (*nistr == ',') {
+				do {
+					*nistr++ = '\0';
+				} while (isspace(*nistr));
+				if (!*nistr) {
+					str = nistr;
+					goto failed_syntax;
+				}
+			} else if (*nistr) {
+				str = nistr;
+				goto failed_syntax;
+			}
+
+			/*
+			 * At this point the name
+			 is properly terminated.
+			 */
+			if (!*name) {
+				str = name;
+				goto failed_syntax;
+			}
+
+			ni = lnet_ni_alloc(net, ni_el, name);
+			if (IS_ERR_OR_NULL(ni))
+				goto failed;
+
+			if (ni_el) {
+				if (ni_el != net_el) {
+					cfs_expr_list_free(ni_el);
+					ni_el = NULL;
+				}
+			}
+		} while (*nistr);
+
+		if (net_el) {
+			cfs_expr_list_free(net_el);
+			net_el = NULL;
+		}
+	} while (*str);
 
 	kfree(tokens);
 	return nnets;
 
  failed_syntax:
-	lnet_syntax("networks", networks, (int)(tmp - tokens), strlen(tmp));
+	lnet_syntax("networks", networks, (int)(str - tokens), strlen(str));
  failed:
 	/* free the net list and all the nis on each net */
 	while (!list_empty(netlist)) {
@@ -648,8 +739,10 @@ lnet_parse_networks(struct list_head *netlist, char *networks)
 		lnet_net_free(net);
 	}
 
-	if (el)
-		cfs_expr_list_free(el);
+	if (ni_el && ni_el != net_el)
+		cfs_expr_list_free(ni_el);
+	if (net_el)
+		cfs_expr_list_free(net_el);
 
 	kfree(tokens);
 
