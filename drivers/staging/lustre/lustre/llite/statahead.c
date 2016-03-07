@@ -504,6 +504,19 @@ static void ll_agl_trigger(struct inode *inode, struct ll_statahead_info *sai)
 		return;
 	}
 
+	/* In case of restore, the MDT has the right size and has already
+	 * sent it back without granting the layout lock, inode is up-to-date.
+	 * Then AGL (async glimpse lock) is useless.
+	 * Also to glimpse we need the layout, in case of a runninh restore
+	 * the MDT holds the layout lock so the glimpse will block up to the
+	 * end of restore (statahead/agl will block)
+	 */
+	if (test_bit(LLIF_FILE_RESTORING, &lli->lli_flags)) {
+		lli->lli_agl_index = 0;
+		iput(inode);
+		return;
+	}
+
 	/* Someone is in glimpse (sync or async), do nothing. */
 	rc = down_write_trylock(&lli->lli_glimpse_sem);
 	if (rc == 0) {
