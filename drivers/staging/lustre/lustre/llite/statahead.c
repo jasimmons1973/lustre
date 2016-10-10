@@ -1110,8 +1110,9 @@ static int ll_statahead_thread(void *arg)
 		sa_handle_callback(sai);
 
 		set_current_state(TASK_IDLE);
+		/* ensure we see the NULL stored by ll_deauthorize_statahead() */
 		if (!sa_has_callback(sai) &&
-		    sai->sai_task)
+		    smp_load_acquire(&sai->sai_task))
 			schedule();
 		__set_current_state(TASK_RUNNING);
 	}
@@ -1191,9 +1192,17 @@ void ll_deauthorize_statahead(struct inode *dir, void *key)
 		/*
 		 * statahead thread may not quit yet because it needs to cache
 		 * entries, now it's time to tell it to quit.
+		 *
+		 * In case sai is released, wake_up() is called inside spinlock,
+		 * so we use smp_store_release() to serialize ops.
 		 */
-		wake_up_process(sai->sai_task);
-		sai->sai_task = NULL;
+		struct task_struct *task = sai->sai_task;
+
+		/* ensure ll_statahead_thread sees the NULL before
+		 * calling schedule() again.
+		 */
+		smp_store_release(&sai->sai_task, NULL);
+		wake_up_process(task);
 	}
 	spin_unlock(&lli->lli_sa_lock);
 }
