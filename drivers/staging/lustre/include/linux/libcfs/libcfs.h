@@ -57,10 +57,6 @@ int libcfs_setup(void);
 extern struct workqueue_struct *cfs_rehash_wq;
 
 void lustre_insert_debugfs(struct ctl_table *table);
-int lprocfs_call_handler(void *data, int write, loff_t *ppos,
-			 void __user *buffer, size_t *lenp,
-			 int (*handler)(void *data, int write, loff_t pos,
-					void __user *buffer, int len));
 
 /*
  * Memory

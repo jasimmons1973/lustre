@@ -290,33 +290,15 @@ static struct miscdevice libcfs_dev = {
 
 static int libcfs_dev_registered;
 
-int lprocfs_call_handler(void *data, int write, loff_t *ppos,
-			 void __user *buffer, size_t *lenp,
-			 int (*handler)(void *data, int write, loff_t pos,
-					void __user *buffer, int len))
-{
-	int rc = handler(data, write, *ppos, buffer, *lenp);
-
-	if (rc < 0)
-		return rc;
-
-	if (write) {
-		*ppos += *lenp;
-	} else {
-		*lenp = rc;
-		*ppos += rc;
-	}
-	return 0;
-}
-EXPORT_SYMBOL(lprocfs_call_handler);
-
-static int __proc_dobitmasks(void *data, int write,
-			     loff_t pos, void __user *buffer, int nob)
+static int proc_dobitmasks(struct ctl_table *table, int write,
+			   void __user *buffer, size_t *lenp, loff_t *ppos)
 {
 	const int tmpstrlen = 512;
 	char *tmpstr;
 	int rc;
-	unsigned int *mask = data;
+	size_t nob = *lenp;
+	loff_t pos = *ppos;
+	unsigned int *mask = table->data;
 	int is_subsys = (mask == &libcfs_subsystem_debug) ? 1 : 0;
 	int is_printk = (mask == &libcfs_printk) ? 1 : 0;
 
@@ -351,32 +333,23 @@ static int __proc_dobitmasks(void *data, int write,
 	return rc;
 }
 
-static int proc_dobitmasks(struct ctl_table *table, int write,
-			   void __user *buffer, size_t *lenp, loff_t *ppos)
+static int proc_dump_kernel(struct ctl_table *table, int write,
+			    void __user *buffer, size_t *lenp, loff_t *ppos)
 {
-	return lprocfs_call_handler(table->data, write, ppos, buffer, lenp,
-				    __proc_dobitmasks);
-}
+	size_t nob = *lenp;
 
-static int __proc_dump_kernel(void *data, int write,
-			      loff_t pos, void __user *buffer, int nob)
-{
 	if (!write)
 		return 0;
 
 	return cfs_trace_dump_debug_buffer_usrstr(buffer, nob);
 }
 
-static int proc_dump_kernel(struct ctl_table *table, int write,
+static int proc_daemon_file(struct ctl_table *table, int write,
 			    void __user *buffer, size_t *lenp, loff_t *ppos)
 {
-	return lprocfs_call_handler(table->data, write, ppos, buffer, lenp,
-				    __proc_dump_kernel);
-}
+	size_t nob = *lenp;
+	loff_t pos = *ppos;
 
-static int __proc_daemon_file(void *data, int write,
-			      loff_t pos, void __user *buffer, int nob)
-{
 	if (!write) {
 		int len = strlen(cfs_tracefile);
 
@@ -388,13 +361,6 @@ static int __proc_daemon_file(void *data, int write,
 	}
 
 	return cfs_trace_daemon_command_usrstr(buffer, nob);
-}
-
-static int proc_daemon_file(struct ctl_table *table, int write,
-			    void __user *buffer, size_t *lenp, loff_t *ppos)
-{
-	return lprocfs_call_handler(table->data, write, ppos, buffer, lenp,
-				    __proc_daemon_file);
 }
 
 static int libcfs_force_lbug(struct ctl_table *table, int write,
@@ -419,9 +385,11 @@ static int proc_fail_loc(struct ctl_table *table, int write,
 	return rc;
 }
 
-static int __proc_cpt_table(void *data, int write,
-			    loff_t pos, void __user *buffer, int nob)
+static int proc_cpt_table(struct ctl_table *table, int write,
+			  void __user *buffer, size_t *lenp, loff_t *ppos)
 {
+	size_t nob = *lenp;
+	loff_t pos = *ppos;
 	char *buf = NULL;
 	int len = 4096;
 	int rc  = 0;
@@ -455,13 +423,6 @@ static int __proc_cpt_table(void *data, int write,
  out:
 	kfree(buf);
 	return rc;
-}
-
-static int proc_cpt_table(struct ctl_table *table, int write,
-			  void __user *buffer, size_t *lenp, loff_t *ppos)
-{
-	return lprocfs_call_handler(table->data, write, ppos, buffer, lenp,
-				    __proc_cpt_table);
 }
 
 static struct ctl_table lnet_table[] = {
@@ -573,10 +534,17 @@ static ssize_t lnet_debugfs_read(struct file *filp, char __user *buf,
 {
 	struct ctl_table *table = filp->private_data;
 	int error;
+	loff_t old_pos = *ppos;
 
 	error = table->proc_handler(table, 0, (void __user *)buf, &count, ppos);
-	if (!error)
+	/*
+	 * On success, the length read is either in error or in count.
+	 * If ppos changed, then use count, else use error
+	 */
+	if (!error && *ppos != old_pos)
 		error = count;
+	else if (error > 0)
+		*ppos += error;
 
 	return error;
 }
@@ -586,10 +554,14 @@ static ssize_t lnet_debugfs_write(struct file *filp, const char __user *buf,
 {
 	struct ctl_table *table = filp->private_data;
 	int error;
+	loff_t old_pos = *ppos;
 
 	error = table->proc_handler(table, 1, (void __user *)buf, &count, ppos);
-	if (!error)
+	if (!error) {
 		error = count;
+		if (*ppos == old_pos)
+			*ppos += count;
+	}
 
 	return error;
 }
