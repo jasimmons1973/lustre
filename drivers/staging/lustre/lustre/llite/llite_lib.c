@@ -1484,7 +1484,7 @@ int ll_setattr_raw(struct dentry *dentry, struct iattr *attr, bool hsm_import)
 	}
 
 	if (attr->ia_valid & (ATTR_MTIME | ATTR_CTIME))
-		CDEBUG(D_INODE, "setting mtime %lu, ctime %lu, now = %llu\n",
+		CDEBUG(D_INODE, "setting mtime %lld, ctime %lld, now = %lld\n",
 		       LTIME_S(attr->ia_mtime), LTIME_S(attr->ia_ctime),
 		       (s64)ktime_get_real_seconds());
 
@@ -1762,7 +1762,7 @@ int ll_update_inode(struct inode *inode, struct lustre_md *md)
 	if (body->mbo_valid & OBD_MD_FLMTIME) {
 		if (body->mbo_mtime > LTIME_S(inode->i_mtime)) {
 			CDEBUG(D_INODE,
-			       "setting ino %lu mtime from %lu to %llu\n",
+			       "setting ino %lu mtime from %lld to %llu\n",
 			       inode->i_ino, LTIME_S(inode->i_mtime),
 			       body->mbo_mtime);
 			LTIME_S(inode->i_mtime) = body->mbo_mtime;
