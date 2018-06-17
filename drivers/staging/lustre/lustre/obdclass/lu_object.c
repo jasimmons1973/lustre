@@ -42,6 +42,7 @@
 #define DEBUG_SUBSYSTEM S_CLASS
 
 #include <linux/module.h>
+#include <linux/processor.h>
 
 /* hash_long() */
 #include <linux/libcfs/libcfs_hash.h>
@@ -1512,8 +1513,11 @@ void lu_context_key_quiesce(struct lu_context_key *key)
 		up_write(&lu_key_initing);
 
 		write_lock(&lu_keys_guard);
-		list_for_each_entry(ctx, &lu_context_remembered, lc_remember)
+		list_for_each_entry(ctx, &lu_context_remembered, lc_remember) {
+			spin_until_cond(READ_ONCE(ctx->lc_state) != LCS_LEAVING);
 			key_fini(ctx, key->lct_index);
+		}
+
 		write_unlock(&lu_keys_guard);
 	}
 }
@@ -1674,26 +1678,31 @@ void lu_context_exit(struct lu_context *ctx)
 	unsigned int i;
 
 	LINVRNT(ctx->lc_state == LCS_ENTERED);
-	ctx->lc_state = LCS_LEFT;
+	/*
+	 * Ensure lu_context_key_quiesce() sees LCS_LEAVING
+	 * or we see LCT_QUIESCENT
+	 */
+	smp_store_mb(ctx->lc_state, LCS_LEAVING);
+	/*
+	 * Disable preempt to ensure we get a warning if
+	 * any lct_exit ever tries to sleep.  That would hurt
+	 * lu_context_key_quiesce() which spins waiting for us.
+	 */
+	preempt_disable();
 	if (ctx->lc_tags & LCT_HAS_EXIT && ctx->lc_value) {
-		/* could race with key quiescency */
-		if (ctx->lc_tags & LCT_REMEMBER)
-			read_lock(&lu_keys_guard);
-
 		for (i = 0; i < ARRAY_SIZE(lu_keys); ++i) {
-			if (ctx->lc_value[i]) {
-				struct lu_context_key *key;
+			struct lu_context_key *key;
 
-				key = lu_keys[i];
-				if (key->lct_exit)
-					key->lct_exit(ctx,
-						      key, ctx->lc_value[i]);
-			}
+			key = lu_keys[i];
+			if (ctx->lc_value[i] &&
+			    !(key->lct_tags & LCT_QUIESCENT) &&
+			    key->lct_exit)
+				key->lct_exit(ctx, key, ctx->lc_value[i]);
 		}
-
-		if (ctx->lc_tags & LCT_REMEMBER)
-			read_unlock(&lu_keys_guard);
 	}
+
+	preempt_enable();
+	smp_store_release(&ctx->lc_state, LCS_LEFT);
 }
 EXPORT_SYMBOL(lu_context_exit);
 
