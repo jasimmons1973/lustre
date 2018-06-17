@@ -1,5 +1,5 @@
-subdir-ccflags-y += -I$(srctree)/drivers/staging/lustre/include
-subdir-ccflags-y += -I$(srctree)/drivers/staging/lustre/lustre/include
+ccflags-y += -I$(srctree)/drivers/staging/lustre/include
+ccflags-y += -I$(srctree)/drivers/staging/lustre/lustre/include
 
 obj-$(CONFIG_LUSTRE_FS) += osc.o
 osc-y := osc_request.o osc_dev.o osc_object.o \
