@@ -112,14 +112,12 @@ static inline __u32 LNET_MKNET(__u32 type, __u32 num)
 	return (type << 16) | num;
 }
 
-#define WIRE_ATTR	__packed
-
 /* Packed version of lnet_process_id to transfer via network */
 struct lnet_process_id_packed {
 	/* node id / process id */
 	lnet_nid_t	nid;
 	lnet_pid_t	pid;
-} WIRE_ATTR;
+} __packed;
 
 /*
  * The wire handle's interface cookie only matches one network interface in
@@ -130,7 +128,7 @@ struct lnet_process_id_packed {
 struct lnet_handle_wire {
 	__u64	wh_interface_cookie;
 	__u64	wh_object_cookie;
-} WIRE_ATTR;
+} __packed;
 
 enum lnet_msg_type {
 	LNET_MSG_ACK = 0,
@@ -150,7 +148,7 @@ struct lnet_ack {
 	struct lnet_handle_wire	dst_wmd;
 	__u64			match_bits;
 	__u32			mlength;
-} WIRE_ATTR;
+} __packed;
 
 struct lnet_put {
 	struct lnet_handle_wire	ack_wmd;
@@ -158,7 +156,7 @@ struct lnet_put {
 	__u64			hdr_data;
 	__u32			ptl_index;
 	__u32			offset;
-} WIRE_ATTR;
+} __packed;
 
 struct lnet_get {
 	struct lnet_handle_wire	return_wmd;
@@ -166,16 +164,16 @@ struct lnet_get {
 	__u32			ptl_index;
 	__u32			src_offset;
 	__u32			sink_length;
-} WIRE_ATTR;
+} __packed;
 
 struct lnet_reply {
 	struct lnet_handle_wire	dst_wmd;
-} WIRE_ATTR;
+} __packed;
 
 struct lnet_hello {
 	__u64			incarnation;
 	__u32			type;
-} WIRE_ATTR;
+} __packed;
 
 struct lnet_hdr {
 	lnet_nid_t	dest_nid;
@@ -192,7 +190,7 @@ struct lnet_hdr {
 		struct lnet_reply	reply;
 		struct lnet_hello	hello;
 	} msg;
-} WIRE_ATTR;
+} __packed;
 
 /*
  * A HELLO message contains a magic number and protocol version
@@ -208,7 +206,7 @@ struct lnet_magicversion {
 	__u32	magic;		/* LNET_PROTO_TCP_MAGIC */
 	__u16	version_major;	/* increment on incompatible change */
 	__u16	version_minor;	/* increment on compatible change */
-} WIRE_ATTR;
+} __packed;
 
 /* PROTO MAGIC for LNDs */
 #define LNET_PROTO_IB_MAGIC		0x0be91b91
@@ -232,7 +230,7 @@ struct lnet_acceptor_connreq {
 	__u32	acr_magic;		/* PTL_ACCEPTOR_PROTO_MAGIC */
 	__u32	acr_version;		/* protocol version */
 	__u64	acr_nid;		/* target NID */
-} WIRE_ATTR;
+} __packed;
 
 #define LNET_PROTO_ACCEPTOR_VERSION	1
 
@@ -240,7 +238,7 @@ struct lnet_ni_status {
 	lnet_nid_t	ns_nid;
 	__u32		ns_status;
 	__u32		ns_unused;
-} WIRE_ATTR;
+} __packed;
 
 struct lnet_ping_info {
 	__u32			pi_magic;
@@ -248,7 +246,7 @@ struct lnet_ping_info {
 	lnet_pid_t		pi_pid;
 	__u32			pi_nnis;
 	struct lnet_ni_status	pi_ni[0];
-} WIRE_ATTR;
+} __packed;
 
 struct lnet_counters {
 	__u32	msgs_alloc;
@@ -262,7 +260,7 @@ struct lnet_counters {
 	__u64	recv_length;
 	__u64	route_length;
 	__u64	drop_length;
-} WIRE_ATTR;
+} __packed;
 
 #define LNET_NI_STATUS_UP      0x15aac0de
 #define LNET_NI_STATUS_DOWN    0xdeadface

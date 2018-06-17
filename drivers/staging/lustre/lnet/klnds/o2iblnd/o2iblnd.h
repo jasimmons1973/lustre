@@ -359,45 +359,45 @@ struct kib_connparams {
 	__u16        ibcp_queue_depth;
 	__u16        ibcp_max_frags;
 	__u32        ibcp_max_msg_size;
-} WIRE_ATTR;
+} __packed;
 
 struct kib_immediate_msg {
 	struct lnet_hdr	ibim_hdr;        /* portals header */
 	char         ibim_payload[0]; /* piggy-backed payload */
-} WIRE_ATTR;
+} __packed;
 
 struct kib_rdma_frag {
 	__u32        rf_nob;          /* # bytes this frag */
 	__u64        rf_addr;         /* CAVEAT EMPTOR: misaligned!! */
-} WIRE_ATTR;
+} __packed;
 
 struct kib_rdma_desc {
 	__u32           rd_key;       /* local/remote key */
 	__u32           rd_nfrags;    /* # fragments */
 	struct kib_rdma_frag	rd_frags[0];	/* buffer frags */
-} WIRE_ATTR;
+} __packed;
 
 struct kib_putreq_msg {
 	struct lnet_hdr	ibprm_hdr;    /* portals header */
 	__u64           ibprm_cookie; /* opaque completion cookie */
-} WIRE_ATTR;
+} __packed;
 
 struct kib_putack_msg {
 	__u64           ibpam_src_cookie; /* reflected completion cookie */
 	__u64           ibpam_dst_cookie; /* opaque completion cookie */
 	struct kib_rdma_desc ibpam_rd;         /* sender's sink buffer */
-} WIRE_ATTR;
+} __packed;
 
 struct kib_get_msg {
 	struct lnet_hdr ibgm_hdr;     /* portals header */
 	__u64           ibgm_cookie;  /* opaque completion cookie */
 	struct kib_rdma_desc ibgm_rd;      /* rdma descriptor */
-} WIRE_ATTR;
+} __packed;
 
 struct kib_completion_msg {
 	__u64           ibcm_cookie;  /* opaque completion cookie */
 	__s32           ibcm_status;  /* < 0 failure: >= 0 length */
-} WIRE_ATTR;
+} __packed;
 
 struct kib_msg {
 	/* First 2 fields fixed FOR ALL TIME */
@@ -420,8 +420,8 @@ struct kib_msg {
 		struct kib_putack_msg		putack;
 		struct kib_get_msg		get;
 		struct kib_completion_msg	completion;
-	} WIRE_ATTR ibm_u;
-} WIRE_ATTR;
+	} __packed ibm_u;
+} __packed;
 
 #define IBLND_MSG_MAGIC     LNET_PROTO_IB_MAGIC /* unique magic */
 
@@ -447,7 +447,7 @@ struct kib_rej {
 	__u8             ibr_padding;     /* padding */
 	__u64            ibr_incarnation; /* incarnation of peer */
 	struct kib_connparams ibr_cp;          /* connection parameters */
-} WIRE_ATTR;
+} __packed;
 
 /* connection rejection reasons */
 #define IBLND_REJECT_CONN_RACE      1 /* You lost connection race */

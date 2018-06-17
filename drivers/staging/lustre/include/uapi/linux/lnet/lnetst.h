@@ -542,7 +542,7 @@ struct srpc_counters {
 	__u32 rpcs_expired;
 	__u64 bulk_get;
 	__u64 bulk_put;
-} WIRE_ATTR;
+} __packed;
 
 struct sfw_counters {
 	/** milliseconds since current session started */
@@ -551,6 +551,6 @@ struct sfw_counters {
 	__u32 zombie_sessions;
 	__u32 brw_errors;
 	__u32 ping_errors;
-} WIRE_ATTR;
+} __packed;
 
 #endif
