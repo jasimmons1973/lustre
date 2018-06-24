@@ -126,10 +126,21 @@ cfs_cpt_table_alloc(unsigned int ncpt)
 
 		part->cpt_nodemask = kzalloc(sizeof(*part->cpt_nodemask),
 					     GFP_NOFS);
-		if (!part->cpt_nodemask) {
+		if (!part->cpt_nodemask)
+			goto failed_setting_one_part;
+
+		part->cpt_distance = kvmalloc_array(cptab->ctb_nparts,
+						    sizeof(part->cpt_distance[0]),
+						    GFP_KERNEL);
+		if (!part->cpt_distance) {
+			kfree(part->cpt_nodemask);
+		failed_setting_one_part:
 			free_cpumask_var(part->cpt_cpumask);
 			goto failed_setting_ctb_parts;
 		}
+
+		memset(part->cpt_distance, -1,
+		       cptab->ctb_nparts * sizeof(part->cpt_distance[0]));
 	}
 
 	return cptab;
@@ -140,6 +151,7 @@ failed_setting_ctb_parts:
 
 		kfree(part->cpt_nodemask);
 		free_cpumask_var(part->cpt_cpumask);
+		kvfree(part->cpt_distance);
 	}
 
 	kvfree(cptab->ctb_parts);
@@ -170,6 +182,7 @@ cfs_cpt_table_free(struct cfs_cpt_table *cptab)
 
 		kfree(part->cpt_nodemask);
 		free_cpumask_var(part->cpt_cpumask);
+		kvfree(part->cpt_distance);
 	}
 
 	kvfree(cptab->ctb_parts);
@@ -224,6 +237,44 @@ cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len)
 }
 EXPORT_SYMBOL(cfs_cpt_table_print);
 
+int cfs_cpt_distance_print(struct cfs_cpt_table *cptab, char *buf, int len)
+{
+	char *tmp = buf;
+	int rc;
+	int i;
+	int j;
+
+	for (i = 0; i < cptab->ctb_nparts; i++) {
+		if (len <= 0)
+			goto err;
+
+		rc = snprintf(tmp, len, "%d\t:", i);
+		len -= rc;
+
+		if (len <= 0)
+			goto err;
+
+		tmp += rc;
+		for (j = 0; j < cptab->ctb_nparts; j++) {
+			rc = snprintf(tmp, len, " %d:%d", j,
+				      cptab->ctb_parts[i].cpt_distance[j]);
+			len -= rc;
+			if (len <= 0)
+				goto err;
+			tmp += rc;
+		}
+
+		*tmp = '\n';
+		tmp++;
+		len--;
+	}
+
+	return tmp - buf;
+err:
+	return -E2BIG;
+}
+EXPORT_SYMBOL(cfs_cpt_distance_print);
+
 int
 cfs_cpt_number(struct cfs_cpt_table *cptab)
 {
@@ -274,6 +325,18 @@ cfs_cpt_nodemask(struct cfs_cpt_table *cptab, int cpt)
 	       cptab->ctb_nodemask : cptab->ctb_parts[cpt].cpt_nodemask;
 }
 EXPORT_SYMBOL(cfs_cpt_nodemask);
+
+unsigned int cfs_cpt_distance(struct cfs_cpt_table *cptab, int cpt1, int cpt2)
+{
+	LASSERT(cpt1 == CFS_CPT_ANY || (cpt1 >= 0 && cpt1 < cptab->ctb_nparts));
+	LASSERT(cpt2 == CFS_CPT_ANY || (cpt2 >= 0 && cpt2 < cptab->ctb_nparts));
+
+	if (cpt1 == CFS_CPT_ANY || cpt2 == CFS_CPT_ANY)
+		return cptab->ctb_distance;
+
+	return cptab->ctb_parts[cpt1].cpt_distance[cpt2];
+}
+EXPORT_SYMBOL(cfs_cpt_distance);
 
 int
 cfs_cpt_set_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)

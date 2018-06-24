@@ -86,6 +86,8 @@ struct cfs_cpu_partition {
 	cpumask_var_t			cpt_cpumask;
 	/* nodes mask for this partition */
 	nodemask_t			*cpt_nodemask;
+	/* NUMA distance between CPTs */
+	unsigned int			*cpt_distance;
 	/* spread rotor for NUMA allocator */
 	unsigned int			cpt_spread_rotor;
 };
@@ -95,6 +97,8 @@ struct cfs_cpu_partition {
 struct cfs_cpt_table {
 	/* spread rotor for NUMA allocator */
 	unsigned int			ctb_spread_rotor;
+	/* maximum NUMA distance between all nodes in table */
+	unsigned int			ctb_distance;
 	/* # of CPU partitions */
 	unsigned int			ctb_nparts;
 	/* partitions tables */
@@ -119,6 +123,10 @@ cpumask_var_t *cfs_cpt_cpumask(struct cfs_cpt_table *cptab, int cpt);
  * print string information of cpt-table
  */
 int cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len);
+/**
+ * print distance information of cpt-table
+ */
+int cfs_cpt_distance_print(struct cfs_cpt_table *cptab, char *buf, int len);
 /**
  * return total number of CPU partitions in \a cptab
  */
@@ -148,6 +156,10 @@ int cfs_cpt_of_cpu(struct cfs_cpt_table *cptab, int cpu);
  * shadow HW node ID \a NODE to CPU-partition ID by \a cptab
  */
 int cfs_cpt_of_node(struct cfs_cpt_table *cptab, int node);
+/**
+ * NUMA distance between \a cpt1 and \a cpt2 in \a cptab
+ */
+unsigned int cfs_cpt_distance(struct cfs_cpt_table *cptab, int cpt1, int cpt2);
 /**
  * bind current thread on a CPU-partition \a cpt of \a cptab
  */
@@ -206,6 +218,19 @@ void cfs_cpu_fini(void);
 struct cfs_cpt_table;
 #define cfs_cpt_tab ((struct cfs_cpt_table *)NULL)
 
+static inline int cfs_cpt_distance_print(struct cfs_cpt_table *cptab,
+					 char *buf, int len)
+{
+	int rc;
+
+	rc = snprintf(buf, len, "0\t: 0:1\n");
+	len -= rc;
+	if (len <= 0)
+		return -EFBIG;
+
+	return rc;
+}
+
 static inline cpumask_var_t *
 cfs_cpt_cpumask(struct cfs_cpt_table *cptab, int cpt)
 {
@@ -239,6 +264,12 @@ static inline nodemask_t *
 cfs_cpt_nodemask(struct cfs_cpt_table *cptab, int cpt)
 {
 	return NULL;
+}
+
+static inline unsigned int cfs_cpt_distance(struct cfs_cpt_table *cptab,
+					    int cpt1, int cpt2)
+{
+	return 1;
 }
 
 static inline int
