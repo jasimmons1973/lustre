@@ -57,7 +57,7 @@
 #define SOCKNAL_PEER_HASH_SIZE  101   /* # peer lists */
 #define SOCKNAL_RESCHED         100   /* # scheduler loops before reschedule */
 #define SOCKNAL_INSANITY_RECONN 5000  /* connd is trying on reconn infinitely */
-#define SOCKNAL_ENOMEM_RETRY    1     /* jiffies between retries */
+#define SOCKNAL_ENOMEM_RETRY    1     /* seconds between retries */
 
 #define SOCKNAL_SINGLE_FRAG_TX  0     /* disable multi-fragment sends */
 #define SOCKNAL_SINGLE_FRAG_RX  0     /* disable multi-fragment receives */
@@ -210,7 +210,7 @@ struct ksock_nal_data {
 							 * reaper_lock
 							 */
 	wait_queue_head_t       ksnd_reaper_waitq;      /* reaper sleeps here */
-	unsigned long	        ksnd_reaper_waketime;   /* when reaper will wake
+	time64_t		ksnd_reaper_waketime;   /* when reaper will wake
 							 */
 	spinlock_t              ksnd_reaper_lock;       /* serialise */
 
@@ -285,7 +285,7 @@ struct ksock_tx {			   /* transmit packet */
 	struct ksock_conn *tx_conn;        /* owning conn */
 	struct lnet_msg        *tx_lnetmsg;     /* lnet message for lnet_finalize()
 					    */
-	unsigned long     tx_deadline;     /* when (in jiffies) tx times out */
+	time64_t		tx_deadline;	/* when (in secs) tx times out */
 	struct ksock_msg       tx_msg;          /* socklnd message buffer */
 	int               tx_desc_size;    /* size of this descriptor */
 	union {
@@ -340,7 +340,7 @@ struct ksock_conn {
 	struct list_head   ksnc_rx_list;      /* where I enq waiting input or a
 					       * forwarding descriptor
 					       */
-	unsigned long      ksnc_rx_deadline;  /* when (in jiffies) receive times
+	time64_t	   ksnc_rx_deadline;  /* when (in secs) receive times
 					       * out
 					       */
 	__u8               ksnc_rx_started;   /* started receiving a message */
@@ -370,13 +370,13 @@ struct ksock_conn {
 	struct ksock_tx	  *ksnc_tx_carrier;   /* next TX that can carry a LNet
 					       * message or ZC-ACK
 					       */
-	unsigned long      ksnc_tx_deadline;  /* when (in jiffies) tx times out
+	time64_t	   ksnc_tx_deadline;  /* when (in secs) tx times out
 					       */
 	int                ksnc_tx_bufnob;    /* send buffer marker */
 	atomic_t           ksnc_tx_nob;       /* # bytes queued */
 	int		   ksnc_tx_ready;     /* write space */
 	int		   ksnc_tx_scheduled; /* being progressed */
-	unsigned long      ksnc_tx_last_post; /* time stamp of the last posted
+	time64_t	   ksnc_tx_last_post; /* time stamp of the last posted
 					       * TX
 					       */
 };
@@ -386,10 +386,10 @@ struct ksock_route {
 	struct list_head  ksnr_connd_list;     /* chain on ksnr_connd_routes */
 	struct ksock_peer *ksnr_peer;          /* owning peer */
 	atomic_t          ksnr_refcount;       /* # users */
-	unsigned long     ksnr_timeout;        /* when (in jiffies) reconnection
+	time64_t	  ksnr_timeout;        /* when (in secs) reconnection
 						* can happen next
 						*/
-	long              ksnr_retry_interval; /* how long between retries */
+	time64_t	  ksnr_retry_interval; /* how long between retries */
 	__u32             ksnr_myipaddr;       /* my IP */
 	__u32             ksnr_ipaddr;         /* IP address to connect to */
 	int               ksnr_port;           /* port to connect to */
@@ -411,7 +411,7 @@ struct ksock_route {
 
 struct ksock_peer {
 	struct list_head   ksnp_list;           /* stash on global peer list */
-	unsigned long      ksnp_last_alive;     /* when (in jiffies) I was last
+	time64_t	   ksnp_last_alive;     /* when (in seconds) I was last
 						 * alive
 						 */
 	struct lnet_process_id  ksnp_id;	/* who's on the other end(s) */
@@ -432,7 +432,7 @@ struct ksock_peer {
 	struct list_head   ksnp_zc_req_list;    /* zero copy requests wait for
 						 * ACK
 						 */
-	unsigned long      ksnp_send_keepalive; /* time to send keepalive */
+	time64_t	   ksnp_send_keepalive; /* time to send keepalive */
 	struct lnet_ni	   *ksnp_ni;		/* which network */
 	int                ksnp_n_passive_ips;  /* # of... */
 

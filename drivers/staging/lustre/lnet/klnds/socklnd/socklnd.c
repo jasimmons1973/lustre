@@ -1276,7 +1276,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	}
 
 	conn->ksnc_peer = peer;		 /* conn takes my ref on peer */
-	peer->ksnp_last_alive = jiffies;
+	peer->ksnp_last_alive = ktime_get_seconds();
 	peer->ksnp_send_keepalive = 0;
 	peer->ksnp_error = 0;
 
@@ -1284,10 +1284,11 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	sched->kss_nconns++;
 	conn->ksnc_scheduler = sched;
 
-	conn->ksnc_tx_last_post = jiffies;
+	conn->ksnc_tx_last_post = ktime_get_seconds();
 	/* Set the deadline for the outgoing HELLO to drain */
 	conn->ksnc_tx_bufnob = sock->sk->sk_wmem_queued;
-	conn->ksnc_tx_deadline = jiffies + *ksocknal_tunables.ksnd_timeout * HZ;
+	conn->ksnc_tx_deadline = ktime_get_seconds() +
+				 *ksocknal_tunables.ksnd_timeout;
 	mb();   /* order with adding to peer's conn list */
 
 	list_add(&conn->ksnc_list, &peer->ksnp_conns);
@@ -1515,7 +1516,7 @@ void
 ksocknal_peer_failed(struct ksock_peer *peer)
 {
 	int notify = 0;
-	unsigned long last_alive = 0;
+	time64_t last_alive = 0;
 
 	/*
 	 * There has been a connection failure or comms error; but I'll only
@@ -1536,7 +1537,7 @@ ksocknal_peer_failed(struct ksock_peer *peer)
 
 	if (notify)
 		lnet_notify(peer->ksnp_ni, peer->ksnp_id.nid, 0,
-			    last_alive);
+			    last_alive * HZ);
 }
 
 void
@@ -1660,7 +1661,7 @@ ksocknal_queue_zombie_conn(struct ksock_conn *conn)
 void
 ksocknal_destroy_conn(struct ksock_conn *conn)
 {
-	unsigned long last_rcv;
+	time64_t last_rcv;
 
 	/* Final coup-de-grace of the reaper */
 	CDEBUG(D_NET, "connection %p\n", conn);
@@ -1677,12 +1678,12 @@ ksocknal_destroy_conn(struct ksock_conn *conn)
 	switch (conn->ksnc_rx_state) {
 	case SOCKNAL_RX_LNET_PAYLOAD:
 		last_rcv = conn->ksnc_rx_deadline -
-			   *ksocknal_tunables.ksnd_timeout * HZ;
-		CERROR("Completing partial receive from %s[%d], ip %pI4h:%d, with error, wanted: %zd, left: %d, last alive is %ld secs ago\n",
+			   *ksocknal_tunables.ksnd_timeout;
+		CERROR("Completing partial receive from %s[%d], ip %pI4h:%d, with error, wanted: %zd, left: %d, last alive is %lld secs ago\n",
 		       libcfs_id2str(conn->ksnc_peer->ksnp_id), conn->ksnc_type,
 		       &conn->ksnc_ipaddr, conn->ksnc_port,
 		       iov_iter_count(&conn->ksnc_rx_to), conn->ksnc_rx_nob_left,
-		       (jiffies - last_rcv) / HZ);
+		       ktime_get_seconds() - last_rcv);
 		lnet_finalize(conn->ksnc_peer->ksnp_ni,
 			      conn->ksnc_cookie, -EIO);
 		break;
@@ -1830,8 +1831,8 @@ void
 ksocknal_query(struct lnet_ni *ni, lnet_nid_t nid, unsigned long *when)
 {
 	int connect = 1;
-	unsigned long last_alive = 0;
-	unsigned long now = jiffies;
+	time64_t last_alive = 0;
+	time64_t now = ktime_get_seconds();
 	struct ksock_peer *peer = NULL;
 	rwlock_t *glock = &ksocknal_data.ksnd_global_lock;
 	struct lnet_process_id id = {
@@ -1851,8 +1852,8 @@ ksocknal_query(struct lnet_ni *ni, lnet_nid_t nid, unsigned long *when)
 
 			if (bufnob < conn->ksnc_tx_bufnob) {
 				/* something got ACKed */
-				conn->ksnc_tx_deadline =
-					jiffies + *ksocknal_tunables.ksnd_timeout * HZ;
+				conn->ksnc_tx_deadline = ktime_get_seconds() +
+							 *ksocknal_tunables.ksnd_timeout;
 				peer->ksnp_last_alive = now;
 				conn->ksnc_tx_bufnob = bufnob;
 			}
@@ -1866,11 +1867,11 @@ ksocknal_query(struct lnet_ni *ni, lnet_nid_t nid, unsigned long *when)
 	read_unlock(glock);
 
 	if (last_alive)
-		*when = last_alive;
+		*when = last_alive * HZ;
 
-	CDEBUG(D_NET, "Peer %s %p, alive %ld secs ago, connect %d\n",
+	CDEBUG(D_NET, "Peer %s %p, alive %lld secs ago, connect %d\n",
 	       libcfs_nid2str(nid), peer,
-	       last_alive ? (now - last_alive) / HZ : -1,
+	       last_alive ? now - last_alive : -1,
 	       connect);
 
 	if (!connect)
