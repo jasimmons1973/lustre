@@ -1146,7 +1146,7 @@ int cfs_cpu_init(void)
 
 	put_online_cpus();
 
-	LCONSOLE(0, "HW nodes: %d, HW CPU cores: %d, npartitions: %d\n",
+	LCONSOLE(0, "HW NUMA nodes: %d, HW CPU cores: %d, npartitions: %d\n",
 		 num_online_nodes(), num_online_cpus(),
 		 cfs_cpt_number(cfs_cpt_tab));
 	return 0;
