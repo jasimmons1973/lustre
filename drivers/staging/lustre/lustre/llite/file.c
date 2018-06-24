@@ -93,9 +93,10 @@ static void ll_prepare_close(struct inode *inode, struct md_op_data *op_data,
 	op_data->op_attr.ia_mtime = inode->i_mtime;
 	op_data->op_attr.ia_ctime = inode->i_ctime;
 	op_data->op_attr.ia_size = i_size_read(inode);
-	op_data->op_attr.ia_valid |= ATTR_MODE | ATTR_ATIME | ATTR_ATIME_SET |
-				     ATTR_MTIME | ATTR_MTIME_SET |
-				     ATTR_CTIME | ATTR_CTIME_SET;
+	op_data->op_attr.ia_valid |= (ATTR_MODE | ATTR_ATIME | ATTR_ATIME_SET |
+				      ATTR_MTIME | ATTR_MTIME_SET |
+				      ATTR_CTIME);
+	op_data->op_xvalid |= OP_ATTR_CTIME_SET;
 	op_data->op_attr_blocks = inode->i_blocks;
 	op_data->op_attr_flags = ll_inode_to_ext_flags(inode->i_flags);
 	op_data->op_handle = och->och_fh;
@@ -161,7 +162,8 @@ static int ll_close_inode_openhandle(struct inode *inode,
 		op_data->op_bias |= MDS_HSM_RELEASE;
 		op_data->op_data_version = *(__u64 *)data;
 		op_data->op_lease_handle = och->och_lease_handle;
-		op_data->op_attr.ia_valid |= ATTR_SIZE | ATTR_BLOCKS;
+		op_data->op_attr.ia_valid |= ATTR_SIZE;
+		op_data->op_xvalid |= OP_ATTR_BLOCKS;
 		break;
 
 	default:
@@ -1906,7 +1908,7 @@ static int ll_hsm_import(struct inode *inode, struct file *file,
 
 	inode_lock(inode);
 
-	rc = ll_setattr_raw(file->f_path.dentry, attr, true);
+	rc = ll_setattr_raw(file->f_path.dentry, attr, 0, true);
 	if (rc == -ENODATA)
 		rc = 0;
 

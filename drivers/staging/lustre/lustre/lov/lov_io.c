@@ -77,7 +77,8 @@ static void lov_io_sub_inherit(struct cl_io *io, struct lov_io *lio,
 		io->u.ci_setattr.sa_attr = parent->u.ci_setattr.sa_attr;
 		io->u.ci_setattr.sa_attr_flags =
 					parent->u.ci_setattr.sa_attr_flags;
-		io->u.ci_setattr.sa_valid = parent->u.ci_setattr.sa_valid;
+		io->u.ci_setattr.sa_avalid = parent->u.ci_setattr.sa_avalid;
+		io->u.ci_setattr.sa_xvalid = parent->u.ci_setattr.sa_xvalid;
 		io->u.ci_setattr.sa_stripe_index = stripe;
 		io->u.ci_setattr.sa_parent_fid =
 					parent->u.ci_setattr.sa_parent_fid;

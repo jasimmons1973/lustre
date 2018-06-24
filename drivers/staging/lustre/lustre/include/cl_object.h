@@ -1773,7 +1773,8 @@ struct cl_io {
 		struct cl_setattr_io {
 			struct ost_lvb   sa_attr;
 			unsigned int		 sa_attr_flags;
-			unsigned int     sa_valid;
+			unsigned int     sa_avalid;
+			unsigned int     sa_xvalid;
 			int		sa_stripe_index;
 			const struct lu_fid	*sa_parent_fid;
 		} ci_setattr;
@@ -2304,7 +2305,7 @@ static inline int cl_io_is_mkwrite(const struct cl_io *io)
 static inline int cl_io_is_trunc(const struct cl_io *io)
 {
 	return io->ci_type == CIT_SETATTR &&
-		(io->u.ci_setattr.sa_valid & ATTR_SIZE);
+		(io->u.ci_setattr.sa_avalid & ATTR_SIZE);
 }
 
 struct cl_io *cl_io_top(struct cl_io *io);

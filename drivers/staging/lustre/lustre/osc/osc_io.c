@@ -499,7 +499,8 @@ static int osc_io_setattr_start(const struct lu_env *env,
 	struct obdo *oa = &oio->oi_oa;
 	struct osc_async_cbargs *cbargs = &oio->oi_cbarg;
 	__u64 size = io->u.ci_setattr.sa_attr.lvb_size;
-	unsigned int ia_valid = io->u.ci_setattr.sa_valid;
+	unsigned int ia_avalid = io->u.ci_setattr.sa_avalid;
+	unsigned int ia_xvalid = io->u.ci_setattr.sa_xvalid;
 	int result = 0;
 
 	/* truncate cache dirty pages first */
@@ -514,20 +515,20 @@ static int osc_io_setattr_start(const struct lu_env *env,
 			struct ost_lvb *lvb = &io->u.ci_setattr.sa_attr;
 			unsigned int cl_valid = 0;
 
-			if (ia_valid & ATTR_SIZE) {
+			if (ia_avalid & ATTR_SIZE) {
 				attr->cat_size = size;
 				attr->cat_kms = size;
 				cl_valid = CAT_SIZE | CAT_KMS;
 			}
-			if (ia_valid & ATTR_MTIME_SET) {
+			if (ia_avalid & ATTR_MTIME_SET) {
 				attr->cat_mtime = lvb->lvb_mtime;
 				cl_valid |= CAT_MTIME;
 			}
-			if (ia_valid & ATTR_ATIME_SET) {
+			if (ia_avalid & ATTR_ATIME_SET) {
 				attr->cat_atime = lvb->lvb_atime;
 				cl_valid |= CAT_ATIME;
 			}
-			if (ia_valid & ATTR_CTIME_SET) {
+			if (ia_xvalid & OP_ATTR_CTIME_SET) {
 				attr->cat_ctime = lvb->lvb_ctime;
 				cl_valid |= CAT_CTIME;
 			}
@@ -542,19 +543,19 @@ static int osc_io_setattr_start(const struct lu_env *env,
 		obdo_set_parent_fid(oa, io->u.ci_setattr.sa_parent_fid);
 		oa->o_stripe_idx = io->u.ci_setattr.sa_stripe_index;
 		oa->o_valid |= OBD_MD_FLID | OBD_MD_FLGROUP;
-		if (ia_valid & ATTR_CTIME) {
+		if (ia_avalid & ATTR_CTIME) {
 			oa->o_valid |= OBD_MD_FLCTIME;
 			oa->o_ctime = attr->cat_ctime;
 		}
-		if (ia_valid & ATTR_ATIME) {
+		if (ia_avalid & ATTR_ATIME) {
 			oa->o_valid |= OBD_MD_FLATIME;
 			oa->o_atime = attr->cat_atime;
 		}
-		if (ia_valid & ATTR_MTIME) {
+		if (ia_avalid & ATTR_MTIME) {
 			oa->o_valid |= OBD_MD_FLMTIME;
 			oa->o_mtime = attr->cat_mtime;
 		}
-		if (ia_valid & ATTR_SIZE) {
+		if (ia_avalid & ATTR_SIZE) {
 			oa->o_size = size;
 			oa->o_blocks = OBD_OBJECT_EOF;
 			oa->o_valid |= OBD_MD_FLSIZE | OBD_MD_FLBLOCKS;
@@ -566,14 +567,14 @@ static int osc_io_setattr_start(const struct lu_env *env,
 		} else {
 			LASSERT(oio->oi_lockless == 0);
 		}
-		if (ia_valid & ATTR_ATTR_FLAG) {
+		if (ia_xvalid & OP_ATTR_FLAGS) {
 			oa->o_flags = io->u.ci_setattr.sa_attr_flags;
 			oa->o_valid |= OBD_MD_FLFLAGS;
 		}
 
 		init_completion(&cbargs->opc_sync);
 
-		if (ia_valid & ATTR_SIZE)
+		if (ia_avalid & ATTR_SIZE)
 			result = osc_punch_base(osc_export(cl2osc(obj)),
 						oa, osc_async_upcall,
 						cbargs, PTLRPCD_SET);

@@ -556,7 +556,7 @@ static int vvp_io_setattr_lock(const struct lu_env *env,
 		if (new_size == 0)
 			enqflags = CEF_DISCARD_DATA;
 	} else {
-		unsigned int valid = io->u.ci_setattr.sa_valid;
+		unsigned int valid = io->u.ci_setattr.sa_avalid;
 
 		if (!(valid & TIMES_SET_FLAGS))
 			return 0;
@@ -603,11 +603,11 @@ static int vvp_io_setattr_time(const struct lu_env *env,
 
 	cl_object_attr_lock(obj);
 	attr->cat_ctime = io->u.ci_setattr.sa_attr.lvb_ctime;
-	if (io->u.ci_setattr.sa_valid & ATTR_ATIME_SET) {
+	if (io->u.ci_setattr.sa_avalid & ATTR_ATIME_SET) {
 		attr->cat_atime = io->u.ci_setattr.sa_attr.lvb_atime;
 		valid |= CAT_ATIME;
 	}
-	if (io->u.ci_setattr.sa_valid & ATTR_MTIME_SET) {
+	if (io->u.ci_setattr.sa_avalid & ATTR_MTIME_SET) {
 		attr->cat_mtime = io->u.ci_setattr.sa_attr.lvb_mtime;
 		valid |= CAT_MTIME;
 	}
@@ -632,7 +632,7 @@ static int vvp_io_setattr_start(const struct lu_env *env,
 		inode_lock(inode);
 	}
 
-	if (io->u.ci_setattr.sa_valid & TIMES_SET_FLAGS)
+	if (io->u.ci_setattr.sa_avalid & TIMES_SET_FLAGS)
 		return vvp_io_setattr_time(env, ios);
 
 	return 0;

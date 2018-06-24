@@ -723,6 +723,7 @@ struct md_op_data {
 
 	/* iattr fields and blocks. */
 	struct iattr	    op_attr;
+	unsigned int		op_xvalid; /* eXtra validity flags */
 	unsigned int	    op_attr_flags;
 	__u64		   op_valid;
 	loff_t		  op_attr_blocks;
@@ -750,6 +751,12 @@ struct md_op_data {
 	/* default stripe offset */
 	__u32			op_default_stripe_offset;
 };
+
+/* Flags for op_xvalid */
+#define OP_ATTR_CTIME_SET	(1 << 0)
+#define OP_ATTR_BLOCKS		(1 << 1)
+#define OP_ATTR_OWNEROVERRIDE	(1 << 2)
+#define OP_ATTR_FLAGS		(1 << 3)
 
 struct md_callback {
 	int (*md_blocking_ast)(struct ldlm_lock *lock,

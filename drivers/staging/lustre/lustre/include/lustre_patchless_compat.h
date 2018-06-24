@@ -41,12 +41,4 @@
 #include <linux/hash.h>
 #include <linux/pagemap.h>
 
-#ifndef ATTR_CTIME_SET
-/*
- * set ATTR_CTIME_SET to a high value to avoid any risk of collision with other
- * ATTR_* attributes (see bug 13828)
- */
-#define ATTR_CTIME_SET (1 << 28)
-#endif
-
 #endif /* LUSTRE_PATCHLESS_COMPAT_H */

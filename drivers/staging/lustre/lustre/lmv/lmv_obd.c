@@ -1983,8 +1983,9 @@ static int lmv_setattr(struct obd_export *exp, struct md_op_data *op_data,
 	struct lmv_obd	  *lmv = &obd->u.lmv;
 	struct lmv_tgt_desc     *tgt;
 
-	CDEBUG(D_INODE, "SETATTR for " DFID ", valid 0x%x\n",
-	       PFID(&op_data->op_fid1), op_data->op_attr.ia_valid);
+	CDEBUG(D_INODE, "SETATTR for " DFID ", valid 0x%x/0x%x\n",
+	       PFID(&op_data->op_fid1), op_data->op_attr.ia_valid,
+		op_data->op_xvalid);
 
 	op_data->op_flags |= MF_MDC_CANCEL_FID1;
 	tgt = lmv_find_target(lmv, &op_data->op_fid1);
