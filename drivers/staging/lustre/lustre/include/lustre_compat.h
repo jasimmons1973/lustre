@@ -49,13 +49,6 @@
 #define module_init(a)     late_initcall(a)
 #endif
 
-#ifndef QUOTA_OK
-# define QUOTA_OK 0
-#endif
-#ifndef NO_QUOTA
-# define NO_QUOTA (-EDQUOT)
-#endif
-
 #if !defined(_ASM_GENERIC_BITOPS_EXT2_NON_ATOMIC_H_) && !defined(ext2_set_bit)
 # define ext2_set_bit	     __test_and_set_bit_le
 # define ext2_clear_bit	   __test_and_clear_bit_le

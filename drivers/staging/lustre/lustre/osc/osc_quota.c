@@ -64,11 +64,11 @@ int osc_quota_chkdq(struct client_obd *cli, const unsigned int qid[])
 			 */
 			CDEBUG(D_QUOTA, "chkdq found noquota for %s %d\n",
 			       type == USRQUOTA ? "user" : "grout", qid[type]);
-			return NO_QUOTA;
+			return -EDQUOT;
 		}
 	}
 
-	return QUOTA_OK;
+	return 0;
 }
 
 static void osc_quota_free(struct rcu_head *head)
