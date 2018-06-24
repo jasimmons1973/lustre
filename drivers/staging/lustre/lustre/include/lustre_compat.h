@@ -39,14 +39,4 @@
 #include <linux/cred.h>
 #include <linux/module.h>
 
-/*
- * OBD need working random driver, thus all our
- * initialization routines must be called after device
- * driver initialization
- */
-#ifndef MODULE
-#undef module_init
-#define module_init(a)     late_initcall(a)
-#endif
-
 #endif /* _LUSTRE_COMPAT_H */
