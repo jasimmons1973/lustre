@@ -53,6 +53,12 @@
 #include <obd_class.h>
 #include <lustre_lib.h>
 #include "ldlm_internal.h"
+#include <linux/interval_tree_generic.h>
+
+#define START(node) ((node)->l_policy_data.l_extent.start)
+#define LAST(node) ((node)->l_policy_data.l_extent.end)
+INTERVAL_TREE_DEFINE(struct ldlm_lock, l_rb, __u64, __subtree_last,
+		     START, LAST, static, extent);
 
 /* When a lock is cancelled by a client, the KMS may undergo change if this
  * is the "highest lock".  This function returns the new KMS value.
@@ -108,26 +114,20 @@ static inline int lock_mode_to_index(enum ldlm_mode mode)
 void ldlm_extent_add_lock(struct ldlm_resource *res,
 			  struct ldlm_lock *lock)
 {
-	struct interval_node **root;
-	struct ldlm_extent *extent;
-	int idx, rc;
+	struct ldlm_interval_tree *tree;
+	int idx;
 
 	LASSERT(lock->l_granted_mode == lock->l_req_mode);
 
-	LASSERT(!interval_is_intree(&lock->l_tree_node));
+	LASSERT(RB_EMPTY_NODE(&lock->l_rb));
 
 	idx = lock_mode_to_index(lock->l_granted_mode);
 	LASSERT(lock->l_granted_mode == 1 << idx);
 	LASSERT(lock->l_granted_mode == res->lr_itree[idx].lit_mode);
 
-	/* node extent initialize */
-	extent = &lock->l_policy_data.l_extent;
-	rc = interval_set(&lock->l_tree_node, extent->start, extent->end);
-	LASSERT(!rc);
-
-	root = &res->lr_itree[idx].lit_root;
-	interval_insert(&lock->l_tree_node, root);
-	res->lr_itree[idx].lit_size++;
+	tree = &res->lr_itree[idx];
+	extent_insert(lock, &tree->lit_root);
+	tree->lit_size++;
 
 	/* even though we use interval tree to manage the extent lock, we also
 	 * add the locks into grant list, for debug purpose, ..
@@ -163,17 +163,15 @@ void ldlm_extent_unlink_lock(struct ldlm_lock *lock)
 	struct ldlm_interval_tree *tree;
 	int idx;
 
-	if (!interval_is_intree(&lock->l_tree_node)) /* duplicate unlink */
+	if (RB_EMPTY_NODE(&lock->l_rb)) /* duplicate unlink */
 		return;
 
 	idx = lock_mode_to_index(lock->l_granted_mode);
 	LASSERT(lock->l_granted_mode == 1 << idx);
 	tree = &res->lr_itree[idx];
 
-	LASSERT(tree->lit_root); /* assure the tree is not null */
-
 	tree->lit_size--;
-	interval_erase(&lock->l_tree_node, &tree->lit_root);
+	extent_remove(lock, &tree->lit_root);
 }
 
 void ldlm_extent_policy_wire_to_local(const union ldlm_wire_policy_data *wpolicy,
@@ -193,29 +191,16 @@ void ldlm_extent_policy_local_to_wire(const union ldlm_policy_data *lpolicy,
 	wpolicy->l_extent.gid = lpolicy->l_extent.gid;
 }
 
-struct cb {
-	void *arg;
-	bool (*found)(struct ldlm_lock *lock, void *arg);
-};
-
-static enum interval_iter itree_overlap_cb(struct interval_node *in, void *arg)
-{
-	struct cb *cb = arg;
-	struct ldlm_lock *lock = container_of(in, struct ldlm_lock,
-					      l_tree_node);
-
-	return cb->found(lock, cb->arg) ?
-		INTERVAL_ITER_STOP : INTERVAL_ITER_CONT;
-}
-
-void ldlm_extent_search(struct interval_node *root,
-			struct interval_node_extent *ext,
+void ldlm_extent_search(struct rb_root_cached *root,
+			__u64 start, __u64 end,
 			bool (*matches)(struct ldlm_lock *lock, void *data),
 			void *data)
 {
-	struct cb cb = {
-		.arg = data,
-		.found = matches,
-	};
-	interval_search(root, ext, itree_overlap_cb, &cb);
+	struct ldlm_lock *lock;
+
+	for (lock = extent_iter_first(root, start, end);
+	     lock;
+	     lock = extent_iter_next(lock, start, end))
+		if (matches(lock, data))
+			break;
 }

@@ -49,7 +49,6 @@
 #include <lustre_net.h>
 #include <lustre_import.h>
 #include <lustre_handles.h>
-#include <interval_tree.h>	/* for interval_node{}, ldlm_extent */
 #include <lu_ref.h>
 
 #include "lustre_dlm_flags.h"
@@ -523,7 +522,7 @@ struct ldlm_interval_tree {
 	/** Tree size. */
 	int			lit_size;
 	enum ldlm_mode		lit_mode;  /* lock mode */
-	struct interval_node	*lit_root; /* actual ldlm_interval */
+	struct rb_root_cached	lit_root; /* actual interval tree */
 };
 
 /** Whether to track references to exports by LDLM locks. */
@@ -619,9 +618,11 @@ struct ldlm_lock {
 	 */
 	struct list_head		l_res_link;
 	/**
-	 * Tree node for ldlm_extent.
+	 * Interval-tree node for ldlm_extent.
 	 */
-	struct interval_node	l_tree_node;
+	struct rb_node		l_rb;
+	__u64			__subtree_last;
+
 	/**
 	 * Requested mode.
 	 * Protected by lr_lock.

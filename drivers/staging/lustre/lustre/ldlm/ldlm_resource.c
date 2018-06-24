@@ -1017,7 +1017,7 @@ static struct ldlm_resource *ldlm_resource_new(void)
 	for (idx = 0; idx < LCK_MODE_NUM; idx++) {
 		res->lr_itree[idx].lit_size = 0;
 		res->lr_itree[idx].lit_mode = 1 << idx;
-		res->lr_itree[idx].lit_root = NULL;
+		res->lr_itree[idx].lit_root = RB_ROOT_CACHED;
 	}
 
 	atomic_set(&res->lr_refcount, 1);

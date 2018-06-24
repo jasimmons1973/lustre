@@ -405,6 +405,7 @@ static struct ldlm_lock *ldlm_lock_new(struct ldlm_resource *resource)
 	lock->l_blocking_lock = NULL;
 	INIT_LIST_HEAD(&lock->l_sl_mode);
 	INIT_LIST_HEAD(&lock->l_sl_policy);
+	RB_CLEAR_NODE(&lock->l_rb);
 
 	lprocfs_counter_incr(ldlm_res_to_ns(resource)->ns_stats,
 			     LDLM_NSS_LOCKS);
@@ -1147,22 +1148,20 @@ static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 static struct ldlm_lock *search_itree(struct ldlm_resource *res,
 				      struct lock_match_data *data)
 {
-	struct interval_node_extent ext = {
-		.start	= data->lmd_policy->l_extent.start,
-		.end	= data->lmd_policy->l_extent.end
-	};
 	int idx;
 
 	for (idx = 0; idx < LCK_MODE_NUM; idx++) {
 		struct ldlm_interval_tree *tree = &res->lr_itree[idx];
 
-		if (!tree->lit_root)
+		if (RB_EMPTY_ROOT(&tree->lit_root.rb_root))
 			continue;
 
 		if (!(tree->lit_mode & *data->lmd_mode))
 			continue;
 
-		ldlm_extent_search(tree->lit_root, &ext,
+		ldlm_extent_search(&tree->lit_root,
+				   data->lmd_policy->l_extent.start,
+				   data->lmd_policy->l_extent.end,
 				   lock_matches, data);
 	}
 	return data->lmd_lock;
