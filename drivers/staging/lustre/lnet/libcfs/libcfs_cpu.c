@@ -198,29 +198,26 @@ int
 cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len)
 {
 	char *tmp = buf;
-	int rc = 0;
+	int rc;
 	int i;
 	int j;
 
 	for (i = 0; i < cptab->ctb_nparts; i++) {
-		if (len > 0) {
-			rc = snprintf(tmp, len, "%d\t:", i);
-			len -= rc;
-		}
+		if (len <= 0)
+			goto err;
 
-		if (len <= 0) {
-			rc = -EFBIG;
-			goto out;
-		}
+		rc = snprintf(tmp, len, "%d\t:", i);
+		len -= rc;
+
+		if (len <= 0)
+			goto err;
 
 		tmp += rc;
 		for_each_cpu(j, cptab->ctb_parts[i].cpt_cpumask) {
 			rc = snprintf(tmp, len, " %d", j);
 			len -= rc;
-			if (len <= 0) {
-				rc = -EFBIG;
-				goto out;
-			}
+			if (len <= 0)
+				goto err;
 			tmp += rc;
 		}
 
@@ -229,11 +226,9 @@ cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len)
 		len--;
 	}
 
- out:
-	if (rc < 0)
-		return rc;
-
 	return tmp - buf;
+err:
+	return -E2BIG;
 }
 EXPORT_SYMBOL(cfs_cpt_table_print);
 
