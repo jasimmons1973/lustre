@@ -189,23 +189,6 @@ __u64 ldlm_pool_get_slv(struct ldlm_pool *pl);
 void ldlm_pool_set_clv(struct ldlm_pool *pl, __u64 clv);
 __u32 ldlm_pool_get_lvf(struct ldlm_pool *pl);
 
-/* interval tree, for LDLM_EXTENT. */
-extern struct kmem_cache *ldlm_interval_slab; /* slab cache for ldlm_interval */
-struct ldlm_interval *ldlm_interval_detach(struct ldlm_lock *l);
-struct ldlm_interval *ldlm_interval_alloc(struct ldlm_lock *lock);
-void ldlm_interval_free(struct ldlm_interval *node);
-/* this function must be called with res lock held */
-static inline struct ldlm_extent *
-ldlm_interval_extent(struct ldlm_interval *node)
-{
-	struct ldlm_lock *lock;
-
-	LASSERT(!list_empty(&node->li_group));
-
-	lock = list_entry(node->li_group.next, struct ldlm_lock, l_sl_policy);
-	return &lock->l_policy_data.l_extent;
-}
-
 int ldlm_init(void);
 void ldlm_exit(void);
 

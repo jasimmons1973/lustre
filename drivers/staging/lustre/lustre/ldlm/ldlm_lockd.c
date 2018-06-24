@@ -1134,14 +1134,6 @@ int ldlm_init(void)
 		return -ENOMEM;
 	}
 
-	ldlm_interval_slab = kmem_cache_create("interval_node",
-					       sizeof(struct ldlm_interval),
-					       0, SLAB_HWCACHE_ALIGN, NULL);
-	if (!ldlm_interval_slab) {
-		kmem_cache_destroy(ldlm_resource_slab);
-		kmem_cache_destroy(ldlm_lock_slab);
-		return -ENOMEM;
-	}
 #if LUSTRE_TRACKS_LOCK_EXP_REFS
 	class_export_dump_hook = ldlm_dump_export_locks;
 #endif
@@ -1159,5 +1151,4 @@ void ldlm_exit(void)
 	 */
 	synchronize_rcu();
 	kmem_cache_destroy(ldlm_lock_slab);
-	kmem_cache_destroy(ldlm_interval_slab);
 }

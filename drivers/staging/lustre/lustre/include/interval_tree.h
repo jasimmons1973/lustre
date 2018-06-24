@@ -100,8 +100,8 @@ static inline int interval_set(struct interval_node *node,
 typedef enum interval_iter (*interval_callback_t)(struct interval_node *node,
 						  void *args);
 
-struct interval_node *interval_insert(struct interval_node *node,
-				      struct interval_node **root);
+void interval_insert(struct interval_node *node,
+		     struct interval_node **root);
 void interval_erase(struct interval_node *node, struct interval_node **root);
 
 /*

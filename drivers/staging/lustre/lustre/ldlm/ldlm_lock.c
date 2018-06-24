@@ -185,7 +185,6 @@ void ldlm_lock_put(struct ldlm_lock *lock)
 
 		kfree(lock->l_lvb_data);
 
-		ldlm_interval_free(ldlm_interval_detach(lock));
 		lu_ref_fini(&lock->l_reference);
 		OBD_FREE_RCU(lock, sizeof(*lock), &lock->l_handle);
 	}
@@ -1138,17 +1137,10 @@ static int lock_matches(struct ldlm_lock *lock, struct lock_match_data *data)
 
 static enum interval_iter itree_overlap_cb(struct interval_node *in, void *args)
 {
-	struct ldlm_interval *node = to_ldlm_interval(in);
 	struct lock_match_data *data = args;
-	struct ldlm_lock *lock;
-	int rc;
+	struct ldlm_lock *lock = container_of(in, struct ldlm_lock, l_tree_node);
 
-	list_for_each_entry(lock, &node->li_group, l_sl_policy) {
-		rc = lock_matches(lock, data);
-		if (rc == INTERVAL_ITER_STOP)
-			return INTERVAL_ITER_STOP;
-	}
-	return INTERVAL_ITER_CONT;
+	return lock_matches(lock, data);
 }
 
 /**
@@ -1564,15 +1556,6 @@ struct ldlm_lock *ldlm_lock_create(struct ldlm_namespace *ns,
 		lock->l_glimpse_ast = cbs->lcs_glimpse;
 	}
 
-	lock->l_tree_node = NULL;
-	/* if this is the extent lock, allocate the interval tree node */
-	if (type == LDLM_EXTENT) {
-		if (!ldlm_interval_alloc(lock)) {
-			rc = -ENOMEM;
-			goto out;
-		}
-	}
-
 	if (lvb_len) {
 		lock->l_lvb_len = lvb_len;
 		lock->l_lvb_data = kzalloc(lvb_len, GFP_NOFS);
@@ -1624,10 +1607,6 @@ enum ldlm_error ldlm_lock_enqueue(struct ldlm_namespace *ns,
 	}
 
 	ldlm_resource_unlink_lock(lock);
-
-	/* Cannot happen unless on the server */
-	if (res->lr_type == LDLM_EXTENT && !lock->l_tree_node)
-		LBUG();
 
 	/* Some flags from the enqueue want to make it into the AST, via the
 	 * lock's l_flags.

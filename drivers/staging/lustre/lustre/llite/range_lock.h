@@ -47,14 +47,6 @@ struct range_lock {
 	 */
 	struct task_struct	*rl_task;
 	/**
-	 * List of locks with the same range.
-	 */
-	struct list_head	rl_next_lock;
-	/**
-	 * Number of locks in the list rl_next_lock
-	 */
-	unsigned int		rl_lock_count;
-	/**
 	 * Number of ranges which are blocking acquisition of the lock
 	 */
 	unsigned int		rl_blocking_ranges;

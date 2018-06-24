@@ -97,11 +97,6 @@ static inline int extent_overlapped(struct interval_node_extent *e1,
 	return (e1->start <= e2->end) && (e2->start <= e1->end);
 }
 
-static inline int node_equal(struct interval_node *n1, struct interval_node *n2)
-{
-	return extent_equal(&n1->in_extent, &n2->in_extent);
-}
-
 static struct interval_node *interval_first(struct interval_node *node)
 {
 	if (!node)
@@ -299,8 +294,8 @@ static void interval_insert_color(struct interval_node *node,
 	(*root)->in_color = INTERVAL_BLACK;
 }
 
-struct interval_node *interval_insert(struct interval_node *node,
-				      struct interval_node **root)
+void interval_insert(struct interval_node *node,
+		     struct interval_node **root)
 
 {
 	struct interval_node **p, *parent = NULL;
@@ -309,8 +304,6 @@ struct interval_node *interval_insert(struct interval_node *node,
 	p = root;
 	while (*p) {
 		parent = *p;
-		if (node_equal(parent, node))
-			return parent;
 
 		/* max_high field must be updated after each iteration */
 		if (parent->in_max_high < interval_high(node))
@@ -331,8 +324,6 @@ struct interval_node *interval_insert(struct interval_node *node,
 
 	interval_insert_color(node, root);
 	node->in_intree = 1;
-
-	return NULL;
 }
 EXPORT_SYMBOL(interval_insert);
 

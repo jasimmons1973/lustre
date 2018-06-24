@@ -513,16 +513,6 @@ struct ldlm_glimpse_work {
 /** The ldlm_glimpse_work is allocated on the stack and should not be freed. */
 #define LDLM_GL_WORK_NOFREE 0x1
 
-/** Interval node data for each LDLM_EXTENT lock. */
-struct ldlm_interval {
-	struct interval_node	li_node;  /* node for tree management */
-	struct list_head	li_group; /* the locks which have the same
-					   * policy - group of the policy
-					   */
-};
-
-#define to_ldlm_interval(n) container_of(n, struct ldlm_interval, li_node)
-
 /**
  * Interval tree for extent locks.
  * The interval tree must be accessed under the resource lock.
@@ -631,7 +621,7 @@ struct ldlm_lock {
 	/**
 	 * Tree node for ldlm_extent.
 	 */
-	struct ldlm_interval	*l_tree_node;
+	struct interval_node	l_tree_node;
 	/**
 	 * Requested mode.
 	 * Protected by lr_lock.
