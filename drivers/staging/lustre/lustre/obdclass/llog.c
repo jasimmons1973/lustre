@@ -137,7 +137,7 @@ static int llog_read_header(const struct lu_env *env,
 		 */
 		len = llh->llh_hdr.lrh_len - llh->llh_bitmap_offset;
 		memset(LLOG_HDR_BITMAP(llh), 0, len - sizeof(llh->llh_tail));
-		ext2_set_bit(0, LLOG_HDR_BITMAP(llh));
+		set_bit_le(0, LLOG_HDR_BITMAP(llh));
 		LLOG_HDR_TAIL(llh)->lrt_len = llh->llh_hdr.lrh_len;
 		LLOG_HDR_TAIL(llh)->lrt_index = llh->llh_hdr.lrh_index;
 		rc = 0;
@@ -264,7 +264,7 @@ static int llog_process_thread(void *arg)
 
 		/* skip records not set in bitmap */
 		while (index <= last_index &&
-		       !ext2_test_bit(index, LLOG_HDR_BITMAP(llh)))
+		       !test_bit_le(index, LLOG_HDR_BITMAP(llh)))
 			++index;
 
 		if (index > last_index)
@@ -365,7 +365,7 @@ repeat:
 						    chunk_offset;
 
 			/* if set, process the callback on this record */
-			if (ext2_test_bit(index, LLOG_HDR_BITMAP(llh))) {
+			if (test_bit_le(index, LLOG_HDR_BITMAP(llh))) {
 				rc = lpi->lpi_cb(lpi->lpi_env, loghandle, rec,
 						 lpi->lpi_cbdata);
 				last_called_index = index;

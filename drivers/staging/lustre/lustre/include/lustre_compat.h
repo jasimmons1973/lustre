@@ -49,14 +49,6 @@
 #define module_init(a)     late_initcall(a)
 #endif
 
-#if !defined(_ASM_GENERIC_BITOPS_EXT2_NON_ATOMIC_H_) && !defined(ext2_set_bit)
-# define ext2_set_bit	     __test_and_set_bit_le
-# define ext2_clear_bit	   __test_and_clear_bit_le
-# define ext2_test_bit	    test_bit_le
-# define ext2_find_first_zero_bit find_first_zero_bit_le
-# define ext2_find_next_zero_bit  find_next_zero_bit_le
-#endif
-
 #define TIMES_SET_FLAGS (ATTR_MTIME_SET | ATTR_ATIME_SET | ATTR_TIMES_SET)
 
 #endif /* _LUSTRE_COMPAT_H */
