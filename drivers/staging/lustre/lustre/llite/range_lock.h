@@ -38,10 +38,12 @@
 #define _RANGE_LOCK_H
 
 #include <linux/spinlock.h>
-#include <interval_tree.h>
+#include <linux/rbtree.h>
 
 struct range_lock {
-	struct interval_node	rl_node;
+	struct rb_node		rl_rb;
+	__u64			rl_start, rl_last;
+	__u64			__subtree_last;
 	/**
 	 * Process to enqueue this lock.
 	 */
@@ -57,15 +59,10 @@ struct range_lock {
 	__u64			rl_sequence;
 };
 
-static inline struct range_lock *node2rangelock(const struct interval_node *n)
-{
-	return container_of(n, struct range_lock, rl_node);
-}
-
 struct range_lock_tree {
-	struct interval_node	*rlt_root;
-	spinlock_t		 rlt_lock;	/* protect range lock tree */
-	__u64			 rlt_sequence;
+	struct rb_root_cached	rlt_root;
+	spinlock_t		rlt_lock;	/* protect range lock tree */
+	__u64			rlt_sequence;
 };
 
 void range_lock_tree_init(struct range_lock_tree *tree);

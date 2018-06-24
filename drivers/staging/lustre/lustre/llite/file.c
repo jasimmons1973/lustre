@@ -1086,8 +1086,8 @@ restart:
 		     (iot == CIT_READ && (file->f_flags & O_DIRECT))) &&
 		    !(vio->vui_fd->fd_flags & LL_FILE_GROUP_LOCKED)) {
 			CDEBUG(D_VFSTRACE, "Range lock [%llu, %llu]\n",
-			       range.rl_node.in_extent.start,
-			       range.rl_node.in_extent.end);
+			       range.rl_start,
+			       range.rl_last);
 			rc = range_lock(&lli->lli_write_tree, &range);
 			if (rc < 0)
 				goto out;
@@ -1099,8 +1099,8 @@ restart:
 		ll_cl_remove(file, env);
 		if (range_locked) {
 			CDEBUG(D_VFSTRACE, "Range unlock [%llu, %llu]\n",
-			       range.rl_node.in_extent.start,
-			       range.rl_node.in_extent.end);
+			       range.rl_start,
+			       range.rl_last);
 			range_unlock(&lli->lli_write_tree, &range);
 		}
 	} else {
