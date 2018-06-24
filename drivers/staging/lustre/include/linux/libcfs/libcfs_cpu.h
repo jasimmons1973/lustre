@@ -103,6 +103,8 @@ struct cfs_cpt_table {
 	int				*ctb_cpu2cpt;
 	/* all cpus in this partition table */
 	cpumask_var_t			ctb_cpumask;
+	/* shadow HW node to CPU partition ID */
+	int				*ctb_node2cpt;
 	/* all nodes in this partition table */
 	nodemask_t			*ctb_nodemask;
 };
@@ -142,6 +144,10 @@ int cfs_cpt_current(struct cfs_cpt_table *cptab, int remap);
  * shadow HW processor ID \a CPU to CPU-partition ID by \a cptab
  */
 int cfs_cpt_of_cpu(struct cfs_cpt_table *cptab, int cpu);
+/**
+ * shadow HW node ID \a NODE to CPU-partition ID by \a cptab
+ */
+int cfs_cpt_of_node(struct cfs_cpt_table *cptab, int node);
 /**
  * bind current thread on a CPU-partition \a cpt of \a cptab
  */
@@ -295,6 +301,11 @@ cfs_cpt_current(struct cfs_cpt_table *cptab, int remap)
 
 static inline int
 cfs_cpt_of_cpu(struct cfs_cpt_table *cptab, int cpu)
+{
+	return 0;
+}
+
+static inline int cfs_cpt_of_node(struct cfs_cpt_table *cptab, int node)
 {
 	return 0;
 }

@@ -102,6 +102,15 @@ cfs_cpt_table_alloc(unsigned int ncpt)
 	memset(cptab->ctb_cpu2cpt, -1,
 	       nr_cpu_ids * sizeof(cptab->ctb_cpu2cpt[0]));
 
+	cptab->ctb_node2cpt = kvmalloc_array(nr_node_ids,
+					     sizeof(cptab->ctb_node2cpt[0]),
+					     GFP_KERNEL);
+	if (!cptab->ctb_node2cpt)
+		goto failed_alloc_node2cpt;
+
+	memset(cptab->ctb_node2cpt, -1,
+	       nr_node_ids * sizeof(cptab->ctb_node2cpt[0]));
+
 	cptab->ctb_parts = kvmalloc_array(ncpt, sizeof(cptab->ctb_parts[0]),
 					  GFP_KERNEL);
 	if (!cptab->ctb_parts)
@@ -135,6 +144,8 @@ failed_setting_ctb_parts:
 
 	kvfree(cptab->ctb_parts);
 failed_alloc_ctb_parts:
+	kvfree(cptab->ctb_node2cpt);
+failed_alloc_node2cpt:
 	kvfree(cptab->ctb_cpu2cpt);
 failed_alloc_cpu2cpt:
 	kfree(cptab->ctb_nodemask);
@@ -152,6 +163,7 @@ cfs_cpt_table_free(struct cfs_cpt_table *cptab)
 	int i;
 
 	kvfree(cptab->ctb_cpu2cpt);
+	kvfree(cptab->ctb_node2cpt);
 
 	for (i = 0; cptab->ctb_parts && i < cptab->ctb_nparts; i++) {
 		struct cfs_cpu_partition *part = &cptab->ctb_parts[i];
@@ -516,6 +528,15 @@ cfs_cpt_of_cpu(struct cfs_cpt_table *cptab, int cpu)
 	return cptab->ctb_cpu2cpt[cpu];
 }
 EXPORT_SYMBOL(cfs_cpt_of_cpu);
+
+int cfs_cpt_of_node(struct cfs_cpt_table *cptab, int node)
+{
+	if (node < 0 || node >= nr_node_ids)
+		return CFS_CPT_ANY;
+
+	return cptab->ctb_node2cpt[node];
+}
+EXPORT_SYMBOL(cfs_cpt_of_node);
 
 int
 cfs_cpt_bind(struct cfs_cpt_table *cptab, int cpt)
