@@ -568,6 +568,8 @@ lnet_msg_container_setup(struct lnet_msg_container *container, int cpt)
 
 	/* number of CPUs */
 	container->msc_nfinalizers = cfs_cpt_weight(lnet_cpt_table(), cpt);
+	if (container->msc_nfinalizers == 0)
+		container->msc_nfinalizers = 1;
 
 	container->msc_finalizers = kvzalloc_cpt(container->msc_nfinalizers *
 						 sizeof(*container->msc_finalizers),
