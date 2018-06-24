@@ -168,7 +168,7 @@ int LNetEQFree(struct lnet_handle_eq eventq_in);
 
 int LNetEQPoll(struct lnet_handle_eq *eventqs_in,
 	       int		 neq_in,
-	       int		 timeout_ms,
+	       signed long	 timeout,
 	       int		 interruptible,
 	       struct lnet_event *event_out,
 	       int		*which_eq_out);

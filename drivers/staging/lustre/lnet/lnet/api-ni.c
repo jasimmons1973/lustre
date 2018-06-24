@@ -59,7 +59,7 @@ static int rnet_htable_size = LNET_REMOTE_NETS_HASH_DEFAULT;
 module_param(rnet_htable_size, int, 0444);
 MODULE_PARM_DESC(rnet_htable_size, "size of remote network hash table");
 
-static int lnet_ping(struct lnet_process_id id, int timeout_ms,
+static int lnet_ping(struct lnet_process_id id, signed long timeout,
 		     struct lnet_process_id __user *ids, int n_ids);
 
 static char *
@@ -2052,17 +2052,29 @@ LNetCtl(unsigned int cmd, void *arg)
 	case IOC_LIBCFS_LNET_FAULT:
 		return lnet_fault_ctl(data->ioc_flags, data);
 
-	case IOC_LIBCFS_PING:
+	case IOC_LIBCFS_PING: {
+		signed long timeout;
+
 		id.nid = data->ioc_nid;
 		id.pid = data->ioc_u32[0];
-		rc = lnet_ping(id, data->ioc_u32[1], /* timeout */
-			       data->ioc_pbuf1,
+
+		/* Don't block longer than 2 minutes */
+		if (data->ioc_u32[1] > 120 * MSEC_PER_SEC)
+			return -EINVAL;
+
+		/* If timestamp is negative then disable timeout */
+		if ((s32)data->ioc_u32[1] < 0)
+			timeout = MAX_SCHEDULE_TIMEOUT;
+		else
+			timeout = msecs_to_jiffies(data->ioc_u32[1]);
+
+		rc = lnet_ping(id, timeout, data->ioc_pbuf1,
 			       data->ioc_plen1 / sizeof(struct lnet_process_id));
 		if (rc < 0)
 			return rc;
 		data->ioc_count = rc;
 		return 0;
-
+	}
 	default:
 		ni = lnet_net2ni(data->ioc_net);
 		if (!ni)
@@ -2126,7 +2138,7 @@ LNetGetId(unsigned int index, struct lnet_process_id *id)
 }
 EXPORT_SYMBOL(LNetGetId);
 
-static int lnet_ping(struct lnet_process_id id, int timeout_ms,
+static int lnet_ping(struct lnet_process_id id, signed long timeout,
 		     struct lnet_process_id __user *ids, int n_ids)
 {
 	struct lnet_handle_eq eqh;
@@ -2136,7 +2148,7 @@ static int lnet_ping(struct lnet_process_id id, int timeout_ms,
 	int which;
 	int unlinked = 0;
 	int replied = 0;
-	const int a_long_time = 60000; /* mS */
+	const signed long a_long_time = 60*HZ;
 	int infosz;
 	struct lnet_ping_info *info;
 	struct lnet_process_id tmpid;
@@ -2147,10 +2159,8 @@ static int lnet_ping(struct lnet_process_id id, int timeout_ms,
 
 	infosz = offsetof(struct lnet_ping_info, pi_ni[n_ids]);
 
-	if (n_ids <= 0 ||
-	    id.nid == LNET_NID_ANY ||
-	    timeout_ms > 500000 ||	      /* arbitrary limit! */
-	    n_ids > 20)			 /* arbitrary limit! */
+	/* n_ids limit is arbitrary */
+	if (n_ids <= 0 || n_ids > 20 || id.nid == LNET_NID_ANY)
 		return -EINVAL;
 
 	if (id.pid == LNET_PID_ANY)
@@ -2194,13 +2204,13 @@ static int lnet_ping(struct lnet_process_id id, int timeout_ms,
 
 		/* NB must wait for the UNLINK event below... */
 		unlinked = 1;
-		timeout_ms = a_long_time;
+		timeout = a_long_time;
 	}
 
 	do {
 		/* MUST block for unlink to complete */
 
-		rc2 = LNetEQPoll(&eqh, 1, timeout_ms, !unlinked,
+		rc2 = LNetEQPoll(&eqh, 1, timeout, !unlinked,
 				 &event, &which);
 
 		CDEBUG(D_NET, "poll %d(%d %d)%s\n", rc2,
@@ -2222,7 +2232,7 @@ static int lnet_ping(struct lnet_process_id id, int timeout_ms,
 				LNetMDUnlink(mdh);
 				/* No assertion (racing with network) */
 				unlinked = 1;
-				timeout_ms = a_long_time;
+				timeout = a_long_time;
 			} else if (!rc2) {
 				/* timed out waiting for unlink */
 				CWARN("ping %s: late network completion\n",

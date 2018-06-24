@@ -308,13 +308,12 @@ lnet_eq_dequeue_event(struct lnet_eq *eq, struct lnet_event *ev)
  */
 
 static int
-lnet_eq_wait_locked(int *timeout_ms, long state)
+lnet_eq_wait_locked(signed long *timeout, long state)
 __must_hold(&the_lnet.ln_eq_wait_lock)
 {
-	int tms = *timeout_ms;
+	signed long tms = *timeout;
 	int wait;
 	wait_queue_entry_t wl;
-	unsigned long now;
 
 	if (!tms)
 		return -ENXIO; /* don't want to wait and no new event */
@@ -325,18 +324,9 @@ __must_hold(&the_lnet.ln_eq_wait_lock)
 
 	lnet_eq_wait_unlock();
 
-	if (tms < 0) {
-		schedule();
-	} else {
-		now = jiffies;
-		schedule_timeout(msecs_to_jiffies(tms));
-		tms -= jiffies_to_msecs(jiffies - now);
-		if (tms < 0) /* no more wait but may have new event */
-			tms = 0;
-	}
-
+	tms = schedule_timeout(tms);
 	wait = tms; /* might need to call here again */
-	*timeout_ms = tms;
+	*timeout = tms;
 
 	lnet_eq_wait_lock();
 	remove_wait_queue(&the_lnet.ln_eq_waitq, &wl);
@@ -356,8 +346,8 @@ __must_hold(&the_lnet.ln_eq_wait_lock)
  * fixed period, or block indefinitely.
  *
  * \param eventqs,neq An array of EQ handles, and size of the array.
- * \param timeout_ms Time in milliseconds to wait for an event to occur on
- * one of the EQs. The constant LNET_TIME_FOREVER can be used to indicate an
+ * \param timeout Time in jiffies to wait for an event to occur on
+ * one of the EQs. The constant MAX_SCHEDULE_TIMEOUT can be used to indicate an
  * infinite timeout.
  * \param interruptible, if true, use TASK_INTERRUPTIBLE, else TASK_NOLOAD
  * \param event,which On successful return (1 or -EOVERFLOW), \a event will
@@ -372,7 +362,7 @@ __must_hold(&the_lnet.ln_eq_wait_lock)
  * \retval -ENOENT    If there's an invalid handle in \a eventqs.
  */
 int
-LNetEQPoll(struct lnet_handle_eq *eventqs, int neq, int timeout_ms,
+LNetEQPoll(struct lnet_handle_eq *eventqs, int neq, signed long timeout,
 	   int interruptible,
 	   struct lnet_event *event, int *which)
 {
@@ -414,7 +404,7 @@ LNetEQPoll(struct lnet_handle_eq *eventqs, int neq, int timeout_ms,
 		 *  0 : don't want to wait anymore, but might have new event
 		 *      so need to call dequeue again
 		 */
-		wait = lnet_eq_wait_locked(&timeout_ms,
+		wait = lnet_eq_wait_locked(&timeout,
 					   interruptible ? TASK_INTERRUPTIBLE
 					   : TASK_NOLOAD);
 		if (wait < 0) /* no new event */
