@@ -73,8 +73,7 @@ static char	*cpu_pattern = "N";
 module_param(cpu_pattern, charp, 0444);
 MODULE_PARM_DESC(cpu_pattern, "CPU partitions pattern");
 
-struct cfs_cpt_table *
-cfs_cpt_table_alloc(unsigned int ncpt)
+struct cfs_cpt_table *cfs_cpt_table_alloc(unsigned int ncpt)
 {
 	struct cfs_cpt_table *cptab;
 	int i;
@@ -169,8 +168,7 @@ failed_alloc_cpumask:
 }
 EXPORT_SYMBOL(cfs_cpt_table_alloc);
 
-void
-cfs_cpt_table_free(struct cfs_cpt_table *cptab)
+void cfs_cpt_table_free(struct cfs_cpt_table *cptab)
 {
 	int i;
 
@@ -194,8 +192,7 @@ cfs_cpt_table_free(struct cfs_cpt_table *cptab)
 }
 EXPORT_SYMBOL(cfs_cpt_table_free);
 
-int
-cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len)
+int cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len)
 {
 	char *tmp = buf;
 	int rc;
@@ -270,15 +267,13 @@ err:
 }
 EXPORT_SYMBOL(cfs_cpt_distance_print);
 
-int
-cfs_cpt_number(struct cfs_cpt_table *cptab)
+int cfs_cpt_number(struct cfs_cpt_table *cptab)
 {
 	return cptab->ctb_nparts;
 }
 EXPORT_SYMBOL(cfs_cpt_number);
 
-int
-cfs_cpt_weight(struct cfs_cpt_table *cptab, int cpt)
+int cfs_cpt_weight(struct cfs_cpt_table *cptab, int cpt)
 {
 	LASSERT(cpt == CFS_CPT_ANY || (cpt >= 0 && cpt < cptab->ctb_nparts));
 
@@ -288,8 +283,7 @@ cfs_cpt_weight(struct cfs_cpt_table *cptab, int cpt)
 }
 EXPORT_SYMBOL(cfs_cpt_weight);
 
-int
-cfs_cpt_online(struct cfs_cpt_table *cptab, int cpt)
+int cfs_cpt_online(struct cfs_cpt_table *cptab, int cpt)
 {
 	LASSERT(cpt == CFS_CPT_ANY || (cpt >= 0 && cpt < cptab->ctb_nparts));
 
@@ -301,8 +295,7 @@ cfs_cpt_online(struct cfs_cpt_table *cptab, int cpt)
 }
 EXPORT_SYMBOL(cfs_cpt_online);
 
-cpumask_var_t *
-cfs_cpt_cpumask(struct cfs_cpt_table *cptab, int cpt)
+cpumask_var_t *cfs_cpt_cpumask(struct cfs_cpt_table *cptab, int cpt)
 {
 	LASSERT(cpt == CFS_CPT_ANY || (cpt >= 0 && cpt < cptab->ctb_nparts));
 
@@ -311,8 +304,7 @@ cfs_cpt_cpumask(struct cfs_cpt_table *cptab, int cpt)
 }
 EXPORT_SYMBOL(cfs_cpt_cpumask);
 
-nodemask_t *
-cfs_cpt_nodemask(struct cfs_cpt_table *cptab, int cpt)
+nodemask_t *cfs_cpt_nodemask(struct cfs_cpt_table *cptab, int cpt)
 {
 	LASSERT(cpt == CFS_CPT_ANY || (cpt >= 0 && cpt < cptab->ctb_nparts));
 
@@ -458,8 +450,7 @@ static void cfs_cpt_del_node(struct cfs_cpt_table *cptab, int cpt, int node)
 	}
 }
 
-int
-cfs_cpt_set_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
+int cfs_cpt_set_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
 {
 	LASSERT(cpt >= 0 && cpt < cptab->ctb_nparts);
 
@@ -484,8 +475,7 @@ cfs_cpt_set_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
 }
 EXPORT_SYMBOL(cfs_cpt_set_cpu);
 
-void
-cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
+void cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
 {
 	LASSERT(cpt == CFS_CPT_ANY || (cpt >= 0 && cpt < cptab->ctb_nparts));
 
@@ -517,9 +507,8 @@ cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
 }
 EXPORT_SYMBOL(cfs_cpt_unset_cpu);
 
-int
-cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt,
-		    const cpumask_t *mask)
+int cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt,
+			const cpumask_t *mask)
 {
 	int cpu;
 
@@ -539,9 +528,8 @@ cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt,
 }
 EXPORT_SYMBOL(cfs_cpt_set_cpumask);
 
-void
-cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab, int cpt,
-		      const cpumask_t *mask)
+void cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab, int cpt,
+			   const cpumask_t *mask)
 {
 	int cpu;
 
@@ -550,8 +538,7 @@ cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab, int cpt,
 }
 EXPORT_SYMBOL(cfs_cpt_unset_cpumask);
 
-int
-cfs_cpt_set_node(struct cfs_cpt_table *cptab, int cpt, int node)
+int cfs_cpt_set_node(struct cfs_cpt_table *cptab, int cpt, int node)
 {
 	const cpumask_t *mask;
 	int cpu;
@@ -573,8 +560,7 @@ cfs_cpt_set_node(struct cfs_cpt_table *cptab, int cpt, int node)
 }
 EXPORT_SYMBOL(cfs_cpt_set_node);
 
-void
-cfs_cpt_unset_node(struct cfs_cpt_table *cptab, int cpt, int node)
+void cfs_cpt_unset_node(struct cfs_cpt_table *cptab, int cpt, int node)
 {
 	const cpumask_t *mask;
 	int cpu;
@@ -594,8 +580,8 @@ cfs_cpt_unset_node(struct cfs_cpt_table *cptab, int cpt, int node)
 }
 EXPORT_SYMBOL(cfs_cpt_unset_node);
 
-int
-cfs_cpt_set_nodemask(struct cfs_cpt_table *cptab, int cpt, nodemask_t *mask)
+int cfs_cpt_set_nodemask(struct cfs_cpt_table *cptab, int cpt,
+			 const nodemask_t *mask)
 {
 	int i;
 
@@ -608,8 +594,8 @@ cfs_cpt_set_nodemask(struct cfs_cpt_table *cptab, int cpt, nodemask_t *mask)
 }
 EXPORT_SYMBOL(cfs_cpt_set_nodemask);
 
-void
-cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab, int cpt, nodemask_t *mask)
+void cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab, int cpt,
+			    const nodemask_t *mask)
 {
 	int i;
 
@@ -618,8 +604,7 @@ cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab, int cpt, nodemask_t *mask)
 }
 EXPORT_SYMBOL(cfs_cpt_unset_nodemask);
 
-int
-cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt)
+int cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt)
 {
 	nodemask_t *mask;
 	int weight;
@@ -651,8 +636,7 @@ cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt)
 }
 EXPORT_SYMBOL(cfs_cpt_spread_node);
 
-int
-cfs_cpt_current(struct cfs_cpt_table *cptab, int remap)
+int cfs_cpt_current(struct cfs_cpt_table *cptab, int remap)
 {
 	int cpu;
 	int cpt;
@@ -672,8 +656,7 @@ cfs_cpt_current(struct cfs_cpt_table *cptab, int remap)
 }
 EXPORT_SYMBOL(cfs_cpt_current);
 
-int
-cfs_cpt_of_cpu(struct cfs_cpt_table *cptab, int cpu)
+int cfs_cpt_of_cpu(struct cfs_cpt_table *cptab, int cpu)
 {
 	LASSERT(cpu >= 0 && cpu < nr_cpu_ids);
 
@@ -690,8 +673,7 @@ int cfs_cpt_of_node(struct cfs_cpt_table *cptab, int node)
 }
 EXPORT_SYMBOL(cfs_cpt_of_node);
 
-int
-cfs_cpt_bind(struct cfs_cpt_table *cptab, int cpt)
+int cfs_cpt_bind(struct cfs_cpt_table *cptab, int cpt)
 {
 	cpumask_var_t *cpumask;
 	nodemask_t *nodemask;
@@ -735,9 +717,8 @@ EXPORT_SYMBOL(cfs_cpt_bind);
  * Choose max to \a number CPUs from \a node and set them in \a cpt.
  * We always prefer to choose CPU in the same core/socket.
  */
-static int
-cfs_cpt_choose_ncpus(struct cfs_cpt_table *cptab, int cpt,
-		     cpumask_t *node, int number)
+static int cfs_cpt_choose_ncpus(struct cfs_cpt_table *cptab, int cpt,
+				cpumask_t *node, int number)
 {
 	cpumask_var_t socket;
 	cpumask_var_t core;
@@ -813,8 +794,7 @@ out:
 
 #define CPT_WEIGHT_MIN  4u
 
-static unsigned int
-cfs_cpt_num_estimate(void)
+static unsigned int cfs_cpt_num_estimate(void)
 {
 	unsigned int nnode = num_online_nodes();
 	unsigned int ncpu = num_online_cpus();
@@ -856,8 +836,7 @@ out:
 	return ncpt;
 }
 
-static struct cfs_cpt_table *
-cfs_cpt_table_create(int ncpt)
+static struct cfs_cpt_table *cfs_cpt_table_create(int ncpt)
 {
 	struct cfs_cpt_table *cptab = NULL;
 	cpumask_var_t mask;
@@ -940,9 +919,9 @@ cfs_cpt_table_create(int ncpt)
 
 	return cptab;
 
- failed_mask:
+failed_mask:
 	free_cpumask_var(mask);
- failed:
+failed:
 	CERROR("Failed to setup CPU-partition-table with %d CPU-partitions, online HW nodes: %d, HW cpus: %d.\n",
 	       ncpt, num_online_nodes(), num_online_cpus());
 
@@ -952,8 +931,7 @@ cfs_cpt_table_create(int ncpt)
 	return NULL;
 }
 
-static struct cfs_cpt_table *
-cfs_cpt_table_create_pattern(char *pattern)
+static struct cfs_cpt_table *cfs_cpt_table_create_pattern(char *pattern)
 {
 	struct cfs_cpt_table *cptab;
 	char *str;
@@ -1097,7 +1075,7 @@ cfs_cpt_table_create_pattern(char *pattern)
 
 	return cptab;
 
- failed:
+failed:
 	cfs_cpt_table_free(cptab);
 	return NULL;
 }
@@ -1124,8 +1102,7 @@ static int cfs_cpu_dead(unsigned int cpu)
 }
 #endif
 
-void
-cfs_cpu_fini(void)
+void cfs_cpu_fini(void)
 {
 	if (cfs_cpt_tab)
 		cfs_cpt_table_free(cfs_cpt_tab);
@@ -1137,8 +1114,7 @@ cfs_cpu_fini(void)
 #endif
 }
 
-int
-cfs_cpu_init(void)
+int cfs_cpu_init(void)
 {
 	int ret;
 

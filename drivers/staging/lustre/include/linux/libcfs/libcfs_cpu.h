@@ -130,8 +130,7 @@ int cfs_cpt_distance_print(struct cfs_cpt_table *cptab, char *buf, int len);
 /**
  * return total number of CPU partitions in \a cptab
  */
-int
-cfs_cpt_number(struct cfs_cpt_table *cptab);
+int cfs_cpt_number(struct cfs_cpt_table *cptab);
 /**
  * return number of HW cores or hyper-threadings in a CPU partition \a cpt
  */
@@ -193,25 +192,24 @@ int cfs_cpt_set_node(struct cfs_cpt_table *cptab, int cpt, int node);
  * remove all cpus in NUMA node \a node from CPU partition \a cpt
  */
 void cfs_cpt_unset_node(struct cfs_cpt_table *cptab, int cpt, int node);
-
 /**
  * add all cpus in node mask \a mask to CPU partition \a cpt
  * return 1 if successfully set all CPUs, otherwise return 0
  */
 int cfs_cpt_set_nodemask(struct cfs_cpt_table *cptab,
-			 int cpt, nodemask_t *mask);
+			 int cpt, const nodemask_t *mask);
 /**
  * remove all cpus in node mask \a mask from CPU partition \a cpt
  */
 void cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab,
-			    int cpt, nodemask_t *mask);
+			    int cpt, const nodemask_t *mask);
 /**
  * convert partition id \a cpt to numa node id, if there are more than one
  * nodes in this partition, it might return a different node id each time.
  */
 int cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt);
 
-int  cfs_cpu_init(void);
+int cfs_cpu_init(void);
 void cfs_cpu_fini(void);
 
 #else /* !CONFIG_SMP */
@@ -231,37 +229,35 @@ static inline int cfs_cpt_distance_print(struct cfs_cpt_table *cptab,
 	return rc;
 }
 
-static inline cpumask_var_t *
-cfs_cpt_cpumask(struct cfs_cpt_table *cptab, int cpt)
+static inline cpumask_var_t *cfs_cpt_cpumask(struct cfs_cpt_table *cptab,
+					     int cpt)
 {
 	return NULL;
 }
 
-static inline int
-cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len)
+static inline int cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf,
+				      int len)
 {
 	return 0;
 }
-static inline int
-cfs_cpt_number(struct cfs_cpt_table *cptab)
+
+static inline int cfs_cpt_number(struct cfs_cpt_table *cptab)
 {
 	return 1;
 }
 
-static inline int
-cfs_cpt_weight(struct cfs_cpt_table *cptab, int cpt)
+static inline int cfs_cpt_weight(struct cfs_cpt_table *cptab, int cpt)
 {
 	return 1;
 }
 
-static inline int
-cfs_cpt_online(struct cfs_cpt_table *cptab, int cpt)
+static inline int cfs_cpt_online(struct cfs_cpt_table *cptab, int cpt)
 {
 	return 1;
 }
 
-static inline nodemask_t *
-cfs_cpt_nodemask(struct cfs_cpt_table *cptab, int cpt)
+static inline nodemask_t *cfs_cpt_nodemask(struct cfs_cpt_table *cptab,
+					   int cpt)
 {
 	return NULL;
 }
@@ -272,66 +268,61 @@ static inline unsigned int cfs_cpt_distance(struct cfs_cpt_table *cptab,
 	return 1;
 }
 
-static inline int
-cfs_cpt_set_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
+static inline int cfs_cpt_set_cpu(struct cfs_cpt_table *cptab, int cpt,
+				  int cpu)
 {
 	return 1;
 }
 
-static inline void
-cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
+static inline void cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt,
+				     int cpu)
 {
 }
 
-static inline int
-cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt,
-		    const cpumask_t *mask)
-{
-	return 1;
-}
-
-static inline void
-cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab, int cpt,
-		      const cpumask_t *mask)
-{
-}
-
-static inline int
-cfs_cpt_set_node(struct cfs_cpt_table *cptab, int cpt, int node)
+static inline int cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt,
+				      const cpumask_t *mask)
 {
 	return 1;
 }
 
-static inline void
-cfs_cpt_unset_node(struct cfs_cpt_table *cptab, int cpt, int node)
+static inline void cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab, int cpt,
+					 const cpumask_t *mask)
 {
 }
 
-static inline int
-cfs_cpt_set_nodemask(struct cfs_cpt_table *cptab, int cpt, nodemask_t *mask)
+static inline int cfs_cpt_set_node(struct cfs_cpt_table *cptab, int cpt,
+				   int node)
 {
 	return 1;
 }
 
-static inline void
-cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab, int cpt, nodemask_t *mask)
+static inline void cfs_cpt_unset_node(struct cfs_cpt_table *cptab, int cpt,
+				      int node)
 {
 }
 
-static inline int
-cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt)
+static inline int cfs_cpt_set_nodemask(struct cfs_cpt_table *cptab, int cpt,
+				       const nodemask_t *mask)
+{
+	return 1;
+}
+
+static inline void cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab,
+					  int cpt, const nodemask_t *mask)
+{
+}
+
+static inline int cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt)
 {
 	return 0;
 }
 
-static inline int
-cfs_cpt_current(struct cfs_cpt_table *cptab, int remap)
+static inline int cfs_cpt_current(struct cfs_cpt_table *cptab, int remap)
 {
 	return 0;
 }
 
-static inline int
-cfs_cpt_of_cpu(struct cfs_cpt_table *cptab, int cpu)
+static inline int cfs_cpt_of_cpu(struct cfs_cpt_table *cptab, int cpu)
 {
 	return 0;
 }
@@ -341,14 +332,12 @@ static inline int cfs_cpt_of_node(struct cfs_cpt_table *cptab, int node)
 	return 0;
 }
 
-static inline int
-cfs_cpt_bind(struct cfs_cpt_table *cptab, int cpt)
+static inline int cfs_cpt_bind(struct cfs_cpt_table *cptab, int cpt)
 {
 	return 0;
 }
 
-static inline int
-cfs_cpu_init(void)
+static inline int cfs_cpu_init(void)
 {
 	return 0;
 }
