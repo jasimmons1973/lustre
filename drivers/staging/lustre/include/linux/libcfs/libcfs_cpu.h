@@ -218,6 +218,19 @@ void cfs_cpu_fini(void);
 struct cfs_cpt_table;
 #define cfs_cpt_tab ((struct cfs_cpt_table *)NULL)
 
+static inline int cfs_cpt_table_print(struct cfs_cpt_table *cptab,
+				      char *buf, int len)
+{
+	int rc;
+
+	rc = snprintf(buf, len, "0\t: 0\n");
+	len -= rc;
+	if (len <= 0)
+		return -EFBIG;
+
+	return rc;
+}
+
 static inline int cfs_cpt_distance_print(struct cfs_cpt_table *cptab,
 					 char *buf, int len)
 {
@@ -235,12 +248,6 @@ static inline cpumask_var_t *cfs_cpt_cpumask(struct cfs_cpt_table *cptab,
 					     int cpt)
 {
 	return NULL;
-}
-
-static inline int cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf,
-				      int len)
-{
-	return 0;
 }
 
 static inline int cfs_cpt_number(struct cfs_cpt_table *cptab)
