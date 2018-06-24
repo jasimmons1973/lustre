@@ -677,8 +677,8 @@ int cfs_cpt_bind(struct cfs_cpt_table *cptab, int cpt)
 {
 	cpumask_var_t *cpumask;
 	nodemask_t *nodemask;
+	int cpu;
 	int rc;
-	int i;
 
 	LASSERT(cpt == CFS_CPT_ANY || (cpt >= 0 && cpt < cptab->ctb_nparts));
 
@@ -696,8 +696,8 @@ int cfs_cpt_bind(struct cfs_cpt_table *cptab, int cpt)
 		return -EINVAL;
 	}
 
-	for_each_online_cpu(i) {
-		if (cpumask_test_cpu(i, *cpumask))
+	for_each_online_cpu(cpu) {
+		if (cpumask_test_cpu(cpu, *cpumask))
 			continue;
 
 		rc = set_cpus_allowed_ptr(current, *cpumask);
