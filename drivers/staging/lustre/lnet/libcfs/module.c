@@ -425,6 +425,48 @@ static int proc_cpt_table(struct ctl_table *table, int write,
 	return rc;
 }
 
+static int proc_cpt_distance(struct ctl_table *table, int write,
+			     void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	size_t nob = *lenp;
+	loff_t pos = *ppos;
+	char *buf = NULL;
+	int len = 4096;
+	int rc = 0;
+
+	if (write)
+		return -EPERM;
+
+	LASSERT(cfs_cpt_tab);
+
+	while (1) {
+		buf = kzalloc(len, GFP_KERNEL);
+		if (!buf)
+			return -ENOMEM;
+
+		rc = cfs_cpt_distance_print(cfs_cpt_tab, buf, len);
+		if (rc >= 0)
+			break;
+
+		if (rc == -EFBIG) {
+			kfree(buf);
+			len <<= 1;
+			continue;
+		}
+		goto out;
+	}
+
+	if (pos >= rc) {
+		rc = 0;
+		goto out;
+	}
+
+	rc = cfs_trace_copyout_string(buffer, nob, buf + pos, NULL);
+out:
+	kfree(buf);
+	return rc;
+}
+
 static struct ctl_table lnet_table[] = {
 	{
 		.procname = "debug",
@@ -452,6 +494,12 @@ static struct ctl_table lnet_table[] = {
 		.maxlen   = 128,
 		.mode     = 0444,
 		.proc_handler = &proc_cpt_table,
+	},
+	{
+		.procname = "cpu_partition_distance",
+		.maxlen	  = 128,
+		.mode	  = 0444,
+		.proc_handler = &proc_cpt_distance,
 	},
 	{
 		.procname = "debug_log_upcall",
