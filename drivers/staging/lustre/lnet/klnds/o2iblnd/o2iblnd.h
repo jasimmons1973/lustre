@@ -155,7 +155,7 @@ struct kib_dev {
 	char               ibd_ifname[KIB_IFNAME_SIZE];
 	int                ibd_nnets;           /* # nets extant */
 
-	unsigned long      ibd_next_failover;
+	time64_t	   ibd_next_failover;
 	int                ibd_failed_failover; /* # failover failures */
 	unsigned int       ibd_failover;        /* failover in progress */
 	unsigned int ibd_can_failover; /* IPoIB interface is a bonding master */
@@ -205,7 +205,7 @@ struct kib_poolset {
 	char                  ps_name[IBLND_POOL_NAME_LEN]; /* pool set name */
 	struct list_head      ps_pool_list;       /* list of pools */
 	struct list_head      ps_failed_pool_list;/* failed pool list */
-	unsigned long         ps_next_retry;      /* time stamp for retry if */
+	time64_t	      ps_next_retry;	  /* time stamp for retry if */
 						  /* failed to allocate */
 	int                   ps_increasing;      /* is allocating new pool */
 	int                   ps_pool_size;       /* new pool size */
@@ -221,7 +221,7 @@ struct kib_pool {
 	struct list_head      po_list;       /* chain on pool list */
 	struct list_head      po_free_list;  /* pre-allocated node */
 	struct kib_poolset	*po_owner;	/* pool_set of this pool */
-	unsigned long         po_deadline;   /* deadline of this pool */
+	time64_t		po_deadline;	/* deadline of this pool */
 	int                   po_allocated;  /* # of elements in use */
 	int                   po_failed;     /* pool is created on failed HCA */
 	int                   po_size;       /* # of pre-allocated elements */
@@ -250,8 +250,9 @@ struct kib_fmr_poolset {
 	int                   fps_flush_trigger;
 	int		      fps_cache;
 	int                   fps_increasing;      /* is allocating new pool */
-	unsigned long         fps_next_retry;      /* time stamp for retry if*/
-						   /* failed to allocate */
+	time64_t		fps_next_retry;		/* time stamp for retry
+							 * if failed to allocate
+							 */
 };
 
 struct kib_fast_reg_descriptor { /* For fast registration */
@@ -275,7 +276,7 @@ struct kib_fmr_pool {
 			int		    fpo_pool_size;
 		} fast_reg;
 	};
-	unsigned long         fpo_deadline;        /* deadline of this pool */
+	time64_t		fpo_deadline;	/* deadline of this pool */
 	int                   fpo_failed;          /* fmr pool is failed */
 	int                   fpo_map_count;       /* # of mapped FMR */
 	int		      fpo_is_fmr;
@@ -487,7 +488,7 @@ struct kib_tx {					/* transmit message */
 	short                 tx_queued;      /* queued for sending */
 	short                 tx_waiting;     /* waiting for peer */
 	int                   tx_status;      /* LNET completion status */
-	unsigned long         tx_deadline;    /* completion deadline */
+	ktime_t			tx_deadline;	/* completion deadline */
 	__u64                 tx_cookie;      /* completion cookie */
 	struct lnet_msg		*tx_lntmsg[2];	/* lnet msgs to finalize on completion */
 	struct kib_msg	      *tx_msg;        /* message buffer (host vaddr) */
@@ -533,7 +534,7 @@ struct kib_conn {
 	unsigned int          ibc_nrx:16;      /* receive buffers owned */
 	unsigned int          ibc_scheduled:1; /* scheduled for attention */
 	unsigned int          ibc_ready:1;     /* CQ callback fired */
-	unsigned long         ibc_last_send;   /* time of last send */
+	ktime_t			ibc_last_send;	/* time of last send */
 	struct list_head      ibc_connd_list;  /* link chain for */
 					       /* kiblnd_check_conns only */
 	struct list_head ibc_early_rxs; /* rxs completed before ESTABLISHED */
@@ -763,10 +764,11 @@ kiblnd_get_conn_locked(struct kib_peer *peer)
 static inline int
 kiblnd_send_keepalive(struct kib_conn *conn)
 {
+	s64 keepalive_ns = *kiblnd_tunables.kib_keepalive * NSEC_PER_SEC;
+
 	return (*kiblnd_tunables.kib_keepalive > 0) &&
-		time_after(jiffies, conn->ibc_last_send +
-			   msecs_to_jiffies(*kiblnd_tunables.kib_keepalive *
-					    MSEC_PER_SEC));
+		ktime_after(ktime_get(),
+			    ktime_add_ns(conn->ibc_last_send, keepalive_ns));
 }
 
 static inline int
