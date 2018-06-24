@@ -57,9 +57,9 @@ struct lnet_drop_rule {
 	/**
 	 * seconds to drop the next message, it's exclusive with dr_drop_at
 	 */
-	unsigned long		dr_drop_time;
+	time64_t		dr_drop_time;
 	/** baseline to caculate dr_drop_time */
-	unsigned long		dr_time_base;
+	time64_t		dr_time_base;
 	/** statistic of dropped messages */
 	struct lnet_fault_stat	dr_stat;
 };
@@ -169,9 +169,10 @@ lnet_drop_rule_add(struct lnet_fault_attr *attr)
 
 	rule->dr_attr = *attr;
 	if (attr->u.drop.da_interval) {
-		rule->dr_time_base = jiffies + attr->u.drop.da_interval * HZ;
-		rule->dr_drop_time = jiffies +
-			prandom_u32_max(attr->u.drop.da_interval) * HZ;
+		rule->dr_time_base = ktime_get_seconds() +
+				     attr->u.drop.da_interval;
+		rule->dr_drop_time = ktime_get_seconds() +
+				     prandom_u32_max(attr->u.drop.da_interval);
 	} else {
 		rule->dr_drop_at = prandom_u32_max(attr->u.drop.da_rate);
 	}
@@ -279,9 +280,10 @@ lnet_drop_rule_reset(void)
 		if (attr->u.drop.da_rate) {
 			rule->dr_drop_at = prandom_u32_max(attr->u.drop.da_rate);
 		} else {
-			rule->dr_drop_time = jiffies +
-				prandom_u32_max(attr->u.drop.da_interval) * HZ;
-			rule->dr_time_base = jiffies + attr->u.drop.da_interval * HZ;
+			rule->dr_drop_time = ktime_get_seconds() +
+				prandom_u32_max(attr->u.drop.da_interval);
+			rule->dr_time_base = ktime_get_seconds() +
+					     attr->u.drop.da_interval;
 		}
 		spin_unlock(&rule->dr_lock);
 	}
@@ -306,19 +308,19 @@ drop_rule_match(struct lnet_drop_rule *rule, lnet_nid_t src,
 	/* match this rule, check drop rate now */
 	spin_lock(&rule->dr_lock);
 	if (rule->dr_drop_time) { /* time based drop */
-		unsigned long now = jiffies;
+		time64_t now = ktime_get_seconds();
 
 		rule->dr_stat.fs_count++;
-		drop = time_after_eq(now, rule->dr_drop_time);
+		drop = now >= rule->dr_drop_time;
 		if (drop) {
-			if (time_after(now, rule->dr_time_base))
+			if (now > rule->dr_time_base)
 				rule->dr_time_base = now;
 
 			rule->dr_drop_time = rule->dr_time_base +
-				prandom_u32_max(attr->u.drop.da_interval) * HZ;
-			rule->dr_time_base += attr->u.drop.da_interval * HZ;
+				prandom_u32_max(attr->u.drop.da_interval);
+			rule->dr_time_base += attr->u.drop.da_interval;
 
-			CDEBUG(D_NET, "Drop Rule %s->%s: next drop : %lu\n",
+			CDEBUG(D_NET, "Drop Rule %s->%s: next drop : %lld\n",
 			       libcfs_nid2str(attr->fa_src),
 			       libcfs_nid2str(attr->fa_dst),
 			       rule->dr_drop_time);
@@ -404,9 +406,9 @@ struct lnet_delay_rule {
 	/**
 	 * seconds to delay the next message, it's exclusive with dl_delay_at
 	 */
-	unsigned long		dl_delay_time;
+	time64_t		dl_delay_time;
 	/** baseline to caculate dl_delay_time */
-	unsigned long		dl_time_base;
+	time64_t		dl_time_base;
 	/** jiffies to send the next delayed message */
 	unsigned long		dl_msg_send;
 	/** delayed message list */
@@ -435,12 +437,6 @@ struct delay_daemon_data {
 };
 
 static struct delay_daemon_data	delay_dd;
-
-static unsigned long
-round_timeout(unsigned long timeout)
-{
-	return (unsigned int)rounddown(timeout, HZ) + HZ;
-}
 
 static void
 delay_rule_decref(struct lnet_delay_rule *rule)
@@ -472,19 +468,19 @@ delay_rule_match(struct lnet_delay_rule *rule, lnet_nid_t src,
 	/* match this rule, check delay rate now */
 	spin_lock(&rule->dl_lock);
 	if (rule->dl_delay_time) { /* time based delay */
-		unsigned long now = jiffies;
+		time64_t now = ktime_get_seconds();
 
 		rule->dl_stat.fs_count++;
-		delay = time_after_eq(now, rule->dl_delay_time);
+		delay = now >= rule->dl_delay_time;
 		if (delay) {
-			if (time_after(now, rule->dl_time_base))
+			if (now > rule->dl_time_base)
 				rule->dl_time_base = now;
 
 			rule->dl_delay_time = rule->dl_time_base +
-				prandom_u32_max(attr->u.delay.la_interval) * HZ;
-			rule->dl_time_base += attr->u.delay.la_interval * HZ;
+				prandom_u32_max(attr->u.delay.la_interval);
+			rule->dl_time_base += attr->u.delay.la_interval;
 
-			CDEBUG(D_NET, "Delay Rule %s->%s: next delay : %lu\n",
+			CDEBUG(D_NET, "Delay Rule %s->%s: next delay : %lld\n",
 			       libcfs_nid2str(attr->fa_src),
 			       libcfs_nid2str(attr->fa_dst),
 			       rule->dl_delay_time);
@@ -512,8 +508,7 @@ delay_rule_match(struct lnet_delay_rule *rule, lnet_nid_t src,
 	rule->dl_stat.u.delay.ls_delayed++;
 
 	list_add_tail(&msg->msg_list, &rule->dl_msg_list);
-	msg->msg_delay_send = round_timeout(
-			jiffies + attr->u.delay.la_latency * HZ);
+	msg->msg_delay_send = ktime_get_seconds() + attr->u.delay.la_latency;
 	if (rule->dl_msg_send == -1) {
 		rule->dl_msg_send = msg->msg_delay_send;
 		mod_timer(&rule->dl_timer, rule->dl_msg_send);
@@ -562,7 +557,7 @@ delayed_msg_check(struct lnet_delay_rule *rule, bool all,
 {
 	struct lnet_msg *msg;
 	struct lnet_msg *tmp;
-	unsigned long now = jiffies;
+	time64_t now = ktime_get_seconds();
 
 	if (!all && rule->dl_msg_send > now)
 		return;
@@ -767,9 +762,10 @@ lnet_delay_rule_add(struct lnet_fault_attr *attr)
 
 	rule->dl_attr = *attr;
 	if (attr->u.delay.la_interval) {
-		rule->dl_time_base = jiffies + attr->u.delay.la_interval * HZ;
-		rule->dl_delay_time = jiffies + 
-			prandom_u32_max(attr->u.delay.la_interval) * HZ;
+		rule->dl_time_base = ktime_get_seconds() +
+				     attr->u.delay.la_interval;
+		rule->dl_delay_time = ktime_get_seconds() +
+				      prandom_u32_max(attr->u.delay.la_interval);
 	} else {
 		rule->dl_delay_at = prandom_u32_max(attr->u.delay.la_rate);
 	}
@@ -919,10 +915,10 @@ lnet_delay_rule_reset(void)
 		if (attr->u.delay.la_rate) {
 			rule->dl_delay_at = prandom_u32_max(attr->u.delay.la_rate);
 		} else {
-			rule->dl_delay_time =
-				jiffies + prandom_u32_max(
-					attr->u.delay.la_interval) * HZ;
-			rule->dl_time_base = jiffies + attr->u.delay.la_interval * HZ;
+			rule->dl_delay_time = ktime_get_seconds() +
+				prandom_u32_max(attr->u.delay.la_interval);
+			rule->dl_time_base = ktime_get_seconds() +
+					     attr->u.delay.la_interval;
 		}
 		spin_unlock(&rule->dl_lock);
 	}

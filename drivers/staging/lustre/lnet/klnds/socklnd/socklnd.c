@@ -1537,7 +1537,7 @@ ksocknal_peer_failed(struct ksock_peer *peer)
 
 	if (notify)
 		lnet_notify(peer->ksnp_ni, peer->ksnp_id.nid, 0,
-			    last_alive * HZ);
+			    last_alive);
 }
 
 void
@@ -1828,7 +1828,7 @@ ksocknal_notify(struct lnet_ni *ni, lnet_nid_t gw_nid, int alive)
 }
 
 void
-ksocknal_query(struct lnet_ni *ni, lnet_nid_t nid, unsigned long *when)
+ksocknal_query(struct lnet_ni *ni, lnet_nid_t nid, time64_t *when)
 {
 	int connect = 1;
 	time64_t last_alive = 0;

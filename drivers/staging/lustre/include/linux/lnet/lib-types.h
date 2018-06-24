@@ -239,8 +239,7 @@ struct lnet_lnd {
 	void (*lnd_notify)(struct lnet_ni *ni, lnet_nid_t peer, int alive);
 
 	/* query of peer aliveness */
-	void (*lnd_query)(struct lnet_ni *ni, lnet_nid_t peer,
-			  unsigned long *when);
+	void (*lnd_query)(struct lnet_ni *ni, lnet_nid_t peer, time64_t *when);
 
 	/* accept a new connection */
 	int (*lnd_accept)(struct lnet_ni *ni, struct socket *sock);
@@ -334,17 +333,17 @@ struct lnet_peer {
 						  * dead<->alive
 						  */
 	long			 lp_txqnob;	 /* ytes queued for sending */
-	unsigned long		 lp_timestamp;	 /* time of last aliveness
+	time64_t		 lp_timestamp;	 /* time of last aliveness
 						  * news
 						  */
-	unsigned long		 lp_ping_timestamp;/* time of last ping
+	time64_t		 lp_ping_timestamp;/* time of last ping
 						    * attempt
 						    */
-	unsigned long		 lp_ping_deadline; /* != 0 if ping reply
+	time64_t		 lp_ping_deadline; /* != 0 if ping reply
 						    * expected
 						    */
-	unsigned long		 lp_last_alive;	/* when I was last alive */
-	unsigned long		 lp_last_query;	/* when lp_ni was queried
+	time64_t		 lp_last_alive;	/* when I was last alive */
+	time64_t		 lp_last_query;	/* when lp_ni was queried
 						 * last time
 						 */
 	struct lnet_ni		*lp_ni;		/* interface peer is on */

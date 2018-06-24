@@ -1888,7 +1888,6 @@ LNetCtl(unsigned int cmd, void *arg)
 	struct lnet_process_id id = {0};
 	struct lnet_ni *ni;
 	int rc;
-	unsigned long secs_passed;
 
 	BUILD_BUG_ON(LIBCFS_IOC_DATA_MAX <
 		     sizeof(struct lnet_ioctl_net_config) +
@@ -2028,12 +2027,17 @@ LNetCtl(unsigned int cmd, void *arg)
 			&peer_info->pr_lnd_u.pr_peer_credits.cr_peer_tx_qnob);
 	}
 
-	case IOC_LIBCFS_NOTIFY_ROUTER:
-		secs_passed = (ktime_get_real_seconds() - data->ioc_u64[0]);
-		secs_passed *= msecs_to_jiffies(MSEC_PER_SEC);
+	case IOC_LIBCFS_NOTIFY_ROUTER: {
+		time64_t deadline = ktime_get_real_seconds() - data->ioc_u64[0];
 
+		/* The deadline passed in by the user should be some time in
+		 * seconds in the future since the UNIX epoch. We have to map
+		 * that deadline to the wall clock.
+		 */
+		deadline += ktime_get_seconds();
 		return lnet_notify(NULL, data->ioc_nid, data->ioc_flags,
-				   jiffies - secs_passed);
+				   deadline);
+	}
 
 	case IOC_LIBCFS_LNET_DIST:
 		rc = LNetDist(data->ioc_nid, &data->ioc_nid, &data->ioc_u32[1]);

@@ -404,9 +404,9 @@ int lnet_lib_init(void);
 void lnet_lib_exit(void);
 
 int lnet_notify(struct lnet_ni *ni, lnet_nid_t peer, int alive,
-		unsigned long when);
+		time64_t when);
 void lnet_notify_locked(struct lnet_peer *lp, int notifylnd, int alive,
-			unsigned long when);
+			time64_t when);
 int lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway_nid,
 		   unsigned int priority);
 int lnet_check_routes(void);
@@ -643,8 +643,8 @@ int lnet_get_peer_info(__u32 peer_index, __u64 *nid,
 static inline void
 lnet_peer_set_alive(struct lnet_peer *lp)
 {
-	lp->lp_last_query = jiffies;
-	lp->lp_last_alive = jiffies;
+	lp->lp_last_query = ktime_get_seconds();
+	lp->lp_last_alive = lp->lp_last_query;
 	if (!lp->lp_alive)
 		lnet_notify_locked(lp, 0, 1, lp->lp_last_alive);
 }

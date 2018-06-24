@@ -492,7 +492,7 @@ lnet_ni_eager_recv(struct lnet_ni *ni, struct lnet_msg *msg)
 static void
 lnet_ni_query_locked(struct lnet_ni *ni, struct lnet_peer *lp)
 {
-	unsigned long last_alive = 0;
+	time64_t last_alive = 0;
 
 	LASSERT(lnet_peer_aliveness_enabled(lp));
 	LASSERT(ni->ni_lnd->lnd_query);
@@ -501,7 +501,7 @@ lnet_ni_query_locked(struct lnet_ni *ni, struct lnet_peer *lp)
 	ni->ni_lnd->lnd_query(ni, lp->lp_nid, &last_alive);
 	lnet_net_lock(lp->lp_cpt);
 
-	lp->lp_last_query = jiffies;
+	lp->lp_last_query = ktime_get_seconds();
 
 	if (last_alive) /* NI has updated timestamp */
 		lp->lp_last_alive = last_alive;
@@ -512,7 +512,7 @@ static inline int
 lnet_peer_is_alive(struct lnet_peer *lp, unsigned long now)
 {
 	int alive;
-	unsigned long deadline;
+	time64_t deadline;
 
 	LASSERT(lnet_peer_aliveness_enabled(lp));
 
@@ -520,11 +520,11 @@ lnet_peer_is_alive(struct lnet_peer *lp, unsigned long now)
 	 * ignore the initial assumed death (see lnet_peers_start_down()).
 	 */
 	if (!lp->lp_alive && lp->lp_alive_count > 0 &&
-	    time_after_eq(lp->lp_timestamp, lp->lp_last_alive))
+	    lp->lp_timestamp >= lp->lp_last_alive)
 		return 0;
 
-	deadline = lp->lp_last_alive + lp->lp_ni->ni_peertimeout * HZ;
-	alive = time_after(deadline, now);
+	deadline = lp->lp_last_alive + lp->lp_ni->ni_peertimeout;
+	alive = deadline > now;
 
 	/* Update obsolete lp_alive except for routers assumed to be dead
 	 * initially, because router checker would update aliveness in this
@@ -544,7 +544,7 @@ lnet_peer_is_alive(struct lnet_peer *lp, unsigned long now)
 static int
 lnet_peer_alive_locked(struct lnet_peer *lp)
 {
-	unsigned long now = jiffies;
+	time64_t now = ktime_get_seconds();
 
 	if (!lnet_peer_aliveness_enabled(lp))
 		return -ENODEV;
@@ -558,15 +558,15 @@ lnet_peer_alive_locked(struct lnet_peer *lp)
 	 */
 	if (lp->lp_last_query) {
 		static const int lnet_queryinterval = 1;
+		time64_t next_query;
 
-		unsigned long next_query =
-			   lp->lp_last_query + lnet_queryinterval * HZ;
+		next_query = lp->lp_last_query + lnet_queryinterval;
 
-		if (time_before(now, next_query)) {
+		if (now < next_query) {
 			if (lp->lp_alive)
-				CWARN("Unexpected aliveness of peer %s: %d < %d (%d/%d)\n",
+				CWARN("Unexpected aliveness of peer %s: %lld < %lld (%d/%d)\n",
 				      libcfs_nid2str(lp->lp_nid),
-				      (int)now, (int)next_query,
+				      now, next_query,
 				      lnet_queryinterval,
 				      lp->lp_ni->ni_peertimeout);
 			return 0;

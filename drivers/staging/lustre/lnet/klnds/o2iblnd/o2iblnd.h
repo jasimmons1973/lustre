@@ -571,8 +571,8 @@ struct kib_peer {
 					  * round robin */
 	struct list_head ibp_tx_queue;    /* msgs waiting for a conn */
 	__u64            ibp_incarnation; /* incarnation of peer */
-	/* when (in jiffies) I was last alive */
-	unsigned long		ibp_last_alive;
+	/* when (in seconds) I was last alive */
+	time64_t		ibp_last_alive;
 	/* # users */
 	atomic_t		ibp_refcount;
 	/* version of peer */

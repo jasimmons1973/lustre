@@ -1039,11 +1039,10 @@ static int kiblnd_ctl(struct lnet_ni *ni, unsigned int cmd, void *arg)
 	return rc;
 }
 
-static void kiblnd_query(struct lnet_ni *ni, lnet_nid_t nid,
-			 unsigned long *when)
+static void kiblnd_query(struct lnet_ni *ni, lnet_nid_t nid, time64_t *when)
 {
-	unsigned long last_alive = 0;
-	unsigned long now = jiffies;
+	time64_t last_alive = 0;
+	time64_t now = ktime_get_seconds();
 	rwlock_t *glock = &kiblnd_data.kib_global_lock;
 	struct kib_peer *peer;
 	unsigned long flags;
@@ -1066,9 +1065,9 @@ static void kiblnd_query(struct lnet_ni *ni, lnet_nid_t nid,
 	if (!peer)
 		kiblnd_launch_tx(ni, NULL, nid);
 
-	CDEBUG(D_NET, "Peer %s %p, alive %ld secs ago\n",
+	CDEBUG(D_NET, "Peer %s %p, alive %lld secs ago\n",
 	       libcfs_nid2str(nid), peer,
-	       last_alive ? (now - last_alive) / HZ : -1);
+	       last_alive ? now - last_alive : -1);
 }
 
 static void kiblnd_free_pages(struct kib_pages *p)
