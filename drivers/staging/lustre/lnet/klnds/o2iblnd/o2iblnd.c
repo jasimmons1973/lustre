@@ -2822,7 +2822,6 @@ static int kiblnd_startup(struct lnet_ni *ni)
 	char *ifname;
 	struct kib_dev *ibdev = NULL;
 	struct kib_net *net;
-	struct timespec64 tv;
 	unsigned long flags;
 	int rc;
 	int newdev;
@@ -2840,9 +2839,7 @@ static int kiblnd_startup(struct lnet_ni *ni)
 	if (!net)
 		goto net_failed;
 
-	ktime_get_real_ts64(&tv);
-	net->ibn_incarnation = tv.tv_sec * USEC_PER_SEC +
-			       tv.tv_nsec / NSEC_PER_USEC;
+	net->ibn_incarnation = ktime_get_real_ns() / NSEC_PER_USEC;
 
 	rc = kiblnd_tunables_setup(ni);
 	if (rc)
