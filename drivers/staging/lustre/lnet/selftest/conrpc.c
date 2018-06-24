@@ -70,11 +70,11 @@ lstcon_rpc_done(struct srpc_client_rpc *rpc)
 	/* not an orphan RPC */
 	crpc->crp_finished = 1;
 
-	if (!crpc->crp_stamp) {
+	if (!crpc->crp_stamp_ns) {
 		/* not aborted */
 		LASSERT(!crpc->crp_status);
 
-		crpc->crp_stamp = jiffies;
+		crpc->crp_stamp_ns = ktime_get_ns();
 		crpc->crp_status = rpc->crpc_status;
 	}
 
@@ -102,7 +102,7 @@ lstcon_rpc_init(struct lstcon_node *nd, int service, unsigned int feats,
 	crpc->crp_finished = 0;
 	crpc->crp_unpacked = 0;
 	crpc->crp_status = 0;
-	crpc->crp_stamp = 0;
+	crpc->crp_stamp_ns = 0;
 	crpc->crp_embedded = embedded;
 	INIT_LIST_HEAD(&crpc->crp_link);
 
@@ -294,16 +294,16 @@ lstcon_rpc_trans_abort(struct lstcon_rpc_trans *trans, int error)
 		spin_lock(&rpc->crpc_lock);
 
 		if (!crpc->crp_posted || /* not posted */
-		    crpc->crp_stamp) {	 /* rpc done or aborted already */
-			if (!crpc->crp_stamp) {
-				crpc->crp_stamp = jiffies;
+		    crpc->crp_stamp_ns) {	 /* rpc done or aborted already */
+			if (!crpc->crp_stamp_ns) {
+				crpc->crp_stamp_ns = ktime_get_ns();
 				crpc->crp_status = -EINTR;
 			}
 			spin_unlock(&rpc->crpc_lock);
 			continue;
 		}
 
-		crpc->crp_stamp = jiffies;
+		crpc->crp_stamp_ns = ktime_get_ns();
 		crpc->crp_status = error;
 
 		spin_unlock(&rpc->crpc_lock);
@@ -314,10 +314,10 @@ lstcon_rpc_trans_abort(struct lstcon_rpc_trans *trans, int error)
 			continue;
 
 		nd = crpc->crp_node;
-		if (time_after(nd->nd_stamp, crpc->crp_stamp))
+		if (ktime_to_ns(nd->nd_stamp) > crpc->crp_stamp_ns)
 			continue;
 
-		nd->nd_stamp = crpc->crp_stamp;
+		nd->nd_stamp = ktime_set(0, crpc->crp_stamp_ns);
 		nd->nd_state = LST_NODE_DOWN;
 	}
 }
@@ -390,7 +390,7 @@ lstcon_rpc_get_reply(struct lstcon_rpc *crpc, struct srpc_msg **msgpp)
 	struct srpc_generic_reply *rep;
 
 	LASSERT(nd && rpc);
-	LASSERT(crpc->crp_stamp);
+	LASSERT(crpc->crp_stamp_ns);
 
 	if (crpc->crp_status) {
 		*msgpp = NULL;
@@ -403,10 +403,10 @@ lstcon_rpc_get_reply(struct lstcon_rpc *crpc, struct srpc_msg **msgpp)
 		crpc->crp_unpacked = 1;
 	}
 
-	if (time_after(nd->nd_stamp, crpc->crp_stamp))
+	if (ktime_to_ns(nd->nd_stamp) > crpc->crp_stamp_ns)
 		return 0;
 
-	nd->nd_stamp = crpc->crp_stamp;
+	nd->nd_stamp = ktime_set(0, crpc->crp_stamp_ns);
 	rep = &(*msgpp)->msg_body.reply;
 
 	if (rep->sid.ses_nid == LNET_NID_ANY)
@@ -433,7 +433,7 @@ lstcon_rpc_trans_stat(struct lstcon_rpc_trans *trans, struct lstcon_trans_stat *
 	list_for_each_entry(crpc, &trans->tas_rpcs_list, crp_link) {
 		lstcon_rpc_stat_total(stat, 1);
 
-		LASSERT(crpc->crp_stamp);
+		LASSERT(crpc->crp_stamp_ns);
 
 		error = lstcon_rpc_get_reply(crpc, &rep);
 		if (error) {
@@ -474,9 +474,9 @@ lstcon_rpc_trans_interpreter(struct lstcon_rpc_trans *trans,
 	struct lstcon_rpc *crpc;
 	struct srpc_msg *msg;
 	struct lstcon_node *nd;
-	long dur;
 	struct timeval tv;
 	int error;
+	s64 dur;
 
 	LASSERT(head_up);
 
@@ -493,15 +493,15 @@ lstcon_rpc_trans_interpreter(struct lstcon_rpc_trans *trans,
 
 		ent = list_entry(next, struct lstcon_rpc_ent, rpe_link);
 
-		LASSERT(crpc->crp_stamp);
+		LASSERT(crpc->crp_stamp_ns);
 
 		error = lstcon_rpc_get_reply(crpc, &msg);
 
 		nd = crpc->crp_node;
 
-		dur = (long)(crpc->crp_stamp -
-			     (unsigned long)console_session.ses_id.ses_stamp);
-		jiffies_to_timeval(dur, &tv);
+		dur = crpc->crp_stamp_ns -
+		      console_session.ses_id.ses_stamp * NSEC_PER_MSEC;
+		tv = ns_to_timeval(dur);
 
 		if (copy_to_user(&ent->rpe_peer, &nd->nd_id,
 				 sizeof(struct lnet_process_id)) ||
@@ -1246,7 +1246,8 @@ lstcon_rpc_pinger(void *arg)
 		if (nd->nd_state != LST_NODE_ACTIVE)
 			continue;
 
-		intv = (jiffies - nd->nd_stamp) / msecs_to_jiffies(MSEC_PER_SEC);
+		intv = div_u64(ktime_ms_delta(ktime_get(), nd->nd_stamp),
+			       MSEC_PER_SEC);
 		if (intv < nd->nd_timeout / 2)
 			continue;
 

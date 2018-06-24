@@ -97,7 +97,7 @@ lstcon_node_find(struct lnet_process_id id, struct lstcon_node **ndpp,
 
 	ndl->ndl_node->nd_ref = 1;
 	ndl->ndl_node->nd_id = id;
-	ndl->ndl_node->nd_stamp = jiffies;
+	ndl->ndl_node->nd_stamp = ktime_get();
 	ndl->ndl_node->nd_state = LST_NODE_UNKNOWN;
 	ndl->ndl_node->nd_timeout = 0;
 	memset(&ndl->ndl_node->nd_ping, 0, sizeof(struct lstcon_rpc));
@@ -1700,7 +1700,7 @@ lstcon_new_session_id(struct lst_sid *sid)
 
 	LNetGetId(1, &id);
 	sid->ses_nid = id.nid;
-	sid->ses_stamp = jiffies;
+	sid->ses_stamp = div_u64(ktime_get_ns(), NSEC_PER_MSEC);
 }
 
 int

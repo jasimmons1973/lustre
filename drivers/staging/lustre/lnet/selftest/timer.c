@@ -55,7 +55,7 @@
 
 static struct st_timer_data {
 	spinlock_t	  stt_lock;
-	unsigned long	  stt_prev_slot; /* start time of the slot processed
+	time64_t	  stt_prev_slot; /* start time of the slot processed
 					  * previously
 					  */
 	struct list_head  stt_hash[STTIMER_NSLOTS];
@@ -144,18 +144,18 @@ stt_expire_list(struct list_head *slot, time64_t now)
 }
 
 static int
-stt_check_timers(unsigned long *last)
+stt_check_timers(time64_t *last)
 {
 	int expired = 0;
 	time64_t now;
-	unsigned long this_slot;
+	time64_t this_slot;
 
 	now = ktime_get_real_seconds();
 	this_slot = now & STTIMER_SLOTTIMEMASK;
 
 	spin_lock(&stt_data.stt_lock);
 
-	while (time_after_eq(this_slot, *last)) {
+	while (this_slot >= *last) {
 		expired += stt_expire_list(STTIMER_SLOT(this_slot), now);
 		this_slot = this_slot - STTIMER_SLOTTIME;
 	}

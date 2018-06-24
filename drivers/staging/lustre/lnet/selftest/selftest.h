@@ -331,7 +331,7 @@ struct sfw_session {
 	atomic_t	 sn_refcount;
 	atomic_t	 sn_brw_errors;
 	atomic_t	 sn_ping_errors;
-	unsigned long	 sn_started;
+	ktime_t		 sn_started;
 };
 
 #define sfw_sid_equal(sid0, sid1)     ((sid0).ses_nid == (sid1).ses_nid && \
