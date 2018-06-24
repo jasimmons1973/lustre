@@ -179,7 +179,7 @@ cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len)
 
 	for (i = 0; i < cptab->ctb_nparts; i++) {
 		if (len > 0) {
-			rc = snprintf(tmp, len, "%d\t: ", i);
+			rc = snprintf(tmp, len, "%d\t:", i);
 			len -= rc;
 		}
 
@@ -190,7 +190,7 @@ cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len)
 
 		tmp += rc;
 		for_each_cpu(j, cptab->ctb_parts[i].cpt_cpumask) {
-			rc = snprintf(tmp, len, "%d ", j);
+			rc = snprintf(tmp, len, " %d", j);
 			len -= rc;
 			if (len <= 0) {
 				rc = -EFBIG;
