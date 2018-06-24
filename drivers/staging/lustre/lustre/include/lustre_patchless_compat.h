@@ -41,22 +41,6 @@
 #include <linux/hash.h>
 #include <linux/pagemap.h>
 
-#define ll_delete_from_page_cache(page) delete_from_page_cache(page)
-
-static inline void
-truncate_complete_page(struct address_space *mapping, struct page *page)
-{
-	if (page->mapping != mapping)
-		return;
-
-	if (PagePrivate(page))
-		page->mapping->a_ops->invalidatepage(page, 0, PAGE_SIZE);
-
-	cancel_dirty_page(page);
-	ClearPageMappedToDisk(page);
-	ll_delete_from_page_cache(page);
-}
-
 #ifndef ATTR_CTIME_SET
 /*
  * set ATTR_CTIME_SET to a high value to avoid any risk of collision with other
