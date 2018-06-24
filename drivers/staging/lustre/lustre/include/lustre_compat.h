@@ -39,8 +39,6 @@
 #include <linux/cred.h>
 #include <linux/module.h>
 
-#include <lustre_patchless_compat.h>
-
 #define current_ngroups current_cred()->group_info->ngroups
 #define current_groups current_cred()->group_info->small_block
 

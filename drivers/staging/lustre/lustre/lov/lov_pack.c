@@ -39,6 +39,7 @@
 
 #define DEBUG_SUBSYSTEM S_LOV
 
+#include <linux/uaccess.h>
 #include <lustre_net.h>
 #include <lustre_swab.h>
 #include <obd.h>

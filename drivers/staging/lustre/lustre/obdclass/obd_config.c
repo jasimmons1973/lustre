@@ -37,6 +37,7 @@
 
 #define DEBUG_SUBSYSTEM S_CLASS
 
+#include <linux/uaccess.h>
 #include <linux/string.h>
 
 #include <uapi/linux/lustre/lustre_ioctl.h>

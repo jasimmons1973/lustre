@@ -37,6 +37,7 @@
 
 #define DEBUG_SUBSYSTEM S_CLASS
 
+#include <linux/uaccess.h>
 #include <obd_class.h>
 #include <lprocfs_status.h>
 #include <uapi/linux/lustre/lustre_idl.h>

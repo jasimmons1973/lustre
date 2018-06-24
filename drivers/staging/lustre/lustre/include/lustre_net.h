@@ -51,6 +51,7 @@
  * @{
  */
 
+#include <linux/mm.h>
 #include <linux/uio.h>
 #include <linux/libcfs/libcfs.h>
 #include <uapi/linux/lnet/nidstr.h>

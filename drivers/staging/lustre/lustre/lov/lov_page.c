@@ -38,6 +38,7 @@
 
 #define DEBUG_SUBSYSTEM S_LOV
 
+#include <linux/highmem.h>
 #include "lov_cl_internal.h"
 
 /** \addtogroup lov

@@ -41,6 +41,7 @@
 #define DEBUG_SUBSYSTEM S_FLD
 
 #include <linux/module.h>
+#include <linux/uaccess.h>
 
 #include <obd.h>
 #include <obd_class.h>

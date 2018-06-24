@@ -40,6 +40,8 @@
 
 #define DEBUG_SUBSYSTEM S_LOV
 
+#include <linux/uaccess.h>
+
 #include <uapi/linux/lustre/lustre_idl.h>
 #include <uapi/linux/lustre/lustre_ioctl.h>
 

@@ -40,6 +40,7 @@
 #define DEBUG_SUBSYSTEM S_FID
 
 #include <linux/module.h>
+#include <linux/uaccess.h>
 
 #include <obd.h>
 #include <obd_class.h>

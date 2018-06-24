@@ -36,6 +36,7 @@
 #include <linux/atomic.h>
 #include <linux/miscdevice.h>
 #include <linux/libcfs/libcfs.h>
+#include <linux/uaccess.h>
 
 #include <obd_support.h>
 #include <obd_class.h>

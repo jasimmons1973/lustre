@@ -33,6 +33,7 @@
 
 #define DEBUG_SUBSYSTEM S_OSC
 
+#include <linux/highmem.h>
 #include <linux/libcfs/libcfs_hash.h>
 #include <linux/sched/mm.h>
 

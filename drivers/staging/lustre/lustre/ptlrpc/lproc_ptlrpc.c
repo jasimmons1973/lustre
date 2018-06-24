@@ -32,6 +32,7 @@
  */
 #define DEBUG_SUBSYSTEM S_CLASS
 
+#include <linux/uaccess.h>
 #include <obd_support.h>
 #include <obd.h>
 #include <lprocfs_status.h>

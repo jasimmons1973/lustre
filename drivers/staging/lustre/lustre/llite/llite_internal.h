@@ -39,7 +39,6 @@
 #include <lustre_linkea.h>
 
 /* for struct cl_lock_descr and struct cl_io */
-#include <lustre_patchless_compat.h>
 #include <lustre_compat.h>
 #include <cl_object.h>
 #include <lustre_lmv.h>

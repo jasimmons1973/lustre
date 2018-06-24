@@ -32,6 +32,7 @@
  */
 #define DEBUG_SUBSYSTEM S_CLASS
 
+#include <linux/uaccess.h>
 #include <linux/statfs.h>
 #include <obd_cksum.h>
 #include <obd_class.h>
