@@ -2215,7 +2215,7 @@ int sptlrpc_current_user_desc_size(void)
 {
 	int ngroups;
 
-	ngroups = current_ngroups;
+	ngroups = current_cred()->group_info->ngroups;
 
 	if (ngroups > LUSTRE_MAX_GROUPS)
 		ngroups = LUSTRE_MAX_GROUPS;
@@ -2226,6 +2226,9 @@ EXPORT_SYMBOL(sptlrpc_current_user_desc_size);
 int sptlrpc_pack_user_desc(struct lustre_msg *msg, int offset)
 {
 	struct ptlrpc_user_desc *pud;
+	int ngroups;
+	kgid_t *gid;
+	int g;
 
 	pud = lustre_msg_buf(msg, offset, 0);
 
@@ -2240,10 +2243,12 @@ int sptlrpc_pack_user_desc(struct lustre_msg *msg, int offset)
 	pud->pud_ngroups = (msg->lm_buflens[offset] - sizeof(*pud)) / 4;
 
 	task_lock(current);
-	if (pud->pud_ngroups > current_ngroups)
-		pud->pud_ngroups = current_ngroups;
-	memcpy(pud->pud_groups, current_cred()->group_info->gid,
-	       pud->pud_ngroups * sizeof(__u32));
+	ngroups = current_cred()->group_info->ngroups;
+	gid = current_cred()->group_info->gid;
+	if (pud->pud_ngroups > ngroups)
+		pud->pud_ngroups = ngroups;
+	for (g = 0; g < pud->pud_ngroups; g++)
+		pud->pud_groups[g] = from_kgid(&init_user_ns, gid[g]);
 	task_unlock(current);
 
 	return 0;

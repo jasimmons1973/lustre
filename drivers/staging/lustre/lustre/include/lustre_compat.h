@@ -39,9 +39,6 @@
 #include <linux/cred.h>
 #include <linux/module.h>
 
-#define current_ngroups current_cred()->group_info->ngroups
-#define current_groups current_cred()->group_info->small_block
-
 /*
  * OBD need working random driver, thus all our
  * initialization routines must be called after device
