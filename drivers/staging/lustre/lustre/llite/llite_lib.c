@@ -42,6 +42,7 @@
 #include <linux/types.h>
 #include <linux/mm.h>
 #include <linux/random.h>
+#include <linux/fs_struct.h>
 
 #include <uapi/linux/lustre/lustre_ioctl.h>
 #include <lustre_ha.h>

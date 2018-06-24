@@ -43,7 +43,6 @@
 
 #include <linux/random.h>
 #include <obd.h>
-#include <lustre_compat.h>
 #include <obd_class.h>
 #include <uapi/linux/lustre/lustre_idl.h>
 #include <lustre_log.h>

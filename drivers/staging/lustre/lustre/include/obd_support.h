@@ -37,7 +37,6 @@
 #include <linux/slab.h>
 #include <linux/sched/signal.h>
 
-#include <lustre_compat.h>
 #include <lprocfs_status.h>
 
 /* global variables */

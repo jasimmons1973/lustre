@@ -53,6 +53,7 @@
 #define DEBUG_SUBSYSTEM S_RPC
 
 #include <linux/kthread.h>
+#include <linux/fs_struct.h>
 #include <linux/libcfs/libcfs.h>
 #include <linux/libcfs/libcfs_cpu.h>
 #include <linux/libcfs/libcfs_string.h>
