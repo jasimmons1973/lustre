@@ -11,7 +11,6 @@ ldlm_objs += $(LDLM)ldlm_plain.o $(LDLM)ldlm_extent.o
 ldlm_objs += $(LDLM)ldlm_request.o $(LDLM)ldlm_lockd.o
 ldlm_objs += $(LDLM)ldlm_flock.o $(LDLM)ldlm_inodebits.o
 ldlm_objs += $(LDLM)ldlm_pool.o
-ldlm_objs += $(LDLM)interval_tree.o
 ptlrpc_objs := client.o recover.o connection.o niobuf.o pack_generic.o
 ptlrpc_objs += events.o ptlrpc_module.o service.o pinger.o
 ptlrpc_objs += llog_net.o llog_client.o import.o ptlrpcd.o
