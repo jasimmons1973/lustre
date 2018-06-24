@@ -488,7 +488,8 @@ void cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
 		/* caller doesn't know the partition ID */
 		cpt = cptab->ctb_cpu2cpt[cpu];
 		if (cpt < 0) { /* not set in this CPT-table */
-			CDEBUG(D_INFO, "Try to unset cpu %d which is not in CPT-table %p\n",
+			CDEBUG(D_INFO,
+			       "Try to unset cpu %d which is not in CPT-table %p\n",
 			       cpt, cptab);
 			return;
 		}
@@ -514,7 +515,8 @@ int cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt,
 
 	if (!cpumask_weight(mask) ||
 	    cpumask_any_and(mask, cpu_online_mask) >= nr_cpu_ids) {
-		CDEBUG(D_INFO, "No online CPU is found in the CPU mask for CPU partition %d\n",
+		CDEBUG(D_INFO,
+		       "No online CPU is found in the CPU mask for CPU partition %d\n",
 		       cpt);
 		return 0;
 	}
@@ -691,7 +693,8 @@ int cfs_cpt_bind(struct cfs_cpt_table *cptab, int cpt)
 	}
 
 	if (cpumask_any_and(*cpumask, cpu_online_mask) >= nr_cpu_ids) {
-		CERROR("No online CPU found in CPU partition %d, did someone do CPU hotplug on system? You might need to reload Lustre modules to keep system working well.\n",
+		CDEBUG(D_INFO,
+		       "No online CPU found in CPU partition %d, did someone do CPU hotplug on system? You might need to reload Lustre modules to keep system working well.\n",
 		       cpt);
 		return -EINVAL;
 	}
@@ -922,8 +925,8 @@ static struct cfs_cpt_table *cfs_cpt_table_create(int ncpt)
 failed_mask:
 	free_cpumask_var(node_mask);
 failed:
-	CERROR("Failed to setup CPU-partition-table with %d CPU-partitions, online HW nodes: %d, HW cpus: %d.\n",
-	       ncpt, num_online_nodes(), num_online_cpus());
+	CERROR("Failed (rc = %d) to setup CPU partition table with %d partitions, online HW NUMA nodes: %d, HW CPU cores: %d.\n",
+	       rc, ncpt, num_online_nodes(), num_online_cpus());
 
 	if (cptab)
 		cfs_cpt_table_free(cptab);
@@ -1038,7 +1041,7 @@ static struct cfs_cpt_table *cfs_cpt_table_create_pattern(char *pattern)
 
 		bracket = strchr(str, ']');
 		if (!bracket) {
-			CERROR("missing right bracket for cpt %d, %s\n",
+			CERROR("Missing right bracket for partition %d, %s\n",
 			       cpt, str);
 			goto failed;
 		}
