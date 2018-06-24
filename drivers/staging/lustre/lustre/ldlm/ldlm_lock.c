@@ -1053,8 +1053,9 @@ struct lock_match_data {
  * \param lock	test-against this lock
  * \param data	parameters
  */
-static bool lock_matches(struct ldlm_lock *lock, struct lock_match_data *data)
+static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 {
+	struct lock_match_data *data = vdata;
 	union ldlm_policy_data *lpol = &lock->l_policy_data;
 	enum ldlm_mode match;
 
@@ -1135,16 +1136,6 @@ static bool lock_matches(struct ldlm_lock *lock, struct lock_match_data *data)
 	return true;
 }
 
-static enum interval_iter itree_overlap_cb(struct interval_node *in, void *args)
-{
-	struct lock_match_data *data = args;
-	struct ldlm_lock *lock = container_of(in, struct ldlm_lock,
-					      l_tree_node);
-
-	return lock_matches(lock, data) ?
-		INTERVAL_ITER_STOP : INTERVAL_ITER_CONT;
-}
-
 /**
  * Search for a lock with given parameters in interval trees.
  *
@@ -1171,8 +1162,8 @@ static struct ldlm_lock *search_itree(struct ldlm_resource *res,
 		if (!(tree->lit_mode & *data->lmd_mode))
 			continue;
 
-		interval_search(tree->lit_root, &ext,
-				itree_overlap_cb, data);
+		ldlm_extent_search(tree->lit_root, &ext,
+				   lock_matches, data);
 	}
 	return data->lmd_lock;
 }

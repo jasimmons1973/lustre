@@ -169,6 +169,10 @@ extern struct kmem_cache *ldlm_lock_slab;
 /* ldlm_extent.c */
 void ldlm_extent_add_lock(struct ldlm_resource *res, struct ldlm_lock *lock);
 void ldlm_extent_unlink_lock(struct ldlm_lock *lock);
+void ldlm_extent_search(struct interval_node *root,
+			struct interval_node_extent *ext,
+			bool (*matches)(struct ldlm_lock *lock, void *data),
+			void *data);
 
 /* l_lock.c */
 void l_check_ns_lock(struct ldlm_namespace *ns);
