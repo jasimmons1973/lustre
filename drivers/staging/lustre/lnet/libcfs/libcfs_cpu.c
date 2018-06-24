@@ -73,19 +73,6 @@ static char	*cpu_pattern = "N";
 module_param(cpu_pattern, charp, 0444);
 MODULE_PARM_DESC(cpu_pattern, "CPU partitions pattern");
 
-static struct cfs_cpt_data {
-	/* serialize hotplug etc */
-	spinlock_t		cpt_lock;
-	/* reserved for hotplug */
-	unsigned long		cpt_version;
-	/* mutex to protect cpt_cpumask */
-	struct mutex		cpt_mutex;
-	/* scratch buffer for set/unset_node */
-	cpumask_var_t		cpt_cpumask;
-} cpt_data;
-
-#define CFS_CPU_VERSION_MAGIC	   0xbabecafe
-
 struct cfs_cpt_table *
 cfs_cpt_table_alloc(unsigned int ncpt)
 {
@@ -127,11 +114,6 @@ cfs_cpt_table_alloc(unsigned int ncpt)
 		    !part->cpt_nodemask)
 			goto failed;
 	}
-
-	spin_lock(&cpt_data.cpt_lock);
-	/* Reserved for hotplug */
-	cptab->ctb_version = cpt_data.cpt_version;
-	spin_unlock(&cpt_data.cpt_lock);
 
 	return cptab;
 
@@ -206,17 +188,6 @@ cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len)
 	return tmp - buf;
 }
 EXPORT_SYMBOL(cfs_cpt_table_print);
-
-static void
-cfs_node_to_cpumask(int node, cpumask_t *mask)
-{
-	const cpumask_t *tmp = cpumask_of_node(node);
-
-	if (tmp)
-		cpumask_copy(mask, tmp);
-	else
-		cpumask_clear(mask);
-}
 
 int
 cfs_cpt_number(struct cfs_cpt_table *cptab)
@@ -370,7 +341,8 @@ cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
 EXPORT_SYMBOL(cfs_cpt_unset_cpu);
 
 int
-cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt, cpumask_t *mask)
+cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt,
+		    const cpumask_t *mask)
 {
 	int i;
 
@@ -391,7 +363,8 @@ cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt, cpumask_t *mask)
 EXPORT_SYMBOL(cfs_cpt_set_cpumask);
 
 void
-cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab, int cpt, cpumask_t *mask)
+cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab, int cpt,
+		      const cpumask_t *mask)
 {
 	int i;
 
@@ -403,7 +376,7 @@ EXPORT_SYMBOL(cfs_cpt_unset_cpumask);
 int
 cfs_cpt_set_node(struct cfs_cpt_table *cptab, int cpt, int node)
 {
-	int rc;
+	const cpumask_t *mask;
 
 	if (node < 0 || node >= MAX_NUMNODES) {
 		CDEBUG(D_INFO,
@@ -411,34 +384,26 @@ cfs_cpt_set_node(struct cfs_cpt_table *cptab, int cpt, int node)
 		return 0;
 	}
 
-	mutex_lock(&cpt_data.cpt_mutex);
+	mask = cpumask_of_node(node);
 
-	cfs_node_to_cpumask(node, cpt_data.cpt_cpumask);
-
-	rc = cfs_cpt_set_cpumask(cptab, cpt, cpt_data.cpt_cpumask);
-
-	mutex_unlock(&cpt_data.cpt_mutex);
-
-	return rc;
+	return cfs_cpt_set_cpumask(cptab, cpt, mask);
 }
 EXPORT_SYMBOL(cfs_cpt_set_node);
 
 void
 cfs_cpt_unset_node(struct cfs_cpt_table *cptab, int cpt, int node)
 {
+	const cpumask_t *mask;
+
 	if (node < 0 || node >= MAX_NUMNODES) {
 		CDEBUG(D_INFO,
 		       "Invalid NUMA id %d for CPU partition %d\n", node, cpt);
 		return;
 	}
 
-	mutex_lock(&cpt_data.cpt_mutex);
+	mask = cpumask_of_node(node);
 
-	cfs_node_to_cpumask(node, cpt_data.cpt_cpumask);
-
-	cfs_cpt_unset_cpumask(cptab, cpt, cpt_data.cpt_cpumask);
-
-	mutex_unlock(&cpt_data.cpt_mutex);
+	cfs_cpt_unset_cpumask(cptab, cpt, mask);
 }
 EXPORT_SYMBOL(cfs_cpt_unset_node);
 
@@ -465,26 +430,6 @@ cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab, int cpt, nodemask_t *mask)
 		cfs_cpt_unset_node(cptab, cpt, i);
 }
 EXPORT_SYMBOL(cfs_cpt_unset_nodemask);
-
-void
-cfs_cpt_clear(struct cfs_cpt_table *cptab, int cpt)
-{
-	int last;
-	int i;
-
-	if (cpt == CFS_CPT_ANY) {
-		last = cptab->ctb_nparts - 1;
-		cpt = 0;
-	} else {
-		last = cpt;
-	}
-
-	for (; cpt <= last; cpt++) {
-		for_each_cpu(i, cptab->ctb_parts[cpt].cpt_cpumask)
-			cfs_cpt_unset_cpu(cptab, cpt, i);
-	}
-}
-EXPORT_SYMBOL(cfs_cpt_clear);
 
 int
 cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt)
@@ -758,7 +703,7 @@ cfs_cpt_table_create(int ncpt)
 	}
 
 	for_each_online_node(i) {
-		cfs_node_to_cpumask(i, mask);
+		cpumask_copy(mask, cpumask_of_node(i));
 
 		while (!cpumask_empty(mask)) {
 			struct cfs_cpu_partition *part;
@@ -964,16 +909,8 @@ cfs_cpt_table_create_pattern(char *pattern)
 #ifdef CONFIG_HOTPLUG_CPU
 static enum cpuhp_state lustre_cpu_online;
 
-static void cfs_cpu_incr_cpt_version(void)
-{
-	spin_lock(&cpt_data.cpt_lock);
-	cpt_data.cpt_version++;
-	spin_unlock(&cpt_data.cpt_lock);
-}
-
 static int cfs_cpu_online(unsigned int cpu)
 {
-	cfs_cpu_incr_cpt_version();
 	return 0;
 }
 
@@ -981,14 +918,9 @@ static int cfs_cpu_dead(unsigned int cpu)
 {
 	bool warn;
 
-	cfs_cpu_incr_cpt_version();
-
-	mutex_lock(&cpt_data.cpt_mutex);
 	/* if all HTs in a core are offline, it may break affinity */
-	cpumask_copy(cpt_data.cpt_cpumask, topology_sibling_cpumask(cpu));
-	warn = cpumask_any_and(cpt_data.cpt_cpumask,
+	warn = cpumask_any_and(topology_sibling_cpumask(cpu),
 			       cpu_online_mask) >= nr_cpu_ids;
-	mutex_unlock(&cpt_data.cpt_mutex);
 	CDEBUG(warn ? D_WARNING : D_INFO,
 	       "Lustre: can't support CPU plug-out well now, performance and stability could be impacted [CPU %u]\n",
 	       cpu);
@@ -1007,7 +939,6 @@ cfs_cpu_fini(void)
 		cpuhp_remove_state_nocalls(lustre_cpu_online);
 	cpuhp_remove_state_nocalls(CPUHP_LUSTRE_CFS_DEAD);
 #endif
-	free_cpumask_var(cpt_data.cpt_cpumask);
 }
 
 int
@@ -1016,16 +947,6 @@ cfs_cpu_init(void)
 	int ret = 0;
 
 	LASSERT(!cfs_cpt_tab);
-
-	memset(&cpt_data, 0, sizeof(cpt_data));
-
-	if (!zalloc_cpumask_var(&cpt_data.cpt_cpumask, GFP_NOFS)) {
-		CERROR("Failed to allocate scratch buffer\n");
-		return -1;
-	}
-
-	spin_lock_init(&cpt_data.cpt_lock);
-	mutex_init(&cpt_data.cpt_mutex);
 
 #ifdef CONFIG_HOTPLUG_CPU
 	ret = cpuhp_setup_state_nocalls(CPUHP_LUSTRE_CFS_DEAD,
@@ -1042,6 +963,7 @@ cfs_cpu_init(void)
 #endif
 	ret = -EINVAL;
 
+	get_online_cpus();
 	if (*cpu_pattern) {
 		char *cpu_pattern_dup = kstrdup(cpu_pattern, GFP_KERNEL);
 
@@ -1067,13 +989,7 @@ cfs_cpu_init(void)
 		}
 	}
 
-	spin_lock(&cpt_data.cpt_lock);
-	if (cfs_cpt_tab->ctb_version != cpt_data.cpt_version) {
-		spin_unlock(&cpt_data.cpt_lock);
-		CERROR("CPU hotplug/unplug during setup\n");
-		goto failed;
-	}
-	spin_unlock(&cpt_data.cpt_lock);
+	put_online_cpus();
 
 	LCONSOLE(0, "HW nodes: %d, HW CPU cores: %d, npartitions: %d\n",
 		 num_online_nodes(), num_online_cpus(),
@@ -1081,6 +997,7 @@ cfs_cpu_init(void)
 	return 0;
 
  failed:
+	put_online_cpus();
 	cfs_cpu_fini();
 	return ret;
 }

@@ -93,8 +93,6 @@ struct cfs_cpu_partition {
 
 /** descriptor for CPU partitions */
 struct cfs_cpt_table {
-	/* version, reserved for hotplug */
-	unsigned int			ctb_version;
 	/* spread rotor for NUMA allocator */
 	unsigned int			ctb_spread_rotor;
 	/* # of CPU partitions */
@@ -162,12 +160,12 @@ void cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu);
  * return 1 if successfully set all CPUs, otherwise return 0
  */
 int cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab,
-			int cpt, cpumask_t *mask);
+			int cpt, const cpumask_t *mask);
 /**
  * remove all cpus in \a mask from CPU partition \a cpt
  */
 void cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab,
-			   int cpt, cpumask_t *mask);
+			   int cpt, const cpumask_t *mask);
 /**
  * add all cpus in NUMA node \a node to CPU partition \a cpt
  * return 1 if successfully set all CPUs, otherwise return 0
@@ -190,19 +188,10 @@ int cfs_cpt_set_nodemask(struct cfs_cpt_table *cptab,
 void cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab,
 			    int cpt, nodemask_t *mask);
 /**
- * unset all cpus for CPU partition \a cpt
- */
-void cfs_cpt_clear(struct cfs_cpt_table *cptab, int cpt);
-/**
  * convert partition id \a cpt to numa node id, if there are more than one
  * nodes in this partition, it might return a different node id each time.
  */
 int cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt);
-
-/**
- * return number of HTs in the same core of \a cpu
- */
-int cfs_cpu_ht_nsiblings(int cpu);
 
 int  cfs_cpu_init(void);
 void cfs_cpu_fini(void);
@@ -258,13 +247,15 @@ cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu)
 }
 
 static inline int
-cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt, cpumask_t *mask)
+cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt,
+		    const cpumask_t *mask)
 {
 	return 1;
 }
 
 static inline void
-cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab, int cpt, cpumask_t *mask)
+cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab, int cpt,
+		      const cpumask_t *mask)
 {
 }
 
@@ -290,21 +281,10 @@ cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab, int cpt, nodemask_t *mask)
 {
 }
 
-static inline void
-cfs_cpt_clear(struct cfs_cpt_table *cptab, int cpt)
-{
-}
-
 static inline int
 cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt)
 {
 	return 0;
-}
-
-static inline int
-cfs_cpu_ht_nsiblings(int cpu)
-{
-	return 1;
 }
 
 static inline int
