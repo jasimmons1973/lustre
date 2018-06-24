@@ -2369,15 +2369,6 @@ ksocknal_base_shutdown(void)
 	module_put(THIS_MODULE);
 }
 
-static __u64
-ksocknal_new_incarnation(void)
-{
-	/* The incarnation number is the time this module loaded and it
-	 * identifies this particular instance of the socknal.
-	 */
-	return ktime_get_ns();
-}
-
 static int
 ksocknal_base_startup(void)
 {
@@ -2810,7 +2801,7 @@ ksocknal_startup(struct lnet_ni *ni)
 		goto fail_0;
 
 	spin_lock_init(&net->ksnn_lock);
-	net->ksnn_incarnation = ksocknal_new_incarnation();
+	net->ksnn_incarnation = ktime_get_real_ns();
 	ni->ni_data = net;
 	ni->ni_peertimeout    = *ksocknal_tunables.ksnd_peertimeout;
 	ni->ni_maxtxcredits   = *ksocknal_tunables.ksnd_credits;
