@@ -49,6 +49,4 @@
 #define module_init(a)     late_initcall(a)
 #endif
 
-#define TIMES_SET_FLAGS (ATTR_MTIME_SET | ATTR_ATIME_SET | ATTR_TIMES_SET)
-
 #endif /* _LUSTRE_COMPAT_H */

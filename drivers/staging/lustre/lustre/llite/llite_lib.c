@@ -1353,8 +1353,6 @@ void ll_clear_inode(struct inode *inode)
 	cl_inode_fini(inode);
 }
 
-#define TIMES_SET_FLAGS (ATTR_MTIME_SET | ATTR_ATIME_SET | ATTR_TIMES_SET)
-
 static int ll_md_setattr(struct dentry *dentry, struct md_op_data *op_data)
 {
 	struct lustre_md md;
