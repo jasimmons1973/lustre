@@ -956,13 +956,13 @@ int ll_merge_attr(const struct lu_env *env, struct inode *inode)
 	/* merge timestamps the most recently obtained from mds with
 	 * timestamps obtained from osts
 	 */
-	LTIME_S(inode->i_atime) = lli->lli_atime;
-	LTIME_S(inode->i_mtime) = lli->lli_mtime;
-	LTIME_S(inode->i_ctime) = lli->lli_ctime;
+	inode->i_atime.tv_sec = lli->lli_atime;
+	inode->i_mtime.tv_sec = lli->lli_mtime;
+	inode->i_ctime.tv_sec = lli->lli_ctime;
 
-	mtime = LTIME_S(inode->i_mtime);
-	atime = LTIME_S(inode->i_atime);
-	ctime = LTIME_S(inode->i_ctime);
+	mtime = inode->i_mtime.tv_sec;
+	atime = inode->i_atime.tv_sec;
+	ctime = inode->i_ctime.tv_sec;
 
 	cl_object_attr_lock(obj);
 	rc = cl_object_attr_get(env, obj, attr);
@@ -987,9 +987,9 @@ int ll_merge_attr(const struct lu_env *env, struct inode *inode)
 
 	inode->i_blocks = attr->cat_blocks;
 
-	LTIME_S(inode->i_mtime) = mtime;
-	LTIME_S(inode->i_atime) = atime;
-	LTIME_S(inode->i_ctime) = ctime;
+	inode->i_mtime.tv_sec = mtime;
+	inode->i_atime.tv_sec = atime;
+	inode->i_ctime.tv_sec = ctime;
 
 out_size_unlock:
 	ll_inode_size_unlock(inode);
@@ -2933,9 +2933,9 @@ static int ll_inode_revalidate(struct dentry *dentry, __u64 ibits)
 				return rc;
 		}
 
-		LTIME_S(inode->i_atime) = ll_i2info(inode)->lli_atime;
-		LTIME_S(inode->i_mtime) = ll_i2info(inode)->lli_mtime;
-		LTIME_S(inode->i_ctime) = ll_i2info(inode)->lli_ctime;
+		inode->i_atime.tv_sec = ll_i2info(inode)->lli_atime;
+		inode->i_mtime.tv_sec = ll_i2info(inode)->lli_mtime;
+		inode->i_ctime.tv_sec = ll_i2info(inode)->lli_ctime;
 	} else {
 		struct ll_inode_info *lli = ll_i2info(inode);
 

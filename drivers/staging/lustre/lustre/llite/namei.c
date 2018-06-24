@@ -266,9 +266,9 @@ int ll_md_blocking_ast(struct ldlm_lock *lock, struct ldlm_lock_desc *desc,
 			struct ll_inode_info *lli = ll_i2info(inode);
 
 			spin_lock(&lli->lli_lock);
-			LTIME_S(inode->i_mtime) = 0;
-			LTIME_S(inode->i_atime) = 0;
-			LTIME_S(inode->i_ctime) = 0;
+			inode->i_mtime.tv_sec = 0;
+			inode->i_atime.tv_sec = 0;
+			inode->i_ctime.tv_sec = 0;
 			spin_unlock(&lli->lli_lock);
 		}
 
@@ -848,15 +848,15 @@ void ll_update_times(struct ptlrpc_request *request, struct inode *inode)
 
 	LASSERT(body);
 	if (body->mbo_valid & OBD_MD_FLMTIME &&
-	    body->mbo_mtime > LTIME_S(inode->i_mtime)) {
+	    body->mbo_mtime > inode->i_mtime.tv_sec) {
 		CDEBUG(D_INODE, "setting fid " DFID " mtime from %lld to %llu\n",
-		       PFID(ll_inode2fid(inode)), LTIME_S(inode->i_mtime),
+		       PFID(ll_inode2fid(inode)), inode->i_mtime.tv_sec,
 		       body->mbo_mtime);
-		LTIME_S(inode->i_mtime) = body->mbo_mtime;
+		inode->i_mtime.tv_sec = body->mbo_mtime;
 	}
 	if (body->mbo_valid & OBD_MD_FLCTIME &&
-	    body->mbo_ctime > LTIME_S(inode->i_ctime))
-		LTIME_S(inode->i_ctime) = body->mbo_ctime;
+	    body->mbo_ctime > inode->i_ctime.tv_sec)
+		inode->i_ctime.tv_sec = body->mbo_ctime;
 }
 
 static int ll_new_node(struct inode *dir, struct dentry *dentry,

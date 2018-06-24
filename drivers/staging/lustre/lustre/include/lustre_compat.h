@@ -49,8 +49,6 @@
 #define module_init(a)     late_initcall(a)
 #endif
 
-#define LTIME_S(time)		   (time.tv_sec)
-
 #ifndef QUOTA_OK
 # define QUOTA_OK 0
 #endif
