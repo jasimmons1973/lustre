@@ -49,9 +49,9 @@ char *cfs_trace_console_buffers[NR_CPUS][CFS_TCD_TYPE_MAX];
 
 int cfs_tracefile_init_arch(void)
 {
+	struct cfs_trace_cpu_data *tcd;
 	int i;
 	int j;
-	struct cfs_trace_cpu_data *tcd;
 
 	/* initialize trace_data */
 	memset(cfs_trace_data, 0, sizeof(cfs_trace_data));
@@ -61,7 +61,7 @@ int cfs_tracefile_init_arch(void)
 				      sizeof(union cfs_trace_data_union),
 				      GFP_KERNEL);
 		if (!cfs_trace_data[i])
-			goto out;
+			goto out_trace_data;
 	}
 
 	/* arch related info initialized */
@@ -79,13 +79,22 @@ int cfs_tracefile_init_arch(void)
 					GFP_KERNEL);
 
 			if (!cfs_trace_console_buffers[i][j])
-				goto out;
+				goto out_buffers;
 		}
 
 	return 0;
 
-out:
-	cfs_tracefile_fini_arch();
+out_buffers:
+	for (i = 0; i < num_possible_cpus(); i++)
+		for (j = 0; j < 3; j++) {
+			kfree(cfs_trace_console_buffers[i][j]);
+			cfs_trace_console_buffers[i][j] = NULL;
+		}
+out_trace_data:
+	for (i = 0; cfs_trace_data[i]; i++) {
+		kfree(cfs_trace_data[i]);
+		cfs_trace_data[i] = NULL;
+	}
 	pr_err("lnet: Not enough memory\n");
 	return -ENOMEM;
 }
