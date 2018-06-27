@@ -37,8 +37,6 @@
  */
 
 #define DEBUG_SUBSYSTEM S_LNET
-#define LUSTRE_TRACEFILE_PRIVATE
-#define pr_fmt(fmt) "Lustre: " fmt
 
 #include <linux/ratelimit.h>
 #include <linux/highmem.h>
@@ -49,7 +47,15 @@
 #include <linux/uaccess.h>
 #include "tracefile.h"
 
+#define CFS_TRACE_CONSOLE_BUFFER_SIZE	1024
 #define TCD_MAX_TYPES			8
+
+enum cfs_trace_buf_type {
+	CFS_TCD_TYPE_PROC = 0,
+	CFS_TCD_TYPE_SOFTIRQ,
+	CFS_TCD_TYPE_IRQ,
+	CFS_TCD_TYPE_MAX
+};
 
 union cfs_trace_data_union (*cfs_trace_data[TCD_MAX_TYPES])[NR_CPUS] __cacheline_aligned;
 
@@ -166,6 +172,14 @@ enum cfs_trace_buf_type cfs_trace_buf_idx_get(void)
 	if (in_softirq())
 		return CFS_TCD_TYPE_SOFTIRQ;
 	return CFS_TCD_TYPE_PROC;
+}
+
+static inline char *cfs_trace_get_console_buffer(void)
+{
+	unsigned int i = get_cpu();
+	unsigned int j = cfs_trace_buf_idx_get();
+
+	return cfs_trace_console_buffers[i][j];
 }
 
 static inline struct cfs_trace_cpu_data *
