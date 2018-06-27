@@ -183,15 +183,6 @@ union cfs_trace_data_union {
 	char __pad[L1_CACHE_ALIGN(sizeof(struct cfs_trace_cpu_data))];
 };
 
-#define TCD_MAX_TYPES      8
-extern union cfs_trace_data_union (*cfs_trace_data[TCD_MAX_TYPES])[NR_CPUS];
-
-#define cfs_tcd_for_each(tcd, i, j)				       \
-	for (i = 0; cfs_trace_data[i]; i++)				\
-		for (j = 0, ((tcd) = &(*cfs_trace_data[i])[j].tcd);	\
-		     j < num_possible_cpus();				 \
-		     j++, (tcd) = &(*cfs_trace_data[i])[j].tcd)
-
 extern char *cfs_trace_console_buffers[NR_CPUS][CFS_TCD_TYPE_MAX];
 enum cfs_trace_buf_type cfs_trace_buf_idx_get(void);
 

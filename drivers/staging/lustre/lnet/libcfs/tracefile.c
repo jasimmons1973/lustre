@@ -49,7 +49,8 @@
 #include <linux/uaccess.h>
 #include "tracefile.h"
 
-/* XXX move things up to the top, comment */
+#define TCD_MAX_TYPES			8
+
 union cfs_trace_data_union (*cfs_trace_data[TCD_MAX_TYPES])[NR_CPUS] __cacheline_aligned;
 
 char *cfs_trace_console_buffers[NR_CPUS][CFS_TCD_TYPE_MAX];
@@ -146,7 +147,14 @@ void cfs_trace_unlock_tcd(struct cfs_trace_cpu_data *tcd, int walking)
 		spin_unlock(&tcd->tcd_lock);
 }
 
-#define cfs_tcd_for_each_type_lock(tcd, i, cpu)			   \
+#define cfs_tcd_for_each(tcd, i, j)					\
+	for (i = 0; cfs_trace_data[i]; i++)				\
+		for (j = 0, ((tcd) = &(*cfs_trace_data[i])[j].tcd);	\
+		     j < num_possible_cpus();				\
+		     j++, (tcd) = &(*cfs_trace_data[i])[j].tcd)
+
+
+#define cfs_tcd_for_each_type_lock(tcd, i, cpu)				\
 	for (i = 0; cfs_trace_data[i] &&				\
 	     (tcd = &(*cfs_trace_data[i])[cpu].tcd) &&			\
 	     cfs_trace_lock_tcd(tcd, 1); cfs_trace_unlock_tcd(tcd, 1), i++)
