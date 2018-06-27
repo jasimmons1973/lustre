@@ -204,9 +204,6 @@ cfs_trace_get_console_buffer(void)
 	return cfs_trace_console_buffers[i][j];
 }
 
-int cfs_trace_refill_stock(struct cfs_trace_cpu_data *tcd, gfp_t gfp,
-			   struct list_head *stock);
-
 void cfs_trace_assertion_failed(const char *str,
 				struct libcfs_debug_msg_data *m);
 
