@@ -59,6 +59,7 @@ static DEFINE_MUTEX(cfs_trace_thread_mutex);
 static int thread_running;
 
 static atomic_t cfs_tage_allocated = ATOMIC_INIT(0);
+static DECLARE_RWSEM(cfs_tracefile_sem);
 
 struct page_collection {
 	struct list_head	pc_pages;
@@ -711,7 +712,7 @@ int cfs_tracefile_dump_all_pages(char *filename)
 	mm_segment_t __oldfs;
 	int rc;
 
-	cfs_tracefile_write_lock();
+	down_write(&cfs_tracefile_sem);
 
 	filp = filp_open(filename, O_CREAT | O_EXCL | O_WRONLY | O_LARGEFILE,
 			 0600);
@@ -759,7 +760,7 @@ int cfs_tracefile_dump_all_pages(char *filename)
 close:
 	filp_close(filp, NULL);
 out:
-	cfs_tracefile_write_unlock();
+	up_write(&cfs_tracefile_sem);
 	return rc;
 }
 
@@ -873,12 +874,12 @@ int cfs_trace_daemon_command(char *str)
 {
 	int rc = 0;
 
-	cfs_tracefile_write_lock();
+	down_write(&cfs_tracefile_sem);
 
 	if (!strcmp(str, "stop")) {
-		cfs_tracefile_write_unlock();
+		up_write(&cfs_tracefile_sem);
 		cfs_trace_stop_thread();
-		cfs_tracefile_write_lock();
+		down_write(&cfs_tracefile_sem);
 		memset(cfs_tracefile, 0, sizeof(cfs_tracefile));
 
 	} else if (!strncmp(str, "size=", 5)) {
@@ -905,7 +906,7 @@ int cfs_trace_daemon_command(char *str)
 		cfs_trace_start_thread();
 	}
 
-	cfs_tracefile_write_unlock();
+	up_write(&cfs_tracefile_sem);
 	return rc;
 }
 
@@ -950,12 +951,12 @@ int cfs_trace_set_debug_mb(int mb)
 	mb /= num_possible_cpus();
 	pages = mb << (20 - PAGE_SHIFT);
 
-	cfs_tracefile_write_lock();
+	down_write(&cfs_tracefile_sem);
 
 	cfs_tcd_for_each(tcd, i, j)
 		tcd->tcd_max_pages = (pages * tcd->tcd_pages_factor) / 100;
 
-	cfs_tracefile_write_unlock();
+	up_write(&cfs_tracefile_sem);
 
 	return 0;
 }
@@ -967,12 +968,12 @@ int cfs_trace_get_debug_mb(void)
 	struct cfs_trace_cpu_data *tcd;
 	int total_pages = 0;
 
-	cfs_tracefile_read_lock();
+	down_read(&cfs_tracefile_sem);
 
 	cfs_tcd_for_each(tcd, i, j)
 		total_pages += tcd->tcd_max_pages;
 
-	cfs_tracefile_read_unlock();
+	up_read(&cfs_tracefile_sem);
 
 	return (total_pages >> (20 - PAGE_SHIFT)) + 1;
 }
@@ -1002,7 +1003,7 @@ static int tracefiled(void *arg)
 			goto end_loop;
 
 		filp = NULL;
-		cfs_tracefile_read_lock();
+		down_read(&cfs_tracefile_sem);
 		if (cfs_tracefile[0]) {
 			filp = filp_open(cfs_tracefile,
 					 O_CREAT | O_RDWR | O_LARGEFILE,
@@ -1014,7 +1015,7 @@ static int tracefiled(void *arg)
 					rc);
 			}
 		}
-		cfs_tracefile_read_unlock();
+		up_read(&cfs_tracefile_sem);
 		if (!filp) {
 			put_pages_on_daemon_list(&pc);
 			__LASSERT(list_empty(&pc.pc_pages));
