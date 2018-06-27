@@ -227,10 +227,3 @@ void cfs_print_to_console(struct ptldebug_header *hdr, int mask,
 			hdr->ph_line_num, fn, len, buf);
 	}
 }
-
-int cfs_trace_max_debug_mb(void)
-{
-	int  total_mb = (totalram_pages >> (20 - PAGE_SHIFT));
-
-	return max(512, (total_mb * 80) / 100);
-}
