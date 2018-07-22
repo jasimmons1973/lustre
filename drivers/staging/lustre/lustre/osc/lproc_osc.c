@@ -138,10 +138,7 @@ static ssize_t max_dirty_mb_show(struct kobject *kobj,
 	long val;
 	int mult;
 
-	spin_lock(&cli->cl_loi_list_lock);
 	val = cli->cl_dirty_max_pages;
-	spin_unlock(&cli->cl_loi_list_lock);
-
 	mult = 1 << (20 - PAGE_SHIFT);
 	return lprocfs_read_frac_helper(buf, PAGE_SIZE, val, mult);
 }
@@ -252,13 +249,9 @@ static ssize_t cur_dirty_bytes_show(struct kobject *kobj,
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kobj);
 	struct client_obd *cli = &dev->u.cli;
-	int len;
 
-	spin_lock(&cli->cl_loi_list_lock);
-	len = sprintf(buf, "%lu\n", cli->cl_dirty_pages << PAGE_SHIFT);
-	spin_unlock(&cli->cl_loi_list_lock);
+	return sprintf(buf, "%lu\n", cli->cl_dirty_pages << PAGE_SHIFT);
 
-	return len;
 }
 LUSTRE_RO_ATTR(cur_dirty_bytes);
 
@@ -269,13 +262,8 @@ static ssize_t cur_grant_bytes_show(struct kobject *kobj,
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kobj);
 	struct client_obd *cli = &dev->u.cli;
-	int len;
 
-	spin_lock(&cli->cl_loi_list_lock);
-	len = sprintf(buf, "%lu\n", cli->cl_avail_grant);
-	spin_unlock(&cli->cl_loi_list_lock);
-
-	return len;
+	return sprintf(buf, "%lu\n", cli->cl_avail_grant);
 }
 
 static ssize_t cur_grant_bytes_store(struct kobject *kobj,
@@ -294,12 +282,8 @@ static ssize_t cur_grant_bytes_store(struct kobject *kobj,
 		return rc;
 
 	/* this is only for shrinking grant */
-	spin_lock(&cli->cl_loi_list_lock);
-	if (val >= cli->cl_avail_grant) {
-		spin_unlock(&cli->cl_loi_list_lock);
+	if (val >= cli->cl_avail_grant)
 		return -EINVAL;
-	}
-	spin_unlock(&cli->cl_loi_list_lock);
 
 	if (cli->cl_import->imp_state == LUSTRE_IMP_FULL)
 		rc = osc_shrink_grant_to_target(cli, val);
@@ -316,13 +300,8 @@ static ssize_t cur_lost_grant_bytes_show(struct kobject *kobj,
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kobj);
 	struct client_obd *cli = &dev->u.cli;
-	int len;
 
-	spin_lock(&cli->cl_loi_list_lock);
-	len = sprintf(buf, "%lu\n", cli->cl_lost_grant);
-	spin_unlock(&cli->cl_loi_list_lock);
-
-	return len;
+	return sprintf(buf, "%lu\n", cli->cl_lost_grant);
 }
 LUSTRE_RO_ATTR(cur_lost_grant_bytes);
 
@@ -333,13 +312,8 @@ static ssize_t cur_dirty_grant_bytes_show(struct kobject *kobj,
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kobj);
 	struct client_obd *cli = &dev->u.cli;
-	int len;
 
-	spin_lock(&cli->cl_loi_list_lock);
-	len = sprintf(buf, "%lu\n", cli->cl_dirty_grant);
-	spin_unlock(&cli->cl_loi_list_lock);
-
-	return len;
+	return sprintf(buf, "%lu\n", cli->cl_dirty_grant);
 }
 LUSTRE_RO_ATTR(cur_dirty_grant_bytes);
 
