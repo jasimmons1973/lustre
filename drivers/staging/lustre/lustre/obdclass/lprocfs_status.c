@@ -121,16 +121,13 @@ int obd_connect_flags2str(char *page, int count, u64 flags, u64 flags2,
 	__u64 mask;
 	int i, ret = 0;
 
+	BUILD_BUG_ON(ARRAY_SIZE(obd_connect_names) < 65);
+
 	for (i = 0, mask = 1; i < 64; i++, mask <<= 1) {
 		if (flags & mask)
 			ret += snprintf(page + ret, count - ret, "%s%s",
 					ret ? sep : "", obd_connect_names[i]);
 	}
-
-	if (flags & ~(mask - 1))
-		ret += snprintf(page + ret, count - ret,
-				"%sunknown flags %#llx",
-				ret ? sep : "", flags & ~(mask - 1));
 
 	if (!(flags & OBD_CONNECT_FLAGS2) || flags2 == 0)
 		return ret;
