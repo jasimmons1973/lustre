@@ -1325,9 +1325,11 @@ struct hsm_copy {
 
 enum lu_ladvise_type {
 	LU_LADVISE_INVALID	= 0,
+	LU_LADVISE_WILLREAD	= 1,
 };
 
 #define LU_LADVISE_NAMES {				\
+	[LU_LADVISE_WILLREAD]	= "willread",		\
 }
 
 /*
