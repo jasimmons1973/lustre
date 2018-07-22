@@ -644,7 +644,7 @@ static const struct file_operations *lnet_debugfs_fops_select(umode_t mode)
 	return &lnet_debugfs_file_operations_rw;
 }
 
-void lustre_insert_debugfs(struct ctl_table *table)
+void lnet_insert_debugfs(struct ctl_table *table)
 {
 	if (!lnet_debugfs_root)
 		lnet_debugfs_root = debugfs_create_dir("lnet", NULL);
@@ -662,9 +662,9 @@ void lustre_insert_debugfs(struct ctl_table *table)
 				    lnet_debugfs_root, table,
 				    lnet_debugfs_fops_select(table->mode));
 }
-EXPORT_SYMBOL_GPL(lustre_insert_debugfs);
+EXPORT_SYMBOL_GPL(lnet_insert_debugfs);
 
-static void lustre_insert_debugfs_links(
+static void lnet_insert_debugfs_links(
 	const struct lnet_debugfs_symlink_def *symlinks)
 {
 	for (; symlinks && symlinks->name; symlinks++)
@@ -672,7 +672,7 @@ static void lustre_insert_debugfs_links(
 				       symlinks->target);
 }
 
-static void lustre_remove_debugfs(void)
+static void lnet_remove_debugfs(void)
 {
 	debugfs_remove_recursive(lnet_debugfs_root);
 
@@ -716,9 +716,9 @@ int libcfs_setup(void)
 		goto err;
 	}
 
-	lustre_insert_debugfs(lnet_table);
+	lnet_insert_debugfs(lnet_table);
 	if (!IS_ERR_OR_NULL(lnet_debugfs_root))
-		lustre_insert_debugfs_links(lnet_debugfs_symlinks);
+		lnet_insert_debugfs_links(lnet_debugfs_symlinks);
 
 	CDEBUG(D_OTHER, "portals setup OK\n");
 out:
@@ -752,7 +752,7 @@ static void libcfs_exit(void)
 {
 	int rc;
 
-	lustre_remove_debugfs();
+	lnet_remove_debugfs();
 
 	if (cfs_rehash_wq)
 		destroy_workqueue(cfs_rehash_wq);
