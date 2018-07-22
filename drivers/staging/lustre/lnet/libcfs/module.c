@@ -566,7 +566,7 @@ static const struct lnet_debugfs_symlink_def lnet_debugfs_symlinks[] = {
 	  "/sys/module/libcfs/parameters/libcfs_debug_file_path"},
 	{ "panic_on_lbug",
 	  "/sys/module/libcfs/parameters/libcfs_panic_on_lbug"},
-	{ "libcfs_console_backoff",
+	{ "console_backoff",
 	  "/sys/module/libcfs/parameters/libcfs_console_backoff"},
 	{ "debug_mb",
 	  "/sys/module/libcfs/parameters/libcfs_debug_mb"},
