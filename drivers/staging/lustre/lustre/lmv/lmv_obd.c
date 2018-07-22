@@ -2702,7 +2702,7 @@ static int lmv_unpackmd(struct obd_export *exp, struct lmv_stripe_md **lsmp,
 			 * ll_update_lsm_md
 			 */
 			if (!(lsm->lsm_md_hash_type & LMV_HASH_FLAG_MIGRATION &&
-			      !i) && lsm->lsm_md_oinfo[i].lmo_root)
+			      !i))
 				iput(lsm->lsm_md_oinfo[i].lmo_root);
 		}
 

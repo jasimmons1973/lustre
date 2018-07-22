@@ -480,8 +480,7 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 		err = ll_inode_init_security(&dentry, inode, parent);
 
 out_inode:
-	if (inode)
-		iput(inode);
+	iput(inode);
 out_request:
 	ptlrpc_req_finished(request);
 out_op_data:
