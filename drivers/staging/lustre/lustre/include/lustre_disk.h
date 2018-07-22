@@ -78,6 +78,7 @@ struct lustre_mount_data {
 	int	lmd_recovery_time_hard;
 	char      *lmd_dev;	   /* device name */
 	char      *lmd_profile;    /* client only */
+	char	*lmd_fileset;	/* mount fileset */
 	char      *lmd_mgssec;	/* sptlrpc flavor to mgs */
 	char      *lmd_opts;	/* lustre mount options (as opposed to
 				 * _device_ mount options)
@@ -134,6 +135,7 @@ struct lustre_sb_info {
 #define     s2lsi_nocast(sb) ((sb)->s_fs_info)
 
 #define     get_profile_name(sb)   (s2lsi(sb)->lsi_lmd->lmd_profile)
+#define     get_mount_fileset(sb)  (s2lsi(sb)->lsi_lmd->lmd_fileset)
 
 /****************** prototypes *********************/
 

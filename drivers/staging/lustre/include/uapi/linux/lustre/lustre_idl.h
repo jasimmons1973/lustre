@@ -1244,7 +1244,7 @@ enum mds_cmd {
 	MDS_READPAGE		= 37,
 	MDS_CONNECT		= 38,
 	MDS_DISCONNECT		= 39,
-	MDS_GETSTATUS		= 40,
+	MDS_GET_ROOT		= 40,
 	MDS_STATFS		= 41,
 	MDS_PIN			= 42, /* obsolete, never used in a release */
 	MDS_UNPIN		= 43, /* obsolete, never used in a release */
@@ -2626,7 +2626,10 @@ struct getinfo_fid2path {
 	__u64	   gf_recno;
 	__u32	   gf_linkno;
 	__u32	   gf_pathlen;
-	char	    gf_path[0];
+	union {
+		char		gf_path[0];
+		struct lu_fid	gf_root_fid[0];
+	};
 } __packed;
 
 /** path2parent request/reply structures */

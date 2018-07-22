@@ -545,6 +545,7 @@ static int lustre_free_lsi(struct super_block *sb)
 	if (lsi->lsi_lmd) {
 		kfree(lsi->lsi_lmd->lmd_dev);
 		kfree(lsi->lsi_lmd->lmd_profile);
+		kfree(lsi->lsi_lmd->lmd_fileset);
 		kfree(lsi->lsi_lmd->lmd_mgssec);
 		kfree(lsi->lsi_lmd->lmd_opts);
 		if (lsi->lsi_lmd->lmd_exclude_count)
@@ -1073,10 +1074,30 @@ static int lmd_parse(char *options, struct lustre_mount_data *lmd)
 		/* Remove leading /s from fsname */
 		while (*++s1 == '/')
 			;
+		s2 = s1;
+		while (*s2 != '/' && *s2 != '\0')
+			s2++;
 		/* Freed in lustre_free_lsi */
-		lmd->lmd_profile = kasprintf(GFP_NOFS, "%s-client", s1);
+		lmd->lmd_profile = kzalloc(s2 - s1 + 8, GFP_NOFS);
 		if (!lmd->lmd_profile)
 			return -ENOMEM;
+
+		strncat(lmd->lmd_profile, s1, s2 - s1);
+		strncat(lmd->lmd_profile, "-client", 7);
+
+		s1 = s2;
+		s2 = s1 + strlen(s1) - 1;
+		/* Remove padding /s from fileset */
+		while (*s2 == '/')
+			s2--;
+		if (s2 > s1) {
+			lmd->lmd_fileset = kzalloc(s2 - s1 + 2, GFP_NOFS);
+			if (!lmd->lmd_fileset) {
+				kfree(lmd->lmd_profile);
+				return -ENOMEM;
+			}
+			strncat(lmd->lmd_fileset, s1, s2 - s1 + 1);
+		}
 	}
 
 	/* Freed in lustre_free_lsi */

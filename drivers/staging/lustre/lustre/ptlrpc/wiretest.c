@@ -131,8 +131,8 @@ void lustre_assert_wire_constants(void)
 		 (long long)MDS_CONNECT);
 	LASSERTF(MDS_DISCONNECT == 39, "found %lld\n",
 		 (long long)MDS_DISCONNECT);
-	LASSERTF(MDS_GETSTATUS == 40, "found %lld\n",
-		 (long long)MDS_GETSTATUS);
+	LASSERTF(MDS_GET_ROOT == 40, "found %lld\n",
+		 (long long)MDS_GET_ROOT);
 	LASSERTF(MDS_STATFS == 41, "found %lld\n",
 		 (long long)MDS_STATFS);
 	LASSERTF(MDS_PIN == 42, "found %lld\n",
