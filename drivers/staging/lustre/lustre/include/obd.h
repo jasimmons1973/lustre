@@ -920,7 +920,7 @@ struct lookup_intent;
 struct cl_attr;
 
 struct md_ops {
-	int (*getstatus)(struct obd_export *exp, const char *fileset,
+	int (*get_root)(struct obd_export *exp, const char *fileset,
 			 struct lu_fid *fid);
 	int (*null_inode)(struct obd_export *, const struct lu_fid *);
 	int (*close)(struct obd_export *, struct md_op_data *,

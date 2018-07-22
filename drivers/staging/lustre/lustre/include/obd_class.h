@@ -356,8 +356,8 @@ do {									     \
 
 #define MD_COUNTER_OFFSET(op)					\
 	((offsetof(struct md_ops, op) -				\
-		offsetof(struct md_ops, getstatus))		\
-		/ sizeof(((struct md_ops *)(0))->getstatus))
+		offsetof(struct md_ops, get_root))		\
+		/ sizeof(((struct md_ops *)(0))->get_root))
 
 #define MD_COUNTER_INCREMENT(obdx, op)				 \
 do {								 \
@@ -1185,9 +1185,9 @@ static inline int md_get_root(struct obd_export *exp, const char *fileset,
 {
 	int rc;
 
-	EXP_CHECK_MD_OP(exp, getstatus);
-	EXP_MD_COUNTER_INCREMENT(exp, getstatus);
-	rc = MDP(exp->exp_obd, getstatus)(exp, fileset, fid);
+	EXP_CHECK_MD_OP(exp, get_root);
+	EXP_MD_COUNTER_INCREMENT(exp, get_root);
+	rc = MDP(exp->exp_obd, get_root)(exp, fileset, fid);
 	return rc;
 }
 

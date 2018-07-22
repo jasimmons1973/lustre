@@ -1391,8 +1391,8 @@ out_free_temp:
 	return rc;
 }
 
-static int lmv_getstatus(struct obd_export *exp, const char *fileset,
-			 struct lu_fid *fid)
+static int lmv_get_root(struct obd_export *exp, const char *fileset,
+			struct lu_fid *fid)
 {
 	struct obd_device    *obd = exp->exp_obd;
 	struct lmv_obd       *lmv = &obd->u.lmv;
@@ -3076,7 +3076,7 @@ static struct obd_ops lmv_obd_ops = {
 };
 
 static struct md_ops lmv_md_ops = {
-	.getstatus		= lmv_getstatus,
+	.get_root		= lmv_get_root,
 	.null_inode		= lmv_null_inode,
 	.close			= lmv_close,
 	.create			= lmv_create,
