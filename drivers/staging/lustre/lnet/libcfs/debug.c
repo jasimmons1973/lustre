@@ -180,9 +180,11 @@ static int param_set_uint_minmax(const char *val,
 
 	if (!val)
 		return -EINVAL;
+
 	ret = kstrtouint(val, 0, &num);
 	if (ret < 0 || num < min || num > max)
 		return -EINVAL;
+
 	*((unsigned int *)kp->arg) = num;
 	return 0;
 }
@@ -229,8 +231,7 @@ MODULE_PARM_DESC(libcfs_debug_file_path,
 int libcfs_panic_in_progress;
 
 /* libcfs_debug_token2mask() expects the returned string in lower-case */
-static const char *
-libcfs_debug_subsys2str(int subsys)
+static const char *libcfs_debug_subsys2str(int subsys)
 {
 	static const char * const libcfs_debug_subsystems[] =
 		LIBCFS_DEBUG_SUBSYS_NAMES;
@@ -242,8 +243,7 @@ libcfs_debug_subsys2str(int subsys)
 }
 
 /* libcfs_debug_token2mask() expects the returned string in lower-case */
-static const char *
-libcfs_debug_dbg2str(int debug)
+static const char *libcfs_debug_dbg2str(int debug)
 {
 	static const char * const libcfs_debug_masks[] =
 		LIBCFS_DEBUG_MASKS_NAMES;
