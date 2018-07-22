@@ -277,6 +277,28 @@ static vm_fault_t ll_fault0(struct vm_area_struct *vma, struct vm_fault *vmf)
 	if (IS_ERR(env))
 		return VM_FAULT_ERROR;
 
+	if (ll_sbi_has_fast_read(ll_i2sbi(file_inode(vma->vm_file)))) {
+		/* do fast fault */
+		ll_cl_add(vma->vm_file, env, NULL, LCC_MMAP);
+		fault_ret = filemap_fault(vmf);
+		ll_cl_remove(vma->vm_file, env);
+
+		/*
+		 * - If there is no error, then the page was found in cache and
+		 *   uptodate;
+		 * - If VM_FAULT_RETRY is set, the page existed but failed to
+		 *   lock. It will return to kernel and retry;
+		 * - Otherwise, it should try normal fault under DLM lock.
+		 */
+		if ((fault_ret & VM_FAULT_RETRY) ||
+		    !(fault_ret & VM_FAULT_ERROR)) {
+			result = 0;
+			goto out;
+		}
+
+		fault_ret = 0;
+	}
+
 	io = ll_fault_io_init(env, vma, vmf->pgoff, &ra_flags);
 	if (IS_ERR(io)) {
 		fault_ret = to_fault_error(PTR_ERR(io));
@@ -293,7 +315,7 @@ static vm_fault_t ll_fault0(struct vm_area_struct *vma, struct vm_fault *vmf)
 		vio->u.fault.ft_flags_valid = false;
 
 		/* May call ll_readpage() */
-		ll_cl_add(vma->vm_file, env, io);
+		ll_cl_add(vma->vm_file, env, io, LCC_MMAP);
 
 		result = cl_io_loop(env, io);
 
@@ -326,6 +348,7 @@ out:
 
 static vm_fault_t ll_fault(struct vm_fault *vmf)
 {
+	struct vm_area_struct *vma = vmf->vma;
 	int count = 0;
 	bool printed = false;
 	vm_fault_t result;
@@ -338,10 +361,12 @@ static vm_fault_t ll_fault(struct vm_fault *vmf)
 	siginitsetinv(&new, sigmask(SIGKILL) | sigmask(SIGTERM));
 	sigprocmask(SIG_BLOCK, &new, &old);
 
+	ll_stats_ops_tally(ll_i2sbi(file_inode(vma->vm_file)),
+			   LPROC_LL_FAULT, 1);
+
 restart:
 	result = ll_fault0(vmf->vma, vmf);
-	LASSERT(!(result & VM_FAULT_LOCKED));
-	if (result == 0) {
+	if (!(result & (VM_FAULT_RETRY | VM_FAULT_ERROR | VM_FAULT_LOCKED))) {
 		struct page *vmpage = vmf->page;
 
 		/* check if this page has been truncated */
@@ -374,6 +399,9 @@ static vm_fault_t ll_page_mkwrite(struct vm_fault *vmf)
 	bool retry;
 	int err;
 	vm_fault_t ret;
+
+	ll_stats_ops_tally(ll_i2sbi(file_inode(vma->vm_file)),
+			   LPROC_LL_MKWRITE, 1);
 
 	file_update_time(vma->vm_file);
 	do {

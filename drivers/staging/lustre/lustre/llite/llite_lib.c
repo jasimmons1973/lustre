@@ -122,6 +122,7 @@ static struct ll_sb_info *ll_init_sbi(struct super_block *sb)
 	atomic_set(&sbi->ll_sa_running, 0);
 	atomic_set(&sbi->ll_agl_total, 0);
 	sbi->ll_flags |= LL_SBI_AGL_ENABLED;
+	sbi->ll_flags |= LL_SBI_FAST_READ;
 
 	/* root squash */
 	sbi->ll_squash.rsi_uid = 0;

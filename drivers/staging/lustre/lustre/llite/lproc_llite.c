@@ -872,6 +872,41 @@ static ssize_t xattr_cache_store(struct kobject *kobj,
 }
 LUSTRE_RW_ATTR(xattr_cache);
 
+static ssize_t fast_read_show(struct kobject *kobj,
+			      struct attribute *attr,
+			      char *buf)
+{
+	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
+					      ll_kobj);
+
+	return sprintf(buf, "%u\n", !!(sbi->ll_flags & LL_SBI_FAST_READ));
+}
+
+static ssize_t fast_read_store(struct kobject *kobj,
+			       struct attribute *attr,
+			       const char *buffer,
+			       size_t count)
+{
+	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
+					      ll_kobj);
+	bool val;
+	int rc;
+
+	rc = kstrtobool(buffer, &val);
+	if (rc)
+		return rc;
+
+	spin_lock(&sbi->ll_lock);
+	if (val)
+		sbi->ll_flags |= LL_SBI_FAST_READ;
+	else
+		sbi->ll_flags &= ~LL_SBI_FAST_READ;
+	spin_unlock(&sbi->ll_lock);
+
+	return count;
+}
+LUSTRE_RW_ATTR(fast_read);
+
 static int ll_unstable_stats_seq_show(struct seq_file *m, void *v)
 {
 	struct super_block     *sb    = m->private;
@@ -1032,6 +1067,7 @@ static struct attribute *llite_attrs[] = {
 	&lustre_attr_max_easize.attr,
 	&lustre_attr_default_easize.attr,
 	&lustre_attr_xattr_cache.attr,
+	&lustre_attr_fast_read.attr,
 	NULL,
 };
 
@@ -1068,6 +1104,8 @@ static const struct llite_file_opcode {
 	{ LPROC_LL_OPEN,	   LPROCFS_TYPE_REGS, "open" },
 	{ LPROC_LL_RELEASE,	LPROCFS_TYPE_REGS, "close" },
 	{ LPROC_LL_MAP,	    LPROCFS_TYPE_REGS, "mmap" },
+	{ LPROC_LL_FAULT,		LPROCFS_TYPE_REGS, "page_fault" },
+	{ LPROC_LL_MKWRITE,		LPROCFS_TYPE_REGS, "page_mkwrite" },
 	{ LPROC_LL_LLSEEK,	 LPROCFS_TYPE_REGS, "seek" },
 	{ LPROC_LL_FSYNC,	  LPROCFS_TYPE_REGS, "fsync" },
 	{ LPROC_LL_READDIR,	LPROCFS_TYPE_REGS, "readdir" },
