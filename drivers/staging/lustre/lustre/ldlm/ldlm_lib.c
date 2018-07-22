@@ -518,6 +518,7 @@ int client_connect_import(const struct lu_env *env,
 		if (is_mdc)
 			data->ocd_connect_flags |= OBD_CONNECT_MULTIMODRPCS;
 		imp->imp_connect_flags_orig = data->ocd_connect_flags;
+		imp->imp_connect_flags2_orig = data->ocd_connect_flags2;
 	}
 
 	rc = ptlrpc_connect_import(imp);

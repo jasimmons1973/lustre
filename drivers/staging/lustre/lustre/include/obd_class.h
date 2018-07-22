@@ -80,7 +80,8 @@ struct obd_device *class_num2obd(int num);
 
 int class_notify_sptlrpc_conf(const char *fsname, int namelen);
 
-int obd_connect_flags2str(char *page, int count, __u64 flags, char *sep);
+int obd_connect_flags2str(char *page, int count, u64 flags, u64 flags2,
+			  const char *sep);
 
 int obd_zombie_impexp_init(void);
 void obd_zombie_impexp_stop(void);

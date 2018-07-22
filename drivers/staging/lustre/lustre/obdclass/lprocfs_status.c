@@ -45,6 +45,7 @@
 #include <linux/ctype.h>
 
 static const char * const obd_connect_names[] = {
+	/* flags names */
 	"read_only",
 	"lov_index",
 	"connect_from_mds",
@@ -109,23 +110,42 @@ static const char * const obd_connect_names[] = {
 	"bulk_mbits",
 	"compact_obdo",
 	"second_flags",
+	/* flags2 names */
+	"file_secctx",
 	NULL
 };
 
-int obd_connect_flags2str(char *page, int count, __u64 flags, char *sep)
+int obd_connect_flags2str(char *page, int count, u64 flags, u64 flags2,
+			  const char *sep)
 {
-	__u64 mask = 1;
+	__u64 mask;
 	int i, ret = 0;
 
-	for (i = 0; obd_connect_names[i]; i++, mask <<= 1) {
+	for (i = 0, mask = 1; i < 64; i++, mask <<= 1) {
 		if (flags & mask)
 			ret += snprintf(page + ret, count - ret, "%s%s",
 					ret ? sep : "", obd_connect_names[i]);
 	}
+
 	if (flags & ~(mask - 1))
 		ret += snprintf(page + ret, count - ret,
 				"%sunknown flags %#llx",
 				ret ? sep : "", flags & ~(mask - 1));
+
+	if (!(flags & OBD_CONNECT_FLAGS2) || flags2 == 0)
+		return ret;
+
+	for (i = 64, mask = 1; obd_connect_names[i]; i++, mask <<= 1) {
+		if (flags2 & mask)
+			ret += snprintf(page + ret, count - ret, "%s%s",
+					ret ? sep : "", obd_connect_names[i]);
+	}
+
+	if (flags2 & ~(mask - 1))
+		ret += snprintf(page + ret, count - ret,
+				"%sunknown2_%#llx",
+				ret ? sep : "", flags2 & ~(mask - 1));
+
 	return ret;
 }
 EXPORT_SYMBOL(obd_connect_flags2str);
@@ -659,22 +679,43 @@ static int obd_import_flags2str(struct obd_import *imp, struct seq_file *m)
 
 #undef flags2str
 
-static void obd_connect_seq_flags2str(struct seq_file *m, __u64 flags, char *sep)
+static void obd_connect_seq_flags2str(struct seq_file *m, u64 flags,
+				      u64 flags2, const char *sep)
 {
-	__u64 mask = 1;
+	__u64 mask;
 	int i;
 	bool first = true;
 
-	for (i = 0; obd_connect_names[i]; i++, mask <<= 1) {
+	for (i = 0, mask = 1; i < 64; i++, mask <<= 1) {
 		if (flags & mask) {
 			seq_printf(m, "%s%s",
 				   first ? sep : "", obd_connect_names[i]);
 			first = false;
 		}
 	}
-	if (flags & ~(mask - 1))
+
+	if (flags & ~(mask - 1)) {
 		seq_printf(m, "%sunknown flags %#llx",
 			   first ? sep : "", flags & ~(mask - 1));
+		first = false;
+	}
+
+	if (!(flags & OBD_CONNECT_FLAGS2) || flags2 == 0)
+		return;
+
+	for (i = 64, mask = 1; obd_connect_names[i]; i++, mask <<= 1) {
+		if (flags2 & mask) {
+			seq_printf(m, "%s%s",
+				   first ? "" : sep, obd_connect_names[i]);
+			first = false;
+		}
+	}
+
+	if (flags2 & ~(mask - 1)) {
+		seq_printf(m, "%sunknown2_%#llx",
+			   first ? "" : sep, flags2 & ~(mask - 1));
+		first = false;
+	}
 }
 
 int lprocfs_rd_import(struct seq_file *m, void *data)
@@ -710,6 +751,7 @@ int lprocfs_rd_import(struct seq_file *m, void *data)
 		   ptlrpc_import_state_name(imp->imp_state),
 		   imp->imp_connect_data.ocd_instance);
 	obd_connect_seq_flags2str(m, imp->imp_connect_data.ocd_connect_flags,
+				  imp->imp_connect_data.ocd_connect_flags2,
 				  ", ");
 	seq_puts(m, " ]\n");
 	obd_connect_data_seqprint(m, ocd);
@@ -932,7 +974,7 @@ EXPORT_SYMBOL(lprocfs_rd_timeouts);
 int lprocfs_rd_connect_flags(struct seq_file *m, void *data)
 {
 	struct obd_device *obd = data;
-	__u64 flags;
+	__u64 flags, flags2;
 	int rc;
 
 	rc = lprocfs_climp_check(obd);
@@ -940,8 +982,10 @@ int lprocfs_rd_connect_flags(struct seq_file *m, void *data)
 		return rc;
 
 	flags = obd->u.cli.cl_import->imp_connect_data.ocd_connect_flags;
+	flags2 = obd->u.cli.cl_import->imp_connect_data.ocd_connect_flags2;
 	seq_printf(m, "flags=%#llx\n", flags);
-	obd_connect_seq_flags2str(m, flags, "\n");
+	seq_printf(m, "flags2=%#llx\n", flags2);
+	obd_connect_seq_flags2str(m, flags, flags2, "\n");
 	seq_puts(m, "\n");
 	up_read(&obd->u.cli.cl_sem);
 	return 0;
