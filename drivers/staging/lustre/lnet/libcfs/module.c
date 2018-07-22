@@ -60,8 +60,8 @@
 #include "tracefile.h"
 
 struct lnet_debugfs_symlink_def {
-	char *name;
-	char *target;
+	const char *name;
+	const char *target;
 };
 
 static struct dentry *lnet_debugfs_root;
