@@ -561,19 +561,19 @@ static struct ctl_table lnet_table[] = {
 
 static const struct lnet_debugfs_symlink_def lnet_debugfs_symlinks[] = {
 	{ "console_ratelimit",
-	  "/sys/module/libcfs/parameters/libcfs_console_ratelimit"},
+	  "../../../module/libcfs/parameters/libcfs_console_ratelimit"},
 	{ "debug_path",
-	  "/sys/module/libcfs/parameters/libcfs_debug_file_path"},
+	  "../../../module/libcfs/parameters/libcfs_debug_file_path"},
 	{ "panic_on_lbug",
-	  "/sys/module/libcfs/parameters/libcfs_panic_on_lbug"},
+	  "../../../module/libcfs/parameters/libcfs_panic_on_lbug"},
 	{ "console_backoff",
-	  "/sys/module/libcfs/parameters/libcfs_console_backoff"},
+	  "../../../module/libcfs/parameters/libcfs_console_backoff"},
 	{ "debug_mb",
-	  "/sys/module/libcfs/parameters/libcfs_debug_mb"},
+	  "../../../module/libcfs/parameters/libcfs_debug_mb"},
 	{ "console_min_delay_centisecs",
-	  "/sys/module/libcfs/parameters/libcfs_console_min_delay"},
+	  "../../../module/libcfs/parameters/libcfs_console_min_delay"},
 	{ "console_max_delay_centisecs",
-	  "/sys/module/libcfs/parameters/libcfs_console_max_delay"},
+	  "../../../module/libcfs/parameters/libcfs_console_max_delay"},
 	{},
 };
 
