@@ -657,7 +657,7 @@ void lnet_insert_debugfs(struct ctl_table *table)
 	 * We don't save the dentry returned because we don't call
 	 * debugfs_remove() but rather remove_recursive()
 	 */
-	for (; table->procname; table++)
+	for (; table && table->procname; table++)
 		debugfs_create_file(table->procname, table->mode,
 				    lnet_debugfs_root, table,
 				    lnet_debugfs_fops_select(table->mode));
