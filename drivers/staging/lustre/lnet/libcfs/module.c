@@ -581,37 +581,37 @@ static ssize_t lnet_debugfs_read(struct file *filp, char __user *buf,
 				 size_t count, loff_t *ppos)
 {
 	struct ctl_table *table = filp->private_data;
-	int error;
 	loff_t old_pos = *ppos;
+	ssize_t rc;
 
-	error = table->proc_handler(table, 0, (void __user *)buf, &count, ppos);
+	rc = table->proc_handler(table, 0, (void __user *)buf, &count, ppos);
 	/*
 	 * On success, the length read is either in error or in count.
 	 * If ppos changed, then use count, else use error
 	 */
-	if (!error && *ppos != old_pos)
-		error = count;
-	else if (error > 0)
-		*ppos += error;
+	if (!rc && *ppos != old_pos)
+		rc = count;
+	else if (rc > 0)
+		*ppos += rc;
 
-	return error;
+	return rc;
 }
 
 static ssize_t lnet_debugfs_write(struct file *filp, const char __user *buf,
 				  size_t count, loff_t *ppos)
 {
 	struct ctl_table *table = filp->private_data;
-	int error;
 	loff_t old_pos = *ppos;
+	ssize_t rc;
 
-	error = table->proc_handler(table, 1, (void __user *)buf, &count, ppos);
-	if (!error) {
-		error = count;
-		if (*ppos == old_pos)
-			*ppos += count;
-	}
+	rc = table->proc_handler(table, 1, (void __user *)buf, &count, ppos);
+	if (rc)
+		return rc;
 
-	return error;
+	if (*ppos == old_pos)
+		*ppos += count;
+
+	return count;
 }
 
 static const struct file_operations lnet_debugfs_file_operations_rw = {
