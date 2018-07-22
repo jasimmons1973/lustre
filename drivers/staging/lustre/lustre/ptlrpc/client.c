@@ -3084,8 +3084,7 @@ void ptlrpc_set_bulk_mbits(struct ptlrpc_request *req)
 		 * 'resend for the -EINPROGRESS resend'. To make it simple,
 		 * we opt to generate mbits for all resend cases.
 		 */
-		if ((bd->bd_import->imp_connect_data.ocd_connect_flags &
-		     OBD_CONNECT_BULK_MBITS)) {
+		if (OCD_HAS_FLAG(&bd->bd_import->imp_connect_data, BULK_MBITS)) {
 			req->rq_mbits = ptlrpc_next_xid();
 		} else {
 			/* old version transfers rq_xid to peer as matchbits */
@@ -3115,6 +3114,12 @@ void ptlrpc_set_bulk_mbits(struct ptlrpc_request *req)
 	 * see LU-1431
 	 */
 	req->rq_mbits += DIV_ROUND_UP(bd->bd_iov_count, LNET_MAX_IOV) - 1;
+
+	/* Set rq_xid as rq_mbits to indicate the final bulk for the old
+	 * server which does not support OBD_CONNECT_BULK_MBITS. LU-6808
+	 */
+	if (!OCD_HAS_FLAG(&bd->bd_import->imp_connect_data, BULK_MBITS))
+		req->rq_xid = req->rq_mbits;
 }
 
 /**
