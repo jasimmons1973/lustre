@@ -577,12 +577,27 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 
 	op_data = ll_prep_md_op_data(NULL, parent, NULL, dentry->d_name.name,
 				     dentry->d_name.len, 0, opc, NULL);
-	if (IS_ERR(op_data))
-		return (void *)op_data;
+	if (IS_ERR(op_data)) {
+		retval = ERR_CAST(op_data);
+		goto out;
+	}
 
 	/* enforce umask if acl disabled or MDS doesn't support umask */
 	if (!IS_POSIXACL(parent) || !exp_connect_umask(ll_i2mdexp(parent)))
 		it->it_create_mode &= ~current_umask();
+
+	if (it->it_op & IT_CREAT &&
+	    ll_i2sbi(parent)->ll_flags & LL_SBI_FILE_SECCTX) {
+		rc = ll_dentry_init_security(dentry, it->it_create_mode,
+					     &dentry->d_name,
+					     &op_data->op_file_secctx_name,
+					     &op_data->op_file_secctx,
+					     &op_data->op_file_secctx_size);
+		if (rc < 0) {
+			retval = ERR_PTR(rc);
+			goto out;
+		}
+	}
 
 	rc = md_intent_lock(ll_i2mdexp(parent), op_data, it, &req,
 			    &ll_md_blocking_ast, 0);
@@ -838,7 +853,10 @@ static int ll_create_it(struct inode *dir, struct dentry *dentry,
 
 	d_instantiate(dentry, inode);
 
-	return ll_init_security(dentry, inode, dir);
+	if (!(ll_i2sbi(inode)->ll_flags & LL_SBI_FILE_SECCTX))
+		rc = ll_inode_init_security(dentry, inode, dir);
+
+	return rc;
 }
 
 void ll_update_times(struct ptlrpc_request *request, struct inode *inode)
@@ -882,11 +900,21 @@ again:
 		goto err_exit;
 	}
 
+	if (sbi->ll_flags & LL_SBI_FILE_SECCTX) {
+		err = ll_dentry_init_security(dentry, mode, &dentry->d_name,
+					      &op_data->op_file_secctx_name,
+					      &op_data->op_file_secctx,
+					      &op_data->op_file_secctx_size);
+		if (err < 0)
+			goto err_exit;
+	}
+
 	err = md_create(sbi->ll_md_exp, op_data, tgt, tgt_len, mode,
 			from_kuid(&init_user_ns, current_fsuid()),
 			from_kgid(&init_user_ns, current_fsgid()),
 			current_cap(), rdev, &request);
 	ll_finish_md_op_data(op_data);
+	op_data = NULL;
 	if (err < 0 && err != -EREMOTE)
 		goto err_exit;
 
@@ -934,10 +962,14 @@ again:
 
 	d_instantiate(dentry, inode);
 
-	err = ll_init_security(dentry, inode, dir);
+	if (!(sbi->ll_flags & LL_SBI_FILE_SECCTX))
+		err = ll_inode_init_security(dentry, inode, dir);
 err_exit:
 	if (request)
 		ptlrpc_req_finished(request);
+
+	if (!IS_ERR_OR_NULL(op_data))
+		ll_finish_md_op_data(op_data);
 
 	return err;
 }
