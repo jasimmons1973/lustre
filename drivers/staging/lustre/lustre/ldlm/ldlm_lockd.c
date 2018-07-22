@@ -1129,15 +1129,26 @@ int ldlm_init(void)
 					   sizeof(struct ldlm_lock), 0,
 					   SLAB_HWCACHE_ALIGN |
 					   SLAB_TYPESAFE_BY_RCU, NULL);
-	if (!ldlm_lock_slab) {
-		kmem_cache_destroy(ldlm_resource_slab);
-		return -ENOMEM;
-	}
+	if (!ldlm_lock_slab)
+		goto out_resource;
+
+	ldlm_interval_tree_slab = kmem_cache_create("interval_tree",
+						    sizeof(struct ldlm_interval_tree) * LCK_MODE_NUM,
+						    0, SLAB_HWCACHE_ALIGN,
+						    NULL);
+	if (!ldlm_interval_tree_slab)
+		goto out_lock;
 
 #if LUSTRE_TRACKS_LOCK_EXP_REFS
 	class_export_dump_hook = ldlm_dump_export_locks;
 #endif
 	return 0;
+
+out_lock:
+	kmem_cache_destroy(ldlm_lock_slab);
+out_resource:
+	kmem_cache_destroy(ldlm_resource_slab);
+	return -ENOMEM;
 }
 
 void ldlm_exit(void)
@@ -1151,4 +1162,5 @@ void ldlm_exit(void)
 	 */
 	synchronize_rcu();
 	kmem_cache_destroy(ldlm_lock_slab);
+	kmem_cache_destroy(ldlm_interval_tree_slab);
 }

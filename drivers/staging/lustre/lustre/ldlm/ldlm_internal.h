@@ -165,6 +165,7 @@ extern struct kset *ldlm_ns_kset;
 
 /* ldlm_lockd.c & ldlm_lock.c */
 extern struct kmem_cache *ldlm_lock_slab;
+extern struct kmem_cache *ldlm_interval_tree_slab;
 
 /* ldlm_extent.c */
 void ldlm_extent_add_lock(struct ldlm_resource *res, struct ldlm_lock *lock);

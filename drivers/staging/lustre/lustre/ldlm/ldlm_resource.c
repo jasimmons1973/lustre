@@ -44,6 +44,7 @@
 #include <linux/libcfs/libcfs_hash.h>
 
 struct kmem_cache *ldlm_resource_slab, *ldlm_lock_slab;
+struct kmem_cache *ldlm_interval_tree_slab;
 
 int ldlm_srv_namespace_nr;
 int ldlm_cli_namespace_nr;
@@ -1001,10 +1002,9 @@ struct ldlm_namespace *ldlm_namespace_first_locked(enum ldlm_side client)
 }
 
 /** Create and initialize new resource. */
-static struct ldlm_resource *ldlm_resource_new(void)
+static struct ldlm_resource *ldlm_resource_new(enum ldlm_type ldlm_type)
 {
 	struct ldlm_resource *res;
-	int idx;
 
 	res = kmem_cache_zalloc(ldlm_resource_slab, GFP_NOFS);
 	if (!res)
@@ -1013,11 +1013,22 @@ static struct ldlm_resource *ldlm_resource_new(void)
 	INIT_LIST_HEAD(&res->lr_granted);
 	INIT_LIST_HEAD(&res->lr_waiting);
 
-	/* Initialize interval trees for each lock mode. */
-	for (idx = 0; idx < LCK_MODE_NUM; idx++) {
-		res->lr_itree[idx].lit_size = 0;
-		res->lr_itree[idx].lit_mode = 1 << idx;
-		res->lr_itree[idx].lit_root = RB_ROOT_CACHED;
+	if (ldlm_type == LDLM_EXTENT) {
+		int idx;
+
+		res->lr_itree = kmem_cache_zalloc(ldlm_interval_tree_slab,
+						  GFP_NOFS);
+		if (!res->lr_itree) {
+			kmem_cache_free(ldlm_resource_slab, res);
+			return NULL;
+		}
+
+		/* Initialize interval trees for each lock mode. */
+		for (idx = 0; idx < LCK_MODE_NUM; idx++) {
+			res->lr_itree[idx].lit_size = 0;
+			res->lr_itree[idx].lit_mode = 1 << idx;
+			res->lr_itree[idx].lit_root = RB_ROOT_CACHED;
+		}
 	}
 
 	atomic_set(&res->lr_refcount, 1);
@@ -1070,7 +1081,7 @@ ldlm_resource_get(struct ldlm_namespace *ns, struct ldlm_resource *parent,
 
 	LASSERTF(type >= LDLM_MIN_TYPE && type < LDLM_MAX_TYPE,
 		 "type: %d\n", type);
-	res = ldlm_resource_new();
+	res = ldlm_resource_new(type);
 	if (!res)
 		return ERR_PTR(-ENOMEM);
 
@@ -1089,6 +1100,9 @@ ldlm_resource_get(struct ldlm_namespace *ns, struct ldlm_resource *parent,
 		lu_ref_fini(&res->lr_reference);
 		/* We have taken lr_lvb_mutex. Drop it. */
 		mutex_unlock(&res->lr_lvb_mutex);
+		if (res->lr_itree)
+			kmem_cache_free(ldlm_interval_tree_slab,
+					res->lr_itree);
 		kmem_cache_free(ldlm_resource_slab, res);
 lvbo_init:
 		res = hlist_entry(hnode, struct ldlm_resource, lr_hash);
@@ -1167,6 +1181,8 @@ static void __ldlm_resource_putref_final(struct cfs_hash_bd *bd,
 		ns->ns_lvbo->lvbo_free(res);
 	if (cfs_hash_bd_count_get(bd) == 0)
 		ldlm_namespace_put(ns);
+	if (res->lr_itree)
+		kmem_cache_free(ldlm_interval_tree_slab, res->lr_itree);
 	kmem_cache_free(ldlm_resource_slab, res);
 }
 

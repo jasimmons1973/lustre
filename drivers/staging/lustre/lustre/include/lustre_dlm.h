@@ -819,6 +819,9 @@ struct ldlm_resource {
 	 */
 	struct hlist_node	lr_hash;
 
+	/** Reference count for this resource */
+	atomic_t		lr_refcount;
+
 	/** Spinlock to protect locks under this resource. */
 	spinlock_t		lr_lock;
 
@@ -835,32 +838,31 @@ struct ldlm_resource {
 	struct list_head		lr_waiting;
 	/** @} */
 
-	/** Type of locks this resource can hold. Only one type per resource. */
-	enum ldlm_type		lr_type; /* LDLM_{PLAIN,EXTENT,FLOCK,IBITS} */
-
 	/** Resource name */
 	struct ldlm_res_id	lr_name;
-	/** Reference count for this resource */
-	atomic_t		lr_refcount;
 
 	/**
 	 * Interval trees (only for extent locks) for all modes of this resource
 	 */
-	struct ldlm_interval_tree lr_itree[LCK_MODE_NUM];
+	struct ldlm_interval_tree *lr_itree;
+
+	/** Type of locks this resource can hold. Only one type per resource. */
+	enum ldlm_type		lr_type; /* LDLM_{PLAIN,EXTENT,FLOCK,IBITS} */
 
 	/**
 	 * Server-side-only lock value block elements.
 	 * To serialize lvbo_init.
 	 */
-	struct mutex		lr_lvb_mutex;
 	int			lr_lvb_len;
+	struct mutex		lr_lvb_mutex;
 
-	/** When the resource was considered as contended. */
-	unsigned long		lr_contention_time;
+	/**
+	 * Associated inode, used only on client side.
+	 */
+	struct inode		*lr_lvb_inode;
+
 	/** List of references to this resource. For debugging. */
 	struct lu_ref		lr_reference;
-
-	struct inode		*lr_lvb_inode;
 };
 
 static inline bool ldlm_has_layout(struct ldlm_lock *lock)
