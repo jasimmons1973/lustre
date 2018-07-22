@@ -422,18 +422,22 @@ int libcfs_debug_init(unsigned long bufsize)
 	}
 
 	rc = cfs_tracefile_init(max);
-	if (!rc) {
-		libcfs_register_panic_notifier();
-		libcfs_debug_mb = cfs_trace_get_debug_mb();
-	}
+	if (rc)
+		return rc;
 
+	libcfs_register_panic_notifier();
+	kernel_param_lock(THIS_MODULE);
+	libcfs_debug_mb = cfs_trace_get_debug_mb();
+	kernel_param_unlock(THIS_MODULE);
 	return rc;
 }
 
 int libcfs_debug_cleanup(void)
 {
 	libcfs_unregister_panic_notifier();
+	kernel_param_lock(THIS_MODULE);
 	cfs_tracefile_exit();
+	kernel_param_unlock(THIS_MODULE);
 	return 0;
 }
 
