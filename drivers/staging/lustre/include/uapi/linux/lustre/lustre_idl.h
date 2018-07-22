@@ -732,10 +732,10 @@ struct obd_connect_data {
 	__u32 ocd_index;	 /* LOV index to connect to */
 	__u32 ocd_brw_size;	 /* Maximum BRW size in bytes */
 	__u64 ocd_ibits_known;   /* inode bits this client understands */
-	__u8  ocd_blocksize;     /* log2 of the backend filesystem blocksize */
-	__u8  ocd_inodespace;    /* log2 of the per-inode space consumption */
-	__u16 ocd_grant_extent;  /* per-extent grant overhead, in 1K blocks */
-	__u32 ocd_unused;	 /* also fix lustre_swab_connect */
+	__u8  ocd_grant_blkbits; /* log2 of the backend filesystem blocksize */
+	__u8  ocd_grant_inobits; /* log2 of the per-inode space consumption */
+	__u16 ocd_grant_tax_kb;  /* extent grant overhead, in 1K blocks */
+	__u32 ocd_grant_max_blks;/* maximum number of blocks per extent */
 	__u64 ocd_transno;       /* first transno from client to be replayed */
 	__u32 ocd_group;	 /* MDS group on OST */
 	__u32 ocd_cksum_types;   /* supported checksum algorithms */

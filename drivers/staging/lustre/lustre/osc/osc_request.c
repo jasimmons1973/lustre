@@ -576,7 +576,10 @@ static void osc_announce_cached(struct client_obd *cli, struct obdo *oa,
 
 	oa->o_valid |= bits;
 	spin_lock(&cli->cl_loi_list_lock);
-	oa->o_dirty = cli->cl_dirty_pages << PAGE_SHIFT;
+	if (OCD_HAS_FLAG(&cli->cl_import->imp_connect_data, GRANT_PARAM))
+		oa->o_dirty = cli->cl_dirty_grant;
+	else
+		oa->o_dirty = cli->cl_dirty_pages << PAGE_SHIFT;
 	if (unlikely(cli->cl_dirty_pages - cli->cl_dirty_transit >
 		     cli->cl_dirty_max_pages)) {
 		CERROR("dirty %lu - %lu > dirty_max %lu\n",
@@ -601,12 +604,24 @@ static void osc_announce_cached(struct client_obd *cli, struct obdo *oa,
 		       cli->cl_dirty_pages, cli->cl_dirty_max_pages);
 		oa->o_undirty = 0;
 	} else {
-		unsigned long max_in_flight;
+		unsigned long nrpages;
 
-		max_in_flight = (cli->cl_max_pages_per_rpc << PAGE_SHIFT) *
-				(cli->cl_max_rpcs_in_flight + 1);
-		oa->o_undirty = max(cli->cl_dirty_max_pages << PAGE_SHIFT,
-				    max_in_flight);
+		nrpages = cli->cl_max_pages_per_rpc;
+		nrpages *= cli->cl_max_rpcs_in_flight + 1;
+		nrpages = max(nrpages, cli->cl_dirty_max_pages);
+		oa->o_undirty = nrpages << PAGE_SHIFT;
+		if (OCD_HAS_FLAG(&cli->cl_import->imp_connect_data,
+				 GRANT_PARAM)) {
+			int nrextents;
+
+			/*
+			 * take extent tax into account when asking for more
+			 * grant space
+			 */
+			nrextents = (nrpages + cli->cl_max_extent_pages - 1)  /
+				     cli->cl_max_extent_pages;
+			oa->o_undirty += nrextents * cli->cl_grant_extent_tax;
+		}
 	}
 	oa->o_grant = cli->cl_avail_grant + cli->cl_reserved_grant;
 	oa->o_dropped = cli->cl_lost_grant;
@@ -811,20 +826,40 @@ static void osc_init_grant(struct client_obd *cli, struct obd_connect_data *ocd)
 	 * race is tolerable here: if we're evicted, but imp_state already
 	 * left EVICTED state, then cl_dirty_pages must be 0 already.
 	 */
+	cli->cl_avail_grant = ocd->ocd_grant;
 	spin_lock(&cli->cl_loi_list_lock);
-	if (cli->cl_import->imp_state == LUSTRE_IMP_EVICTED)
-		cli->cl_avail_grant = ocd->ocd_grant;
-	else
-		cli->cl_avail_grant = ocd->ocd_grant -
-				      (cli->cl_dirty_pages << PAGE_SHIFT);
+	if (cli->cl_import->imp_state != LUSTRE_IMP_EVICTED) {
+		cli->cl_avail_grant -= cli->cl_reserved_grant;
+		if (OCD_HAS_FLAG(ocd, GRANT_PARAM))
+			cli->cl_avail_grant -= cli->cl_dirty_grant;
+		else
+			cli->cl_avail_grant -= cli->cl_dirty_pages << PAGE_SHIFT;
+	}
 
-	/* determine the appropriate chunk size used by osc_extent. */
-	cli->cl_chunkbits = max_t(int, PAGE_SHIFT, ocd->ocd_blocksize);
+	if (OCD_HAS_FLAG(ocd, GRANT_PARAM)) {
+		u64 size;
+
+		/* overhead for each extent insertion */
+		cli->cl_grant_extent_tax = ocd->ocd_grant_tax_kb << 10;
+		/* determine the appropriate chunk size used by osc_extent. */
+		cli->cl_chunkbits = max_t(int, PAGE_SHIFT,
+					  ocd->ocd_grant_blkbits);
+		/* determine maximum extent size, in #pages */
+		size = (u64)ocd->ocd_grant_max_blks << ocd->ocd_grant_blkbits;
+		cli->cl_max_extent_pages = size >> PAGE_SHIFT;
+		if (!cli->cl_max_extent_pages)
+			cli->cl_max_extent_pages = 1;
+	} else {
+		cli->cl_grant_extent_tax = 0;
+		cli->cl_chunkbits = PAGE_SHIFT;
+		cli->cl_max_extent_pages = DT_MAX_BRW_PAGES;
+	}
 	spin_unlock(&cli->cl_loi_list_lock);
 
-	CDEBUG(D_CACHE, "%s, setting cl_avail_grant: %ld cl_lost_grant: %ld chunk bits: %d\n",
+	CDEBUG(D_CACHE,
+	       "%s, setting cl_avail_grant: %ld cl_lost_grant: %ld chunk bits: %d cl_max_extent_pages: %d\n",
 	       cli_name(cli), cli->cl_avail_grant, cli->cl_lost_grant,
-	       cli->cl_chunkbits);
+	       cli->cl_chunkbits, cli->cl_max_extent_pages);
 
 	if (ocd->ocd_connect_flags & OBD_CONNECT_GRANT_SHRINK &&
 	    list_empty(&cli->cl_grant_shrink_list))
@@ -1661,6 +1696,7 @@ int osc_build_rpc(const struct lu_env *env, struct client_obd *cli,
 	int page_count = 0;
 	bool soft_sync = false;
 	bool interrupted = false;
+	int grant = 0;
 	int i;
 	int rc;
 	struct ost_body *body;
@@ -1672,6 +1708,7 @@ int osc_build_rpc(const struct lu_env *env, struct client_obd *cli,
 	list_for_each_entry(ext, ext_list, oe_link) {
 		LASSERT(ext->oe_state == OES_RPC);
 		mem_tight |= ext->oe_memalloc;
+		grant += ext->oe_grants;
 		page_count += ext->oe_nr_pages;
 		if (!obj)
 			obj = ext->oe_obj;
@@ -1731,6 +1768,9 @@ int osc_build_rpc(const struct lu_env *env, struct client_obd *cli,
 	crattr->cra_page = oap2cl_page(oap);
 	crattr->cra_oa = oa;
 	cl_req_attr_set(env, osc2cl(obj), crattr);
+
+	if (cmd == OBD_BRW_WRITE)
+		oa->o_grant_used = grant;
 
 	sort_brw_pages(pga, page_count);
 	rc = osc_brw_prep_request(cmd, cli, oa, page_count, pga, &req, 1, 0);
@@ -2435,12 +2475,15 @@ static int osc_reconnect(const struct lu_env *env,
 	struct client_obd *cli = &obd->u.cli;
 
 	if (data && (data->ocd_connect_flags & OBD_CONNECT_GRANT)) {
-		long lost_grant;
+		long lost_grant, grant;
 
 		spin_lock(&cli->cl_loi_list_lock);
-		data->ocd_grant = (cli->cl_avail_grant +
-				   (cli->cl_dirty_pages << PAGE_SHIFT)) ?:
-				   2 * cli_brw_size(obd);
+		grant = cli->cl_avail_grant + cli->cl_reserved_grant;
+		if (data->ocd_connect_flags & OBD_CONNECT_GRANT_PARAM)
+			grant += cli->cl_dirty_grant;
+		else
+			grant += cli->cl_dirty_pages << PAGE_SHIFT;
+		data->ocd_grant = grant ? : 2 * cli_brw_size(obd);
 		lost_grant = cli->cl_lost_grant;
 		cli->cl_lost_grant = 0;
 		spin_unlock(&cli->cl_loi_list_lock);
