@@ -122,7 +122,7 @@ static int mdc_get_root(struct obd_export *exp, const char *fileset,
 	if (fileset) {
 		char *name = req_capsule_client_get(&req->rq_pill, &RMF_NAME);
 
-		memcpy(name, fileset, strlen(fileset));
+		strcpy(name, fileset);
 	}
 	lustre_msg_add_flags(req->rq_reqmsg, LUSTRE_IMP_FULL);
 	req->rq_send_state = LUSTRE_IMP_FULL;
