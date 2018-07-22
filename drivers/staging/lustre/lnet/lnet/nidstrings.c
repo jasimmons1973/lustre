@@ -169,7 +169,7 @@ parse_addrange(const struct cfs_lstr *src, struct nidrange *nidrange)
 		return 0;
 	}
 
-	addrrange = kzalloc(sizeof(struct addrrange), GFP_NOFS);
+	addrrange = kzalloc(sizeof(*addrrange), GFP_NOFS);
 	if (!addrrange)
 		return -ENOMEM;
 	list_add_tail(&addrrange->ar_link, &nidrange->nr_addrranges);
@@ -228,7 +228,7 @@ add_nidrange(const struct cfs_lstr *src,
 		return nr;
 	}
 
-	nr = kzalloc(sizeof(struct nidrange), GFP_NOFS);
+	nr = kzalloc(sizeof(*nr), GFP_NOFS);
 	if (!nr)
 		return NULL;
 	list_add_tail(&nr->nr_link, nidlist);

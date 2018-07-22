@@ -143,7 +143,7 @@ sfw_register_test(struct srpc_service *service,
 		return -EEXIST;
 	}
 
-	tsc = kzalloc(sizeof(struct sfw_test_case), GFP_NOFS);
+	tsc = kzalloc(sizeof(*tsc), GFP_NOFS);
 	if (!tsc)
 		return -ENOMEM;
 
@@ -344,7 +344,7 @@ sfw_bid2batch(struct lst_bid bid)
 	if (bat)
 		return bat;
 
-	bat = kzalloc(sizeof(struct sfw_batch), GFP_NOFS);
+	bat = kzalloc(sizeof(*bat), GFP_NOFS);
 	if (!bat)
 		return NULL;
 
@@ -447,7 +447,7 @@ sfw_make_session(struct srpc_mksn_reqst *request, struct srpc_mksn_reply *reply)
 	}
 
 	/* brand new or create by force */
-	sn = kzalloc(sizeof(struct sfw_session), GFP_NOFS);
+	sn = kzalloc(sizeof(*sn), GFP_NOFS);
 	if (!sn) {
 		CERROR("dropping RPC mksn under memory pressure\n");
 		return -ENOMEM;
@@ -795,7 +795,7 @@ sfw_add_test_instance(struct sfw_batch *tsb, struct srpc_server_rpc *rpc)
 			sfw_unpack_id(id);
 
 		for (j = 0; j < tsi->tsi_concur; j++) {
-			tsu = kzalloc(sizeof(struct sfw_test_unit), GFP_NOFS);
+			tsu = kzalloc(sizeof(*tsu), GFP_NOFS);
 			if (!tsu) {
 				rc = -ENOMEM;
 				CERROR("Can't allocate tsu for %d\n",

@@ -615,7 +615,7 @@ restart:
 
 			goto restart;
 		}
-		*och_p = kzalloc(sizeof(struct obd_client_handle), GFP_KERNEL);
+		*och_p = kzalloc(sizeof(**och_p), GFP_KERNEL);
 		if (!*och_p) {
 			rc = -ENOMEM;
 			goto out_och_free;

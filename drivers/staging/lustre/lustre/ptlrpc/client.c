@@ -576,7 +576,7 @@ ptlrpc_init_rq_pool(int num_rq, int msgsize,
 {
 	struct ptlrpc_request_pool *pool;
 
-	pool = kzalloc(sizeof(struct ptlrpc_request_pool), GFP_NOFS);
+	pool = kzalloc(sizeof(*pool), GFP_NOFS);
 	if (!pool)
 		return NULL;
 

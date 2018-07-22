@@ -165,7 +165,7 @@ lstcon_ndlink_find(struct list_head *hash, struct lnet_process_id id,
 	if (rc)
 		return rc;
 
-	ndl = kzalloc(sizeof(struct lstcon_ndlink), GFP_NOFS);
+	ndl = kzalloc(sizeof(*ndl), GFP_NOFS);
 	if (!ndl) {
 		lstcon_node_put(nd);
 		return -ENOMEM;
@@ -805,7 +805,7 @@ lstcon_group_info(char *name, struct lstcon_ndlist_ent __user *gents_p,
 	}
 
 	/* non-verbose query */
-	gentp = kzalloc(sizeof(struct lstcon_ndlist_ent), GFP_NOFS);
+	gentp = kzalloc(sizeof(*gentp), GFP_NOFS);
 	if (!gentp) {
 		CERROR("Can't allocate ndlist_ent\n");
 		lstcon_group_decref(grp);
@@ -854,7 +854,7 @@ lstcon_batch_add(char *name)
 		return rc;
 	}
 
-	bat = kzalloc(sizeof(struct lstcon_batch), GFP_NOFS);
+	bat = kzalloc(sizeof(*bat), GFP_NOFS);
 	if (!bat) {
 		CERROR("Can't allocate descriptor for batch %s\n", name);
 		return -ENOMEM;
@@ -969,7 +969,7 @@ lstcon_batch_info(char *name, struct lstcon_test_batch_ent __user *ent_up,
 	}
 
 	/* non-verbose query */
-	entp = kzalloc(sizeof(struct lstcon_test_batch_ent), GFP_NOFS);
+	entp = kzalloc(sizeof(*entp), GFP_NOFS);
 	if (!entp)
 		return -ENOMEM;
 
