@@ -2098,7 +2098,7 @@ static inline long ll_lease_type_from_fmode(fmode_t fmode)
  * much more data being sent to the client.
  */
 static int ll_ladvise(struct inode *inode, struct file *file, __u64 flags,
-		      struct lu_ladvise *ladvise)
+		      struct llapi_lu_ladvise *ladvise)
 {
 	struct cl_ladvise_io *lio;
 	struct lu_env *env;
@@ -2458,7 +2458,7 @@ out:
 		return rc;
 	}
 	case LL_IOC_LADVISE: {
-		struct ladvise_hdr *ladvise_hdr;
+		struct llapi_ladvise_hdr *ladvise_hdr;
 		int alloc_size = sizeof(*ladvise_hdr);
 		int num_advise;
 		int i;
@@ -2469,7 +2469,7 @@ out:
 			return -ENOMEM;
 
 		if (copy_from_user(ladvise_hdr,
-				   (const struct ladvise_hdr __user *)arg,
+				   (const struct llapi_ladvise_hdr __user *)arg,
 				   alloc_size)) {
 			rc = -EFAULT;
 			goto out_ladvise;
@@ -2498,7 +2498,7 @@ out:
 		 * TODO: submit multiple advices to one server in a single RPC
 		 */
 		if (copy_from_user(ladvise_hdr,
-				   (const struct ladvise_hdr __user *)arg,
+				   (const struct llapi_advise_hdr __user *)arg,
 				   alloc_size)) {
 			rc = -EFAULT;
 			goto out_ladvise;

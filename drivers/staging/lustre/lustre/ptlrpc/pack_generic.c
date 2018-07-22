@@ -2312,10 +2312,13 @@ void lustre_swab_close_data(struct close_data *cd)
 
 void lustre_swab_ladvise(struct lu_ladvise *ladvise)
 {
+	swab16s(&ladvise->lla_advice);
+	swab16s(&ladvise->lla_value1);
+	swab32s(&ladvise->lla_value2);
 	swab64s(&ladvise->lla_start);
 	swab64s(&ladvise->lla_end);
-	swab64s(&ladvise->lla_advice);
-	BUILD_BUG_ON(!offsetof(typeof(*ladvise), lla_padding));
+	swab32s(&ladvise->lla_value3);
+	swab32s(&ladvise->lla_value4);
 }
 EXPORT_SYMBOL(lustre_swab_ladvise);
 
@@ -2324,7 +2327,8 @@ void lustre_swab_ladvise_hdr(struct ladvise_hdr *ladvise_hdr)
 	swab32s(&ladvise_hdr->lah_magic);
 	swab32s(&ladvise_hdr->lah_count);
 	swab64s(&ladvise_hdr->lah_flags);
-	BUILD_BUG_ON(!offsetof(typeof(*ladvise_hdr), lah_padding1));
-	BUILD_BUG_ON(!offsetof(typeof(*ladvise_hdr), lah_padding2));
+	swab32s(&ladvise_hdr->lah_value1);
+	swab32s(&ladvise_hdr->lah_value2);
+	swab64s(&ladvise_hdr->lah_value3);
 }
 EXPORT_SYMBOL(lustre_swab_ladvise_hdr);
