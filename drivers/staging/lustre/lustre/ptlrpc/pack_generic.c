@@ -2309,3 +2309,22 @@ void lustre_swab_close_data(struct close_data *cd)
 	lustre_swab_lu_fid(&cd->cd_fid);
 	__swab64s(&cd->cd_data_version);
 }
+
+void lustre_swab_ladvise(struct lu_ladvise *ladvise)
+{
+	swab64s(&ladvise->lla_start);
+	swab64s(&ladvise->lla_end);
+	swab64s(&ladvise->lla_advice);
+	BUILD_BUG_ON(!offsetof(typeof(*ladvise), lla_padding));
+}
+EXPORT_SYMBOL(lustre_swab_ladvise);
+
+void lustre_swab_ladvise_hdr(struct ladvise_hdr *ladvise_hdr)
+{
+	swab32s(&ladvise_hdr->lah_magic);
+	swab32s(&ladvise_hdr->lah_count);
+	swab64s(&ladvise_hdr->lah_flags);
+	BUILD_BUG_ON(!offsetof(typeof(*ladvise_hdr), lah_padding1));
+	BUILD_BUG_ON(!offsetof(typeof(*ladvise_hdr), lah_padding2));
+}
+EXPORT_SYMBOL(lustre_swab_ladvise_hdr);

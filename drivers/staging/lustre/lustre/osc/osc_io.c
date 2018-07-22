@@ -843,6 +843,80 @@ static void osc_io_fsync_end(const struct lu_env *env,
 	slice->cis_io->ci_result = result;
 }
 
+static int osc_io_ladvise_start(const struct lu_env *env,
+				const struct cl_io_slice *slice)
+{
+	struct cl_io *io = slice->cis_io;
+	struct osc_io *oio = cl2osc_io(env, slice);
+	struct cl_object *obj = slice->cis_obj;
+	struct lov_oinfo *loi = cl2osc(obj)->oo_oinfo;
+	struct cl_ladvise_io *lio = &io->u.ci_ladvise;
+	struct obdo *oa = &oio->oi_oa;
+	struct osc_async_cbargs *cbargs = &oio->oi_cbarg;
+	struct ladvise_hdr *ladvise_hdr;
+	struct lu_ladvise *ladvise;
+	int num_advise = 1;
+	int result = 0;
+	int buf_size;
+
+	/* TODO: add multiple ladvise support in CLIO */
+	buf_size = offsetof(typeof(*ladvise_hdr), lah_advise[num_advise]);
+	if (osc_env_info(env)->oti_ladvise_buf.lb_len < buf_size) {
+		kvfree(osc_env_info(env)->oti_ladvise_buf.lb_buf);
+		osc_env_info(env)->oti_ladvise_buf.lb_buf = kvzalloc(buf_size,
+								     GFP_NOFS);
+		if (likely(osc_env_info(env)->oti_ladvise_buf.lb_buf))
+			osc_env_info(env)->oti_ladvise_buf.lb_len = buf_size;
+	}
+
+	ladvise_hdr = osc_env_info(env)->oti_ladvise_buf.lb_buf;
+	if (!ladvise_hdr)
+		return -ENOMEM;
+
+	memset(ladvise_hdr, 0, buf_size);
+	ladvise_hdr->lah_magic = LADVISE_MAGIC;
+	ladvise_hdr->lah_count = num_advise;
+	ladvise_hdr->lah_flags = lio->li_flags;
+
+	memset(oa, 0, sizeof(*oa));
+	oa->o_oi = loi->loi_oi;
+	oa->o_valid = OBD_MD_FLID;
+	obdo_set_parent_fid(oa, lio->li_fid);
+
+	ladvise = ladvise_hdr->lah_advise;
+	ladvise->lla_start = lio->li_start;
+	ladvise->lla_end = lio->li_end;
+	ladvise->lla_advice = lio->li_advice;
+
+	if (lio->li_flags & LF_ASYNC) {
+		result = osc_ladvise_base(osc_export(cl2osc(obj)), oa,
+					  ladvise_hdr, NULL, NULL, NULL);
+	} else {
+		init_completion(&cbargs->opc_sync);
+		result = osc_ladvise_base(osc_export(cl2osc(obj)), oa,
+					  ladvise_hdr, osc_async_upcall,
+					  cbargs, PTLRPCD_SET);
+		cbargs->opc_rpc_sent = !result;
+	}
+	return result;
+}
+
+static void osc_io_ladvise_end(const struct lu_env *env,
+			       const struct cl_io_slice *slice)
+{
+	struct cl_io *io = slice->cis_io;
+	struct osc_io *oio = cl2osc_io(env, slice);
+	struct osc_async_cbargs *cbargs = &oio->oi_cbarg;
+	struct cl_ladvise_io *lio = &io->u.ci_ladvise;
+	int result = 0;
+
+	if ((!(lio->li_flags & LF_ASYNC)) && cbargs->opc_rpc_sent) {
+		wait_for_completion(&cbargs->opc_sync);
+		result = cbargs->opc_rc;
+	}
+	slice->cis_io->ci_result = result;
+}
+
 static void osc_io_end(const struct lu_env *env,
 		       const struct cl_io_slice *slice)
 {
@@ -890,6 +964,11 @@ static const struct cl_io_operations osc_io_ops = {
 			.cio_start  = osc_io_fsync_start,
 			.cio_end    = osc_io_fsync_end,
 			.cio_fini   = osc_io_fini
+		},
+		[CIT_LADVISE] = {
+			.cio_start	= osc_io_ladvise_start,
+			.cio_end	= osc_io_ladvise_end,
+			.cio_fini	= osc_io_fini
 		},
 		[CIT_MISC] = {
 			.cio_fini   = osc_io_fini

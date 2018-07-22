@@ -122,6 +122,7 @@ static void osc_key_fini(const struct lu_context *ctx,
 {
 	struct osc_thread_info *info = data;
 
+	kvfree(info->oti_ladvise_buf.lb_buf);
 	kmem_cache_free(osc_thread_kmem, info);
 }
 

@@ -605,6 +605,13 @@ static const struct req_msg_field *ost_get_fiemap_client[] = {
 	&RMF_FIEMAP_VAL
 };
 
+static const struct req_msg_field *ost_ladvise[] = {
+	&RMF_PTLRPC_BODY,
+	&RMF_OST_BODY,
+	&RMF_OST_LADVISE_HDR,
+	&RMF_OST_LADVISE,
+};
+
 static const struct req_msg_field *ost_get_fiemap_server[] = {
 	&RMF_PTLRPC_BODY,
 	&RMF_FIEMAP_VAL
@@ -716,6 +723,7 @@ static struct req_format *req_formats[] = {
 	&RQF_OST_GET_INFO_LAST_FID,
 	&RQF_OST_SET_INFO_LAST_FID,
 	&RQF_OST_GET_INFO_FIEMAP,
+	&RQF_OST_LADVISE,
 	&RQF_LDLM_ENQUEUE,
 	&RQF_LDLM_ENQUEUE_LVB,
 	&RQF_LDLM_CONVERT,
@@ -1110,6 +1118,18 @@ struct req_msg_field RMF_SWAP_LAYOUTS =
 	DEFINE_MSGF("swap_layouts", 0, sizeof(struct  mdc_swap_layouts),
 		    lustre_swab_swap_layouts, NULL);
 EXPORT_SYMBOL(RMF_SWAP_LAYOUTS);
+
+struct req_msg_field RMF_OST_LADVISE_HDR =
+	DEFINE_MSGF("ladvise_request", 0, sizeof(struct ladvise_hdr),
+		    lustre_swab_ladvise_hdr, NULL);
+EXPORT_SYMBOL(RMF_OST_LADVISE_HDR);
+
+struct req_msg_field RMF_OST_LADVISE =
+	DEFINE_MSGF("ladvise_request", RMF_F_STRUCT_ARRAY,
+		    sizeof(struct lu_ladvise),
+		    lustre_swab_ladvise, NULL);
+EXPORT_SYMBOL(RMF_OST_LADVISE);
+
 /*
  * Request formats.
  */
@@ -1551,6 +1571,10 @@ struct req_format RQF_OST_GET_INFO_FIEMAP =
 	DEFINE_REQ_FMT0("OST_GET_INFO_FIEMAP", ost_get_fiemap_client,
 			ost_get_fiemap_server);
 EXPORT_SYMBOL(RQF_OST_GET_INFO_FIEMAP);
+
+struct req_format RQF_OST_LADVISE =
+	DEFINE_REQ_FMT0("OST_LADVISE", ost_ladvise, ost_body_only);
+EXPORT_SYMBOL(RQF_OST_LADVISE);
 
 /* Convenience macro */
 #define FMT_FIELD(fmt, i, j) ((fmt)->rf_fields[(i)].d[(j)])

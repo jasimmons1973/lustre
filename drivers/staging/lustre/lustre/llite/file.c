@@ -1926,6 +1926,54 @@ static inline long ll_lease_type_from_fmode(fmode_t fmode)
 	       ((fmode & FMODE_WRITE) ? LL_LEASE_WRLCK : 0);
 }
 
+/*
+ * Give file access advices
+ *
+ * The ladvise interface is similar to Linux fadvise() system call, except it
+ * forwards the advices directly from Lustre client to server. The server side
+ * codes will apply appropriate read-ahead and caching techniques for the
+ * corresponding files.
+ *
+ * A typical workload for ladvise is e.g. a bunch of different clients are
+ * doing small random reads of a file, so prefetching pages into OSS cache
+ * with big linear reads before the random IO is a net benefit. Fetching
+ * all that data into each client cache with fadvise() may not be, due to
+ * much more data being sent to the client.
+ */
+static int ll_ladvise(struct inode *inode, struct file *file, __u64 flags,
+		      struct lu_ladvise *ladvise)
+{
+	struct cl_ladvise_io *lio;
+	struct lu_env *env;
+	struct cl_io *io;
+	u16 refcheck;
+	int rc;
+
+	env = cl_env_get(&refcheck);
+	if (IS_ERR(env))
+		return PTR_ERR(env);
+
+	io = vvp_env_thread_io(env);
+	io->ci_obj = ll_i2info(inode)->lli_clob;
+
+	/* initialize parameters for ladvise */
+	lio = &io->u.ci_ladvise;
+	lio->li_start = ladvise->lla_start;
+	lio->li_end = ladvise->lla_end;
+	lio->li_fid = ll_inode2fid(inode);
+	lio->li_advice = ladvise->lla_advice;
+	lio->li_flags = flags;
+
+	if (!cl_io_init(env, io, CIT_LADVISE, io->ci_obj))
+		rc = cl_io_loop(env, io);
+	else
+		rc = io->ci_result;
+
+	cl_io_fini(env, io);
+	cl_env_put(env, &refcheck);
+	return rc;
+}
+
 static long
 ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -2246,6 +2294,64 @@ out:
 		rc = ll_hsm_import(inode, file, hui);
 
 		kfree(hui);
+		return rc;
+	}
+	case LL_IOC_LADVISE: {
+		struct ladvise_hdr *ladvise_hdr;
+		int alloc_size = sizeof(*ladvise_hdr);
+		int num_advise;
+		int i;
+
+		rc = 0;
+		ladvise_hdr = kzalloc(alloc_size, GFP_NOFS);
+		if (!ladvise_hdr)
+			return -ENOMEM;
+
+		if (copy_from_user(ladvise_hdr,
+				   (const struct ladvise_hdr __user *)arg,
+				   alloc_size)) {
+			rc = -EFAULT;
+			goto out_ladvise;
+		}
+
+		if (ladvise_hdr->lah_magic != LADVISE_MAGIC ||
+		    ladvise_hdr->lah_count < 1) {
+			rc = -EINVAL;
+			goto out_ladvise;
+		}
+
+		num_advise = ladvise_hdr->lah_count;
+		if (num_advise >= LAH_COUNT_MAX) {
+			rc = -EFBIG;
+			goto out_ladvise;
+		}
+
+		kfree(ladvise_hdr);
+		alloc_size = offsetof(typeof(*ladvise_hdr),
+				      lah_advise[num_advise]);
+		ladvise_hdr = kzalloc(alloc_size, GFP_NOFS);
+		if (!ladvise_hdr)
+			return -ENOMEM;
+
+		/*
+		 * TODO: submit multiple advices to one server in a single RPC
+		 */
+		if (copy_from_user(ladvise_hdr,
+				   (const struct ladvise_hdr __user *)arg,
+				   alloc_size)) {
+			rc = -EFAULT;
+			goto out_ladvise;
+		}
+
+		for (i = 0; i < num_advise; i++) {
+			rc = ll_ladvise(inode, file, ladvise_hdr->lah_flags,
+					&ladvise_hdr->lah_advise[i]);
+			if (rc)
+				break;
+		}
+
+out_ladvise:
+		kfree(ladvise_hdr);
 		return rc;
 	}
 	default: {

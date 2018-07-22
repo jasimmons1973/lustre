@@ -190,6 +190,7 @@ extern struct req_format RQF_OST_GET_INFO_LAST_ID;
 extern struct req_format RQF_OST_GET_INFO_LAST_FID;
 extern struct req_format RQF_OST_SET_INFO_LAST_FID;
 extern struct req_format RQF_OST_GET_INFO_FIEMAP;
+extern struct req_format RQF_OST_LADVISE;
 
 /* LDLM req_format */
 extern struct req_format RQF_LDLM_ENQUEUE;
@@ -298,6 +299,9 @@ extern struct req_msg_field RMF_OST_ID;
 /* MGS config read message format */
 extern struct req_msg_field RMF_MGS_CONFIG_BODY;
 extern struct req_msg_field RMF_MGS_CONFIG_RES;
+
+extern struct req_msg_field RMF_OST_LADVISE_HDR;
+extern struct req_msg_field RMF_OST_LADVISE;
 
 /* generic uint32 */
 extern struct req_msg_field RMF_U32;
