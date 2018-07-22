@@ -82,18 +82,18 @@ static int libcfs_param_debug_mb_set(const char *val,
 
 /* While debug_mb setting look like unsigned int, in fact
  * it needs quite a bunch of extra processing, so we define special
- * debugmb parameter type with corresponding methods to handle this case
+ * debug_mb parameter type with corresponding methods to handle this case
  */
-static const struct kernel_param_ops param_ops_debugmb = {
+static const struct kernel_param_ops param_ops_debug_mb = {
 	.set = libcfs_param_debug_mb_set,
 	.get = param_get_uint,
 };
 
-#define param_check_debugmb(name, p) \
+#define param_check_debug_mb(name, p) \
 		__param_check(name, p, unsigned int)
 
 static unsigned int libcfs_debug_mb;
-module_param(libcfs_debug_mb, debugmb, 0644);
+module_param(libcfs_debug_mb, debug_mb, 0644);
 MODULE_PARM_DESC(libcfs_debug_mb, "Total debug buffer size.");
 
 unsigned int libcfs_printk = D_CANTMASK;
