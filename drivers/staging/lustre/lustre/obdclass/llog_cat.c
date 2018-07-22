@@ -189,7 +189,8 @@ static int llog_cat_process_cb(const struct lu_env *env,
 
 static int llog_cat_process_or_fork(const struct lu_env *env,
 				    struct llog_handle *cat_llh,
-				    llog_cb_t cb, void *data, int startcat,
+				    llog_cb_t cat_cb, llog_cb_t cb,
+				    void *data, int startcat,
 				    int startidx, bool fork)
 {
 	struct llog_process_data d;
@@ -210,18 +211,15 @@ static int llog_cat_process_or_fork(const struct lu_env *env,
 
 		cd.lpcd_first_idx = llh->llh_cat_idx;
 		cd.lpcd_last_idx = 0;
-		rc = llog_process_or_fork(env, cat_llh, llog_cat_process_cb,
-					  &d, &cd, fork);
+		rc = llog_process_or_fork(env, cat_llh, cat_cb, &d, &cd, fork);
 		if (rc != 0)
 			return rc;
 
 		cd.lpcd_first_idx = 0;
 		cd.lpcd_last_idx = cat_llh->lgh_last_idx;
-		rc = llog_process_or_fork(env, cat_llh, llog_cat_process_cb,
-					  &d, &cd, fork);
+		rc = llog_process_or_fork(env, cat_llh, cat_cb, &d, &cd, fork);
 	} else {
-		rc = llog_process_or_fork(env, cat_llh, llog_cat_process_cb,
-					  &d, NULL, fork);
+		rc = llog_process_or_fork(env, cat_llh, cat_cb, &d, NULL, fork);
 	}
 
 	return rc;
@@ -230,7 +228,7 @@ static int llog_cat_process_or_fork(const struct lu_env *env,
 int llog_cat_process(const struct lu_env *env, struct llog_handle *cat_llh,
 		     llog_cb_t cb, void *data, int startcat, int startidx)
 {
-	return llog_cat_process_or_fork(env, cat_llh, cb, data, startcat,
-					startidx, false);
+	return llog_cat_process_or_fork(env, cat_llh, llog_cat_process_cb, cb,
+					data, startcat, startidx, false);
 }
 EXPORT_SYMBOL(llog_cat_process);
