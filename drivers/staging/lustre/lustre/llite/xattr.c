@@ -150,7 +150,9 @@ static int ll_xattr_set_common(const struct xattr_handler *handler,
 	if (rc) {
 		if (rc == -EOPNOTSUPP && handler->flags == XATTR_USER_T) {
 			LCONSOLE_INFO("Disabling user_xattr feature because it is not supported on the server\n");
+			spin_lock(&sbi->ll_lock);
 			sbi->ll_flags &= ~LL_SBI_USER_XATTR;
+			spin_unlock(&sbi->ll_lock);
 		}
 		return rc;
 	}
@@ -387,7 +389,9 @@ out_xattr:
 		LCONSOLE_INFO(
 			"%s: disabling user_xattr feature because it is not supported on the server: rc = %d\n",
 			ll_get_fsname(inode->i_sb, NULL, 0), rc);
+		spin_lock(&sbi->ll_lock);
 		sbi->ll_flags &= ~LL_SBI_USER_XATTR;
+		spin_unlock(&sbi->ll_lock);
 	}
 out:
 	ptlrpc_req_finished(req);

@@ -514,10 +514,12 @@ static ssize_t checksum_pages_store(struct kobject *kobj,
 	rc = kstrtoul(buffer, 10, &val);
 	if (rc)
 		return rc;
+	spin_lock(&sbi->ll_lock);
 	if (val)
 		sbi->ll_flags |= LL_SBI_CHECKSUM;
 	else
 		sbi->ll_flags &= ~LL_SBI_CHECKSUM;
+	spin_unlock(&sbi->ll_lock);
 
 	rc = obd_set_info_async(NULL, sbi->ll_dt_exp, sizeof(KEY_CHECKSUM),
 				KEY_CHECKSUM, sizeof(val), &val, NULL);
@@ -669,10 +671,12 @@ static ssize_t statahead_agl_store(struct kobject *kobj,
 	if (rc)
 		return rc;
 
+	spin_lock(&sbi->ll_lock);
 	if (val)
 		sbi->ll_flags |= LL_SBI_AGL_ENABLED;
 	else
 		sbi->ll_flags &= ~LL_SBI_AGL_ENABLED;
+	spin_unlock(&sbi->ll_lock);
 
 	return count;
 }
@@ -719,10 +723,12 @@ static ssize_t lazystatfs_store(struct kobject *kobj,
 	if (rc)
 		return rc;
 
+	spin_lock(&sbi->ll_lock);
 	if (val)
 		sbi->ll_flags |= LL_SBI_LAZYSTATFS;
 	else
 		sbi->ll_flags &= ~LL_SBI_LAZYSTATFS;
+	spin_unlock(&sbi->ll_lock);
 
 	return count;
 }

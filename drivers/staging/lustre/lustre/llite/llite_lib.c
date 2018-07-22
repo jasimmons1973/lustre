@@ -2549,7 +2549,9 @@ void ll_compute_rootsquash_state(struct ll_sb_info *sbi)
 	/* Update norootsquash flag */
 	down_write(&squash->rsi_sem);
 	if (list_empty(&squash->rsi_nosquash_nids)) {
+		spin_lock(&sbi->ll_lock);
 		sbi->ll_flags &= ~LL_SBI_NOROOTSQUASH;
+		spin_unlock(&sbi->ll_lock);
 	} else {
 		/*
 		 * Do not apply root squash as soon as one of our NIDs is
@@ -2566,10 +2568,12 @@ void ll_compute_rootsquash_state(struct ll_sb_info *sbi)
 				break;
 			}
 		}
+		spin_lock(&sbi->ll_lock);
 		if (matched)
 			sbi->ll_flags |= LL_SBI_NOROOTSQUASH;
 		else
 			sbi->ll_flags &= ~LL_SBI_NOROOTSQUASH;
+		spin_unlock(&sbi->ll_lock);
 	}
 	up_write(&squash->rsi_sem);
 }
