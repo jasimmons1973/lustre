@@ -127,8 +127,7 @@ extern struct kib_tunables  kiblnd_tunables;
 #define IBLND_RX_MSGS(c)	\
 	((c->ibc_queue_depth) * 2 + IBLND_OOB_MSGS(c->ibc_version))
 #define IBLND_RX_MSG_BYTES(c)	(IBLND_RX_MSGS(c) * IBLND_MSG_SIZE)
-#define IBLND_RX_MSG_PAGES(c)	\
-	((IBLND_RX_MSG_BYTES(c) + PAGE_SIZE - 1) / PAGE_SIZE)
+#define IBLND_RX_MSG_PAGES(c)	DIV_ROUND_UP(IBLND_RX_MSG_BYTES(c), PAGE_SIZE)
 
 /* WRs and CQEs (per connection) */
 #define IBLND_RECV_WRS(c)	IBLND_RX_MSGS(c)

@@ -397,7 +397,7 @@ struct sfw_test_instance {
 #define SFW_MAX_CONCUR	   LST_MAX_CONCUR
 #define SFW_ID_PER_PAGE    (PAGE_SIZE / sizeof(struct lnet_process_id_packed))
 #define SFW_MAX_NDESTS	   (LNET_MAX_IOV * SFW_ID_PER_PAGE)
-#define sfw_id_pages(n)    (((n) + SFW_ID_PER_PAGE - 1) / SFW_ID_PER_PAGE)
+#define sfw_id_pages(n)    DIV_ROUND_UP(n, SFW_ID_PER_PAGE)
 
 struct sfw_test_unit {
 	struct list_head    tsu_list;	   /* chain on lst_test_instance */

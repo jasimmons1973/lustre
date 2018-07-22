@@ -712,8 +712,7 @@ static void osc_announce_cached(struct client_obd *cli, struct obdo *oa,
 			 * take extent tax into account when asking for more
 			 * grant space
 			 */
-			nrextents = (nrpages + cli->cl_max_extent_pages - 1)  /
-				     cli->cl_max_extent_pages;
+			nrextents = DIV_ROUND_UP(nrpages, cli->cl_max_extent_pages);
 			oa->o_undirty += nrextents * cli->cl_grant_extent_tax;
 		}
 	}
