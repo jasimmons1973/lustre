@@ -206,6 +206,9 @@ static int libcfs_ioctl(unsigned long cmd, void __user *uparam)
 	struct libcfs_ioctl_hdr *hdr;
 	int err;
 
+	err = libcfs_setup();
+	if (err)
+		return err;
 	/* 'cmd' and permissions get checked in our arch-specific caller */
 	err = libcfs_ioctl_getdata(&hdr, uparam);
 	if (err) {
