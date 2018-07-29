@@ -1399,7 +1399,7 @@ srpc_send_reply(struct srpc_server_rpc *rpc)
 	return rc;
 }
 
-/* when in kernel always called with LNET_LOCK() held, and in thread context */
+/* when in kernel always called with lnet_net_lock() held, and in thread context */
 static void
 srpc_lnet_ev_handler(struct lnet_event *ev)
 {

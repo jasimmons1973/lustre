@@ -177,9 +177,6 @@ lnet_net_lock_current(void)
 	return cpt;
 }
 
-#define LNET_LOCK()		lnet_net_lock(LNET_LOCK_EX)
-#define LNET_UNLOCK()		lnet_net_unlock(LNET_LOCK_EX)
-
 #define lnet_ptl_lock(ptl)	spin_lock(&(ptl)->ptl_lock)
 #define lnet_ptl_unlock(ptl)	spin_unlock(&(ptl)->ptl_lock)
 #define lnet_eq_wait_lock()	spin_lock(&the_lnet.ln_eq_wait_lock)
