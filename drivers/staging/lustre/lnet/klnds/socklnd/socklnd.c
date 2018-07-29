@@ -39,6 +39,7 @@
  */
 
 #include "socklnd.h"
+#include <linux/inetdevice.h>
 
 static struct lnet_lnd the_ksocklnd;
 struct ksock_nal_data ksocknal_data;
@@ -2614,53 +2615,45 @@ ksocknal_shutdown(struct lnet_ni *ni)
 static int
 ksocknal_enumerate_interfaces(struct ksock_net *net)
 {
-	char **names;
-	int i;
-	int j;
-	int rc;
-	int n;
+	int j = 0;
+	struct net_device *dev;
 
-	n = lnet_ipif_enumerate(&names);
-	if (n <= 0) {
-		CERROR("Can't enumerate interfaces: %d\n", n);
-		return n;
-	}
+	rtnl_lock();
+	for_each_netdev(&init_net, dev) {
+		const char *name = dev->name;
+		struct in_device *in_dev;
+		struct ksock_interface *ksi = &net->ksnn_interfaces[j];
 
-	for (i = j = 0; i < n; i++) {
-		int up;
-		__u32 ip;
-		__u32 mask;
-
-		if (!strcmp(names[i], "lo")) /* skip the loopback IF */
+		if (strcmp(name, "lo") == 0) /* skip the loopback IF */
 			continue;
 
-		rc = lnet_ipif_query(names[i], &up, &ip, &mask);
-		if (rc) {
-			CWARN("Can't get interface %s info: %d\n",
-			      names[i], rc);
-			continue;
-		}
-
-		if (!up) {
-			CWARN("Ignoring interface %s (down)\n",
-			      names[i]);
+		if (!(dev_get_flags(dev) & IFF_UP)) {
+			CWARN("Ignoring interface %s (down)\n", name);
 			continue;
 		}
 
 		if (j == LNET_MAX_INTERFACES) {
 			CWARN("Ignoring interface %s (too many interfaces)\n",
-			      names[i]);
+			      name);
 			continue;
 		}
-
-		net->ksnn_interfaces[j].ksni_ipaddr = ip;
-		net->ksnn_interfaces[j].ksni_netmask = mask;
-		strlcpy(net->ksnn_interfaces[j].ksni_name,
-			names[i], sizeof(net->ksnn_interfaces[j].ksni_name));
-		j++;
+		in_dev = __in_dev_get_rtnl(dev);
+		if (!in_dev) {
+			CWARN("Interface %s has no IPv4 status.\n", name);
+			continue;
+		}
+		for_primary_ifa(in_dev)
+			if (strcmp(ifa->ifa_label, name) == 0) {
+				ksi->ksni_ipaddr = ifa->ifa_local;
+				ksi->ksni_netmask = ifa->ifa_mask;
+				strlcpy(ksi->ksni_name,
+					name, sizeof(ksi->ksni_name));
+				j++;
+				break;
+			}
+		endfor_ifa(in_dev);
 	}
-
-	lnet_ipif_free_enumeration(names, n);
+	rtnl_unlock();
 
 	if (!j)
 		CERROR("Can't find any usable interfaces\n");
