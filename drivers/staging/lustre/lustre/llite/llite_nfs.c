@@ -150,10 +150,8 @@ ll_iget_for_nfs(struct super_block *sb,
 	}
 
 	result = d_obtain_alias(inode);
-	if (IS_ERR(result)) {
-		iput(inode);
+	if (IS_ERR(result))
 		return result;
-	}
 
 	/**
 	 * In case d_obtain_alias() found a disconnected dentry, always update
@@ -168,16 +166,12 @@ ll_iget_for_nfs(struct super_block *sb,
 		spin_unlock(&lli->lli_lock);
 	}
 
-	/* N.B. d_obtain_alias() drops inode ref on error */
-	result = d_obtain_alias(inode);
-	if (!IS_ERR(result)) {
-		/*
-		 * Need to signal to the ll_intent_file_open that
-		 * we came from NFS and so opencache needs to be
-		 * enabled for this one
-		 */
-		ll_d2d(result)->lld_nfs_dentry = 1;
-	}
+	/*
+	 * Need to signal to the ll_intent_file_open that
+	 * we came from NFS and so opencache needs to be
+	 * enabled for this one
+	 */
+	ll_d2d(result)->lld_nfs_dentry = 1;
 
 	return result;
 }
