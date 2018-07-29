@@ -2613,7 +2613,7 @@ ksocknal_shutdown(struct lnet_ni *ni)
 }
 
 static int
-ksocknal_enumerate_interfaces(struct ksock_net *net)
+ksocknal_enumerate_interfaces(struct ksock_net *net, char *iname)
 {
 	int j = 0;
 	struct net_device *dev;
@@ -2622,9 +2622,12 @@ ksocknal_enumerate_interfaces(struct ksock_net *net)
 	for_each_netdev(&init_net, dev) {
 		const char *name = dev->name;
 		struct in_device *in_dev;
-		struct ksock_interface *ksi = &net->ksnn_interfaces[j];
+		struct ksock_interface *ksi =
+			&net->ksnn_interfaces[net->ksnn_ninterfaces + j];
 
 		if (strcmp(name, "lo") == 0) /* skip the loopback IF */
+			continue;
+		if (iname && strcmp(name, iname) != 0)
 			continue;
 
 		if (!(dev_get_flags(dev) & IFF_UP)) {
@@ -2655,7 +2658,7 @@ ksocknal_enumerate_interfaces(struct ksock_net *net)
 	}
 	rtnl_unlock();
 
-	if (!j)
+	if (!iname && !j)
 		CERROR("Can't find any usable interfaces\n");
 
 	return j;
@@ -2802,40 +2805,23 @@ ksocknal_startup(struct lnet_ni *ni)
 	ni->ni_peertxcredits  = *ksocknal_tunables.ksnd_peertxcredits;
 	ni->ni_peerrtrcredits = *ksocknal_tunables.ksnd_peerrtrcredits;
 
+	net->ksnn_ninterfaces = 0;
 	if (!ni->ni_interfaces[0]) {
-		rc = ksocknal_enumerate_interfaces(net);
+		rc = ksocknal_enumerate_interfaces(net, NULL);
 		if (rc <= 0)
 			goto fail_1;
 
 		net->ksnn_ninterfaces = rc;
 	} else {
 		for (i = 0; i < LNET_MAX_INTERFACES; i++) {
-			int up;
-
 			if (!ni->ni_interfaces[i])
 				break;
+			rc = ksocknal_enumerate_interfaces(net, ni->ni_interfaces[i]);
 
-			rc = lnet_ipif_query(ni->ni_interfaces[i], &up,
-					     &net->ksnn_interfaces[i].ksni_ipaddr,
-					     &net->ksnn_interfaces[i].ksni_netmask);
-
-			if (rc) {
-				CERROR("Can't get interface %s info: %d\n",
-				       ni->ni_interfaces[i], rc);
+			if (rc <= 0)
 				goto fail_1;
-			}
-
-			if (!up) {
-				CERROR("Interface %s is down\n",
-				       ni->ni_interfaces[i]);
-				goto fail_1;
-			}
-
-			strlcpy(net->ksnn_interfaces[i].ksni_name,
-				ni->ni_interfaces[i],
-				sizeof(net->ksnn_interfaces[i].ksni_name));
+			net->ksnn_ninterfaces += rc;
 		}
-		net->ksnn_ninterfaces = i;
 	}
 
 	/* call it before add it to ksocknal_data.ksnd_nets */
