@@ -2807,7 +2807,7 @@ ksocknal_startup(struct lnet_ni *ni)
 		if (rc <= 0)
 			goto fail_1;
 
-		net->ksnn_ninterfaces = 1;
+		net->ksnn_ninterfaces = rc;
 	} else {
 		for (i = 0; i < LNET_MAX_INTERFACES; i++) {
 			int up;
