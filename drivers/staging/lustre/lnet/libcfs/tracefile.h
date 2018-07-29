@@ -51,8 +51,6 @@ extern long long cfs_tracefile_size;
  */
 extern char lnet_debug_log_upcall[1024];
 
-void libcfs_run_debug_log_upcall(char *file);
-
 int cfs_tracefile_dump_all_pages(char *filename);
 void cfs_trace_debug_print(void);
 void cfs_trace_flush_pages(void);
@@ -73,8 +71,6 @@ int cfs_trace_set_debug_mb(int mb);
 int cfs_trace_get_debug_mb(void);
 
 void libcfs_debug_dumplog_internal(void *arg);
-void libcfs_register_panic_notifier(void);
-void libcfs_unregister_panic_notifier(void);
 extern int libcfs_panic_in_progress;
 
 #define TCD_MAX_PAGES (5 << (20 - PAGE_SHIFT))

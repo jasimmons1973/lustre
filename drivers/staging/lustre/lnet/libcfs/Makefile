@@ -4,7 +4,6 @@ ccflags-y += -I$(srctree)/drivers/staging/lustre/lustre/include
 
 obj-$(CONFIG_LNET) += libcfs.o
 
-libcfs-obj-y += linux-debug.o
 libcfs-obj-y += linux-crypto.o
 libcfs-obj-y += linux-crypto-adler.o
 
