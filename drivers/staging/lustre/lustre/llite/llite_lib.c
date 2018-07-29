@@ -912,8 +912,10 @@ int ll_fill_super(struct super_block *sb)
 	CDEBUG(D_VFSTRACE, "VFS Op: sb %p\n", sb);
 
 	cfg = kzalloc(sizeof(*cfg), GFP_NOFS);
-	if (!cfg)
+	if (!cfg) {
+		lustre_common_put_super(sb);
 		return -ENOMEM;
+	}
 
 	try_module_get(THIS_MODULE);
 
@@ -923,6 +925,7 @@ int ll_fill_super(struct super_block *sb)
 	if (!sbi) {
 		module_put(THIS_MODULE);
 		kfree(cfg);
+		lustre_common_put_super(sb);
 		return -ENOMEM;
 	}
 

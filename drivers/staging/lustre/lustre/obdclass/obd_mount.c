@@ -1278,8 +1278,10 @@ static int lustre_fill_super(struct super_block *sb, void *lmd2_data, int silent
 			/* Connect and start */
 			/* (should always be ll_fill_super) */
 			rc = (*client_fill_super)(sb);
-			/* c_f_s will call lustre_common_put_super on failure, otherwise
-			 * c_f_s will have taken another reference to the module */
+			/*
+			 * c_f_s will call lustre_common_put_super on failure, otherwise
+			 * c_f_s will have taken another reference to the module
+			 */
 			module_put(client_mod);
 		}
 	} else {
