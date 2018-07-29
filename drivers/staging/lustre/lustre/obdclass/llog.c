@@ -59,7 +59,7 @@ static struct llog_handle *llog_alloc_handle(void)
 {
 	struct llog_handle *loghandle;
 
-	loghandle = kzalloc(sizeof(*loghandle), GFP_NOFS);
+	loghandle = kzalloc(sizeof(*loghandle), GFP_KERNEL);
 	if (!loghandle)
 		return NULL;
 
@@ -242,7 +242,7 @@ static int llog_process_thread(void *arg)
 	/* expect chunk_size to be power of two */
 	LASSERT(is_power_of_2(chunk_size));
 
-	buf = kvzalloc(chunk_size, GFP_NOFS);
+	buf = kvzalloc(chunk_size, GFP_KERNEL);
 	if (!buf) {
 		lpi->lpi_rc = -ENOMEM;
 		return 0;
@@ -421,7 +421,7 @@ int llog_process_or_fork(const struct lu_env *env,
 	struct llog_process_info *lpi;
 	int		      rc;
 
-	lpi = kzalloc(sizeof(*lpi), GFP_NOFS);
+	lpi = kzalloc(sizeof(*lpi), GFP_KERNEL);
 	if (!lpi)
 		return -ENOMEM;
 	lpi->lpi_loghandle = loghandle;
