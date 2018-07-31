@@ -686,7 +686,6 @@ int lustre_common_put_super(struct super_block *sb)
 	}
 	/* Drop a ref to the mounted disk */
 	lustre_put_lsi(sb);
-	ptlrpc_dec_ref();
 	return rc;
 }
 EXPORT_SYMBOL(lustre_common_put_super);
@@ -1248,8 +1247,9 @@ static int lustre_fill_super(struct super_block *sb, void *lmd2_data, int silent
 
 	/* Figure out the lmd from the mount options */
 	if (lmd_parse(lmd2_data, lmd)) {
+		lustre_put_lsi(sb);
 		rc = -EINVAL;
-		goto out_put_lsi;
+		goto out;
 	}
 
 	if (lmd_is_client(lmd)) {
@@ -1257,9 +1257,6 @@ static int lustre_fill_super(struct super_block *sb, void *lmd2_data, int silent
 		CDEBUG(D_MOUNT, "Mounting client %s\n", lmd->lmd_profile);
 		if (!client_fill_super)
 			request_module("lustre");
-		rc = ptlrpc_inc_ref();
-		if (rc)
-			goto out_put_lsi;
 		spin_lock(&client_lock);
 		if (client_fill_super && try_module_get(client_mod))
 			have_client = true;
@@ -1271,7 +1268,6 @@ static int lustre_fill_super(struct super_block *sb, void *lmd2_data, int silent
 		} else {
 			rc = lustre_start_mgc(sb);
 			if (rc) {
-				/* This will put_lsi and ptlrpc_dec_ref() */
 				lustre_common_put_super(sb);
 				goto out;
 			}
@@ -1293,8 +1289,6 @@ static int lustre_fill_super(struct super_block *sb, void *lmd2_data, int silent
 	 * This is why we do not put it here.
 	 */
 	goto out;
-out_put_lsi:
-	lustre_put_lsi(sb);
 out:
 	if (rc) {
 		CERROR("Unable to mount %s (%d)\n",

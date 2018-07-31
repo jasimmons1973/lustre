@@ -911,10 +911,15 @@ int ll_fill_super(struct super_block *sb)
 
 	CDEBUG(D_VFSTRACE, "VFS Op: sb %p\n", sb);
 
+	err = ptlrpc_inc_ref();
+	if (err)
+		return err;
+
 	cfg = kzalloc(sizeof(*cfg), GFP_NOFS);
 	if (!cfg) {
 		lustre_common_put_super(sb);
-		return -ENOMEM;
+		err = -ENOMEM;
+		goto out_put;
 	}
 
 	try_module_get(THIS_MODULE);
@@ -926,7 +931,8 @@ int ll_fill_super(struct super_block *sb)
 		module_put(THIS_MODULE);
 		kfree(cfg);
 		lustre_common_put_super(sb);
-		return -ENOMEM;
+		err = -ENOMEM;
+		goto out_put;
 	}
 
 	err = ll_options(lsi->lsi_lmd->lmd_opts, &sbi->ll_flags);
@@ -993,6 +999,9 @@ out_free:
 		LCONSOLE_WARN("Mounted %s\n", profilenm);
 
 	kfree(cfg);
+out_put:
+	if (err)
+		ptlrpc_dec_ref();
 	return err;
 } /* ll_fill_super */
 
@@ -1064,6 +1073,7 @@ void ll_put_super(struct super_block *sb)
 
 	module_put(THIS_MODULE);
 
+	ptlrpc_dec_ref();
 } /* client_put_super */
 
 struct inode *ll_inode_from_resource_lock(struct ldlm_lock *lock)
