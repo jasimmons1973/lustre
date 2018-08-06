@@ -853,7 +853,6 @@ lnet_drop_routed_msgs_locked(struct list_head *list, int cpt)
 {
 	struct list_head drop;
 	struct lnet_msg *msg;
-	struct lnet_msg *tmp;
 
 	INIT_LIST_HEAD(&drop);
 
@@ -861,7 +860,8 @@ lnet_drop_routed_msgs_locked(struct list_head *list, int cpt)
 
 	lnet_net_unlock(cpt);
 
-	list_for_each_entry_safe(msg, tmp, &drop, msg_list) {
+	while(!list_empty(&drop)) {
+		msg = list_first_entry(&drop, struct lnet_msg, msg_list);
 		lnet_ni_recv(msg->msg_rxpeer->lp_ni, msg->msg_private, NULL,
 			     0, 0, 0, msg->msg_hdr.payload_length);
 		list_del_init(&msg->msg_list);
