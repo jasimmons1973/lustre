@@ -469,19 +469,19 @@ static int __init obdclass_init(void)
 
 	err = obd_init_checks();
 	if (err)
-		return err;
+		goto cleanup_zombie_impexp;
 
 	class_init_uuidlist();
 	err = class_handle_init();
 	if (err)
-		return err;
+		goto cleanup_uuidlist;
 
 	INIT_LIST_HEAD(&obd_types);
 
 	err = misc_register(&obd_psdev);
 	if (err) {
 		CERROR("cannot register OBD miscdevices: err %d\n", err);
-		return err;
+		goto cleanup_class_handle;
 	}
 
 	/* This struct is already zeroed for us (static global) */
@@ -499,25 +499,63 @@ static int __init obdclass_init(void)
 
 	err = obd_init_caches();
 	if (err)
-		return err;
+		goto cleanup_deregister;
 
 	err = class_procfs_init();
 	if (err)
-		return err;
+		goto cleanup_caches;
 
 	err = obd_sysctl_init();
 	if (err)
-		return err;
+		goto cleanup_class_procfs;
 
 	err = lu_global_init();
 	if (err)
-		return err;
+		goto cleanup_class_procfs;
 
 	err = cl_global_init();
 	if (err != 0)
-		return err;
+		goto cleanup_lu_global;
 
 	err = llog_info_init();
+	if (err)
+		goto cleanup_cl_global;
+
+	/* simulate a late OOM situation now to require all
+	 * alloc'ed/initialized resources to be freed
+	 */
+	if (!OBD_FAIL_CHECK(OBD_FAIL_OBDCLASS_MODULE_LOAD))
+		return 0;
+
+	/* force error to ensure module will be unloaded/cleaned */
+	err = -ENOMEM;
+
+	llog_info_fini();
+
+cleanup_cl_global:
+	cl_global_fini();
+
+cleanup_lu_global:
+	lu_global_fini();
+
+cleanup_class_procfs:
+	class_procfs_clean();
+
+cleanup_caches:
+	obd_cleanup_caches();
+
+cleanup_deregister:
+	misc_deregister(&obd_psdev);
+
+cleanup_class_handle:
+	class_handle_cleanup();
+
+cleanup_uuidlist:
+	class_exit_uuidlist();
+
+cleanup_zombie_impexp:
+	obd_zombie_impexp_stop();
+
 	if (err)
 		return err;
 
