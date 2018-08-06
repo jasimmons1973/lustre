@@ -719,10 +719,6 @@ int libcfs_setup(void)
 		goto err;
 	}
 
-	lnet_insert_debugfs(lnet_table);
-	if (!IS_ERR_OR_NULL(lnet_debugfs_root))
-		lnet_insert_debugfs_links(lnet_debugfs_symlinks);
-
 	CDEBUG(D_OTHER, "portals setup OK\n");
 out:
 	libcfs_active = 1;
@@ -742,6 +738,10 @@ EXPORT_SYMBOL(libcfs_setup);
 static int libcfs_init(void)
 {
 	int rc;
+
+	lnet_insert_debugfs(lnet_table);
+	if (!IS_ERR_OR_NULL(lnet_debugfs_root))
+		lnet_insert_debugfs_links(lnet_debugfs_symlinks);
 
 	rc = misc_register(&libcfs_dev);
 	if (rc)
