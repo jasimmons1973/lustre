@@ -839,12 +839,13 @@ int sptlrpc_conf_init(void)
 
 void sptlrpc_conf_fini(void)
 {
-	struct sptlrpc_conf *conf, *conf_next;
+	struct sptlrpc_conf *conf;
 
 	mutex_lock(&sptlrpc_conf_lock);
-	list_for_each_entry_safe(conf, conf_next, &sptlrpc_confs, sc_list) {
+	while (!list_empty(&sptlrpc_confs)) {
+		conf = list_first_entry(&sptlrpc_confs,
+					struct sptlrpc_conf, sc_list);
 		sptlrpc_conf_free(conf);
 	}
-	LASSERT(list_empty(&sptlrpc_confs));
 	mutex_unlock(&sptlrpc_conf_lock);
 }
