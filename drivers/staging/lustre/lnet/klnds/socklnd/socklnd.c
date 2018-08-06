@@ -1402,7 +1402,6 @@ ksocknal_close_conn_locked(struct ksock_conn *conn, int error)
 	struct ksock_peer *peer = conn->ksnc_peer;
 	struct ksock_route *route;
 	struct ksock_conn *conn2;
-	struct list_head *tmp;
 
 	LASSERT(!peer->ksnp_error);
 	LASSERT(!conn->ksnc_closing);
@@ -1417,19 +1416,13 @@ ksocknal_close_conn_locked(struct ksock_conn *conn, int error)
 		LASSERT(!route->ksnr_deleted);
 		LASSERT(route->ksnr_connected & (1 << conn->ksnc_type));
 
-		conn2 = NULL;
-		list_for_each(tmp, &peer->ksnp_conns) {
-			conn2 = list_entry(tmp, struct ksock_conn, ksnc_list);
-
+		list_for_each_entry(conn2, &peer->ksnp_conns, ksnc_list) {
 			if (conn2->ksnc_route == route &&
 			    conn2->ksnc_type == conn->ksnc_type)
-				break;
-
-			conn2 = NULL;
+				goto conn2_found;
 		}
-		if (!conn2)
-			route->ksnr_connected &= ~(1 << conn->ksnc_type);
-
+		route->ksnr_connected &= ~(1 << conn->ksnc_type);
+	conn2_found:
 		conn->ksnc_route = NULL;
 
 		ksocknal_route_decref(route);     /* drop conn's ref on route */
