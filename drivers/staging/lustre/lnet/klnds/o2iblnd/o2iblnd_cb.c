@@ -3185,7 +3185,6 @@ kiblnd_check_conns(int idx)
 	struct list_head *ptmp;
 	struct kib_peer *peer;
 	struct kib_conn *conn;
-	struct kib_conn *temp;
 	struct kib_conn *tmp;
 	struct list_head *ctmp;
 	unsigned long flags;
@@ -3253,7 +3252,8 @@ kiblnd_check_conns(int idx)
 	 * NOOP, but there were no non-blocking tx descs
 	 * free to do it last time...
 	 */
-	list_for_each_entry_safe(conn, temp, &checksends, ibc_connd_list) {
+	while (!list_empty(&checksends)) {
+		conn = list_entry(checksends.next, struct kib_conn, ibc_connd_list);
 		list_del(&conn->ibc_connd_list);
 
 		spin_lock(&conn->ibc_lock);
