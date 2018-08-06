@@ -349,7 +349,7 @@ __must_hold(&the_lnet.ln_eq_wait_lock)
  * \param timeout Time in jiffies to wait for an event to occur on
  * one of the EQs. The constant MAX_SCHEDULE_TIMEOUT can be used to indicate an
  * infinite timeout.
- * \param interruptible, if true, use TASK_INTERRUPTIBLE, else TASK_NOLOAD
+ * \param interruptible, if true, use TASK_INTERRUPTIBLE, else TASK_IDLE
  * \param event,which On successful return (1 or -EOVERFLOW), \a event will
  * hold the next event in the EQs, and \a which will contain the index of the
  * EQ from which the event was taken.
@@ -406,7 +406,7 @@ LNetEQPoll(struct lnet_handle_eq *eventqs, int neq, signed long timeout,
 		 */
 		wait = lnet_eq_wait_locked(&timeout,
 					   interruptible ? TASK_INTERRUPTIBLE
-					   : TASK_NOLOAD);
+					   : TASK_IDLE);
 		if (wait < 0) /* no new event */
 			break;
 	}
