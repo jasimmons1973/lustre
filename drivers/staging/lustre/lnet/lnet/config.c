@@ -1026,7 +1026,6 @@ lnet_match_networks(char **networksp, char *ip2nets, __u32 *ipaddrs, int nip)
 	struct list_head *t;
 	struct list_head *t2;
 	struct lnet_text_buf *tb;
-	struct lnet_text_buf *temp;
 	struct lnet_text_buf *tb2;
 	__u32 net1;
 	__u32 net2;
@@ -1049,7 +1048,9 @@ lnet_match_networks(char **networksp, char *ip2nets, __u32 *ipaddrs, int nip)
 	len = 0;
 	rc = 0;
 
-	list_for_each_entry_safe(tb, temp, &raw_entries, ltb_list) {
+	while (!list_empty(&raw_entries)) {
+		tb = list_entry(raw_entries.next, struct lnet_text_buf,
+				ltb_list);
 		strncpy(source, tb->ltb_text, sizeof(source));
 		source[sizeof(source) - 1] = '\0';
 
