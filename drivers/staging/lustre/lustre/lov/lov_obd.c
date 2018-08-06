@@ -83,7 +83,7 @@ static void lov_putref(struct obd_device *obd)
 	if (atomic_dec_and_test(&lov->lov_refcount) && lov->lov_death_row) {
 		LIST_HEAD(kill);
 		int i;
-		struct lov_tgt_desc *tgt, *n;
+		struct lov_tgt_desc *tgt;
 
 		CDEBUG(D_CONFIG, "destroying %d lov targets\n",
 		       lov->lov_death_row);
@@ -103,7 +103,8 @@ static void lov_putref(struct obd_device *obd)
 		}
 		mutex_unlock(&lov->lov_lock);
 
-		list_for_each_entry_safe(tgt, n, &kill, ltd_kill) {
+		while (!list_empty(&kill)) {
+			tgt = list_first_entry(&kill, struct lov_tgt_desc, ltd_kill);
 			list_del(&tgt->ltd_kill);
 			/* Disconnect */
 			__lov_del_obd(obd, tgt);
