@@ -2291,7 +2291,6 @@ int cl_io_commit_async(const struct lu_env *env, struct cl_io *io,
 		       cl_commit_cbt cb);
 int cl_io_read_ahead(const struct lu_env *env, struct cl_io *io,
 		     pgoff_t start, struct cl_read_ahead *ra);
-int cl_io_is_going(const struct lu_env *env);
 
 /**
  * True, iff \a io is an O_APPEND write(2).
