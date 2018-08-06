@@ -1306,9 +1306,10 @@ static void kiblnd_destroy_fmr_pool(struct kib_fmr_pool *fpo)
 
 static void kiblnd_destroy_fmr_pool_list(struct list_head *head)
 {
-	struct kib_fmr_pool *fpo, *tmp;
+	struct kib_fmr_pool *fpo;
 
-	list_for_each_entry_safe(fpo, tmp, head, fpo_list) {
+	while (!list_empty(head)) {
+		fpo = list_entry(head->next, struct kib_fmr_pool, fpo_list);
 		list_del(&fpo->fpo_list);
 		kiblnd_destroy_fmr_pool(fpo);
 	}
