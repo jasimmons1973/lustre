@@ -429,10 +429,8 @@ static int lov_notify(struct obd_device *obd, struct obd_device *watched,
 	struct lov_obd *lov = &obd->u.lov;
 
 	down_read(&lov->lov_notify_lock);
-	if (!lov->lov_connects) {
-		up_read(&lov->lov_notify_lock);
-		return rc;
-	}
+	if (!lov->lov_connects)
+		goto out_notify_lock;
 
 	if (ev == OBD_NOTIFY_ACTIVE || ev == OBD_NOTIFY_INACTIVE ||
 	    ev == OBD_NOTIFY_ACTIVATE || ev == OBD_NOTIFY_DEACTIVATE) {
@@ -441,12 +439,13 @@ static int lov_notify(struct obd_device *obd, struct obd_device *watched,
 		LASSERT(watched);
 
 		if (strcmp(watched->obd_type->typ_name, LUSTRE_OSC_NAME)) {
-			up_read(&lov->lov_notify_lock);
 			CERROR("unexpected notification of %s %s!\n",
 			       watched->obd_type->typ_name,
 			       watched->obd_name);
-			return -EINVAL;
+			rc = -EINVAL;
+			goto out_notify_lock;
 		}
+
 		uuid = &watched->u.cli.cl_target_uuid;
 
 		/* Set OSC as active before notifying the observer, so the
@@ -454,53 +453,20 @@ static int lov_notify(struct obd_device *obd, struct obd_device *watched,
 		 */
 		rc = lov_set_osc_active(obd, uuid, ev);
 		if (rc < 0) {
-			up_read(&lov->lov_notify_lock);
 			CERROR("event(%d) of %s failed: %d\n", ev,
 			       obd_uuid2str(uuid), rc);
-			return rc;
+			goto out_notify_lock;
 		}
 		/* active event should be pass lov target index as data */
 		data = &rc;
 	}
 
 	/* Pass the notification up the chain. */
-	if (watched) {
-		rc = obd_notify_observer(obd, watched, ev, data);
-	} else {
-		/* NULL watched means all osc's in the lov (only for syncs) */
-		/* sync event should be send lov idx as data */
-		struct lov_obd *lov = &obd->u.lov;
-		int i, is_sync;
+	rc = obd_notify_observer(obd, watched, ev, data);
 
-		data = &i;
-		is_sync = (ev == OBD_NOTIFY_SYNC) ||
-			  (ev == OBD_NOTIFY_SYNC_NONBLOCK);
-
-		obd_getref(obd);
-		for (i = 0; i < lov->desc.ld_tgt_count; i++) {
-			if (!lov->lov_tgts[i])
-				continue;
-
-			/* don't send sync event if target not
-			 * connected/activated
-			 */
-			if (is_sync &&  !lov->lov_tgts[i]->ltd_active)
-				continue;
-
-			rc = obd_notify_observer(obd, lov->lov_tgts[i]->ltd_obd,
-						 ev, data);
-			if (rc) {
-				CERROR("%s: notify %s of %s failed %d\n",
-				       obd->obd_name,
-				       obd->obd_observer->obd_name,
-				       lov->lov_tgts[i]->ltd_obd->obd_name,
-				       rc);
-			}
-		}
-		obd_putref(obd);
-	}
-
+out_notify_lock:
 	up_read(&lov->lov_notify_lock);
+
 	return rc;
 }
 
