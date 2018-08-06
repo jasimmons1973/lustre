@@ -2116,7 +2116,6 @@ enum {
 	CONFIG_T_SPTLRPC = 1,
 	CONFIG_T_RECOVER = 2,
 	CONFIG_T_PARAMS  = 3,
-	CONFIG_T_MAX
 };
 
 struct mgs_config_body {
