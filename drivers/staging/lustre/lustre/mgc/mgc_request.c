@@ -263,18 +263,23 @@ config_recover_log_add(struct obd_device *obd, char *fsname,
 }
 
 static struct config_llog_data *
-config_params_log_add(struct obd_device *obd,
-		      struct config_llog_instance *cfg, struct super_block *sb)
+config_log_find_or_add(struct obd_device *obd, char *logname,
+		       struct super_block *sb, int type,
+		       struct config_llog_instance *cfg)
 {
 	struct config_llog_instance	lcfg = *cfg;
 	struct config_llog_data		*cld;
 
-	lcfg.cfg_instance = sb;
+	lcfg.cfg_instance = sb ? (void *)sb : (void *)obd;
 
-	cld = do_config_log_add(obd, PARAMS_FILENAME, CONFIG_T_PARAMS,
-				&lcfg, sb);
+	if (type == CONFIG_T_SPTLRPC)
+		lcfg.cfg_instance = NULL;
 
-	return cld;
+	cld = config_log_find(logname, &lcfg);
+	if (unlikely(cld))
+		return cld;
+
+	return do_config_log_add(obd, logname, type, &lcfg, sb);
 }
 
 /** Add this log to the list of active logs watched by an MGC.
@@ -310,17 +315,16 @@ config_log_add(struct obd_device *obd, char *logname,
 	memcpy(seclogname, logname, ptr - logname);
 	strcpy(seclogname + (ptr - logname), "-sptlrpc");
 
-	sptlrpc_cld = config_log_find(seclogname, NULL);
-	if (!sptlrpc_cld) {
-		sptlrpc_cld = do_config_log_add(obd, seclogname,
-						CONFIG_T_SPTLRPC, NULL, NULL);
-		if (IS_ERR(sptlrpc_cld)) {
-			CERROR("can't create sptlrpc log: %s\n", seclogname);
-			rc = PTR_ERR(sptlrpc_cld);
-			goto out_err;
-		}
+	sptlrpc_cld = config_log_find_or_add(obd, seclogname, NULL,
+					     CONFIG_T_SPTLRPC, cfg);
+	if (IS_ERR(sptlrpc_cld)) {
+		CERROR("can't create sptlrpc log: %s\n", seclogname);
+		rc = PTR_ERR(sptlrpc_cld);
+		goto out_err;
 	}
-	params_cld = config_params_log_add(obd, cfg, sb);
+
+	params_cld = config_log_find_or_add(obd, PARAMS_FILENAME, sb,
+					    CONFIG_T_PARAMS, cfg);
 	if (IS_ERR(params_cld)) {
 		rc = PTR_ERR(params_cld);
 		CERROR("%s: can't create params log: rc = %d\n",
