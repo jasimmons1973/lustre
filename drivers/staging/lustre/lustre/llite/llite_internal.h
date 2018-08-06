@@ -104,6 +104,10 @@ enum ll_file_flags {
 	LLIF_FILE_RESTORING	= 1,
 	/* Xattr cache is attached to the file */
 	LLIF_XATTR_CACHE	= 2,
+	/* update atime from MDS no matter if it's older than
+	 * local inode atime.
+	 */
+	LLIF_UPDATE_ATIME,
 };
 
 struct ll_inode_info {
@@ -137,11 +141,6 @@ struct ll_inode_info {
 	s64				lli_mtime;
 	s64				lli_ctime;
 	spinlock_t			lli_agl_lock;
-
-	/* update atime from MDS no matter if it's older than
-	 * local inode atime.
-	 */
-	unsigned int			lli_update_atime:1;
 
 	/* Try to make the d::member and f::member are aligned. Before using
 	 * these members, make clear whether it is directory or not.
