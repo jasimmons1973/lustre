@@ -216,7 +216,8 @@ lnet_drop_rule_del(lnet_nid_t src, lnet_nid_t dst)
 	}
 	lnet_net_unlock(LNET_LOCK_EX);
 
-	list_for_each_entry_safe(rule, tmp, &zombies, dr_link) {
+	while (!list_empty(&zombies)) {
+		rule = list_first_entry(&zombies, struct lnet_drop_rule, dr_link);
 		CDEBUG(D_NET, "Remove drop rule: src %s->dst: %s (1/%d, %d)\n",
 		       libcfs_nid2str(rule->dr_attr.fa_src),
 		       libcfs_nid2str(rule->dr_attr.fa_dst),
@@ -841,7 +842,9 @@ lnet_delay_rule_del(lnet_nid_t src, lnet_nid_t dst, bool shutdown)
 		  !list_empty(&rule_list);
 	lnet_net_unlock(LNET_LOCK_EX);
 
-	list_for_each_entry_safe(rule, tmp, &rule_list, dl_link) {
+	while (!list_empty(&rule_list)) {
+		rule = list_first_entry(&rule_list,
+					struct lnet_delay_rule, dl_link);
 		list_del_init(&rule->dl_link);
 
 		del_timer_sync(&rule->dl_timer);
