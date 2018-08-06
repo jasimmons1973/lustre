@@ -305,9 +305,9 @@ static int proc_dobitmasks(struct ctl_table *table, int write,
 	int is_subsys = (mask == &libcfs_subsystem_debug) ? 1 : 0;
 	int is_printk = (mask == &libcfs_printk) ? 1 : 0;
 
-	rc = cfs_trace_allocate_string_buffer(&tmpstr, tmpstrlen);
-	if (rc < 0)
-		return rc;
+	tmpstr = kzalloc(tmpstrlen, GFP_KERNEL);
+	if (!tmpstr)
+		return -ENOMEM;
 
 	if (!write) {
 		libcfs_debug_mask2str(tmpstr, tmpstrlen, *mask, is_subsys);

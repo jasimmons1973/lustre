@@ -963,26 +963,16 @@ int cfs_trace_copyout_string(char __user *usr_buffer, int usr_buffer_nob,
 }
 EXPORT_SYMBOL(cfs_trace_copyout_string);
 
-int cfs_trace_allocate_string_buffer(char **str, int nob)
-{
-	if (nob > 2 * PAGE_SIZE)	    /* string must be "sensible" */
-		return -EINVAL;
-
-	*str = kmalloc(nob, GFP_KERNEL | __GFP_ZERO);
-	if (!*str)
-		return -ENOMEM;
-
-	return 0;
-}
-
 int cfs_trace_dump_debug_buffer_usrstr(void __user *usr_str, int usr_str_nob)
 {
 	char *str;
 	int rc;
 
-	rc = cfs_trace_allocate_string_buffer(&str, usr_str_nob + 1);
-	if (rc)
-		return rc;
+	if (usr_str_nob >= 2 * PAGE_SIZE)
+		return -EINVAL;
+	str = kzalloc(usr_str_nob + 1, GFP_KERNEL);
+	if (!str)
+		return -ENOMEM;
 
 	rc = cfs_trace_copyin_string(str, usr_str_nob + 1,
 				     usr_str, usr_str_nob);
@@ -1044,9 +1034,11 @@ int cfs_trace_daemon_command_usrstr(void __user *usr_str, int usr_str_nob)
 	char *str;
 	int rc;
 
-	rc = cfs_trace_allocate_string_buffer(&str, usr_str_nob + 1);
-	if (rc)
-		return rc;
+	if (usr_str_nob >= 2 * PAGE_SIZE)
+		return -EINVAL;
+	str = kzalloc(usr_str_nob + 1, GFP_KERNEL);
+	if (!str)
+		return -ENOMEM;
 
 	rc = cfs_trace_copyin_string(str, usr_str_nob + 1,
 				     usr_str, usr_str_nob);
