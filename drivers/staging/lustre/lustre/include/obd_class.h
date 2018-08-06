@@ -48,7 +48,6 @@
 #define OBD_STATFS_FOR_MDT0	0x0004
 
 /* OBD Device Declarations */
-extern struct obd_device *obd_devs[MAX_OBD_DEVICES];
 extern rwlock_t obd_dev_lock;
 
 /* OBD Operations Declarations */
@@ -59,7 +58,6 @@ int lustre_get_jobid(char *jobid);
 struct lu_device_type;
 
 /* genops.c */
-extern struct list_head obd_types;
 struct obd_export *class_conn2export(struct lustre_handle *conn);
 int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 			const char *name, struct lu_device_type *ldt);
@@ -133,7 +131,6 @@ void class_decref(struct obd_device *obd,
 int class_config_llog_handler(const struct lu_env *env,
 			      struct llog_handle *handle,
 			      struct llog_rec_hdr *rec, void *data);
-int class_add_uuid(const char *uuid, __u64 nid);
 
 /* obdecho */
 void lprocfs_echo_init_vars(struct lprocfs_static_vars *lvars);
@@ -1576,13 +1573,10 @@ int lustre_uuid_to_peer(const char *uuid, lnet_nid_t *peer_nid, int index);
 int class_add_uuid(const char *uuid, __u64 nid);
 int class_del_uuid(const char *uuid);
 int class_check_uuid(struct obd_uuid *uuid, __u64 nid);
-void class_init_uuidlist(void);
-void class_exit_uuidlist(void);
 
 /* class_obd.c */
 extern char obd_jobid_node[];
 extern struct miscdevice obd_psdev;
-extern spinlock_t obd_types_lock;
 int class_procfs_init(void);
 int class_procfs_clean(void);
 

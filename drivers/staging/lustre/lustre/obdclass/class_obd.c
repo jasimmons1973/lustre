@@ -49,10 +49,6 @@
 #include <uapi/linux/lnet/libcfs_ioctl.h>
 #include "llog_internal.h"
 
-struct obd_device *obd_devs[MAX_OBD_DEVICES];
-struct list_head obd_types;
-DEFINE_RWLOCK(obd_dev_lock);
-
 /* The following are visible and mutable through /sys/fs/lustre. */
 unsigned int obd_debug_peer_on_timeout;
 EXPORT_SYMBOL(obd_debug_peer_on_timeout);
@@ -455,38 +451,31 @@ static int obd_init_checks(void)
 
 static int __init obdclass_init(void)
 {
-	int i, err;
+	int err;
 
 	LCONSOLE_INFO("Lustre: Build Version: " LUSTRE_VERSION_STRING "\n");
-
-	spin_lock_init(&obd_types_lock);
 
 	err = libcfs_setup();
 	if (err)
 		return err;
 
-	obd_zombie_impexp_init();
+	err = obd_zombie_impexp_init();
+	if (err)
+		return err;
 
 	err = obd_init_checks();
 	if (err)
 		goto cleanup_zombie_impexp;
 
-	class_init_uuidlist();
 	err = class_handle_init();
 	if (err)
-		goto cleanup_uuidlist;
-
-	INIT_LIST_HEAD(&obd_types);
+		goto cleanup_zombie_impexp;
 
 	err = misc_register(&obd_psdev);
 	if (err) {
 		CERROR("cannot register OBD miscdevices: err %d\n", err);
 		goto cleanup_class_handle;
 	}
-
-	/* This struct is already zeroed for us (static global) */
-	for (i = 0; i < class_devno_max(); i++)
-		obd_devs[i] = NULL;
 
 	/* Default the dirty page cache cap to 1/2 of system memory.
 	 * For clients with less memory, a larger fraction is needed
@@ -550,9 +539,6 @@ cleanup_deregister:
 cleanup_class_handle:
 	class_handle_cleanup();
 
-cleanup_uuidlist:
-	class_exit_uuidlist();
-
 cleanup_zombie_impexp:
 	obd_zombie_impexp_stop();
 
@@ -574,7 +560,7 @@ static void obdclass_exit(void)
 	class_procfs_clean();
 
 	class_handle_cleanup();
-	class_exit_uuidlist();
+	class_del_uuid(NULL); /* Delete all UUIDs. */
 	obd_zombie_impexp_stop();
 }
 

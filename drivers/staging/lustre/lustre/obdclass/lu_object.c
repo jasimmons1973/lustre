@@ -764,25 +764,13 @@ struct lu_object *lu_object_find_slice(const struct lu_env *env,
 }
 EXPORT_SYMBOL(lu_object_find_slice);
 
-/**
- * Global list of all device types.
- */
-static LIST_HEAD(lu_device_types);
-
 int lu_device_type_init(struct lu_device_type *ldt)
 {
 	int result = 0;
 
 	atomic_set(&ldt->ldt_device_nr, 0);
-	INIT_LIST_HEAD(&ldt->ldt_linkage);
 	if (ldt->ldt_ops->ldto_init)
 		result = ldt->ldt_ops->ldto_init(ldt);
-
-	if (!result) {
-		spin_lock(&obd_types_lock);
-		list_add(&ldt->ldt_linkage, &lu_device_types);
-		spin_unlock(&obd_types_lock);
-	}
 
 	return result;
 }
@@ -790,9 +778,6 @@ EXPORT_SYMBOL(lu_device_type_init);
 
 void lu_device_type_fini(struct lu_device_type *ldt)
 {
-	spin_lock(&obd_types_lock);
-	list_del_init(&ldt->ldt_linkage);
-	spin_unlock(&obd_types_lock);
 	if (ldt->ldt_ops->ldto_fini)
 		ldt->ldt_ops->ldto_fini(ldt);
 }

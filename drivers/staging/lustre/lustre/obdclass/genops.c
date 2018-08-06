@@ -41,7 +41,10 @@
 #include <lprocfs_status.h>
 #include <lustre_kernelcomm.h>
 
-spinlock_t obd_types_lock;
+static DEFINE_SPINLOCK(obd_types_lock);
+static LIST_HEAD(obd_types);
+DEFINE_RWLOCK(obd_dev_lock);
+static struct obd_device *obd_devs[MAX_OBD_DEVICES];
 
 static struct kmem_cache *obd_device_cachep;
 struct kmem_cache *obdo_cachep;
