@@ -561,18 +561,16 @@ struct ksock_conn *
 ksocknal_find_conn_locked(struct ksock_peer *peer, struct ksock_tx *tx,
 			  int nonblk)
 {
-	struct list_head *tmp;
+	struct ksock_conn *c;
 	struct ksock_conn *conn;
 	struct ksock_conn *typed = NULL;
 	struct ksock_conn *fallback = NULL;
 	int tnob = 0;
 	int fnob = 0;
 
-	list_for_each(tmp, &peer->ksnp_conns) {
-		struct ksock_conn *c;
+	list_for_each_entry(c, &peer->ksnp_conns, ksnc_list) {
 		int nob, rc;
 
-		c = list_entry(tmp, struct ksock_conn, ksnc_list);
 		nob = atomic_read(&c->ksnc_tx_nob) +
 		      c->ksnc_sock->sk->sk_wmem_queued;
 
@@ -729,12 +727,9 @@ struct ksock_route *
 ksocknal_find_connectable_route_locked(struct ksock_peer *peer)
 {
 	time64_t now = ktime_get_seconds();
-	struct list_head *tmp;
 	struct ksock_route *route;
 
-	list_for_each(tmp, &peer->ksnp_routes) {
-		route = list_entry(tmp, struct ksock_route, ksnr_list);
-
+	list_for_each_entry(route, &peer->ksnp_routes, ksnr_list) {
 		LASSERT(!route->ksnr_connecting || route->ksnr_scheduled);
 
 		/* connections being established */
@@ -765,11 +760,9 @@ ksocknal_find_connectable_route_locked(struct ksock_peer *peer)
 struct ksock_route *
 ksocknal_find_connecting_route_locked(struct ksock_peer *peer)
 {
-	struct list_head *tmp;
 	struct ksock_route *route;
 
-	list_for_each(tmp, &peer->ksnp_routes) {
-		route = list_entry(tmp, struct ksock_route, ksnr_list);
+	list_for_each_entry(route, &peer->ksnp_routes, ksnr_list) {
 
 		LASSERT(!route->ksnr_connecting || route->ksnr_scheduled);
 
@@ -2180,12 +2173,9 @@ ksocknal_find_timed_out_conn(struct ksock_peer *peer)
 {
 	/* We're called with a shared lock on ksnd_global_lock */
 	struct ksock_conn *conn;
-	struct list_head *ctmp;
 
-	list_for_each(ctmp, &peer->ksnp_conns) {
+	list_for_each_entry(conn, &peer->ksnp_conns, ksnc_list) {
 		int error;
-
-		conn = list_entry(ctmp, struct ksock_conn, ksnc_list);
 
 		/* Don't need the {get,put}connsock dance to deref ksnc_sock */
 		LASSERT(!conn->ksnc_closing);

@@ -386,11 +386,9 @@ struct kib_peer *kiblnd_find_peer_locked(lnet_nid_t nid)
 	 * that this creates
 	 */
 	struct list_head *peer_list = kiblnd_nid2peerlist(nid);
-	struct list_head *tmp;
 	struct kib_peer *peer;
 
-	list_for_each(tmp, peer_list) {
-		peer = list_entry(tmp, struct kib_peer, ibp_list);
+	list_for_each_entry(peer, peer_list, ibp_list) {
 		LASSERT(!kiblnd_peer_idle(peer));
 
 		if (peer->ibp_nid != nid)
@@ -419,15 +417,13 @@ static int kiblnd_get_peer_info(struct lnet_ni *ni, int index,
 				lnet_nid_t *nidp, int *count)
 {
 	struct kib_peer *peer;
-	struct list_head *ptmp;
 	int i;
 	unsigned long flags;
 
 	read_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 
 	for (i = 0; i < kiblnd_data.kib_peer_hash_size; i++) {
-		list_for_each(ptmp, &kiblnd_data.kib_peers[i]) {
-			peer = list_entry(ptmp, struct kib_peer, ibp_list);
+		list_for_each_entry(peer, &kiblnd_data.kib_peers[i], ibp_list) {
 			LASSERT(!kiblnd_peer_idle(peer));
 
 			if (peer->ibp_ni != ni)
@@ -526,28 +522,23 @@ static int kiblnd_del_peer(struct lnet_ni *ni, lnet_nid_t nid)
 static struct kib_conn *kiblnd_get_conn_by_idx(struct lnet_ni *ni, int index)
 {
 	struct kib_peer *peer;
-	struct list_head *ptmp;
 	struct kib_conn *conn;
-	struct list_head *ctmp;
 	int i;
 	unsigned long flags;
 
 	read_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 
 	for (i = 0; i < kiblnd_data.kib_peer_hash_size; i++) {
-		list_for_each(ptmp, &kiblnd_data.kib_peers[i]) {
-			peer = list_entry(ptmp, struct kib_peer, ibp_list);
+		list_for_each_entry(peer, &kiblnd_data.kib_peers[i], ibp_list) {
 			LASSERT(!kiblnd_peer_idle(peer));
 
 			if (peer->ibp_ni != ni)
 				continue;
 
-			list_for_each(ctmp, &peer->ibp_conns) {
+			list_for_each_entry(conn, &peer->ibp_conns, ibc_list) {
 				if (index-- > 0)
 					continue;
 
-				conn = list_entry(ctmp, struct kib_conn,
-						  ibc_list);
 				kiblnd_conn_addref(conn);
 				read_unlock_irqrestore(
 					&kiblnd_data.kib_global_lock,

@@ -1327,7 +1327,6 @@ lstcon_rpc_cleanup_wait(void)
 {
 	struct lstcon_rpc_trans *trans;
 	struct lstcon_rpc *crpc;
-	struct list_head *pacer;
 	struct list_head zlist;
 
 	/* Called with hold of global mutex */
@@ -1335,10 +1334,8 @@ lstcon_rpc_cleanup_wait(void)
 	LASSERT(console_session.ses_shutdown);
 
 	while (!list_empty(&console_session.ses_trans_list)) {
-		list_for_each(pacer, &console_session.ses_trans_list) {
-			trans = list_entry(pacer, struct lstcon_rpc_trans,
-					   tas_link);
-
+		list_for_each_entry(trans, &console_session.ses_trans_list,
+				    tas_link) {
 			CDEBUG(D_NET, "Session closed, wakeup transaction %s\n",
 			       lstcon_rpc_trans_name(trans->tas_opc));
 

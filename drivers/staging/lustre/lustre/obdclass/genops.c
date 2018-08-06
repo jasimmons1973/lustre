@@ -84,12 +84,10 @@ static void obd_device_free(struct obd_device *obd)
 
 static struct obd_type *class_search_type(const char *name)
 {
-	struct list_head *tmp;
 	struct obd_type *type;
 
 	spin_lock(&obd_types_lock);
-	list_for_each(tmp, &obd_types) {
-		type = list_entry(tmp, struct obd_type, typ_chain);
+	list_for_each_entry(type, &obd_types, typ_chain) {
 		if (strcmp(type->typ_name, name) == 0) {
 			spin_unlock(&obd_types_lock);
 			return type;

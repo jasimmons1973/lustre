@@ -81,12 +81,9 @@ lnet_issep(char c)
 int
 lnet_net_unique(__u32 net, struct list_head *nilist)
 {
-	struct list_head *tmp;
 	struct lnet_ni *ni;
 
-	list_for_each(tmp, nilist) {
-		ni = list_entry(tmp, struct lnet_ni, ni_list);
-
+	list_for_each_entry(ni, nilist, ni_list) {
 		if (LNET_NIDNET(ni->ni_nid) == net)
 			return 0;
 	}
@@ -942,7 +939,6 @@ lnet_splitnets(char *source, struct list_head *nets)
 	int len;
 	struct lnet_text_buf *tb;
 	struct lnet_text_buf *tb2;
-	struct list_head *t;
 	char *sep;
 	char *bracket;
 	__u32 net;
@@ -983,9 +979,7 @@ lnet_splitnets(char *source, struct list_head *nets)
 			return -EINVAL;
 		}
 
-		list_for_each(t, nets) {
-			tb2 = list_entry(t, struct lnet_text_buf, ltb_list);
-
+		list_for_each_entry(tb2, nets, ltb_list) {
 			if (tb2 == tb)
 				continue;
 
@@ -1074,14 +1068,11 @@ lnet_match_networks(char **networksp, char *ip2nets, __u32 *ipaddrs, int nip)
 			break;
 
 		dup = 0;
-		list_for_each(t, &current_nets) {
-			tb = list_entry(t, struct lnet_text_buf, ltb_list);
+		list_for_each_entry(tb, &current_nets, ltb_list) {
 			net1 = lnet_netspec2net(tb->ltb_text);
 			LASSERT(net1 != LNET_NIDNET(LNET_NID_ANY));
 
-			list_for_each(t2, &matched_nets) {
-				tb2 = list_entry(t2, struct lnet_text_buf,
-						 ltb_list);
+			list_for_each_entry(tb2, &matched_nets, ltb_list) {
 				net2 = lnet_netspec2net(tb2->ltb_text);
 				LASSERT(net2 != LNET_NIDNET(LNET_NID_ANY));
 

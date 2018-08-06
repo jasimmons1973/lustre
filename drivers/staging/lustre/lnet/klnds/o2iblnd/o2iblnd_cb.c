@@ -225,11 +225,9 @@ out:
 static struct kib_tx *
 kiblnd_find_waiting_tx_locked(struct kib_conn *conn, int txtype, __u64 cookie)
 {
-	struct list_head *tmp;
+	struct kib_tx *tx;
 
-	list_for_each(tmp, &conn->ibc_active_txs) {
-		struct kib_tx *tx = list_entry(tmp, struct kib_tx, tx_list);
-
+	list_for_each_entry(tx, &conn->ibc_active_txs, tx_list) {
 		LASSERT(!tx->tx_queued);
 		LASSERT(tx->tx_sending || tx->tx_waiting);
 
@@ -3142,11 +3140,8 @@ static int
 kiblnd_check_txs_locked(struct kib_conn *conn, struct list_head *txs)
 {
 	struct kib_tx *tx;
-	struct list_head *ttmp;
 
-	list_for_each(ttmp, txs) {
-		tx = list_entry(ttmp, struct kib_tx, tx_list);
-
+	list_for_each_entry(tx, txs, tx_list) {
 		if (txs != &conn->ibc_active_txs) {
 			LASSERT(tx->tx_queued);
 		} else {
@@ -3182,10 +3177,8 @@ kiblnd_check_conns(int idx)
 	LIST_HEAD(closes);
 	LIST_HEAD(checksends);
 	struct list_head *peers = &kiblnd_data.kib_peers[idx];
-	struct list_head *ptmp;
 	struct kib_peer *peer;
 	struct kib_conn *conn;
-	struct list_head *ctmp;
 	unsigned long flags;
 
 	/*
@@ -3195,14 +3188,11 @@ kiblnd_check_conns(int idx)
 	 */
 	read_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 
-	list_for_each(ptmp, peers) {
-		peer = list_entry(ptmp, struct kib_peer, ibp_list);
+	list_for_each_entry(peer, peers, ibp_list) {
 
-		list_for_each(ctmp, &peer->ibp_conns) {
+		list_for_each_entry(conn, &peer->ibp_conns, ibc_list) {
 			int timedout;
 			int sendnoop;
-
-			conn = list_entry(ctmp, struct kib_conn, ibc_list);
 
 			LASSERT(conn->ibc_state == IBLND_CONN_ESTABLISHED);
 

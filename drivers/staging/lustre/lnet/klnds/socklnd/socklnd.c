@@ -250,9 +250,7 @@ ksocknal_get_peer_info(struct lnet_ni *ni, int index,
 		       int *port, int *conn_count, int *share_count)
 {
 	struct ksock_peer *peer;
-	struct list_head *ptmp;
 	struct ksock_route *route;
-	struct list_head *rtmp;
 	int i;
 	int j;
 	int rc = -ENOENT;
@@ -260,8 +258,7 @@ ksocknal_get_peer_info(struct lnet_ni *ni, int index,
 	read_lock(&ksocknal_data.ksnd_global_lock);
 
 	for (i = 0; i < ksocknal_data.ksnd_peer_hash_size; i++) {
-		list_for_each(ptmp, &ksocknal_data.ksnd_peers[i]) {
-			peer = list_entry(ptmp, struct ksock_peer, ksnp_list);
+		list_for_each_entry(peer, &ksocknal_data.ksnd_peers[i], ksnp_list) {
 
 			if (peer->ksnp_ni != ni)
 				continue;
@@ -295,12 +292,10 @@ ksocknal_get_peer_info(struct lnet_ni *ni, int index,
 				goto out;
 			}
 
-			list_for_each(rtmp, &peer->ksnp_routes) {
+			list_for_each_entry(route, &peer->ksnp_routes,
+					    ksnr_list) {
 				if (index-- > 0)
 					continue;
-
-				route = list_entry(rtmp, struct ksock_route,
-						   ksnr_list);
 
 				*id = peer->ksnp_id;
 				*myip = route->ksnr_myipaddr;
@@ -368,7 +363,6 @@ ksocknal_associate_route_conn_locked(struct ksock_route *route,
 static void
 ksocknal_add_route_locked(struct ksock_peer *peer, struct ksock_route *route)
 {
-	struct list_head *tmp;
 	struct ksock_conn *conn;
 	struct ksock_route *route2;
 
@@ -379,9 +373,7 @@ ksocknal_add_route_locked(struct ksock_peer *peer, struct ksock_route *route)
 	LASSERT(!route->ksnr_connected);
 
 	/* LASSERT(unique) */
-	list_for_each(tmp, &peer->ksnp_routes) {
-		route2 = list_entry(tmp, struct ksock_route, ksnr_list);
-
+	list_for_each_entry(route2, &peer->ksnp_routes, ksnr_list) {
 		if (route2->ksnr_ipaddr == route->ksnr_ipaddr) {
 			CERROR("Duplicate route %s %pI4h\n",
 			       libcfs_id2str(peer->ksnp_id),
@@ -395,9 +387,7 @@ ksocknal_add_route_locked(struct ksock_peer *peer, struct ksock_route *route)
 	/* peer's routelist takes over my ref on 'route' */
 	list_add_tail(&route->ksnr_list, &peer->ksnp_routes);
 
-	list_for_each(tmp, &peer->ksnp_conns) {
-		conn = list_entry(tmp, struct ksock_conn, ksnc_list);
-
+	list_for_each_entry(conn, &peer->ksnp_conns, ksnc_list) {
 		if (conn->ksnc_ipaddr != route->ksnr_ipaddr)
 			continue;
 
@@ -624,28 +614,22 @@ static struct ksock_conn *
 ksocknal_get_conn_by_idx(struct lnet_ni *ni, int index)
 {
 	struct ksock_peer *peer;
-	struct list_head *ptmp;
 	struct ksock_conn *conn;
-	struct list_head *ctmp;
 	int i;
 
 	read_lock(&ksocknal_data.ksnd_global_lock);
 
 	for (i = 0; i < ksocknal_data.ksnd_peer_hash_size; i++) {
-		list_for_each(ptmp, &ksocknal_data.ksnd_peers[i]) {
-			peer = list_entry(ptmp, struct ksock_peer, ksnp_list);
-
+		list_for_each_entry(peer, &ksocknal_data.ksnd_peers[i], ksnp_list) {
 			LASSERT(!peer->ksnp_closing);
 
 			if (peer->ksnp_ni != ni)
 				continue;
 
-			list_for_each(ctmp, &peer->ksnp_conns) {
+			list_for_each_entry(conn, &peer->ksnp_conns, ksnc_list) {
 				if (index-- > 0)
 					continue;
 
-				conn = list_entry(ctmp, struct ksock_conn,
-						  ksnc_list);
 				ksocknal_conn_addref(conn);
 				read_unlock(&ksocknal_data.ksnd_global_lock);
 				return conn;
@@ -1025,7 +1009,6 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	rwlock_t *global_lock = &ksocknal_data.ksnd_global_lock;
 	LIST_HEAD(zombies);
 	struct lnet_process_id peerid;
-	struct list_head *tmp;
 	__u64 incarnation;
 	struct ksock_conn *conn;
 	struct ksock_conn *conn2;
@@ -1226,8 +1209,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	 * loopback connection
 	 */
 	if (conn->ksnc_ipaddr != conn->ksnc_myipaddr) {
-		list_for_each(tmp, &peer->ksnp_conns) {
-			conn2 = list_entry(tmp, struct ksock_conn, ksnc_list);
+		list_for_each_entry(conn2, &peer->ksnp_conns, ksnc_list) {
 
 			if (conn2->ksnc_ipaddr != conn->ksnc_ipaddr ||
 			    conn2->ksnc_myipaddr != conn->ksnc_myipaddr ||
@@ -1266,9 +1248,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	 * by routes in my peer to match my own route entries so I don't
 	 * continually create duplicate routes.
 	 */
-	list_for_each(tmp, &peer->ksnp_routes) {
-		route = list_entry(tmp, struct ksock_route, ksnr_list);
-
+	list_for_each_entry(route, &peer->ksnp_routes, ksnr_list) {
 		if (route->ksnr_ipaddr != conn->ksnc_ipaddr)
 			continue;
 
@@ -1980,9 +1960,7 @@ ksocknal_add_interface(struct lnet_ni *ni, __u32 ipaddress, __u32 netmask)
 	int rc;
 	int i;
 	int j;
-	struct list_head *ptmp;
 	struct ksock_peer *peer;
-	struct list_head *rtmp;
 	struct ksock_route *route;
 
 	if (!ipaddress || !netmask)
@@ -2005,18 +1983,15 @@ ksocknal_add_interface(struct lnet_ni *ni, __u32 ipaddress, __u32 netmask)
 		iface->ksni_npeers = 0;
 
 		for (i = 0; i < ksocknal_data.ksnd_peer_hash_size; i++) {
-			list_for_each(ptmp, &ksocknal_data.ksnd_peers[i]) {
-				peer = list_entry(ptmp, struct ksock_peer,
-						  ksnp_list);
+			list_for_each_entry(peer, &ksocknal_data.ksnd_peers[i],
+					    ksnp_list) {
 
 				for (j = 0; j < peer->ksnp_n_passive_ips; j++)
 					if (peer->ksnp_passive_ips[j] == ipaddress)
 						iface->ksni_npeers++;
 
-				list_for_each(rtmp, &peer->ksnp_routes) {
-					route = list_entry(rtmp, struct ksock_route,
-							   ksnr_list);
-
+				list_for_each_entry(route, &peer->ksnp_routes,
+						    ksnr_list) {
 					if (route->ksnr_myipaddr == ipaddress)
 						iface->ksni_nroutes++;
 				}

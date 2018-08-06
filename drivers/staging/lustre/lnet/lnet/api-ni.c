@@ -269,12 +269,9 @@ static struct lnet_lnd *
 lnet_find_lnd_by_type(__u32 type)
 {
 	struct lnet_lnd *lnd;
-	struct list_head *tmp;
 
 	/* holding lnd mutex */
-	list_for_each(tmp, &the_lnet.ln_lnds) {
-		lnd = list_entry(tmp, struct lnet_lnd, lnd_list);
-
+	list_for_each_entry(lnd, &the_lnet.ln_lnds, lnd_list) {
 		if (lnd->lnd_type == type)
 			return lnd;
 	}
@@ -653,14 +650,11 @@ lnet_unprepare(void)
 struct lnet_ni  *
 lnet_net2ni_locked(__u32 net, int cpt)
 {
-	struct list_head *tmp;
 	struct lnet_ni *ni;
 
 	LASSERT(cpt != LNET_LOCK_EX);
 
-	list_for_each(tmp, &the_lnet.ln_nis) {
-		ni = list_entry(tmp, struct lnet_ni, ni_list);
-
+	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
 		if (LNET_NIDNET(ni->ni_nid) == net) {
 			lnet_ni_addref_locked(ni, cpt);
 			return ni;
@@ -767,13 +761,10 @@ struct lnet_ni  *
 lnet_nid2ni_locked(lnet_nid_t nid, int cpt)
 {
 	struct lnet_ni *ni;
-	struct list_head *tmp;
 
 	LASSERT(cpt != LNET_LOCK_EX);
 
-	list_for_each(tmp, &the_lnet.ln_nis) {
-		ni = list_entry(tmp, struct lnet_ni, ni_list);
-
+	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
 		if (ni->ni_nid == nid) {
 			lnet_ni_addref_locked(ni, cpt);
 			return ni;
@@ -803,14 +794,11 @@ lnet_count_acceptor_nis(void)
 {
 	/* Return the # of NIs that need the acceptor. */
 	int count = 0;
-	struct list_head *tmp;
 	struct lnet_ni *ni;
 	int cpt;
 
 	cpt = lnet_net_lock_current();
-	list_for_each(tmp, &the_lnet.ln_nis) {
-		ni = list_entry(tmp, struct lnet_ni, ni_list);
-
+	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
 		if (ni->ni_lnd->lnd_accept)
 			count++;
 	}
@@ -1731,18 +1719,16 @@ static int
 lnet_get_net_config(struct lnet_ioctl_config_data *config)
 {
 	struct lnet_ni *ni;
-	struct list_head *tmp;
 	int idx = config->cfg_count;
 	int cpt, i = 0;
 	int rc = -ENOENT;
 
 	cpt = lnet_net_lock_current();
 
-	list_for_each(tmp, &the_lnet.ln_nis) {
+	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
 		if (i++ != idx)
 			continue;
 
-		ni = list_entry(tmp, struct lnet_ni, ni_list);
 		lnet_ni_lock(ni);
 		lnet_fill_ni_info(ni, config);
 		lnet_ni_unlock(ni);
@@ -2119,7 +2105,6 @@ int
 LNetGetId(unsigned int index, struct lnet_process_id *id)
 {
 	struct lnet_ni *ni;
-	struct list_head *tmp;
 	int cpt;
 	int rc = -ENOENT;
 
@@ -2127,11 +2112,9 @@ LNetGetId(unsigned int index, struct lnet_process_id *id)
 
 	cpt = lnet_net_lock_current();
 
-	list_for_each(tmp, &the_lnet.ln_nis) {
+	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
 		if (index--)
 			continue;
-
-		ni = list_entry(tmp, struct lnet_ni, ni_list);
 
 		id->nid = ni->ni_nid;
 		id->pid = the_lnet.ln_pid;
