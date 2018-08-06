@@ -1327,7 +1327,6 @@ lstcon_rpc_cleanup_wait(void)
 {
 	struct lstcon_rpc_trans *trans;
 	struct lstcon_rpc *crpc;
-	struct lstcon_rpc *temp;
 	struct list_head *pacer;
 	struct list_head zlist;
 
@@ -1367,7 +1366,9 @@ lstcon_rpc_cleanup_wait(void)
 
 	spin_unlock(&console_session.ses_rpc_lock);
 
-	list_for_each_entry_safe(crpc, temp, &zlist, crp_link) {
+	while (!list_empty(&zlist)) {
+		crpc = list_entry(zlist.next, struct lstcon_rpc, crp_link);
+
 		list_del(&crpc->crp_link);
 		kfree(crpc);
 	}
