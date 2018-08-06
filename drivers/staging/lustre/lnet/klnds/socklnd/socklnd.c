@@ -1853,7 +1853,6 @@ ksocknal_push_peer(struct ksock_peer *peer)
 {
 	int index;
 	int i;
-	struct list_head *tmp;
 	struct ksock_conn *conn;
 
 	for (index = 0; ; index++) {
@@ -1862,10 +1861,8 @@ ksocknal_push_peer(struct ksock_peer *peer)
 		i = 0;
 		conn = NULL;
 
-		list_for_each(tmp, &peer->ksnp_conns) {
+		list_for_each_entry(conn, &peer->ksnp_conns, ksnc_list) {
 			if (i++ == index) {
-				conn = list_entry(tmp, struct ksock_conn,
-						  ksnc_list);
 				ksocknal_conn_addref(conn);
 				break;
 			}
@@ -1873,7 +1870,7 @@ ksocknal_push_peer(struct ksock_peer *peer)
 
 		read_unlock(&ksocknal_data.ksnd_global_lock);
 
-		if (!conn)
+		if (i <= index)
 			break;
 
 		ksocknal_lib_push_conn(conn);
