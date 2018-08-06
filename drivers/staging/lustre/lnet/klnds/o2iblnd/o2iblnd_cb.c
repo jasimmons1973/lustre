@@ -2106,7 +2106,6 @@ kiblnd_connreq_done(struct kib_conn *conn, int status)
 {
 	struct kib_peer *peer = conn->ibc_peer;
 	struct kib_tx *tx;
-	struct kib_tx *tmp;
 	struct list_head txs;
 	unsigned long flags;
 	int active;
@@ -2197,7 +2196,8 @@ kiblnd_connreq_done(struct kib_conn *conn, int status)
 	 * scheduled.  We won't be using round robin on this first batch.
 	 */
 	spin_lock(&conn->ibc_lock);
-	list_for_each_entry_safe(tx, tmp, &txs, tx_list) {
+	while (!list_empty(&txs)) {
+		tx = list_first_entry(&txs, struct kib_tx, tx_list);
 		list_del(&tx->tx_list);
 
 		kiblnd_queue_tx_locked(tx, conn);
@@ -3185,7 +3185,6 @@ kiblnd_check_conns(int idx)
 	struct list_head *ptmp;
 	struct kib_peer *peer;
 	struct kib_conn *conn;
-	struct kib_conn *tmp;
 	struct list_head *ctmp;
 	unsigned long flags;
 
@@ -3241,7 +3240,8 @@ kiblnd_check_conns(int idx)
 	 * connection. We can only be sure RDMA activity
 	 * has ceased once the QP has been modified.
 	 */
-	list_for_each_entry_safe(conn, tmp, &closes, ibc_connd_list) {
+	while (!list_empty(&closes)) {
+		conn = list_first_entry(&closes, struct kib_conn, ibc_connd_list);
 		list_del(&conn->ibc_connd_list);
 		kiblnd_close_conn(conn, -ETIMEDOUT);
 		kiblnd_conn_decref(conn);
