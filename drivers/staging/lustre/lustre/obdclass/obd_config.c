@@ -1417,7 +1417,9 @@ EXPORT_SYMBOL(class_config_llog_handler);
 int class_config_parse_llog(const struct lu_env *env, struct llog_ctxt *ctxt,
 			    char *name, struct config_llog_instance *cfg)
 {
-	struct llog_process_cat_data	 cd = {0, 0};
+	struct llog_process_cat_data cd = {
+		.lpcd_first_idx = 0,
+	};
 	struct llog_handle		*llh;
 	llog_cb_t			 callback;
 	int				 rc;
