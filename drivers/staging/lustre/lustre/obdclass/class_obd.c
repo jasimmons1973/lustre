@@ -513,15 +513,11 @@ static int __init obdclass_init(void)
 	if (err)
 		return err;
 
-	err = lustre_register_fs();
-
 	return err;
 }
 
 static void obdclass_exit(void)
 {
-	lustre_unregister_fs();
-
 	misc_deregister(&obd_psdev);
 	llog_info_fini();
 	cl_global_fini();
