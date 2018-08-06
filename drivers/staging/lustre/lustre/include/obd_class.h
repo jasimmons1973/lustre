@@ -398,7 +398,7 @@ do {								\
 		return -EOPNOTSUPP;				\
 	}							\
 	if (!OBT((exp)->exp_obd) || !MDP((exp)->exp_obd, op)) {	\
-		CERROR("obd_" #op ": dev %s/%d no operation\n", \
+		CERROR("%s: obd_" #op ": dev %d no operation\n",\
 			(exp)->exp_obd->obd_name,		\
 			(exp)->exp_obd->obd_minor);		\
 		return -EOPNOTSUPP;				\
@@ -409,8 +409,8 @@ do {								\
 do {									\
 	if (!OBT(obd) || !OBP((obd), op)) {				\
 		if (err)						\
-			CERROR("obd_" #op ": dev %d no operation\n",	\
-				obd->obd_minor);			\
+			CERROR("%s: no obd_" #op " operation\n",	\
+				obd->obd_name);				\
 		return err;						\
 	}								\
 } while (0)
@@ -425,19 +425,15 @@ do {								\
 		CERROR("obd_" #op ": cleaned up obd\n");	\
 		return -EOPNOTSUPP;				\
 	}							\
-	if (!OBT((exp)->exp_obd) || !OBP((exp)->exp_obd, op)) {	\
-		CERROR("obd_" #op ": dev %d no operation\n",	\
-			(exp)->exp_obd->obd_minor);		\
-		return -EOPNOTSUPP;				\
-	}							\
+	OBD_CHECK_DT_OP((exp)->exp_obd, op, -EOPNOTSUPP);	\
 } while (0)
 
 #define CTXT_CHECK_OP(ctxt, op, err)					\
 do {									\
 	if (!OBT(ctxt->loc_obd) || !CTXTP((ctxt), op)) {		\
 		if (err)						\
-			CERROR("lop_" #op ": dev %d no operation\n",	\
-				ctxt->loc_obd->obd_minor);		\
+			CERROR("%s: no lop_" #op " operation\n",	\
+				ctxt->loc_obd->obd_name);		\
 		return err;						\
 	}								\
 } while (0)
