@@ -1283,11 +1283,13 @@ static void kiblnd_destroy_fmr_pool(struct kib_fmr_pool *fpo)
 		if (fpo->fmr.fpo_fmr_pool)
 			ib_destroy_fmr_pool(fpo->fmr.fpo_fmr_pool);
 	} else {
-		struct kib_fast_reg_descriptor *frd, *tmp;
+		struct kib_fast_reg_descriptor *frd;
 		int i = 0;
 
-		list_for_each_entry_safe(frd, tmp, &fpo->fast_reg.fpo_pool_list,
-					 frd_list) {
+		while (!list_empty(&fpo->fast_reg.fpo_pool_list)) {
+			frd = list_first_entry(&fpo->fast_reg.fpo_pool_list,
+					       struct kib_fast_reg_descriptor,
+					       frd_list);
 			list_del(&frd->frd_list);
 			ib_dereg_mr(frd->frd_mr);
 			kfree(frd);
@@ -1362,7 +1364,7 @@ static int kiblnd_alloc_fmr_pool(struct kib_fmr_poolset *fps, struct kib_fmr_poo
 
 static int kiblnd_alloc_freg_pool(struct kib_fmr_poolset *fps, struct kib_fmr_pool *fpo)
 {
-	struct kib_fast_reg_descriptor *frd, *tmp;
+	struct kib_fast_reg_descriptor *frd;
 	int i, rc;
 
 	INIT_LIST_HEAD(&fpo->fast_reg.fpo_pool_list);
@@ -1399,8 +1401,10 @@ out_middle:
 	kfree(frd);
 
 out:
-	list_for_each_entry_safe(frd, tmp, &fpo->fast_reg.fpo_pool_list,
-				 frd_list) {
+	while (!list_empty(&fpo->fast_reg.fpo_pool_list)) {
+		frd = list_first_entry(&fpo->fast_reg.fpo_pool_list,
+				       struct kib_fast_reg_descriptor,
+				       frd_list);
 		list_del(&frd->frd_list);
 		ib_dereg_mr(frd->frd_mr);
 		kfree(frd);
