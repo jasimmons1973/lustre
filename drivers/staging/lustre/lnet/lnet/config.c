@@ -662,6 +662,7 @@ lnet_parse_route(char *str, int *im_a_router)
 	__u32 net;
 	lnet_nid_t nid;
 	struct lnet_text_buf *ltb;
+	struct lnet_text_buf *ltb1, *ltb2;
 	int rc;
 	char *sep;
 	char *token = str;
@@ -760,14 +761,12 @@ lnet_parse_route(char *str, int *im_a_router)
 	LASSERT(!list_empty(&nets));
 	LASSERT(!list_empty(&gateways));
 
-	list_for_each(tmp1, &nets) {
-		ltb = list_entry(tmp1, struct lnet_text_buf, ltb_list);
-		net = libcfs_str2net(ltb->ltb_text);
+	list_for_each_entry(ltb1, &nets, ltb_list) {
+		net = libcfs_str2net(ltb1->ltb_text);
 		LASSERT(net != LNET_NIDNET(LNET_NID_ANY));
 
-		list_for_each(tmp2, &gateways) {
-			ltb = list_entry(tmp2, struct lnet_text_buf, ltb_list);
-			nid = libcfs_str2nid(ltb->ltb_text);
+		list_for_each_entry(ltb2, &gateways, ltb_list) {
+			nid = libcfs_str2nid(ltb2->ltb_text);
 			LASSERT(nid != LNET_NID_ANY);
 
 			if (lnet_islocalnid(nid)) {
