@@ -462,6 +462,10 @@ int ptlrpc_uuid_to_peer(struct obd_uuid *uuid,
 
 	/* Choose the matching UUID that's closest */
 	while (lustre_uuid_to_peer(uuid->uuid, &dst_nid, count++) == 0) {
+		if (peer->nid != LNET_NID_ANY && LNET_NIDADDR(peer->nid) == 0 &&
+		    LNET_NIDNET(dst_nid) != LNET_NIDNET(peer->nid))
+			continue;
+
 		dist = LNetDist(dst_nid, &src_nid, &order);
 		if (dist < 0)
 			continue;

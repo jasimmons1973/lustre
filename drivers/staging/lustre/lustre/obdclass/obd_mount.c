@@ -550,6 +550,7 @@ static int lustre_free_lsi(struct super_block *sb)
 		kfree(lsi->lsi_lmd->lmd_mgs);
 		kfree(lsi->lsi_lmd->lmd_osd_type);
 		kfree(lsi->lsi_lmd->lmd_params);
+		kfree(lsi->lsi_lmd->lmd_nidnet);
 
 		kfree(lsi->lsi_lmd);
 	}
@@ -818,6 +819,27 @@ static int lmd_parse_mgssec(struct lustre_mount_data *lmd, char *ptr)
 
 	memcpy(lmd->lmd_mgssec, ptr, length);
 	lmd->lmd_mgssec[length] = '\0';
+	return 0;
+}
+
+static int lmd_parse_network(struct lustre_mount_data *lmd, char *ptr)
+{
+	char *tail;
+	int length;
+
+	kfree(lmd->lmd_nidnet);
+	lmd->lmd_nidnet = NULL;
+
+	tail = strchr(ptr, ',');
+	if (!tail)
+		length = strlen(ptr);
+	else
+		length = tail - ptr;
+
+	lmd->lmd_nidnet = kstrndup(ptr, length, GFP_KERNEL);
+	if (!lmd->lmd_nidnet)
+		return -ENOMEM;
+
 	return 0;
 }
 
@@ -1140,6 +1162,11 @@ int lmd_parse(char *options, struct lustre_mount_data *lmd)
 			 */
 			*s1 = '\0';
 			break;
+		} else if (strncmp(s1, "network=", 8) == 0) {
+			rc = lmd_parse_network(lmd, s1 + 8);
+			if (rc)
+				goto invalid;
+			clear++;
 		}
 
 		/* Find next opt */
@@ -1185,6 +1212,17 @@ int lmd_parse(char *options, struct lustre_mount_data *lmd)
 						    GFP_KERNEL);
 			if (!lmd->lmd_fileset)
 				return -ENOMEM;
+		}
+	} else {
+		/* server mount */
+		if (lmd->lmd_nidnet) {
+			/* 'network=' mount option forbidden for server */
+			kfree(lmd->lmd_nidnet);
+			lmd->lmd_nidnet = NULL;
+			rc = -EINVAL;
+			CERROR("%s: option 'network=' not allowed for Lustre servers: rc = %d\n",
+			       devname, rc);
+			return rc;
 		}
 	}
 
