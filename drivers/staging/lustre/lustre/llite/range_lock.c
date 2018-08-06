@@ -157,7 +157,7 @@ int range_lock(struct range_lock_tree *tree, struct range_lock *lock)
 
 		if (signal_pending(current)) {
 			range_unlock(tree, lock);
-			rc = -EINTR;
+			rc = -ERESTARTSYS;
 			goto out;
 		}
 		spin_lock(&tree->rlt_lock);
