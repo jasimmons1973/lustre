@@ -91,15 +91,13 @@ lolnd_startup(struct lnet_ni *ni)
 }
 
 struct lnet_lnd the_lolnd = {
-	/* .lnd_list       = */ {&the_lolnd.lnd_list, &the_lolnd.lnd_list},
-	/* .lnd_refcount   = */ 0,
-	/* .lnd_type       = */ LOLND,
-	/* .lnd_startup    = */ lolnd_startup,
-	/* .lnd_shutdown   = */ lolnd_shutdown,
-	/* .lnt_ctl        = */ NULL,
-	/* .lnd_send       = */ lolnd_send,
-	/* .lnd_recv       = */ lolnd_recv,
-	/* .lnd_eager_recv = */ NULL,
-	/* .lnd_notify     = */ NULL,
-	/* .lnd_accept     = */ NULL
+	.lnd_list	= {
+				.next	= &the_lolnd.lnd_list,
+				.prev	= &the_lolnd.lnd_list
+			},
+	.lnd_type	= LOLND,
+	.lnd_startup	= lolnd_startup,
+	.lnd_shutdown	= lolnd_shutdown,
+	.lnd_send	= lolnd_send,
+	.lnd_recv	= lolnd_recv,
 };

@@ -884,7 +884,8 @@ lnet_ping_info_setup(struct lnet_ping_info **ppinfo,
 		     struct lnet_handle_md *md_handle,
 		     int ni_count, bool set_eq)
 {
-	struct lnet_process_id id = {LNET_NID_ANY, LNET_PID_ANY};
+	struct lnet_process_id id = { .nid = LNET_NID_ANY,
+				      .pid = LNET_PID_ANY };
 	struct lnet_handle_me me_handle;
 	struct lnet_md md = { NULL };
 	int rc, rc2;
