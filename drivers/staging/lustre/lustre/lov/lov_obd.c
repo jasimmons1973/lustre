@@ -121,7 +121,7 @@ static void lov_putref(struct obd_device *obd)
 static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 			      enum obd_notify_event ev);
 static int lov_notify(struct obd_device *obd, struct obd_device *watched,
-		      enum obd_notify_event ev, void *data);
+		      enum obd_notify_event ev);
 
 int lov_connect_obd(struct obd_device *obd, __u32 index, int activate,
 		    struct obd_connect_data *data)
@@ -244,7 +244,7 @@ static int lov_connect(const struct lu_env *env,
 			continue;
 
 		rc = lov_notify(obd, lov->lov_tgts[i]->ltd_exp->exp_obd,
-				OBD_NOTIFY_CONNECT, (void *)&i);
+				OBD_NOTIFY_CONNECT);
 		if (rc) {
 			CERROR("%s error sending notify %d\n",
 			       obd->obd_name, rc);
@@ -423,7 +423,7 @@ static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 }
 
 static int lov_notify(struct obd_device *obd, struct obd_device *watched,
-		      enum obd_notify_event ev, void *data)
+		      enum obd_notify_event ev)
 {
 	int rc = 0;
 	struct lov_obd *lov = &obd->u.lov;
@@ -457,12 +457,10 @@ static int lov_notify(struct obd_device *obd, struct obd_device *watched,
 			       obd_uuid2str(uuid), rc);
 			goto out_notify_lock;
 		}
-		/* active event should be pass lov target index as data */
-		data = &rc;
 	}
 
 	/* Pass the notification up the chain. */
-	rc = obd_notify_observer(obd, watched, ev, data);
+	rc = obd_notify_observer(obd, watched, ev);
 
 out_notify_lock:
 	up_read(&lov->lov_notify_lock);
@@ -590,8 +588,7 @@ static int lov_add_target(struct obd_device *obd, struct obd_uuid *uuidp,
 	}
 
 	rc = lov_notify(obd, tgt->ltd_exp->exp_obd,
-			active ? OBD_NOTIFY_CONNECT : OBD_NOTIFY_INACTIVE,
-			(void *)&index);
+			active ? OBD_NOTIFY_CONNECT : OBD_NOTIFY_INACTIVE);
 
 out:
 	if (rc) {

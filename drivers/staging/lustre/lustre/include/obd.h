@@ -502,7 +502,7 @@ enum obd_notify_event {
  */
 struct obd_notify_upcall {
 	int (*onu_upcall)(struct obd_device *host, struct obd_device *watched,
-			  enum obd_notify_event ev, void *owner, void *data);
+			  enum obd_notify_event ev, void *owner);
 	/* Opaque datum supplied by upper layer listener */
 	void *onu_owner;
 };
@@ -861,7 +861,7 @@ struct obd_ops {
 			    enum obd_import_event);
 
 	int (*notify)(struct obd_device *obd, struct obd_device *watched,
-		      enum obd_notify_event ev, void *data);
+		      enum obd_notify_event ev);
 
 	int (*health_check)(const struct lu_env *env, struct obd_device *);
 	struct obd_uuid *(*get_uuid)(struct obd_export *exp);

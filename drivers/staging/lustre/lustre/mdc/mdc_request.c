@@ -2520,7 +2520,7 @@ static int mdc_import_event(struct obd_device *obd, struct obd_import *imp,
 		if (cli->cl_seq)
 			seq_client_flush(cli->cl_seq);
 
-		rc = obd_notify_observer(obd, obd, OBD_NOTIFY_INACTIVE, NULL);
+		rc = obd_notify_observer(obd, obd, OBD_NOTIFY_INACTIVE);
 		break;
 	}
 	case IMP_EVENT_INVALIDATE: {
@@ -2531,7 +2531,7 @@ static int mdc_import_event(struct obd_device *obd, struct obd_import *imp,
 		break;
 	}
 	case IMP_EVENT_ACTIVE:
-		rc = obd_notify_observer(obd, obd, OBD_NOTIFY_ACTIVE, NULL);
+		rc = obd_notify_observer(obd, obd, OBD_NOTIFY_ACTIVE);
 		/* redo the kuc registration after reconnecting */
 		if (rc == 0)
 			/* re-register HSM agents */
@@ -2540,7 +2540,7 @@ static int mdc_import_event(struct obd_device *obd, struct obd_import *imp,
 						       (void *)imp);
 		break;
 	case IMP_EVENT_OCD:
-		rc = obd_notify_observer(obd, obd, OBD_NOTIFY_OCD, NULL);
+		rc = obd_notify_observer(obd, obd, OBD_NOTIFY_OCD);
 		break;
 	case IMP_EVENT_DISCON:
 	case IMP_EVENT_DEACTIVATE:

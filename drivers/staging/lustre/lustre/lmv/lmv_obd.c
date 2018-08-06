@@ -140,7 +140,7 @@ static struct obd_uuid *lmv_get_uuid(struct obd_export *exp)
 }
 
 static int lmv_notify(struct obd_device *obd, struct obd_device *watched,
-		      enum obd_notify_event ev, void *data)
+		      enum obd_notify_event ev)
 {
 	struct obd_connect_data *conn_data;
 	struct lmv_obd	  *lmv = &obd->u.lmv;
@@ -182,7 +182,7 @@ static int lmv_notify(struct obd_device *obd, struct obd_device *watched,
 	 * Pass the notification up the chain.
 	 */
 	if (obd->obd_observer)
-		rc = obd_notify(obd->obd_observer, watched, ev, data);
+		rc = obd_notify(obd->obd_observer, watched, ev);
 
 	return rc;
 }
@@ -330,8 +330,7 @@ static int lmv_connect_mdc(struct obd_device *obd, struct lmv_tgt_desc *tgt)
 		 * Tell the observer about the new target.
 		 */
 		rc = obd_notify(obd->obd_observer, mdc_exp->exp_obd,
-				OBD_NOTIFY_ACTIVE,
-				(void *)(tgt - lmv->tgts[0]));
+				OBD_NOTIFY_ACTIVE);
 		if (rc) {
 			obd_disconnect(mdc_exp);
 			return rc;

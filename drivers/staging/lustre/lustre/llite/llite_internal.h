@@ -669,9 +669,8 @@ void ll_ras_enter(struct file *f);
 
 /* llite/lcommon_misc.c */
 int cl_init_ea_size(struct obd_export *md_exp, struct obd_export *dt_exp);
-int cl_ocd_update(struct obd_device *host,
-		  struct obd_device *watched,
-		  enum obd_notify_event ev, void *owner, void *data);
+int cl_ocd_update(struct obd_device *host, struct obd_device *watched,
+		  enum obd_notify_event ev, void *owner);
 int cl_get_grouplock(struct cl_object *obj, unsigned long gid, int nonblock,
 		     struct ll_grouplock *cg);
 void cl_put_grouplock(struct ll_grouplock *cg);
