@@ -293,8 +293,8 @@ config_log_add(struct obd_device *obd, char *logname,
 {
 	struct lustre_sb_info *lsi = s2lsi(sb);
 	struct config_llog_data *cld;
-	struct config_llog_data *sptlrpc_cld;
-	struct config_llog_data *params_cld;
+	struct config_llog_data *sptlrpc_cld = NULL;
+	struct config_llog_data *params_cld = NULL;
 	struct config_llog_data *recover_cld = NULL;
 	char			seclogname[32];
 	char			*ptr;
@@ -315,21 +315,25 @@ config_log_add(struct obd_device *obd, char *logname,
 	memcpy(seclogname, logname, ptr - logname);
 	strcpy(seclogname + (ptr - logname), "-sptlrpc");
 
-	sptlrpc_cld = config_log_find_or_add(obd, seclogname, NULL,
-					     CONFIG_T_SPTLRPC, cfg);
-	if (IS_ERR(sptlrpc_cld)) {
-		CERROR("can't create sptlrpc log: %s\n", seclogname);
-		rc = PTR_ERR(sptlrpc_cld);
-		goto out_err;
+	if (cfg->cfg_sub_clds & CONFIG_T_SPTLRPC) {
+		sptlrpc_cld = config_log_find_or_add(obd, seclogname, NULL,
+						     CONFIG_T_SPTLRPC, cfg);
+		if (IS_ERR(sptlrpc_cld)) {
+			CERROR("can't create sptlrpc log: %s\n", seclogname);
+			rc = PTR_ERR(sptlrpc_cld);
+			goto out_err;
+		}
 	}
 
-	params_cld = config_log_find_or_add(obd, PARAMS_FILENAME, sb,
-					    CONFIG_T_PARAMS, cfg);
-	if (IS_ERR(params_cld)) {
-		rc = PTR_ERR(params_cld);
-		CERROR("%s: can't create params log: rc = %d\n",
-		       obd->obd_name, rc);
-		goto out_sptlrpc;
+	if (cfg->cfg_sub_clds & CONFIG_T_PARAMS) {
+		params_cld = config_log_find_or_add(obd, PARAMS_FILENAME, sb,
+						    CONFIG_T_PARAMS, cfg);
+		if (IS_ERR(params_cld)) {
+			rc = PTR_ERR(params_cld);
+			CERROR("%s: can't create params log: rc = %d\n",
+			       obd->obd_name, rc);
+			goto out_sptlrpc;
+		}
 	}
 
 	cld = do_config_log_add(obd, logname, CONFIG_T_CONFIG, cfg, sb);
@@ -340,7 +344,8 @@ config_log_add(struct obd_device *obd, char *logname,
 	}
 
 	LASSERT(lsi->lsi_lmd);
-	if (!(lsi->lsi_lmd->lmd_flags & LMD_FLG_NOIR)) {
+	if (!(lsi->lsi_lmd->lmd_flags & LMD_FLG_NOIR) &&
+	    cfg->cfg_sub_clds & CONFIG_T_RECOVER) {
 		ptr = strrchr(seclogname, '-');
 		if (ptr) {
 			*ptr = 0;
