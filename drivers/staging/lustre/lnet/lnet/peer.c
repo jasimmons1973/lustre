@@ -176,7 +176,6 @@ lnet_peer_tables_cleanup(struct lnet_ni *ni)
 	struct lnet_peer_table *ptable;
 	struct list_head deathrow;
 	struct lnet_peer *lp;
-	struct lnet_peer *temp;
 	int i;
 
 	INIT_LIST_HEAD(&deathrow);
@@ -210,7 +209,8 @@ lnet_peer_tables_cleanup(struct lnet_ni *ni)
 		lnet_net_unlock(i);
 	}
 
-	list_for_each_entry_safe(lp, temp, &deathrow, lp_hashlist) {
+	while (!list_empty(&deathrow)) {
+		lp = list_entry(deathrow.next, struct lnet_peer, lp_hashlist);
 		list_del(&lp->lp_hashlist);
 		kfree(lp);
 	}
