@@ -313,7 +313,8 @@ static void cfs_crypto_performance_test(enum cfs_crypto_hash_alg hash_alg)
 	int buf_len = max(PAGE_SIZE, 1048576UL);
 	void *buf;
 	unsigned long start, end;
-	int bcount, err = 0;
+	unsigned long bcount;
+	int err = 0;
 	struct page *page;
 	unsigned char hash[CFS_CRYPTO_HASH_DIGESTSIZE_MAX];
 	unsigned int hash_len = sizeof(hash);
