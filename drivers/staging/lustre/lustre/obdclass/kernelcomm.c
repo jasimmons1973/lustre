@@ -183,6 +183,14 @@ int libcfs_kkuc_group_put(unsigned int group, void *payload)
 	int one_success = 0;
 
 	down_write(&kg_sem);
+
+	if (unlikely(!kkuc_groups[group].next) ||
+	    unlikely(OBD_FAIL_CHECK(OBD_FAIL_MDS_HSM_CT_REGISTER_NET))) {
+		/* no agent have fully registered, CDT will retry */
+		up_write(&kg_sem);
+		return -EAGAIN;
+	}
+
 	list_for_each_entry(reg, &kkuc_groups[group], kr_chain) {
 		if (reg->kr_fp) {
 			rc = libcfs_kkuc_msg_put(reg->kr_fp, payload);
