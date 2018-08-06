@@ -1024,8 +1024,10 @@ int ll_merge_attr(const struct lu_env *env, struct inode *inode)
 	 * POSIX. Solving this problem needs to send an RPC to MDT for each
 	 * read, this will hurt performance.
 	 */
-	if (inode->i_atime.tv_sec < lli->lli_atime)
+	if (inode->i_atime.tv_sec < lli->lli_atime || lli->lli_update_atime) {
 		inode->i_atime.tv_sec = lli->lli_atime;
+		lli->lli_update_atime = 0;
+	}
 	inode->i_mtime.tv_sec = lli->lli_mtime;
 	inode->i_ctime.tv_sec = lli->lli_ctime;
 
