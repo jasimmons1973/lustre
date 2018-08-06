@@ -846,7 +846,6 @@ ksocknal_create_routes(struct ksock_peer *peer, int port,
 	rwlock_t *global_lock = &ksocknal_data.ksnd_global_lock;
 	struct lnet_ni *ni = peer->ksnp_ni;
 	struct ksock_net *net = ni->ni_data;
-	struct list_head *rtmp;
 	struct ksock_route *route;
 	struct ksock_interface *iface;
 	struct ksock_interface *best_iface;
@@ -894,17 +893,9 @@ ksocknal_create_routes(struct ksock_peer *peer, int port,
 		}
 
 		/* Already got a route? */
-		route = NULL;
-		list_for_each(rtmp, &peer->ksnp_routes) {
-			route = list_entry(rtmp, struct ksock_route, ksnr_list);
-
-			if (route->ksnr_ipaddr == newroute->ksnr_ipaddr)
-				break;
-
-			route = NULL;
-		}
-		if (route)
-			continue;
+		list_for_each_entry(route, &peer->ksnp_routes, ksnr_list)
+			if (route->ksnr_ipaddr != newroute->ksnr_ipaddr)
+				goto next_ipaddr;
 
 		best_iface = NULL;
 		best_nroutes = 0;
@@ -917,17 +908,9 @@ ksocknal_create_routes(struct ksock_peer *peer, int port,
 			iface = &net->ksnn_interfaces[j];
 
 			/* Using this interface already? */
-			list_for_each(rtmp, &peer->ksnp_routes) {
-				route = list_entry(rtmp, struct ksock_route,
-						   ksnr_list);
-
+			list_for_each_entry(route, &peer->ksnp_routes, ksnr_list)
 				if (route->ksnr_myipaddr == iface->ksni_ipaddr)
-					break;
-
-				route = NULL;
-			}
-			if (route)
-				continue;
+					goto next_iface;
 
 			this_netmatch = (!((iface->ksni_ipaddr ^
 					   newroute->ksnr_ipaddr) &
@@ -942,6 +925,7 @@ ksocknal_create_routes(struct ksock_peer *peer, int port,
 			best_iface = iface;
 			best_netmatch = this_netmatch;
 			best_nroutes = iface->ksni_nroutes;
+		next_iface:;
 		}
 
 		if (!best_iface)
@@ -952,6 +936,7 @@ ksocknal_create_routes(struct ksock_peer *peer, int port,
 
 		ksocknal_add_route_locked(peer, newroute);
 		newroute = NULL;
+	next_ipaddr:;
 	}
 
 	write_unlock_bh(global_lock);
