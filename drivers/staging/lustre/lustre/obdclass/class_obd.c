@@ -95,26 +95,34 @@ char obd_jobid_node[LUSTRE_JOBID_SIZE + 1];
  */
 int lustre_get_jobid(char *jobid)
 {
-	memset(jobid, 0, LUSTRE_JOBID_SIZE);
+	char tmp_jobid[LUSTRE_JOBID_SIZE] = { 0 };
+
 	/* Jobstats isn't enabled */
 	if (strcmp(obd_jobid_var, JOBSTATS_DISABLE) == 0)
-		return 0;
+		goto out_cache_jobid;
 
 	/* Use process name + fsuid as jobid */
 	if (strcmp(obd_jobid_var, JOBSTATS_PROCNAME_UID) == 0) {
-		snprintf(jobid, LUSTRE_JOBID_SIZE, "%s.%u",
+		snprintf(tmp_jobid, LUSTRE_JOBID_SIZE, "%s.%u",
 			 current->comm,
 			 from_kuid(&init_user_ns, current_fsuid()));
-		return 0;
+		goto out_cache_jobid;
 	}
 
 	/* Whole node dedicated to single job */
 	if (strcmp(obd_jobid_var, JOBSTATS_NODELOCAL) == 0) {
-		strcpy(jobid, obd_jobid_node);
-		return 0;
+		strcpy(tmp_jobid, obd_jobid_node);
+		goto out_cache_jobid;
 	}
 
 	return -ENOENT;
+
+out_cache_jobid:
+	/* Only replace the job ID if it changed. */
+	if (strcmp(jobid, tmp_jobid) != 0)
+		strcpy(jobid, tmp_jobid);
+
+	return 0;
 }
 EXPORT_SYMBOL(lustre_get_jobid);
 
