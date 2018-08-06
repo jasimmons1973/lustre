@@ -2260,12 +2260,13 @@ static inline void
 ksocknal_flush_stale_txs(struct ksock_peer *peer)
 {
 	struct ksock_tx *tx;
-	struct ksock_tx *tmp;
 	LIST_HEAD(stale_txs);
 
 	write_lock_bh(&ksocknal_data.ksnd_global_lock);
 
-	list_for_each_entry_safe(tx, tmp, &peer->ksnp_tx_queue, tx_list) {
+	while (!list_empty(&peer->ksnp_tx_queue)) {
+		tx = list_entry(peer->ksnp_tx_queue.next, struct ksock_tx, tx_list);
+
 		if (ktime_get_seconds() < tx->tx_deadline)
 			break;
 
