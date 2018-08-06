@@ -904,7 +904,7 @@ cfs_hash_buckets_realloc(struct cfs_hash *hs, struct cfs_hash_bucket **old_bkts,
 		new_bkts[i] = kzalloc(cfs_hash_bkt_size(hs), GFP_KERNEL);
 		if (!new_bkts[i]) {
 			cfs_hash_buckets_free(new_bkts, cfs_hash_bkt_size(hs),
-					      old_size, new_size);
+					      old_size, i);
 			return NULL;
 		}
 
