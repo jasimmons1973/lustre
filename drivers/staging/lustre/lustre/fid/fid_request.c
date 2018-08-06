@@ -343,11 +343,14 @@ int client_fid_init(struct obd_device *obd,
 {
 	struct client_obd *cli = &obd->u.cli;
 	char *prefix;
-	int rc;
+	int rc = 0;
 
+	down_write(&cli->cl_seq_rwsem);
 	cli->cl_seq = kzalloc(sizeof(*cli->cl_seq), GFP_NOFS);
-	if (!cli->cl_seq)
-		return -ENOMEM;
+	if (!cli->cl_seq) {
+		rc = -ENOMEM;
+		goto out_free_lock;
+	}
 
 	prefix = kzalloc(MAX_OBD_NAME + 5, GFP_NOFS);
 	if (!prefix) {
@@ -361,10 +364,14 @@ int client_fid_init(struct obd_device *obd,
 	seq_client_init(cli->cl_seq, exp, type, prefix);
 	kfree(prefix);
 
-	return 0;
 out_free_seq:
-	kfree(cli->cl_seq);
-	cli->cl_seq = NULL;
+	if (rc) {
+		kfree(cli->cl_seq);
+		cli->cl_seq = NULL;
+	}
+out_free_lock:
+	up_write(&cli->cl_seq_rwsem);
+
 	return rc;
 }
 EXPORT_SYMBOL(client_fid_init);
@@ -373,11 +380,13 @@ int client_fid_fini(struct obd_device *obd)
 {
 	struct client_obd *cli = &obd->u.cli;
 
+	down_write(&cli->cl_seq_rwsem);
 	if (cli->cl_seq) {
 		seq_client_fini(cli->cl_seq);
 		kfree(cli->cl_seq);
 		cli->cl_seq = NULL;
 	}
+	up_write(&cli->cl_seq_rwsem);
 
 	return 0;
 }

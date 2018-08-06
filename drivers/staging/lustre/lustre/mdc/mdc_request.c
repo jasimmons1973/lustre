@@ -2517,8 +2517,10 @@ static int mdc_import_event(struct obd_device *obd, struct obd_import *imp,
 		 * Flush current sequence to make client obtain new one
 		 * from server in case of disconnect/reconnect.
 		 */
+		down_read(&cli->cl_seq_rwsem);
 		if (cli->cl_seq)
 			seq_client_flush(cli->cl_seq);
+		up_read(&cli->cl_seq_rwsem);
 
 		rc = obd_notify_observer(obd, obd, OBD_NOTIFY_INACTIVE);
 		break;
@@ -2557,9 +2559,14 @@ int mdc_fid_alloc(const struct lu_env *env, struct obd_export *exp,
 		  struct lu_fid *fid, struct md_op_data *op_data)
 {
 	struct client_obd *cli = &exp->exp_obd->u.cli;
-	struct lu_client_seq *seq = cli->cl_seq;
+	int rc = -EIO;
 
-	return seq_client_alloc_fid(env, seq, fid);
+	down_read(&cli->cl_seq_rwsem);
+	if (cli->cl_seq)
+		rc = seq_client_alloc_fid(env, cli->cl_seq, fid);
+	up_read(&cli->cl_seq_rwsem);
+
+	return rc;
 }
 
 static struct obd_uuid *mdc_get_uuid(struct obd_export *exp)
