@@ -156,16 +156,16 @@ struct config_llog_instance {
 int class_config_parse_llog(const struct lu_env *env, struct llog_ctxt *ctxt,
 			    char *name, struct config_llog_instance *cfg);
 
-#define CONFIG_T_CONFIG		BIT(0)
-#define CONFIG_T_SPTLRPC	BIT(1)
-#define CONFIG_T_RECOVER	BIT(2)
-#define CONFIG_T_PARAMS		BIT(3)
+#define CONFIG_SUB_CONFIG	BIT(0)
+#define CONFIG_SUB_SPTLRPC	BIT(1)
+#define CONFIG_SUB_RECOVER	BIT(2)
+#define CONFIG_SUB_PARAMS	BIT(3)
 
 /* Sub clds should be attached to the config_llog_data when processing
  * config log for client or server target.
  */
-#define CONFIG_SUB_CLIENT	(CONFIG_T_SPTLRPC | CONFIG_T_RECOVER | \
-				 CONFIG_T_PARAMS)
+#define CONFIG_SUB_CLIENT	(CONFIG_SUB_SPTLRPC | CONFIG_SUB_RECOVER | \
+				 CONFIG_SUB_PARAMS)
 
 #define PARAMS_FILENAME	"params"
 #define LCTL_UPCALL	"lctl"

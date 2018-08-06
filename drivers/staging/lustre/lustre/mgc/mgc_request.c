@@ -315,7 +315,7 @@ config_log_add(struct obd_device *obd, char *logname,
 	memcpy(seclogname, logname, ptr - logname);
 	strcpy(seclogname + (ptr - logname), "-sptlrpc");
 
-	if (cfg->cfg_sub_clds & CONFIG_T_SPTLRPC) {
+	if (cfg->cfg_sub_clds & CONFIG_SUB_SPTLRPC) {
 		sptlrpc_cld = config_log_find_or_add(obd, seclogname, NULL,
 						     CONFIG_T_SPTLRPC, cfg);
 		if (IS_ERR(sptlrpc_cld)) {
@@ -325,7 +325,7 @@ config_log_add(struct obd_device *obd, char *logname,
 		}
 	}
 
-	if (cfg->cfg_sub_clds & CONFIG_T_PARAMS) {
+	if (cfg->cfg_sub_clds & CONFIG_SUB_PARAMS) {
 		params_cld = config_log_find_or_add(obd, PARAMS_FILENAME, sb,
 						    CONFIG_T_PARAMS, cfg);
 		if (IS_ERR(params_cld)) {
@@ -345,7 +345,7 @@ config_log_add(struct obd_device *obd, char *logname,
 
 	LASSERT(lsi->lsi_lmd);
 	if (!(lsi->lsi_lmd->lmd_flags & LMD_FLG_NOIR) &&
-	    cfg->cfg_sub_clds & CONFIG_T_RECOVER) {
+	    cfg->cfg_sub_clds & CONFIG_SUB_RECOVER) {
 		ptr = strrchr(seclogname, '-');
 		if (ptr) {
 			*ptr = 0;

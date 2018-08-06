@@ -2111,11 +2111,19 @@ struct mgs_nidtbl_entry {
 	} u;
 };
 
+enum {
+	CONFIG_T_CONFIG  = 0,
+	CONFIG_T_SPTLRPC = 1,
+	CONFIG_T_RECOVER = 2,
+	CONFIG_T_PARAMS  = 3,
+	CONFIG_T_MAX
+};
+
 struct mgs_config_body {
 	char		mcb_name[MTI_NAME_MAXLEN]; /* logname */
 	__u64		mcb_offset;    /* next index of config log to request */
 	__u16		mcb_type;      /* type of log: CONFIG_T_[CONFIG|RECOVER] */
-	__u8		mcb_reserved;
+	__u8		mcb_nm_cur_pass;
 	__u8		mcb_bits;      /* bits unit size of config log */
 	__u32		mcb_units;     /* # of units for bulk transfer */
 };
