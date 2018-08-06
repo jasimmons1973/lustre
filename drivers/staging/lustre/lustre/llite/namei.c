@@ -802,7 +802,8 @@ static struct inode *ll_create_node(struct inode *dir, struct lookup_intent *it)
 		goto out;
 	}
 
-	LASSERT(hlist_empty(&inode->i_dentry));
+	/* Pause to allow for a race with concurrent access by fid */
+	OBD_FAIL_TIMEOUT(OBD_FAIL_LLITE_CREATE_NODE_PAUSE, cfs_fail_val);
 
 	/* We asked for a lock on the directory, but were granted a
 	 * lock on the inode.  Since we finally have an inode pointer,
