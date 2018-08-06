@@ -2000,7 +2000,7 @@ int ldlm_replay_locks(struct obd_import *imp)
 {
 	struct ldlm_namespace *ns = imp->imp_obd->obd_namespace;
 	LIST_HEAD(list);
-	struct ldlm_lock *lock, *next;
+	struct ldlm_lock *lock;
 	int rc = 0;
 
 	LASSERT(atomic_read(&imp->imp_replay_inflight) == 0);
@@ -2017,7 +2017,9 @@ int ldlm_replay_locks(struct obd_import *imp)
 
 	ldlm_namespace_foreach(ns, ldlm_chain_lock_for_replay, &list);
 
-	list_for_each_entry_safe(lock, next, &list, l_pending_chain) {
+	while (!list_empty(&list)) {
+		lock = list_first_entry(&list, struct ldlm_lock,
+					l_pending_chain);
 		list_del_init(&lock->l_pending_chain);
 		if (rc) {
 			LDLM_LOCK_RELEASE(lock);
