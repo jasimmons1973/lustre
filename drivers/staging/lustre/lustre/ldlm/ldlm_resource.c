@@ -749,11 +749,9 @@ static void cleanup_resource(struct ldlm_resource *res, struct list_head *q,
 			 */
 			unlock_res(res);
 			LDLM_DEBUG(lock, "setting FL_LOCAL_ONLY");
-			if (lock->l_flags & LDLM_FL_FAIL_LOC) {
-				set_current_state(TASK_UNINTERRUPTIBLE);
-				schedule_timeout(4 * HZ);
-				set_current_state(TASK_RUNNING);
-			}
+			if (lock->l_flags & LDLM_FL_FAIL_LOC)
+				schedule_timeout_uninterruptible(4 * HZ);
+
 			if (lock->l_completion_ast)
 				lock->l_completion_ast(lock, LDLM_FL_FAILED,
 						       NULL);

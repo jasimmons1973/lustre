@@ -955,8 +955,7 @@ lnet_ping_md_unlink(struct lnet_ping_info *pinfo,
 	/* NB md could be busy; this just starts the unlink */
 	while (pinfo->pi_features != LNET_PING_FEAT_INVAL) {
 		CDEBUG(D_NET, "Still waiting for ping MD to unlink\n");
-		set_current_state(TASK_NOLOAD);
-		schedule_timeout(HZ);
+		schedule_timeout_idle(HZ);
 	}
 }
 
@@ -1093,8 +1092,7 @@ lnet_clear_zombies_nis_locked(void)
 				CDEBUG(D_WARNING, "Waiting for zombie LNI %s\n",
 				       libcfs_nid2str(ni->ni_nid));
 			}
-			set_current_state(TASK_UNINTERRUPTIBLE);
-			schedule_timeout(HZ);
+			schedule_timeout_uninterruptible(HZ);
 			lnet_net_lock(LNET_LOCK_EX);
 			continue;
 		}

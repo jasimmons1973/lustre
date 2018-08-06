@@ -124,7 +124,7 @@ static inline void mdc_get_rpc_lock(struct mdc_rpc_lock *lck,
 	 */
 	while (unlikely(lck->rpcl_it == MDC_FAKE_RPCL_IT)) {
 		mutex_unlock(&lck->rpcl_mutex);
-		schedule_timeout(HZ / 4);
+		schedule_timeout_uninterruptible(HZ / 4);
 		goto again;
 	}
 

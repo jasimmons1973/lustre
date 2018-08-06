@@ -1345,8 +1345,7 @@ lstcon_rpc_cleanup_wait(void)
 		mutex_unlock(&console_session.ses_mutex);
 
 		CWARN("Session is shutting down, waiting for termination of transactions\n");
-		set_current_state(TASK_UNINTERRUPTIBLE);
-		schedule_timeout(HZ);
+		schedule_timeout_uninterruptible(HZ);
 
 		mutex_lock(&console_session.ses_mutex);
 	}

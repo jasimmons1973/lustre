@@ -1201,8 +1201,7 @@ static struct kib_hca_dev *kiblnd_current_hdev(struct kib_dev *dev)
 		if (!(i++ % 50))
 			CDEBUG(D_NET, "%s: Wait for failover\n",
 			       dev->ibd_ifname);
-		set_current_state(TASK_INTERRUPTIBLE);
-		schedule_timeout(HZ / 100);
+		schedule_timeout_interruptible(HZ / 100);
 
 		read_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 	}
@@ -1916,8 +1915,7 @@ struct list_head *kiblnd_pool_alloc_node(struct kib_poolset *ps)
 		CDEBUG(D_NET, "Another thread is allocating new %s pool, waiting %d HZs for her to complete. trips = %d\n",
 		       ps->ps_name, interval, trips);
 
-		set_current_state(TASK_INTERRUPTIBLE);
-		schedule_timeout(interval);
+		schedule_timeout_interruptible(interval);
 		if (interval < HZ)
 			interval *= 2;
 
@@ -2548,8 +2546,7 @@ static void kiblnd_base_shutdown(void)
 			CDEBUG(((i & (-i)) == i) ? D_WARNING : D_NET,
 			       "Waiting for %d threads to terminate\n",
 			       atomic_read(&kiblnd_data.kib_nthreads));
-			set_current_state(TASK_UNINTERRUPTIBLE);
-			schedule_timeout(HZ);
+			schedule_timeout_uninterruptible(HZ);
 		}
 
 		/* fall through */
@@ -2599,8 +2596,7 @@ static void kiblnd_shutdown(struct lnet_ni *ni)
 			       "%s: waiting for %d peers to disconnect\n",
 			       libcfs_nid2str(ni->ni_nid),
 			       atomic_read(&net->ibn_npeers));
-			set_current_state(TASK_UNINTERRUPTIBLE);
-			schedule_timeout(HZ);
+			schedule_timeout_uninterruptible(HZ);
 		}
 
 		kiblnd_net_fini_pools(net);

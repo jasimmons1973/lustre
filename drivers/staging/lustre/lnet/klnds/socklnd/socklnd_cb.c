@@ -188,10 +188,9 @@ ksocknal_transmit(struct ksock_conn *conn, struct ksock_tx *tx)
 	int rc;
 	int bufnob;
 
-	if (ksocknal_data.ksnd_stall_tx) {
-		set_current_state(TASK_UNINTERRUPTIBLE);
-		schedule_timeout(ksocknal_data.ksnd_stall_tx * HZ);
-	}
+	if (ksocknal_data.ksnd_stall_tx)
+		schedule_timeout_uninterruptible(
+			ksocknal_data.ksnd_stall_tx * HZ);
 
 	LASSERT(tx->tx_resid);
 
@@ -293,10 +292,9 @@ ksocknal_receive(struct ksock_conn *conn)
 	 */
 	int rc;
 
-	if (ksocknal_data.ksnd_stall_rx) {
-		set_current_state(TASK_UNINTERRUPTIBLE);
-		schedule_timeout(ksocknal_data.ksnd_stall_rx * HZ);
-	}
+	if (ksocknal_data.ksnd_stall_rx)
+		schedule_timeout_uninterruptible(
+			ksocknal_data.ksnd_stall_rx * HZ);
 
 	rc = ksocknal_connsock_addref(conn);
 	if (rc) {

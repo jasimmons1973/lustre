@@ -783,8 +783,7 @@ lnet_wait_known_routerstate(void)
 		if (all_known)
 			return;
 
-		set_current_state(TASK_UNINTERRUPTIBLE);
-		schedule_timeout(HZ);
+		schedule_timeout_uninterruptible(HZ);
 	}
 }
 
@@ -1159,8 +1158,7 @@ lnet_prune_rc_data(int wait_unlink)
 		i++;
 		CDEBUG(((i & (-i)) == i) ? D_WARNING : D_NET,
 		       "Waiting for rc buffers to unlink\n");
-		set_current_state(TASK_UNINTERRUPTIBLE);
-		schedule_timeout(HZ / 4);
+		schedule_timeout_uninterruptible(HZ / 4);
 
 		lnet_net_lock(LNET_LOCK_EX);
 	}
@@ -1237,22 +1235,15 @@ rescan:
 		lnet_prune_rc_data(0); /* don't wait for UNLINK */
 
 		/*
-		 * Call schedule_timeout() here always adds 1 to load average
-		 * because kernel counts # active tasks as nr_running
-		 * + nr_uninterruptible.
-		 */
-		/*
 		 * if there are any routes then wakeup every second.  If
 		 * there are no routes then sleep indefinitely until woken
 		 * up by a user adding a route
 		 */
 		if (!lnet_router_checker_active())
-			wait_event_interruptible(the_lnet.ln_rc_waitq,
-						 lnet_router_checker_active());
+			wait_event_idle(the_lnet.ln_rc_waitq,
+					lnet_router_checker_active());
 		else
-			wait_event_interruptible_timeout(the_lnet.ln_rc_waitq,
-							 false,
-							 HZ);
+			schedule_timeout_idle(HZ);
 	}
 
 	lnet_prune_rc_data(1); /* wait for UNLINK */

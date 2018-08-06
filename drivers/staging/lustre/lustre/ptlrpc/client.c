@@ -761,9 +761,7 @@ int ptlrpc_request_bufs_pack(struct ptlrpc_request *request,
 			/* The RPC is infected, let the test change the
 			 * fail_loc
 			 */
-			set_current_state(TASK_UNINTERRUPTIBLE);
-			schedule_timeout(2 * HZ);
-			set_current_state(TASK_RUNNING);
+			schedule_timeout_uninterruptible(2 * HZ);
 		}
 	}
 

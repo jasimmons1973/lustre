@@ -1603,8 +1603,7 @@ srpc_startup(void)
 	spin_lock_init(&srpc_data.rpc_glock);
 
 	/* 1 second pause to avoid timestamp reuse */
-	set_current_state(TASK_UNINTERRUPTIBLE);
-	schedule_timeout(HZ);
+	schedule_timeout_uninterruptible(HZ);
 	srpc_data.rpc_matchbits = ((__u64)ktime_get_real_seconds()) << 48;
 
 	srpc_data.rpc_state = SRPC_STATE_NONE;

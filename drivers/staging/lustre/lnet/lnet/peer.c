@@ -136,8 +136,7 @@ lnet_peer_table_deathrow_wait_locked(struct lnet_peer_table *ptable,
 			       "Waiting for %d zombies on peer table\n",
 			       ptable->pt_zombies);
 		}
-		set_current_state(TASK_UNINTERRUPTIBLE);
-		schedule_timeout(HZ >> 1);
+		schedule_timeout_uninterruptible(HZ >> 1);
 		lnet_net_lock(cpt_locked);
 	}
 }

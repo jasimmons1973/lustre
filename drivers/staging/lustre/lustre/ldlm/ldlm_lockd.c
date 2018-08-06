@@ -167,8 +167,7 @@ static void ldlm_handle_cp_callback(struct ptlrpc_request *req,
 		int to = HZ;
 
 		while (to > 0) {
-			set_current_state(TASK_INTERRUPTIBLE);
-			schedule_timeout(to);
+			schedule_timeout_interruptible(to);
 			if (lock->l_granted_mode == lock->l_req_mode ||
 			    ldlm_is_destroyed(lock))
 				break;
