@@ -280,10 +280,12 @@ EXPORT_SYMBOL(fld_client_init);
 
 void fld_client_fini(struct lu_client_fld *fld)
 {
-	struct lu_fld_target *target, *tmp;
+	struct lu_fld_target *target;
 
 	spin_lock(&fld->lcf_lock);
-	list_for_each_entry_safe(target, tmp, &fld->lcf_targets, ft_chain) {
+	while (!list_empty(&fld->lcf_targets)) {
+		target = list_first_entry(&fld->lcf_targets,
+					  struct lu_fld_target, ft_chain);
 		fld->lcf_count--;
 		list_del(&target->ft_chain);
 		if (target->ft_exp)
