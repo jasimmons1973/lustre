@@ -413,7 +413,6 @@ ksocknal_handle_zcack(struct ksock_conn *conn, __u64 cookie1, __u64 cookie2)
 {
 	struct ksock_peer *peer = conn->ksnc_peer;
 	struct ksock_tx *tx;
-	struct ksock_tx *temp;
 	struct ksock_tx *tmp;
 	LIST_HEAD(zlist);
 	int count;
@@ -448,7 +447,8 @@ ksocknal_handle_zcack(struct ksock_conn *conn, __u64 cookie1, __u64 cookie2)
 
 	spin_unlock(&peer->ksnp_lock);
 
-	list_for_each_entry_safe(tx, temp, &zlist, tx_zc_list) {
+	while (!list_empty(&zlist)) {
+		tx = list_entry(zlist.next, struct ksock_tx, tx_zc_list);
 		list_del(&tx->tx_zc_list);
 		ksocknal_tx_decref(tx);
 	}
