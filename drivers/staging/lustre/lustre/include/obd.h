@@ -491,8 +491,6 @@ enum obd_notify_event {
 	OBD_NOTIFY_INACTIVE,
 	/* Connect data for import were changed */
 	OBD_NOTIFY_OCD,
-	/* Configuration event */
-	OBD_NOTIFY_CONFIG,
 	/* Administratively deactivate/activate event */
 	OBD_NOTIFY_DEACTIVATE,
 	OBD_NOTIFY_ACTIVATE
