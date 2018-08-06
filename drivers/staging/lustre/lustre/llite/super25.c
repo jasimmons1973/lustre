@@ -114,23 +114,26 @@ static int lustre_fill_super(struct super_block *sb, void *lmd2_data, int silent
 
 	/* Figure out the lmd from the mount options */
 	if (lmd_parse(lmd2_data, lmd)) {
-		lustre_put_lsi(sb);
 		rc = -EINVAL;
-		goto out;
+		goto out_put_lsi;
 	}
 
 	if (lmd_is_client(lmd)) {
 		CDEBUG(D_MOUNT, "Mounting client %s\n", lmd->lmd_profile);
 
+		rc = ptlrpc_inc_ref();
+		if (rc)
+			goto out_put_lsi;
 		rc = lustre_start_mgc(sb);
 		if (rc) {
-			lustre_common_put_super(sb);
+			/* This will put_lsi and ptlrpc_dec_ref */
+			ll_common_put_super(sb);
 			goto out;
 		}
 		/* Connect and start */
 		rc = ll_fill_super(sb);
 		/*
-		 * c_f_s will call lustre_common_put_super on failure, otherwise
+		 * c_f_s will call ll_common_put_super on failure, otherwise
 		 * c_f_s will have taken another reference to the module
 		 */
 	} else {
@@ -142,6 +145,8 @@ static int lustre_fill_super(struct super_block *sb, void *lmd2_data, int silent
 	 * This is why we do not put it here.
 	 */
 	goto out;
+out_put_lsi:
+	lustre_put_lsi(sb);
 out:
 	if (rc) {
 		CERROR("Unable to mount %s (%d)\n",
