@@ -108,6 +108,9 @@ typedef int (*llog_cb_t)(const struct lu_env *, struct llog_handle *,
 char *lustre_cfg_string(struct lustre_cfg *lcfg, u32 index);
 void print_lustre_cfg(struct lustre_cfg *lcfg);
 int class_process_config(struct lustre_cfg *lcfg);
+ssize_t class_set_global(const char *param);
+ssize_t class_modify_config(struct lustre_cfg *lcfg, const char *prefix,
+			    struct kobject *kobj);
 int class_process_proc_param(char *prefix, struct lprocfs_vars *lvars,
 			     struct lustre_cfg *lcfg, void *data);
 

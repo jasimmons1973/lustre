@@ -575,6 +575,24 @@ static const struct attribute_group lustre_attr_group = {
 	.attrs = lustre_attrs,
 };
 
+ssize_t class_set_global(const char *param)
+{
+	const char *value = strchr(param, '=') + 1;
+	size_t off = value - param - 1;
+	ssize_t count = -ENOENT;
+	int i;
+
+	for (i = 0; lustre_attrs[i]; i++) {
+		if (!strncmp(lustre_attrs[i]->name, param, off)) {
+			count = lustre_attr_store(&lustre_kset->kobj,
+						  lustre_attrs[i], value,
+						  strlen(value));
+			break;
+		}
+	}
+	return count;
+}
+
 int class_procfs_init(void)
 {
 	int rc = -ENOMEM;
