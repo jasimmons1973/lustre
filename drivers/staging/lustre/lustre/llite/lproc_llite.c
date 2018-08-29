@@ -94,6 +94,41 @@ static const struct file_operations ll_rw_extents_stats_fops;
 static const struct file_operations ll_rw_extents_stats_pp_fops;
 static const struct file_operations ll_rw_offset_stats_fops;
 
+/**
+ * ll_stats_pid_write() - Determine if stats collection should be enabled
+ * @buf: Buffer containing the data written
+ * @len: Number of bytes in the buffer
+ *
+ * Several proc files begin collecting stats when a value is written, and stop
+ * collecting when either '0' or 'disable' is written. This function checks the
+ * written value to see if collection should be enabled or disabled.
+ *
+ * Return: If '0' or 'disable' is provided, 0 is returned. If the text
+ * equivalent of a number is written, that number is returned. Otherwise,
+ * 1 is returned. Non-zero return values indicate collection should be enabled.
+ */
+static s64 ll_stats_pid_write(const char __user *buf, size_t len)
+{
+	unsigned long long value = 1;
+	char kernbuf[16];
+	int rc;
+
+	rc = kstrtoull_from_user(buf, len, 0, &value);
+	if (rc < 0 && len < sizeof(kernbuf)) {
+		if (copy_from_user(kernbuf, buf, len))
+			return -EFAULT;
+		kernbuf[len] = 0;
+
+		if (kernbuf[len - 1] == '\n')
+			kernbuf[len - 1] = 0;
+
+		if (strncasecmp(kernbuf, "disable", 7) == 0)
+			value = 0;
+	}
+
+	return value;
+}
+
 static ssize_t blocksize_show(struct kobject *kobj, struct attribute *attr,
 			      char *buf)
 {
@@ -1421,26 +1456,12 @@ static ssize_t ll_rw_extents_stats_pp_seq_write(struct file *file,
 	struct ll_sb_info *sbi = seq->private;
 	struct ll_rw_extents_info *io_extents = &sbi->ll_rw_extents_info;
 	int i;
-	int value = 1, rc = 0;
+	s64 value;
 
 	if (len == 0)
 		return -EINVAL;
 
-	rc = lprocfs_write_helper(buf, len, &value);
-	if (rc < 0 && len < 16) {
-		char kernbuf[16];
-
-		if (copy_from_user(kernbuf, buf, len))
-			return -EFAULT;
-		kernbuf[len] = 0;
-
-		if (kernbuf[len - 1] == '\n')
-			kernbuf[len - 1] = 0;
-
-		if (strcmp(kernbuf, "disabled") == 0 ||
-		    strcmp(kernbuf, "Disabled") == 0)
-			value = 0;
-	}
+	value = ll_stats_pid_write(buf, len);
 
 	if (value == 0)
 		sbi->ll_rw_stats_on = 0;
@@ -1494,26 +1515,12 @@ static ssize_t ll_rw_extents_stats_seq_write(struct file *file,
 	struct ll_sb_info *sbi = seq->private;
 	struct ll_rw_extents_info *io_extents = &sbi->ll_rw_extents_info;
 	int i;
-	int value = 1, rc = 0;
+	s64 value;
 
 	if (len == 0)
 		return -EINVAL;
 
-	rc = lprocfs_write_helper(buf, len, &value);
-	if (rc < 0 && len < 16) {
-		char kernbuf[16];
-
-		if (copy_from_user(kernbuf, buf, len))
-			return -EFAULT;
-		kernbuf[len] = 0;
-
-		if (kernbuf[len - 1] == '\n')
-			kernbuf[len - 1] = 0;
-
-		if (strcmp(kernbuf, "disabled") == 0 ||
-		    strcmp(kernbuf, "Disabled") == 0)
-			value = 0;
-	}
+	value = ll_stats_pid_write(buf, len);
 
 	if (value == 0)
 		sbi->ll_rw_stats_on = 0;
@@ -1698,27 +1705,12 @@ static ssize_t ll_rw_offset_stats_seq_write(struct file *file,
 	struct ll_sb_info *sbi = seq->private;
 	struct ll_rw_process_info *process_info = sbi->ll_rw_process_info;
 	struct ll_rw_process_info *offset_info = sbi->ll_rw_offset_info;
-	int value = 1, rc = 0;
+	s64 value;
 
 	if (len == 0)
 		return -EINVAL;
 
-	rc = lprocfs_write_helper(buf, len, &value);
-
-	if (rc < 0 && len < 16) {
-		char kernbuf[16];
-
-		if (copy_from_user(kernbuf, buf, len))
-			return -EFAULT;
-		kernbuf[len] = 0;
-
-		if (kernbuf[len - 1] == '\n')
-			kernbuf[len - 1] = 0;
-
-		if (strcmp(kernbuf, "disabled") == 0 ||
-		    strcmp(kernbuf, "Disabled") == 0)
-			value = 0;
-	}
+	value = ll_stats_pid_write(buf, len);
 
 	if (value == 0)
 		sbi->ll_rw_stats_on = 0;
