@@ -157,7 +157,8 @@ struct lmv_tgt_desc
 *lmv_locate_mds(struct lmv_obd *lmv, struct md_op_data *op_data,
 		struct lu_fid *fid);
 /* lproc_lmv.c */
-void lprocfs_lmv_init_vars(struct lprocfs_static_vars *lvars);
+void lprocfs_lmv_init_vars(struct obd_device *obd,
+			   struct lprocfs_static_vars *lvars);
 
 extern const struct file_operations lmv_proc_target_fops;
 

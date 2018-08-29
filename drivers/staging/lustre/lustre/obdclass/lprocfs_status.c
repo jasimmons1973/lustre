@@ -1014,7 +1014,7 @@ static struct kobj_type obd_ktype = {
 	.release	= obd_sysfs_release,
 };
 
-int lprocfs_obd_setup(struct obd_device *obd, struct lprocfs_vars *list,
+int lprocfs_obd_setup(struct obd_device *obd,
 		      const struct attribute_group *attrs)
 {
 	int rc = 0;
@@ -1036,7 +1036,7 @@ int lprocfs_obd_setup(struct obd_device *obd, struct lprocfs_vars *list,
 
 	obd->obd_debugfs_entry = debugfs_create_dir(obd->obd_name,
 					obd->obd_type->typ_debugfs_entry);
-	ldebugfs_add_vars(obd->obd_debugfs_entry, list, obd);
+	ldebugfs_add_vars(obd->obd_debugfs_entry, obd->obd_vars, obd);
 
 	return rc;
 }

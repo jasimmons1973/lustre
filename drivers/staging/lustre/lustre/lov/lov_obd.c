@@ -769,8 +769,8 @@ int lov_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	if (rc)
 		goto out;
 
-	lprocfs_lov_init_vars(&lvars);
-	lprocfs_obd_setup(obd, lvars.obd_vars, lvars.sysfs_vars);
+	lprocfs_lov_init_vars(obd, &lvars);
+	lprocfs_obd_setup(obd, lvars.sysfs_vars);
 
 	debugfs_create_file("target_obd", 0444, obd->obd_debugfs_entry, obd,
 			    &lov_proc_target_fops);
@@ -872,7 +872,6 @@ int lov_process_config_base(struct obd_device *obd, struct lustre_cfg *lcfg,
 		goto out;
 	}
 	case LCFG_PARAM: {
-		struct lprocfs_static_vars lvars = { NULL };
 		struct lov_desc *desc = &obd->u.lov.desc;
 
 		if (!desc) {
@@ -880,9 +879,7 @@ int lov_process_config_base(struct obd_device *obd, struct lustre_cfg *lcfg,
 			goto out;
 		}
 
-		lprocfs_lov_init_vars(&lvars);
-
-		rc = class_process_proc_param(PARAM_LOV, lvars.obd_vars,
+		rc = class_process_proc_param(PARAM_LOV, obd->obd_vars,
 					      lcfg, obd);
 		if (rc > 0)
 			rc = 0;
@@ -1356,7 +1353,6 @@ struct kmem_cache *lov_oinfo_slab;
 
 static int __init lov_init(void)
 {
-	struct lprocfs_static_vars lvars = { NULL };
 	int rc;
 
 	/* print an address of _any_ initialized kernel symbol from this
@@ -1380,7 +1376,6 @@ static int __init lov_init(void)
 		lu_kmem_fini(lov_caches);
 		return -ENOMEM;
 	}
-	lprocfs_lov_init_vars(&lvars);
 
 	rc = class_register_type(&lov_obd_ops, NULL,
 				 LUSTRE_LOV_NAME, &lov_device_type);

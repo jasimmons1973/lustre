@@ -284,10 +284,11 @@ static const struct attribute_group lov_attr_group = {
 	.attrs = lov_attrs,
 };
 
-void lprocfs_lov_init_vars(struct lprocfs_static_vars *lvars)
+void lprocfs_lov_init_vars(struct obd_device *obd,
+			   struct lprocfs_static_vars *lvars)
 {
+	obd->obd_vars = lprocfs_lov_obd_vars;
 	lvars->sysfs_vars = &lov_attr_group;
-	lvars->obd_vars = lprocfs_lov_obd_vars;
 }
 
 const struct file_operations lov_proc_target_fops = {

@@ -1254,9 +1254,9 @@ static int lmv_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	spin_lock_init(&lmv->lmv_lock);
 	mutex_init(&lmv->lmv_init_mutex);
 
-	lprocfs_lmv_init_vars(&lvars);
+	lprocfs_lmv_init_vars(obd, &lvars);
 
-	lprocfs_obd_setup(obd, lvars.obd_vars, lvars.sysfs_vars);
+	lprocfs_obd_setup(obd, lvars.sysfs_vars);
 	debugfs_create_file("target_obd", 0444, obd->obd_debugfs_entry, obd,
 			    &lmv_proc_target_fops);
 	rc = fld_client_init(&lmv->lmv_fld, obd->obd_name,
@@ -3098,10 +3098,7 @@ static struct md_ops lmv_md_ops = {
 
 static int __init lmv_init(void)
 {
-	struct lprocfs_static_vars lvars;
 	int rc;
-
-	lprocfs_lmv_init_vars(&lvars);
 
 	rc = libcfs_setup();
 	if (rc)

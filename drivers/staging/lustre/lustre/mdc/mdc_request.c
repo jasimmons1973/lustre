@@ -2648,8 +2648,8 @@ static int mdc_setup(struct obd_device *obd, struct lustre_cfg *cfg)
 	if (rc)
 		goto err_ptlrpcd_decref;
 
-	lprocfs_mdc_init_vars(&lvars);
-	lprocfs_obd_setup(obd, lvars.obd_vars, lvars.sysfs_vars);
+	lprocfs_mdc_init_vars(obd, &lvars);
+	lprocfs_obd_setup(obd, lvars.sysfs_vars);
 	sptlrpc_lprocfs_cliobd_attach(obd);
 	ptlrpc_lprocfs_register_obd(obd);
 
@@ -2716,13 +2716,11 @@ static int mdc_cleanup(struct obd_device *obd)
 static int mdc_process_config(struct obd_device *obd, u32 len, void *buf)
 {
 	struct lustre_cfg *lcfg = buf;
-	struct lprocfs_static_vars lvars = { NULL };
 	int rc = 0;
 
-	lprocfs_mdc_init_vars(&lvars);
 	switch (lcfg->lcfg_command) {
 	default:
-		rc = class_process_proc_param(PARAM_MDC, lvars.obd_vars,
+		rc = class_process_proc_param(PARAM_MDC, obd->obd_vars,
 					      lcfg, obd);
 		if (rc > 0)
 			rc = 0;
@@ -2784,14 +2782,11 @@ static struct md_ops mdc_md_ops = {
 
 static int __init mdc_init(void)
 {
-	struct lprocfs_static_vars lvars = { NULL };
 	int rc;
 
 	rc = libcfs_setup();
 	if (rc)
 		return rc;
-
-	lprocfs_mdc_init_vars(&lvars);
 
 	return class_register_type(&mdc_obd_ops, &mdc_md_ops,
 				 LUSTRE_MDC_NAME, NULL);

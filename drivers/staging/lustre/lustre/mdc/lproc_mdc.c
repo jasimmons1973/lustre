@@ -224,8 +224,9 @@ static const struct attribute_group mdc_attr_group = {
 	.attrs = mdc_attrs,
 };
 
-void lprocfs_mdc_init_vars(struct lprocfs_static_vars *lvars)
+void lprocfs_mdc_init_vars(struct obd_device *obd,
+			   struct lprocfs_static_vars *lvars)
 {
+	obd->obd_vars = lprocfs_mdc_obd_vars;
 	lvars->sysfs_vars   = &mdc_attr_group;
-	lvars->obd_vars     = lprocfs_mdc_obd_vars;
 }
