@@ -187,15 +187,6 @@ static struct file_system_type lustre_fs_type = {
 };
 MODULE_ALIAS_FS("lustre");
 
-int lustre_register_fs(void)
-{
-	return register_filesystem(&lustre_fs_type);
-}
-
-int lustre_unregister_fs(void)
-{
-	return unregister_filesystem(&lustre_fs_type);
-}
 static int __init lustre_init(void)
 {
 	int rc;
@@ -249,7 +240,7 @@ static int __init lustre_init(void)
 	if (rc != 0)
 		goto out_inode_fini_env;
 
-	rc = lustre_register_fs();
+	rc = register_filesystem(&lustre_fs_type);
 	if (rc)
 		goto out_inode_fini_env;
 
@@ -269,7 +260,7 @@ out_cache:
 
 static void __exit lustre_exit(void)
 {
-	lustre_unregister_fs();
+	unregister_filesystem(&lustre_fs_type);
 
 	llite_tunables_unregister();
 
