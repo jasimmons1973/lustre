@@ -989,7 +989,7 @@ int lprocfs_rd_connect_flags(struct seq_file *m, void *data)
 }
 EXPORT_SYMBOL(lprocfs_rd_connect_flags);
 
-static struct attribute *obd_def_attrs[] = {
+static const struct attribute *obd_def_attrs[] = {
 	&lustre_attr_blocksize.attr,
 	&lustre_attr_kbytestotal.attr,
 	&lustre_attr_kbytesfree.attr,
@@ -1009,7 +1009,6 @@ static void obd_sysfs_release(struct kobject *kobj)
 }
 
 static struct kobj_type obd_ktype = {
-	.default_attrs	= obd_def_attrs,
 	.sysfs_ops	= &lustre_sysfs_ops,
 	.release	= obd_sysfs_release,
 };
@@ -1019,6 +1018,7 @@ int lprocfs_obd_setup(struct obd_device *obd,
 {
 	int rc = 0;
 
+	obd_ktype.default_attrs = attrs->attrs;
 	init_completion(&obd->obd_kobj_unregister);
 	rc = kobject_init_and_add(&obd->obd_kobj, &obd_ktype,
 				  obd->obd_type->typ_kobj,
@@ -1026,12 +1026,10 @@ int lprocfs_obd_setup(struct obd_device *obd,
 	if (rc)
 		return rc;
 
-	if (attrs) {
-		rc = sysfs_create_group(&obd->obd_kobj, attrs);
-		if (rc) {
-			kobject_put(&obd->obd_kobj);
-			return rc;
-		}
+	rc = sysfs_create_files(&obd->obd_kobj, obd_def_attrs);
+	if (rc) {
+		kobject_put(&obd->obd_kobj);
+		return rc;
 	}
 
 	obd->obd_debugfs_entry = debugfs_create_dir(obd->obd_name,
@@ -1048,6 +1046,8 @@ int lprocfs_obd_cleanup(struct obd_device *obd)
 		return -EINVAL;
 
 	debugfs_remove_recursive(obd->obd_debugfs_entry);
+
+	sysfs_remove_files(&obd->obd_kobj, obd_def_attrs);
 
 	kobject_put(&obd->obd_kobj);
 	wait_for_completion(&obd->obd_kobj_unregister);
