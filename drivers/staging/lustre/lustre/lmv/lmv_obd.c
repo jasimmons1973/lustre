@@ -211,6 +211,10 @@ static int lmv_connect(const struct lu_env *env,
 
 	lmv->lmv_tgts_kobj = kobject_create_and_add("target_obds",
 						    &obd->obd_kset.kobj);
+	if (!lmv->lmv_tgts_kobj)
+		CERROR("%s: cannot create /sys/fs/lustre/%s/%s/target_obds\n",
+		       obd->obd_name, obd->obd_type->typ_name, obd->obd_name);
+
 	rc = lmv_check_connect(obd);
 	if (rc)
 		goto out_sysfs;
@@ -1254,22 +1258,19 @@ static int lmv_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	spin_lock_init(&lmv->lmv_lock);
 	mutex_init(&lmv->lmv_init_mutex);
 
-	lprocfs_lmv_init_vars(obd);
+	rc = lmv_tunables_init(obd);
+	if (rc)
+		CWARN("%s: error adding LMV sysfs/debugfs files: rc = %d\n",
+		      obd->obd_name, rc);
 
-	lprocfs_obd_setup(obd, true);
-	debugfs_create_file("target_obd", 0444, obd->obd_debugfs_entry, obd,
-			    &lmv_proc_target_fops);
 	rc = fld_client_init(&lmv->lmv_fld, obd->obd_name,
 			     LUSTRE_CLI_FLD_HASH_DHT);
 	if (rc) {
 		CERROR("Can't init FLD, err %d\n", rc);
-		goto out;
+		return rc;
 	}
 
 	return 0;
-
-out:
-	return rc;
 }
 
 static int lmv_cleanup(struct obd_device *obd)
