@@ -730,7 +730,6 @@ static int mgc_cleanup(struct obd_device *obd)
 
 static int mgc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 {
-	struct lprocfs_static_vars lvars = { NULL };
 	struct task_struct *task;
 	int rc;
 
@@ -748,8 +747,8 @@ static int mgc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 		goto err_cleanup;
 	}
 
-	lprocfs_mgc_init_vars(obd, &lvars);
-	lprocfs_obd_setup(obd, lvars.sysfs_vars);
+	lprocfs_mgc_init_vars(obd);
+	lprocfs_obd_setup(obd);
 	sptlrpc_lprocfs_cliobd_attach(obd);
 
 	if (atomic_inc_return(&mgc_count) == 1) {

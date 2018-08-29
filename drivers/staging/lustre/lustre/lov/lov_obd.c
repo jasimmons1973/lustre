@@ -718,7 +718,6 @@ void lov_fix_desc(struct lov_desc *desc)
 
 int lov_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 {
-	struct lprocfs_static_vars lvars = { NULL };
 	struct lov_desc *desc;
 	struct lov_obd *lov = &obd->u.lov;
 	int rc;
@@ -769,8 +768,8 @@ int lov_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	if (rc)
 		goto out;
 
-	lprocfs_lov_init_vars(obd, &lvars);
-	lprocfs_obd_setup(obd, lvars.sysfs_vars);
+	lprocfs_lov_init_vars(obd);
+	lprocfs_obd_setup(obd);
 
 	debugfs_create_file("target_obd", 0444, obd->obd_debugfs_entry, obd,
 			    &lov_proc_target_fops);

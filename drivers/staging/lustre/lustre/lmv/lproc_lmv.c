@@ -162,13 +162,8 @@ static struct attribute *lmv_attrs[] = {
 	NULL,
 };
 
-static const struct attribute_group lmv_attr_group = {
-	.attrs = lmv_attrs,
-};
-
-void lprocfs_lmv_init_vars(struct obd_device *obd,
-			   struct lprocfs_static_vars *lvars)
+void lprocfs_lmv_init_vars(struct obd_device *obd)
 {
 	obd->obd_vars = lprocfs_lmv_obd_vars;
-	lvars->sysfs_vars     = &lmv_attr_group;
+	obd->obd_ktype.default_attrs = lmv_attrs;
 }

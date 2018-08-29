@@ -820,13 +820,8 @@ static struct attribute *osc_attrs[] = {
 	NULL,
 };
 
-static const struct attribute_group osc_attr_group = {
-	.attrs = osc_attrs,
-};
-
-void lprocfs_osc_init_vars(struct obd_device *obd,
-			   struct lprocfs_static_vars *lvars)
+void lprocfs_osc_init_vars(struct obd_device *obd)
 {
-	lvars->sysfs_vars  = &osc_attr_group;
+	obd->obd_ktype.default_attrs = osc_attrs;
 	obd->obd_vars = lprocfs_osc_obd_vars;
 }

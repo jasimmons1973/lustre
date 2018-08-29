@@ -2637,7 +2637,6 @@ static void mdc_llog_finish(struct obd_device *obd)
 
 static int mdc_setup(struct obd_device *obd, struct lustre_cfg *cfg)
 {
-	struct lprocfs_static_vars lvars = { NULL };
 	int rc;
 
 	rc = ptlrpcd_addref();
@@ -2648,8 +2647,8 @@ static int mdc_setup(struct obd_device *obd, struct lustre_cfg *cfg)
 	if (rc)
 		goto err_ptlrpcd_decref;
 
-	lprocfs_mdc_init_vars(obd, &lvars);
-	lprocfs_obd_setup(obd, lvars.sysfs_vars);
+	lprocfs_mdc_init_vars(obd);
+	lprocfs_obd_setup(obd);
 	sptlrpc_lprocfs_cliobd_attach(obd);
 	ptlrpc_lprocfs_register_obd(obd);
 

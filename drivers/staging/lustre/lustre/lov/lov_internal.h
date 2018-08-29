@@ -241,8 +241,7 @@ void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm);
 
 /* lproc_lov.c */
 extern const struct file_operations lov_proc_target_fops;
-void lprocfs_lov_init_vars(struct obd_device *obd,
-			   struct lprocfs_static_vars *lvars);
+void lprocfs_lov_init_vars(struct obd_device *obd);
 
 /* lov_cl.c */
 extern struct lu_device_type lov_device_type;

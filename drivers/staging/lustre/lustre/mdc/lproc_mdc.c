@@ -220,13 +220,8 @@ static struct attribute *mdc_attrs[] = {
 	NULL,
 };
 
-static const struct attribute_group mdc_attr_group = {
-	.attrs = mdc_attrs,
-};
-
-void lprocfs_mdc_init_vars(struct obd_device *obd,
-			   struct lprocfs_static_vars *lvars)
+void lprocfs_mdc_init_vars(struct obd_device *obd)
 {
+	obd->obd_ktype.default_attrs = mdc_attrs;
 	obd->obd_vars = lprocfs_mdc_obd_vars;
-	lvars->sysfs_vars   = &mdc_attr_group;
 }

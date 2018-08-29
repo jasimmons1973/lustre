@@ -1008,19 +1008,15 @@ static void obd_sysfs_release(struct kobject *kobj)
 	complete(&obd->obd_kobj_unregister);
 }
 
-static struct kobj_type obd_ktype = {
-	.sysfs_ops	= &lustre_sysfs_ops,
-	.release	= obd_sysfs_release,
-};
-
-int lprocfs_obd_setup(struct obd_device *obd,
-		      const struct attribute_group *attrs)
+int lprocfs_obd_setup(struct obd_device *obd)
 {
-	int rc = 0;
+	int rc;
 
-	obd_ktype.default_attrs = attrs->attrs;
+	obd->obd_ktype.sysfs_ops = &lustre_sysfs_ops;
+	obd->obd_ktype.release = obd_sysfs_release;
+
 	init_completion(&obd->obd_kobj_unregister);
-	rc = kobject_init_and_add(&obd->obd_kobj, &obd_ktype,
+	rc = kobject_init_and_add(&obd->obd_kobj, &obd->obd_ktype,
 				  obd->obd_type->typ_kobj,
 				  "%s", obd->obd_name);
 	if (rc)

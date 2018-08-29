@@ -63,8 +63,7 @@ static struct lprocfs_vars lprocfs_mgc_obd_vars[] = {
 	{ NULL }
 };
 
-void lprocfs_mgc_init_vars(struct obd_device *obd,
-			   struct lprocfs_static_vars *lvars)
+void lprocfs_mgc_init_vars(struct obd_device *obd)
 {
-	obd->obd_vars    = lprocfs_mgc_obd_vars;
+	obd->obd_vars = lprocfs_mgc_obd_vars;
 }

@@ -602,6 +602,7 @@ struct obd_device {
 	struct dentry		*obd_debugfs_entry;
 	struct dentry		*obd_svc_debugfs_entry;
 	struct lprocfs_stats  *obd_svc_stats;
+	const struct attribute	       **obd_attrs;
 	struct lprocfs_vars		*obd_vars;
 	atomic_t	   obd_evict_inprogress;
 	wait_queue_head_t	    obd_evict_inprogress_waitq;
@@ -623,6 +624,7 @@ struct obd_device {
 	struct lu_ref	  obd_reference;
 
 	struct kobject		obd_kobj; /* sysfs object */
+	struct kobj_type		obd_ktype;
 	struct completion	obd_kobj_unregister;
 };
 
