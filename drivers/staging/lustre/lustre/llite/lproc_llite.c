@@ -1223,27 +1223,13 @@ static const char *ra_stat_string[] = {
 	[RA_STAT_FAILED_REACH_END] = "failed to reach end"
 };
 
-int ll_debugfs_register_super(struct super_block *sb)
+int ll_debugfs_register_super(struct super_block *sb, const char *name)
 {
-	struct lustre_sb_info *lsi = s2lsi(sb);
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	struct dentry *dir;
-	char name[MAX_STRING_SIZE + 1], *ptr;
-	int err, id, len;
-
-	name[MAX_STRING_SIZE] = '\0';
+	int err, id;
 
 	LASSERT(sbi);
-
-	/* Get fsname */
-	len = strlen(lsi->lsi_lmd->lmd_profile);
-	ptr = strrchr(lsi->lsi_lmd->lmd_profile, '-');
-	if (ptr && (strcmp(ptr, "-client") == 0))
-		len -= 7;
-
-	/* Mount info */
-	snprintf(name, MAX_STRING_SIZE, "%.*s-%p", len,
-		 lsi->lsi_lmd->lmd_profile, sb);
 
 	dir = debugfs_create_dir(name, llite_root);
 	sbi->ll_debugfs_entry = dir;

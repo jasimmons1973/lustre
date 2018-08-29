@@ -909,6 +909,8 @@ void ll_lli_init(struct ll_inode_info *lli)
 	memset(lli->lli_jobid, 0, LUSTRE_JOBID_SIZE);
 }
 
+#define MAX_STRING_SIZE 128
+
 int ll_fill_super(struct super_block *sb)
 {
 	struct lustre_profile *lprof = NULL;
@@ -917,6 +919,9 @@ int ll_fill_super(struct super_block *sb)
 	char  *dt = NULL, *md = NULL;
 	char  *profilenm = get_profile_name(sb);
 	struct config_llog_instance *cfg;
+	char name[MAX_STRING_SIZE];
+	char *ptr;
+	int len;
 	int    err;
 	static atomic_t ll_bdi_num = ATOMIC_INIT(0);
 
@@ -951,10 +956,20 @@ int ll_fill_super(struct super_block *sb)
 	/* kernel >= 2.6.38 store dentry operations in sb->s_d_op. */
 	sb->s_d_op = &ll_d_ops;
 
+	/* Get fsname */
+	len = strlen(lsi->lsi_lmd->lmd_profile);
+	ptr = strrchr(lsi->lsi_lmd->lmd_profile, '-');
+	if (ptr && (strcmp(ptr, "-client") == 0))
+		len -= 7;
+
+	/* Mount info */
+	snprintf(name, MAX_STRING_SIZE, "%.*s-%p", len,
+		 lsi->lsi_lmd->lmd_profile, sb);
+
 	/* Call ll_debugsfs_register_super() before lustre_process_log()
 	 * so that "llite.*.*" params can be processed correctly.
 	 */
-	err = ll_debugfs_register_super(sb);
+	err = ll_debugfs_register_super(sb, name);
 	if (err < 0) {
 		CERROR("%s: could not register mountpoint in llite: rc = %d\n",
 		       ll_get_fsname(sb, NULL, 0), err);
