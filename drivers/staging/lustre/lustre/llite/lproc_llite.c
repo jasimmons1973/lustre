@@ -1175,8 +1175,8 @@ static const char *ra_stat_string[] = {
 	[RA_STAT_FAILED_REACH_END] = "failed to reach end"
 };
 
-int ldebugfs_register_mountpoint(struct dentry *parent,
-				 struct super_block *sb, char *osc, char *mdc)
+int ll_debugfs_register_super(struct dentry *parent,
+			      struct super_block *sb, char *osc, char *mdc)
 {
 	struct lustre_sb_info *lsi = s2lsi(sb);
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
@@ -1285,7 +1285,7 @@ out:
 	return err;
 }
 
-void ldebugfs_unregister_mountpoint(struct ll_sb_info *sbi)
+void ll_debugfs_unregister_super(struct ll_sb_info *sbi)
 {
 	debugfs_remove_recursive(sbi->ll_debugfs_entry);
 	kobject_put(&sbi->ll_kobj);

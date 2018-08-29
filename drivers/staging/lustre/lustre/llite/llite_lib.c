@@ -573,7 +573,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	kfree(osfs);
 
 	if (llite_root) {
-		err = ldebugfs_register_mountpoint(llite_root, sb, dt, md);
+		err = ll_debugfs_register_super(llite_root, sb, dt, md);
 		if (err < 0) {
 			CERROR("%s: could not register mount in debugfs: "
 			       "rc = %d\n", ll_get_fsname(sb, NULL, 0), err);
@@ -679,7 +679,7 @@ static void client_common_put_super(struct super_block *sb)
 	obd_disconnect(sbi->ll_dt_exp);
 	sbi->ll_dt_exp = NULL;
 
-	ldebugfs_unregister_mountpoint(sbi);
+	ll_debugfs_unregister_super(sbi);
 
 	obd_fid_fini(sbi->ll_md_exp->exp_obd);
 	obd_disconnect(sbi->ll_md_exp);
