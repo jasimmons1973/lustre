@@ -189,12 +189,19 @@ int lov_connect_obd(struct obd_device *obd, __u32 index, int activate,
 	CDEBUG(D_CONFIG, "Connected tgt idx %d %s (%s) %sactive\n", index,
 	       obd_uuid2str(tgt_uuid), tgt_obd->obd_name, activate ? "":"in");
 
-	if (lov->lov_tgts_kobj)
+	if (lov->lov_tgts_kobj) {
 		/* Even if we failed, that's ok */
 		rc = sysfs_create_link(lov->lov_tgts_kobj,
 				       &tgt_obd->obd_kset.kobj,
 				       tgt_obd->obd_name);
-
+		if (rc) {
+			CERROR("%s: can't register LOV target /sys/fs/lustre/%s/%s/target_obds/%s : rc = %d\n",
+			       obd->obd_name, obd->obd_type->typ_name,
+			       obd->obd_name,
+			       lov->lov_tgts[index]->ltd_exp->exp_obd->obd_name,
+			       rc);
+		}
+	}
 	return 0;
 }
 
@@ -764,22 +771,23 @@ int lov_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	lov->lov_pool_count = 0;
 	rc = lov_pool_hash_init(&lov->lov_pools_hash_body);
 	if (rc)
-		goto out;
+		goto out_hash;
+
 	rc = lov_ost_pool_init(&lov->lov_packed, 0);
 	if (rc)
-		goto out;
+		goto out_pool;
 
-	lprocfs_lov_init_vars(obd);
-	lprocfs_obd_setup(obd, false);
+	rc = lov_tunables_init(obd);
+	if (rc)
+		goto out_tunables;
 
-	debugfs_create_file("target_obd", 0444, obd->obd_debugfs_entry, obd,
-			    &lov_proc_target_fops);
-
-	lov->lov_pool_debugfs_entry = debugfs_create_dir("pools",
-							 obd->obd_debugfs_entry);
 	return 0;
 
-out:
+out_tunables:
+	lov_ost_pool_free(&lov->lov_packed);
+out_pool:
+	lov_pool_hash_destroy(&lov->lov_pools_hash_body);
+out_hash:
 	return rc;
 }
 
@@ -873,16 +881,16 @@ int lov_process_config_base(struct obd_device *obd, struct lustre_cfg *lcfg,
 	}
 	case LCFG_PARAM: {
 		struct lov_desc *desc = &obd->u.lov.desc;
+		ssize_t count;
 
 		if (!desc) {
 			rc = -EINVAL;
 			goto out;
 		}
 
-		rc = class_process_proc_param(PARAM_LOV, obd->obd_vars,
-					      lcfg, obd);
-		if (rc > 0)
-			rc = 0;
+		count = class_modify_config(lcfg, PARAM_LOV,
+					    &obd->obd_kset.kobj);
+		rc = count < 0 ? count : 0;
 		goto out;
 	}
 	case LCFG_POOL_NEW:
