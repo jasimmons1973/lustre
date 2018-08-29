@@ -236,10 +236,10 @@ static ssize_t filestotal_show(struct kobject *kobj, struct attribute *attr,
 	rc = ll_statfs_internal(sbi, &osfs,
 				get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 				OBD_STATFS_NODELAY);
-	if (!rc)
-		return sprintf(buf, "%llu\n", osfs.os_files);
+	if (rc)
+		return rc;
 
-	return rc;
+	return sprintf(buf, "%llu\n", osfs.os_files);
 }
 LUSTRE_RO_ATTR(filestotal);
 
@@ -254,10 +254,10 @@ static ssize_t filesfree_show(struct kobject *kobj, struct attribute *attr,
 	rc = ll_statfs_internal(sbi, &osfs,
 				get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 				OBD_STATFS_NODELAY);
-	if (!rc)
-		return sprintf(buf, "%llu\n", osfs.os_ffree);
+	if (rc)
+		return rc;
 
-	return rc;
+	return sprintf(buf, "%llu\n", osfs.os_ffree);
 }
 LUSTRE_RO_ATTR(filesfree);
 
