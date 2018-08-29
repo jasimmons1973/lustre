@@ -747,9 +747,9 @@ static int mgc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 		goto err_cleanup;
 	}
 
-	lprocfs_mgc_init_vars(obd);
-	lprocfs_obd_setup(obd, true);
-	sptlrpc_lprocfs_cliobd_attach(obd);
+	rc = mgc_tunables_init(obd);
+	if (rc)
+		goto err_sysfs;
 
 	if (atomic_inc_return(&mgc_count) == 1) {
 		rq_state = 0;
@@ -761,7 +761,7 @@ static int mgc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 			rc = PTR_ERR(task);
 			CERROR("%s: cannot start requeue thread: rc = %d; no more log updates\n",
 			       obd->obd_name, rc);
-			goto err_cleanup;
+			goto err_sysfs;
 		}
 		/* rc is the task_struct pointer of mgc_requeue_thread. */
 		rc = 0;
@@ -770,6 +770,8 @@ static int mgc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 
 	return rc;
 
+err_sysfs:
+	lprocfs_obd_cleanup(obd);
 err_cleanup:
 	client_obd_cleanup(obd);
 err_decref:
