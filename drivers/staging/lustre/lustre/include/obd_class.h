@@ -1568,7 +1568,6 @@ int class_check_uuid(struct obd_uuid *uuid, __u64 nid);
 
 /* class_obd.c */
 extern char obd_jobid_node[];
-extern struct miscdevice obd_psdev;
 int class_procfs_init(void);
 int class_procfs_clean(void);
 
