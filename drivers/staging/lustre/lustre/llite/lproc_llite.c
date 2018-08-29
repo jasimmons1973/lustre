@@ -1124,7 +1124,7 @@ static struct attribute *llite_attrs[] = {
 	NULL,
 };
 
-static void llite_sb_release(struct kobject *kobj)
+static void llite_kobj_release(struct kobject *kobj)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
@@ -1134,7 +1134,7 @@ static void llite_sb_release(struct kobject *kobj)
 static struct kobj_type llite_ktype = {
 	.default_attrs	= llite_attrs,
 	.sysfs_ops	= &lustre_sysfs_ops,
-	.release	= llite_sb_release,
+	.release	= llite_kobj_release,
 };
 
 static const struct llite_file_opcode {
