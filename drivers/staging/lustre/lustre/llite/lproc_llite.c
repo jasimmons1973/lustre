@@ -140,10 +140,10 @@ static ssize_t blocksize_show(struct kobject *kobj, struct attribute *attr,
 	rc = ll_statfs_internal(sbi, &osfs,
 				get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 				OBD_STATFS_NODELAY);
-	if (!rc)
-		return sprintf(buf, "%u\n", osfs.os_bsize);
+	if (rc)
+		return rc;
 
-	return rc;
+	return sprintf(buf, "%u\n", osfs.os_bsize);
 }
 LUSTRE_RO_ATTR(blocksize);
 
