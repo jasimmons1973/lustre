@@ -57,8 +57,6 @@
 #include "llite_internal.h"
 
 struct kmem_cache *ll_file_data_slab;
-struct dentry *llite_root;
-struct kset *llite_kset;
 
 #ifndef log2
 #define log2(n) ffz(~(n))
@@ -572,13 +570,11 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	kfree(data);
 	kfree(osfs);
 
-	if (llite_root) {
-		err = ll_debugfs_register_super(llite_root, sb, dt, md);
-		if (err < 0) {
-			CERROR("%s: could not register mount in debugfs: "
-			       "rc = %d\n", ll_get_fsname(sb, NULL, 0), err);
-			err = 0;
-		}
+	err = ll_debugfs_register_super(sb, dt, md);
+	if (err < 0) {
+		CERROR("%s: could not register mount in debugfs: rc = %d\n",
+		       ll_get_fsname(sb, NULL, 0), err);
+		err = 0;
 	}
 
 	return err;

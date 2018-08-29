@@ -39,6 +39,35 @@
 #include "llite_internal.h"
 #include "vvp_internal.h"
 
+static struct dentry *llite_root;
+static struct kset *llite_kset;
+
+int llite_tunables_register(void)
+{
+	int rc = 0;
+
+	llite_kset = kset_create_and_add("llite", NULL, lustre_kobj);
+	if (!llite_kset)
+		return -ENOMEM;
+
+	llite_root = debugfs_create_dir("llite", debugfs_lustre_root);
+	if (IS_ERR_OR_NULL(llite_root)) {
+		rc = llite_root ? PTR_ERR(llite_root) : -ENOMEM;
+		llite_root = NULL;
+		kset_unregister(llite_kset);
+	}
+
+	return rc;
+}
+
+void llite_tunables_unregister(void)
+{
+	kset_unregister(llite_kset);
+
+	debugfs_remove(llite_root);
+	llite_root = NULL;
+}
+
 /* debugfs llite mount point registration */
 static const struct file_operations ll_rw_extents_stats_fops;
 static const struct file_operations ll_rw_extents_stats_pp_fops;
@@ -1175,8 +1204,7 @@ static const char *ra_stat_string[] = {
 	[RA_STAT_FAILED_REACH_END] = "failed to reach end"
 };
 
-int ll_debugfs_register_super(struct dentry *parent,
-			      struct super_block *sb, char *osc, char *mdc)
+int ll_debugfs_register_super(struct super_block *sb, char *osc, char *mdc)
 {
 	struct lustre_sb_info *lsi = s2lsi(sb);
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
@@ -1201,7 +1229,7 @@ int ll_debugfs_register_super(struct dentry *parent,
 	snprintf(name, MAX_STRING_SIZE, "%.*s-%p", len,
 		 lsi->lsi_lmd->lmd_profile, sb);
 
-	dir = debugfs_create_dir(name, parent);
+	dir = debugfs_create_dir(name, llite_root);
 	sbi->ll_debugfs_entry = dir;
 
 	debugfs_create_file("dump_page_cache", 0444, dir, sbi,

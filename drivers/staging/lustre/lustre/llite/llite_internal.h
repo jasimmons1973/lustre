@@ -636,8 +636,8 @@ struct ll_file_data {
 	struct list_head fd_lccs; /* list of ll_cl_context */
 };
 
-extern struct dentry *llite_root;
-extern struct kset *llite_kset;
+void llite_tunables_unregister(void);
+int llite_tunables_register(void);
 
 static inline struct inode *ll_info2i(struct ll_inode_info *lli)
 {
@@ -675,8 +675,7 @@ int cl_get_grouplock(struct cl_object *obj, unsigned long gid, int nonblock,
 void cl_put_grouplock(struct ll_grouplock *cg);
 
 /* llite/lproc_llite.c */
-int ll_debugfs_register_super(struct dentry *parent,
-			      struct super_block *sb, char *osc, char *mdc);
+int ll_debugfs_register_super(struct super_block *sb, char *osc, char *mdc);
 void ll_debugfs_unregister_super(struct ll_sb_info *sbi);
 void ll_stats_ops_tally(struct ll_sb_info *sbi, int op, int count);
 void lprocfs_llite_init_vars(struct lprocfs_static_vars *lvars);

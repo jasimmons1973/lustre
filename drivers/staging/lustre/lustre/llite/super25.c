@@ -228,22 +228,13 @@ static int __init lustre_init(void)
 	if (!ll_file_data_slab)
 		goto out_cache;
 
-	llite_root = debugfs_create_dir("llite", debugfs_lustre_root);
-	if (IS_ERR_OR_NULL(llite_root)) {
-		rc = llite_root ? PTR_ERR(llite_root) : -ENOMEM;
-		llite_root = NULL;
+	rc = llite_tunables_register();
+	if (rc)
 		goto out_cache;
-	}
-
-	llite_kset = kset_create_and_add("llite", NULL, lustre_kobj);
-	if (!llite_kset) {
-		rc = -ENOMEM;
-		goto out_debugfs;
-	}
 
 	rc = vvp_global_init();
 	if (rc != 0)
-		goto out_sysfs;
+		goto out_tunables;
 
 	cl_inode_fini_env = cl_env_alloc(&cl_inode_fini_refcheck,
 					 LCT_REMEMBER | LCT_NOREF);
@@ -270,10 +261,8 @@ out_inode_fini_env:
 	cl_env_put(cl_inode_fini_env, &cl_inode_fini_refcheck);
 out_vvp:
 	vvp_global_fini();
-out_sysfs:
-	kset_unregister(llite_kset);
-out_debugfs:
-	debugfs_remove(llite_root);
+out_tunables:
+	llite_tunables_unregister();
 out_cache:
 	kmem_cache_destroy(ll_inode_cachep);
 	kmem_cache_destroy(ll_file_data_slab);
@@ -286,8 +275,7 @@ static void __exit lustre_exit(void)
 
 	lustre_register_client_process_config(NULL);
 
-	debugfs_remove(llite_root);
-	kset_unregister(llite_kset);
+	llite_tunables_unregister();
 
 	ll_xattr_fini();
 	cl_env_put(cl_inode_fini_env, &cl_inode_fini_refcheck);
