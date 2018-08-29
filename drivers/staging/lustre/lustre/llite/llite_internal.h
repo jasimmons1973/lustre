@@ -523,7 +523,7 @@ struct ll_sb_info {
 	struct path		 ll_mnt;
 
 	__kernel_fsid_t		  ll_fsid;
-	struct kobject		 ll_kobj; /* sysfs object */
+	struct kset		ll_kset;	/* sysfs object */
 	struct completion	 ll_kobj_unregister;
 };
 

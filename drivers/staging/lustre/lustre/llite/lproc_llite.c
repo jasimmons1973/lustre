@@ -39,22 +39,42 @@
 #include "llite_internal.h"
 #include "vvp_internal.h"
 
+static struct kobject *llite_kobj;
 static struct dentry *llite_root;
-static struct kset *llite_kset;
+
+static void class_sysfs_release(struct kobject *kobj)
+{
+	kfree(kobj);
+}
+
+static struct kobj_type class_ktype = {
+	.sysfs_ops	= &lustre_sysfs_ops,
+	.release	= class_sysfs_release,
+};
 
 int llite_tunables_register(void)
 {
+	const char *name = "llite";
+	struct kobject *kobj;
 	int rc = 0;
 
-	llite_kset = kset_create_and_add("llite", NULL, lustre_kobj);
-	if (!llite_kset)
+	kobj = kzalloc(sizeof(*kobj), GFP_KERNEL);
+	if (!kobj)
 		return -ENOMEM;
+
+	kobject_init(kobj, &class_ktype);
+	rc = kobject_add(kobj, lustre_kobj, "%s", name);
+	if (rc) {
+		kobject_put(kobj);
+		return -ENOMEM;
+	}
+	llite_kobj = kobj;
 
 	llite_root = debugfs_create_dir("llite", debugfs_lustre_root);
 	if (IS_ERR_OR_NULL(llite_root)) {
 		rc = llite_root ? PTR_ERR(llite_root) : -ENOMEM;
 		llite_root = NULL;
-		kset_unregister(llite_kset);
+		kobject_put(kobj);
 	}
 
 	return rc;
@@ -62,7 +82,8 @@ int llite_tunables_register(void)
 
 void llite_tunables_unregister(void)
 {
-	kset_unregister(llite_kset);
+	kobject_put(llite_kobj);
+	llite_kobj = NULL;
 
 	debugfs_remove(llite_root);
 	llite_root = NULL;
@@ -77,7 +98,7 @@ static ssize_t blocksize_show(struct kobject *kobj, struct attribute *attr,
 			      char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	struct obd_statfs osfs;
 	int rc;
 
@@ -95,7 +116,7 @@ static ssize_t kbytestotal_show(struct kobject *kobj, struct attribute *attr,
 				char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	struct obd_statfs osfs;
 	int rc;
 
@@ -120,7 +141,7 @@ static ssize_t kbytesfree_show(struct kobject *kobj, struct attribute *attr,
 			       char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	struct obd_statfs osfs;
 	int rc;
 
@@ -145,7 +166,7 @@ static ssize_t kbytesavail_show(struct kobject *kobj, struct attribute *attr,
 				char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	struct obd_statfs osfs;
 	int rc;
 
@@ -170,7 +191,7 @@ static ssize_t filestotal_show(struct kobject *kobj, struct attribute *attr,
 			       char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	struct obd_statfs osfs;
 	int rc;
 
@@ -188,7 +209,7 @@ static ssize_t filesfree_show(struct kobject *kobj, struct attribute *attr,
 			      char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	struct obd_statfs osfs;
 	int rc;
 
@@ -220,7 +241,7 @@ static ssize_t uuid_show(struct kobject *kobj, struct attribute *attr,
 			 char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 
 	return sprintf(buf, "%s\n", sbi->ll_sb_uuid.uuid);
 }
@@ -243,7 +264,7 @@ static ssize_t max_read_ahead_mb_show(struct kobject *kobj,
 				      struct attribute *attr, char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	long pages_number;
 	int mult;
 
@@ -261,7 +282,7 @@ static ssize_t max_read_ahead_mb_store(struct kobject *kobj,
 				       size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	int rc;
 	unsigned long pages_number;
 
@@ -290,7 +311,7 @@ static ssize_t max_read_ahead_per_file_mb_show(struct kobject *kobj,
 					       char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	long pages_number;
 	int mult;
 
@@ -308,7 +329,7 @@ static ssize_t max_read_ahead_per_file_mb_store(struct kobject *kobj,
 						size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	int rc;
 	unsigned long pages_number;
 
@@ -335,7 +356,7 @@ static ssize_t max_read_ahead_whole_mb_show(struct kobject *kobj,
 					    char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	long pages_number;
 	int mult;
 
@@ -353,7 +374,7 @@ static ssize_t max_read_ahead_whole_mb_store(struct kobject *kobj,
 					     size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	int rc;
 	unsigned long pages_number;
 
@@ -518,7 +539,7 @@ static ssize_t checksum_pages_show(struct kobject *kobj, struct attribute *attr,
 				   char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 
 	return sprintf(buf, "%u\n", (sbi->ll_flags & LL_SBI_CHECKSUM) ? 1 : 0);
 }
@@ -529,7 +550,7 @@ static ssize_t checksum_pages_store(struct kobject *kobj,
 				    size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	int rc;
 	unsigned long val;
 
@@ -560,7 +581,7 @@ static ssize_t ll_rd_track_id(struct kobject *kobj, char *buf,
 			      enum stats_track_type type)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 
 	if (sbi->ll_stats_track_type == type)
 		return sprintf(buf, "%d\n", sbi->ll_stats_track_id);
@@ -575,7 +596,7 @@ static ssize_t ll_wr_track_id(struct kobject *kobj, const char *buffer,
 			      enum stats_track_type type)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	int rc;
 	unsigned long pid;
 
@@ -644,7 +665,7 @@ static ssize_t statahead_max_show(struct kobject *kobj,
 				  char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 
 	return sprintf(buf, "%u\n", sbi->ll_sa_max);
 }
@@ -655,7 +676,7 @@ static ssize_t statahead_max_store(struct kobject *kobj,
 				   size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	int rc;
 	unsigned long val;
 
@@ -678,7 +699,7 @@ static ssize_t statahead_agl_show(struct kobject *kobj,
 				  char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 
 	return sprintf(buf, "%u\n", sbi->ll_flags & LL_SBI_AGL_ENABLED ? 1 : 0);
 }
@@ -689,7 +710,7 @@ static ssize_t statahead_agl_store(struct kobject *kobj,
 				   size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	int rc;
 	unsigned long val;
 
@@ -730,7 +751,7 @@ static ssize_t lazystatfs_show(struct kobject *kobj,
 			       char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 
 	return sprintf(buf, "%u\n", sbi->ll_flags & LL_SBI_LAZYSTATFS ? 1 : 0);
 }
@@ -741,7 +762,7 @@ static ssize_t lazystatfs_store(struct kobject *kobj,
 				size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	int rc;
 	unsigned long val;
 
@@ -765,7 +786,7 @@ static ssize_t max_easize_show(struct kobject *kobj,
 			       char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	unsigned int ealen;
 	int rc;
 
@@ -794,7 +815,7 @@ static ssize_t default_easize_show(struct kobject *kobj,
 				   char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	unsigned int ealen;
 	int rc;
 
@@ -827,7 +848,7 @@ static ssize_t default_easize_store(struct kobject *kobj,
 				    size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	unsigned long val;
 	int rc;
 
@@ -873,7 +894,7 @@ static ssize_t xattr_cache_show(struct kobject *kobj,
 				char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 
 	return sprintf(buf, "%u\n", sbi->ll_xattr_cache_enabled);
 }
@@ -884,7 +905,7 @@ static ssize_t xattr_cache_store(struct kobject *kobj,
 				 size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	int rc;
 	unsigned long val;
 
@@ -909,7 +930,7 @@ static ssize_t fast_read_show(struct kobject *kobj,
 			      char *buf)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 
 	return sprintf(buf, "%u\n", !!(sbi->ll_flags & LL_SBI_FAST_READ));
 }
@@ -920,7 +941,7 @@ static ssize_t fast_read_store(struct kobject *kobj,
 			       size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	bool val;
 	int rc;
 
@@ -1106,7 +1127,7 @@ static struct attribute *llite_attrs[] = {
 static void llite_sb_release(struct kobject *kobj)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
+					      ll_kset.kobj);
 	complete(&sbi->ll_kobj_unregister);
 }
 
@@ -1281,17 +1302,22 @@ int ll_debugfs_register_super(struct super_block *sb, char *osc, char *mdc)
 
 	ldebugfs_add_vars(sbi->ll_debugfs_entry, lprocfs_llite_obd_vars, sb);
 
-	sbi->ll_kobj.kset = llite_kset;
+	/* Yes we also register sysfs mount kset here as well */
+	sbi->ll_kset.kobj.parent = llite_kobj;
+	sbi->ll_kset.kobj.ktype = &llite_ktype;
 	init_completion(&sbi->ll_kobj_unregister);
-	err = kobject_init_and_add(&sbi->ll_kobj, &llite_ktype, NULL,
-				   "%s", name);
+	err = kobject_set_name(&sbi->ll_kset.kobj, "%s", name);
+	if (err)
+		goto out;
+
+	err = kset_register(&sbi->ll_kset);
 	if (err)
 		goto out;
 
 	/* MDC info */
 	obd = class_name2obd(mdc);
 
-	err = sysfs_create_link(&sbi->ll_kobj, &obd->obd_kobj,
+	err = sysfs_create_link(&sbi->ll_kset.kobj, &obd->obd_kobj,
 				obd->obd_type->typ_name);
 	if (err)
 		goto out;
@@ -1299,7 +1325,7 @@ int ll_debugfs_register_super(struct super_block *sb, char *osc, char *mdc)
 	/* OSC */
 	obd = class_name2obd(osc);
 
-	err = sysfs_create_link(&sbi->ll_kobj, &obd->obd_kobj,
+	err = sysfs_create_link(&sbi->ll_kset.kobj, &obd->obd_kobj,
 				obd->obd_type->typ_name);
 out:
 	if (err) {
@@ -1313,8 +1339,10 @@ out:
 void ll_debugfs_unregister_super(struct ll_sb_info *sbi)
 {
 	debugfs_remove_recursive(sbi->ll_debugfs_entry);
-	kobject_put(&sbi->ll_kobj);
+
+	kset_unregister(&sbi->ll_kset);
 	wait_for_completion(&sbi->ll_kobj_unregister);
+
 	lprocfs_free_stats(&sbi->ll_ra_stats);
 	lprocfs_free_stats(&sbi->ll_stats);
 }
