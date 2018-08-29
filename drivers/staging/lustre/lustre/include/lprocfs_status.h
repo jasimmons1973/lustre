@@ -463,6 +463,7 @@ int lprocfs_wr_uint(struct file *file, const char __user *buffer,
 		    unsigned long count, void *data);
 int lprocfs_rd_server_uuid(struct seq_file *m, void *data);
 int lprocfs_rd_conn_uuid(struct seq_file *m, void *data);
+ssize_t conn_uuid_show(struct kobject *kobj, struct attribute *attr, char *buf);
 int lprocfs_rd_import(struct seq_file *m, void *data);
 int lprocfs_rd_state(struct seq_file *m, void *data);
 int lprocfs_rd_connect_flags(struct seq_file *m, void *data);

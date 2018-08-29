@@ -476,6 +476,29 @@ static ssize_t filesfree_show(struct kobject *kobj, struct attribute *attr,
 }
 LUSTRE_RO_ATTR(filesfree);
 
+ssize_t conn_uuid_show(struct kobject *kobj, struct attribute *attr, char *buf)
+{
+	struct obd_device *obd = container_of(kobj, struct obd_device,
+					      obd_kset.kobj);
+	struct ptlrpc_connection *conn;
+	ssize_t count;
+	int rc;
+
+	rc = lprocfs_climp_check(obd);
+	if (rc)
+		return rc;
+
+	conn = obd->u.cli.cl_import->imp_connection;
+	if (conn && obd->u.cli.cl_import)
+		count = sprintf(buf, "%s\n", conn->c_remote_uuid.uuid);
+	else
+		count = sprintf(buf, "%s\n", "<none>");
+
+	up_read(&obd->u.cli.cl_sem);
+	return count;
+}
+EXPORT_SYMBOL(conn_uuid_show);
+
 int lprocfs_rd_server_uuid(struct seq_file *m, void *data)
 {
 	struct obd_device *obd = data;
