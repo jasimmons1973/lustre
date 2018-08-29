@@ -1231,8 +1231,13 @@ int ll_debugfs_register_super(struct super_block *sb, const char *name)
 
 	LASSERT(sbi);
 
+	if (IS_ERR_OR_NULL(llite_root))
+		goto out_ll_kset;
+
 	dir = debugfs_create_dir(name, llite_root);
 	sbi->ll_debugfs_entry = dir;
+
+	ldebugfs_add_vars(sbi->ll_debugfs_entry, lprocfs_llite_obd_vars, sb);
 
 	debugfs_create_file("dump_page_cache", 0444, dir, sbi,
 			    &vvp_dump_pgcache_file_ops);
@@ -1248,8 +1253,9 @@ int ll_debugfs_register_super(struct super_block *sb, const char *name)
 					    LPROCFS_STATS_FLAG_NONE);
 	if (!sbi->ll_stats) {
 		err = -ENOMEM;
-		goto out;
+		goto out_debugfs;
 	}
+
 	/* do counter init */
 	for (id = 0; id < LPROC_LL_FILE_OPCODES; id++) {
 		__u32 type = llite_opcode_table[id].type;
@@ -1274,7 +1280,7 @@ int ll_debugfs_register_super(struct super_block *sb, const char *name)
 					       LPROCFS_STATS_FLAG_NONE);
 	if (!sbi->ll_ra_stats) {
 		err = -ENOMEM;
-		goto out;
+		goto out_stats;
 	}
 
 	for (id = 0; id < ARRAY_SIZE(ra_stat_string); id++)
@@ -1283,24 +1289,28 @@ int ll_debugfs_register_super(struct super_block *sb, const char *name)
 
 	debugfs_create_file("stats", 0644, sbi->ll_debugfs_entry,
 			    sbi->ll_ra_stats, &lprocfs_stats_seq_fops);
-
-	ldebugfs_add_vars(sbi->ll_debugfs_entry, lprocfs_llite_obd_vars, sb);
-
+out_ll_kset:
 	/* Yes we also register sysfs mount kset here as well */
 	sbi->ll_kset.kobj.parent = llite_kobj;
 	sbi->ll_kset.kobj.ktype = &llite_ktype;
 	init_completion(&sbi->ll_kobj_unregister);
 	err = kobject_set_name(&sbi->ll_kset.kobj, "%s", name);
 	if (err)
-		goto out;
+		goto out_ra_stats;
 
 	err = kset_register(&sbi->ll_kset);
-out:
-	if (err) {
-		debugfs_remove_recursive(sbi->ll_debugfs_entry);
-		lprocfs_free_stats(&sbi->ll_ra_stats);
-		lprocfs_free_stats(&sbi->ll_stats);
-	}
+	if (err)
+		goto out_ra_stats;
+
+	return 0;
+
+out_ra_stats:
+	lprocfs_free_stats(&sbi->ll_ra_stats);
+out_stats:
+	lprocfs_free_stats(&sbi->ll_stats);
+out_debugfs:
+	debugfs_remove_recursive(sbi->ll_debugfs_entry);
+
 	return err;
 }
 
