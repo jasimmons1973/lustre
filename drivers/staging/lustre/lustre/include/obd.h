@@ -34,7 +34,9 @@
 #ifndef __OBD_H
 #define __OBD_H
 
+#include <linux/kobject.h>
 #include <linux/spinlock.h>
+#include <linux/sysfs.h>
 
 #include <uapi/linux/lustre/lustre_idl.h>
 #include <lustre_lib.h>
@@ -109,7 +111,8 @@ struct obd_type {
 	int  typ_refcnt;
 	struct lu_device_type *typ_lu;
 	spinlock_t obd_type_lock;
-	struct kobject *typ_kobj;
+	struct kobject		typ_kobj;
+	struct completion	typ_kobj_unregister;
 };
 
 struct brw_page {
@@ -623,9 +626,9 @@ struct obd_device {
 	 */
 	struct lu_ref	  obd_reference;
 
-	struct kobject		obd_kobj; /* sysfs object */
+	struct kset			obd_kset; /* sysfs object collection */
 	struct kobj_type		obd_ktype;
-	struct completion	obd_kobj_unregister;
+	struct completion		obd_kobj_unregister;
 };
 
 int obd_uuid_add(struct obd_device *obd, struct obd_export *export);

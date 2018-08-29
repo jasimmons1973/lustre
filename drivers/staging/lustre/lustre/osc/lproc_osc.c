@@ -44,7 +44,7 @@ static ssize_t active_show(struct kobject *kobj, struct attribute *attr,
 			   char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 
 	return sprintf(buf, "%d\n", !dev->u.cli.cl_import->imp_deactive);
 }
@@ -54,7 +54,7 @@ static ssize_t active_store(struct kobject *kobj, struct attribute *attr,
 			    size_t count)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	int rc;
 	unsigned long val;
 
@@ -80,7 +80,7 @@ static ssize_t max_rpcs_in_flight_show(struct kobject *kobj,
 				       char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 
 	return sprintf(buf, "%u\n", cli->cl_max_rpcs_in_flight);
@@ -92,7 +92,7 @@ static ssize_t max_rpcs_in_flight_store(struct kobject *kobj,
 					size_t count)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 	int rc;
 	unsigned long val;
@@ -133,7 +133,7 @@ static ssize_t max_dirty_mb_show(struct kobject *kobj,
 				 char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 	long val;
 	int mult;
@@ -149,7 +149,7 @@ static ssize_t max_dirty_mb_store(struct kobject *kobj,
 				  size_t count)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 	int rc;
 	unsigned long pages_number;
@@ -247,7 +247,7 @@ static ssize_t cur_dirty_bytes_show(struct kobject *kobj,
 				    char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 
 	return sprintf(buf, "%lu\n", cli->cl_dirty_pages << PAGE_SHIFT);
@@ -260,7 +260,7 @@ static ssize_t cur_grant_bytes_show(struct kobject *kobj,
 				    char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 
 	return sprintf(buf, "%lu\n", cli->cl_avail_grant);
@@ -272,7 +272,7 @@ static ssize_t cur_grant_bytes_store(struct kobject *kobj,
 				     size_t count)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &obd->u.cli;
 	int rc;
 	unsigned long long val;
@@ -298,7 +298,7 @@ static ssize_t cur_lost_grant_bytes_show(struct kobject *kobj,
 					 char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 
 	return sprintf(buf, "%lu\n", cli->cl_lost_grant);
@@ -310,7 +310,7 @@ static ssize_t cur_dirty_grant_bytes_show(struct kobject *kobj,
 					  char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 
 	return sprintf(buf, "%lu\n", cli->cl_dirty_grant);
@@ -322,7 +322,7 @@ static ssize_t grant_shrink_interval_show(struct kobject *kobj,
 					  char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 
 	return sprintf(buf, "%d\n", obd->u.cli.cl_grant_shrink_interval);
 }
@@ -333,7 +333,7 @@ static ssize_t grant_shrink_interval_store(struct kobject *kobj,
 					   size_t count)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	int rc;
 	unsigned long val;
 
@@ -355,7 +355,7 @@ static ssize_t checksums_show(struct kobject *kobj,
 			      char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 
 	return sprintf(buf, "%d\n", obd->u.cli.cl_checksum ? 1 : 0);
 }
@@ -366,7 +366,7 @@ static ssize_t checksums_store(struct kobject *kobj,
 			       size_t count)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	int rc;
 	unsigned long val;
 
@@ -442,7 +442,7 @@ static ssize_t resend_count_show(struct kobject *kobj,
 				 char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 
 	return sprintf(buf, "%u\n", atomic_read(&obd->u.cli.cl_resends));
 }
@@ -453,7 +453,7 @@ static ssize_t resend_count_store(struct kobject *kobj,
 				  size_t count)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	int rc;
 	unsigned long val;
 
@@ -472,7 +472,7 @@ static ssize_t contention_seconds_show(struct kobject *kobj,
 				       char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct osc_device *od  = obd2osc_dev(obd);
 
 	return sprintf(buf, "%u\n", od->od_contention_time);
@@ -484,7 +484,7 @@ static ssize_t contention_seconds_store(struct kobject *kobj,
 					size_t count)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct osc_device *od  = obd2osc_dev(obd);
 	int rc;
 	int val;
@@ -507,7 +507,7 @@ static ssize_t lockless_truncate_show(struct kobject *kobj,
 				      char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct osc_device *od  = obd2osc_dev(obd);
 
 	return sprintf(buf, "%u\n", od->od_lockless_truncate);
@@ -519,7 +519,7 @@ static ssize_t lockless_truncate_store(struct kobject *kobj,
 				       size_t count)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct osc_device *od  = obd2osc_dev(obd);
 	int rc;
 	unsigned int val;
@@ -539,7 +539,7 @@ static ssize_t destroys_in_flight_show(struct kobject *kobj,
 				       char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 
 	return sprintf(buf, "%u\n",
 		       atomic_read(&obd->u.cli.cl_destroy_in_flight));
@@ -551,7 +551,7 @@ static ssize_t max_pages_per_rpc_show(struct kobject *kobj,
 				      char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 
 	return sprintf(buf, "%d\n", cli->cl_max_pages_per_rpc);
@@ -563,7 +563,7 @@ static ssize_t max_pages_per_rpc_store(struct kobject *kobj,
 				       size_t count)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 	struct obd_connect_data *ocd = &cli->cl_import->imp_connect_data;
 	int chunk_mask, rc;
@@ -598,7 +598,7 @@ static ssize_t unstable_stats_show(struct kobject *kobj,
 				   char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 	long pages;
 	int mb;

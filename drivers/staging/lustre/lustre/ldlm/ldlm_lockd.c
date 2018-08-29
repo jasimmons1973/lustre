@@ -956,7 +956,7 @@ static int ldlm_setup(void)
 	if (!ldlm_state)
 		return -ENOMEM;
 
-	ldlm_kobj = kobject_create_and_add("ldlm", lustre_kobj);
+	ldlm_kobj = kobject_create_and_add("ldlm", &lustre_kset->kobj);
 	if (!ldlm_kobj) {
 		rc = -ENOMEM;
 		goto out;

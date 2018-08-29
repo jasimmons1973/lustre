@@ -210,7 +210,7 @@ static int lmv_connect(const struct lu_env *env,
 	lmv->conn_data = *data;
 
 	lmv->lmv_tgts_kobj = kobject_create_and_add("target_obds",
-						    &obd->obd_kobj);
+						    &obd->obd_kset.kobj);
 	rc = lmv_check_connect(obd);
 	if (rc)
 		goto out_sysfs;
@@ -349,7 +349,8 @@ static int lmv_connect_mdc(struct obd_device *obd, struct lmv_tgt_desc *tgt)
 
 	if (lmv->lmv_tgts_kobj)
 		/* Even if we failed to create the link, that's fine */
-		rc = sysfs_create_link(lmv->lmv_tgts_kobj, &mdc_obd->obd_kobj,
+		rc = sysfs_create_link(lmv->lmv_tgts_kobj,
+				       &mdc_obd->obd_kset.kobj,
 				       mdc_obd->obd_name);
 	return 0;
 }

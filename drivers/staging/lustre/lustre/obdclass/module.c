@@ -471,8 +471,8 @@ static const struct file_operations obd_device_list_fops = {
 	.release = seq_release,
 };
 
-struct kobject *lustre_kobj;
-EXPORT_SYMBOL_GPL(lustre_kobj);
+struct kset *lustre_kset;
+EXPORT_SYMBOL_GPL(lustre_kset);
 
 static const struct attribute_group lustre_attr_group = {
 	.attrs = lustre_attrs,
@@ -482,14 +482,14 @@ int class_procfs_init(void)
 {
 	int rc = -ENOMEM;
 
-	lustre_kobj = kobject_create_and_add("lustre", fs_kobj);
-	if (!lustre_kobj)
+	lustre_kset = kset_create_and_add("lustre", NULL, fs_kobj);
+	if (!lustre_kset)
 		goto out;
 
 	/* Create the files associated with this kobject */
-	rc = sysfs_create_group(lustre_kobj, &lustre_attr_group);
+	rc = sysfs_create_group(&lustre_kset->kobj, &lustre_attr_group);
 	if (rc) {
-		kobject_put(lustre_kobj);
+		kset_unregister(lustre_kset);
 		goto out;
 	}
 
@@ -507,8 +507,9 @@ int class_procfs_clean(void)
 
 	debugfs_lustre_root = NULL;
 
-	sysfs_remove_group(lustre_kobj, &lustre_attr_group);
-	kobject_put(lustre_kobj);
+	sysfs_remove_group(&lustre_kset->kobj, &lustre_attr_group);
+
+	kset_unregister(lustre_kset);
 
 	return 0;
 }

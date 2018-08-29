@@ -133,6 +133,19 @@ void class_put_type(struct obd_type *type)
 	spin_unlock(&type->obd_type_lock);
 }
 
+static void class_sysfs_release(struct kobject *kobj)
+{
+	struct obd_type *type = container_of(kobj, struct obd_type,
+					     typ_kobj);
+
+	complete(&type->typ_kobj_unregister);
+}
+
+static struct kobj_type class_ktype = {
+	.sysfs_ops	= &lustre_sysfs_ops,
+	.release	= class_sysfs_release,
+};
+
 #define CLASS_MAX_NAME 1024
 
 int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
@@ -174,17 +187,21 @@ int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 	type->typ_debugfs_entry = debugfs_create_dir(type->typ_name,
 						     debugfs_lustre_root);
 
-	type->typ_kobj = kobject_create_and_add(type->typ_name, lustre_kobj);
-	if (!type->typ_kobj) {
-		rc = -ENOMEM;
+	type->typ_kobj.kset = lustre_kset;
+	init_completion(&type->typ_kobj_unregister);
+	rc = kobject_init_and_add(&type->typ_kobj, &class_ktype,
+				  &lustre_kset->kobj, "%s", type->typ_name);
+	if (rc)
 		goto failed;
-	}
+
 
 	if (ldt) {
 		type->typ_lu = ldt;
 		rc = lu_device_type_init(ldt);
-		if (rc != 0)
+		if (rc != 0) {
+			kobject_put(&type->typ_kobj);
 			goto failed;
+		}
 	}
 
 	spin_lock(&obd_types_lock);
@@ -193,9 +210,7 @@ int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 
 	return 0;
 
- failed:
-	if (type->typ_kobj)
-		kobject_put(type->typ_kobj);
+failed:
 	kfree(type->typ_name);
 	kfree(type->typ_md_ops);
 	kfree(type->typ_dt_ops);
@@ -222,8 +237,8 @@ int class_unregister_type(const char *name)
 		return -EBUSY;
 	}
 
-	if (type->typ_kobj)
-		kobject_put(type->typ_kobj);
+	kobject_put(&type->typ_kobj);
+	wait_for_completion(&type->typ_kobj_unregister);
 
 	debugfs_remove_recursive(type->typ_debugfs_entry);
 

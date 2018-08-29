@@ -43,7 +43,7 @@ static ssize_t numobd_show(struct kobject *kobj, struct attribute *attr,
 			   char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct lmv_desc *desc;
 
 	desc = &dev->u.lmv.desc;
@@ -55,7 +55,7 @@ static ssize_t activeobd_show(struct kobject *kobj, struct attribute *attr,
 			      char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct lmv_desc *desc;
 
 	desc = &dev->u.lmv.desc;

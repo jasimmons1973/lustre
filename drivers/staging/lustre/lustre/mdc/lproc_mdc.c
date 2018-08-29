@@ -41,7 +41,7 @@ static ssize_t active_show(struct kobject *kobj, struct attribute *attr,
 			   char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 
 	return sprintf(buf, "%u\n", !dev->u.cli.cl_import->imp_deactive);
 }
@@ -50,7 +50,7 @@ static ssize_t active_store(struct kobject *kobj, struct attribute *attr,
 			    const char *buffer, size_t count)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	unsigned long val;
 	int rc;
 
@@ -79,7 +79,7 @@ static ssize_t max_rpcs_in_flight_show(struct kobject *kobj,
 {
 	int len;
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	__u32 max;
 
 	max = obd_get_max_rpcs_in_flight(&dev->u.cli);
@@ -94,7 +94,7 @@ static ssize_t max_rpcs_in_flight_store(struct kobject *kobj,
 					size_t count)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	int rc;
 	unsigned long val;
 
@@ -115,7 +115,7 @@ static ssize_t max_mod_rpcs_in_flight_show(struct kobject *kobj,
 					   char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	u16 max;
 	int len;
 
@@ -131,7 +131,7 @@ static ssize_t max_mod_rpcs_in_flight_store(struct kobject *kobj,
 					    size_t count)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	u16 val;
 	int rc;
 
@@ -187,7 +187,7 @@ static ssize_t max_pages_per_rpc_show(struct kobject *kobj,
 				      char *buf)
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 
 	return sprintf(buf, "%d\n", cli->cl_max_pages_per_rpc);

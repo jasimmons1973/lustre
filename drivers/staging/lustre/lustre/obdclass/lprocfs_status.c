@@ -353,7 +353,7 @@ static ssize_t uuid_show(struct kobject *kobj, struct attribute *attr,
 			 char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 
 	return sprintf(buf, "%s\n", obd->obd_uuid.uuid);
 }
@@ -363,7 +363,7 @@ static ssize_t blocksize_show(struct kobject *kobj, struct attribute *attr,
 			      char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct obd_statfs  osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
@@ -379,7 +379,7 @@ static ssize_t kbytestotal_show(struct kobject *kobj, struct attribute *attr,
 				char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct obd_statfs  osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
@@ -402,7 +402,7 @@ static ssize_t kbytesfree_show(struct kobject *kobj, struct attribute *attr,
 			       char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct obd_statfs  osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
@@ -425,7 +425,7 @@ static ssize_t kbytesavail_show(struct kobject *kobj, struct attribute *attr,
 				char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct obd_statfs  osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
@@ -448,7 +448,7 @@ static ssize_t filestotal_show(struct kobject *kobj, struct attribute *attr,
 			       char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct obd_statfs  osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
@@ -464,7 +464,7 @@ static ssize_t filesfree_show(struct kobject *kobj, struct attribute *attr,
 			      char *buf)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 	struct obd_statfs  osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
@@ -1008,7 +1008,7 @@ static const struct attribute *obd_def_attrs[] = {
 static void obd_sysfs_release(struct kobject *kobj)
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
-					      obd_kobj);
+					      obd_kset.kobj);
 
 	complete(&obd->obd_kobj_unregister);
 }
@@ -1017,13 +1017,20 @@ int lprocfs_obd_setup(struct obd_device *obd, bool uuid_only)
 {
 	int rc;
 
+	if (!obd || obd->obd_magic != OBD_DEVICE_MAGIC)
+		return -ENODEV;
+
+	rc = kobject_set_name(&obd->obd_kset.kobj, "%s", obd->obd_name);
+	if (rc)
+		return rc;
+
 	obd->obd_ktype.sysfs_ops = &lustre_sysfs_ops;
 	obd->obd_ktype.release = obd_sysfs_release;
 
+	obd->obd_kset.kobj.parent = &obd->obd_type->typ_kobj;
+	obd->obd_kset.kobj.ktype = &obd->obd_ktype;
 	init_completion(&obd->obd_kobj_unregister);
-	rc = kobject_init_and_add(&obd->obd_kobj, &obd->obd_ktype,
-				  obd->obd_type->typ_kobj,
-				  "%s", obd->obd_name);
+	rc = kset_register(&obd->obd_kset);
 	if (rc)
 		return rc;
 
@@ -1032,9 +1039,9 @@ int lprocfs_obd_setup(struct obd_device *obd, bool uuid_only)
 	else
 		obd->obd_attrs = obd_def_attrs;
 
-	rc = sysfs_create_files(&obd->obd_kobj, obd->obd_attrs);
+	rc = sysfs_create_files(&obd->obd_kset.kobj, obd->obd_attrs);
 	if (rc) {
-		kobject_put(&obd->obd_kobj);
+		kset_unregister(&obd->obd_kset);
 		return rc;
 	}
 
@@ -1053,12 +1060,16 @@ int lprocfs_obd_cleanup(struct obd_device *obd)
 
 	debugfs_remove_recursive(obd->obd_debugfs_entry);
 
+	/* obd device never allocated a kset */
+	if (!obd->obd_kset.kobj.state_initialized)
+		return 0;
+
 	if (obd->obd_attrs) {
-		sysfs_remove_files(&obd->obd_kobj, obd->obd_attrs);
+		sysfs_remove_files(&obd->obd_kset.kobj, obd->obd_attrs);
 		obd->obd_attrs = NULL;
 	}
 
-	kobject_put(&obd->obd_kobj);
+	kset_unregister(&obd->obd_kset);
 	wait_for_completion(&obd->obd_kobj_unregister);
 
 	return 0;

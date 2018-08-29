@@ -574,7 +574,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 
 	if (sbi->ll_dt_obd) {
 		err = sysfs_create_link(&sbi->ll_kset.kobj,
-					&sbi->ll_dt_obd->obd_kobj,
+					&sbi->ll_dt_obd->obd_kset.kobj,
 					sbi->ll_dt_obd->obd_type->typ_name);
 		if (err < 0) {
 			CERROR("%s: could not register %s in llite: rc = %d\n",
@@ -585,7 +585,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 
 	if (sbi->ll_md_obd) {
 		err = sysfs_create_link(&sbi->ll_kset.kobj,
-					&sbi->ll_md_obd->obd_kobj,
+					&sbi->ll_md_obd->obd_kset.kobj,
 					sbi->ll_md_obd->obd_type->typ_name);
 		if (err < 0) {
 			CERROR("%s: could not register %s in llite: rc = %d\n",

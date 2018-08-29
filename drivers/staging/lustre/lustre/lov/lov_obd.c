@@ -191,7 +191,8 @@ int lov_connect_obd(struct obd_device *obd, __u32 index, int activate,
 
 	if (lov->lov_tgts_kobj)
 		/* Even if we failed, that's ok */
-		rc = sysfs_create_link(lov->lov_tgts_kobj, &tgt_obd->obd_kobj,
+		rc = sysfs_create_link(lov->lov_tgts_kobj,
+				       &tgt_obd->obd_kset.kobj,
 				       tgt_obd->obd_name);
 
 	return 0;
@@ -226,7 +227,7 @@ static int lov_connect(const struct lu_env *env,
 	obd_getref(obd);
 
 	lov->lov_tgts_kobj = kobject_create_and_add("target_obds",
-						    &obd->obd_kobj);
+						    &obd->obd_kset.kobj);
 
 	for (i = 0; i < lov->desc.ld_tgt_count; i++) {
 		tgt = lov->lov_tgts[i];

@@ -62,8 +62,9 @@ int llite_tunables_register(void)
 	if (!kobj)
 		return -ENOMEM;
 
+	kobj->kset = lustre_kset;
 	kobject_init(kobj, &class_ktype);
-	rc = kobject_add(kobj, lustre_kobj, "%s", name);
+	rc = kobject_add(kobj, &lustre_kset->kobj, "%s", name);
 	if (rc) {
 		kobject_put(kobj);
 		return -ENOMEM;
