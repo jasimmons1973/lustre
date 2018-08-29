@@ -62,7 +62,7 @@ struct kmem_cache *ll_file_data_slab;
 #define log2(n) ffz(~(n))
 #endif
 
-static struct ll_sb_info *ll_init_sbi(struct super_block *sb)
+static struct ll_sb_info *ll_init_sbi(void)
 {
 	struct ll_sb_info *sbi = NULL;
 	unsigned long pages;
@@ -128,8 +128,6 @@ static struct ll_sb_info *ll_init_sbi(struct super_block *sb)
 	sbi->ll_squash.rsi_gid = 0;
 	INIT_LIST_HEAD(&sbi->ll_squash.rsi_nosquash_nids);
 	init_rwsem(&sbi->ll_squash.rsi_sem);
-
-	sbi->ll_sb = sb;
 
 	return sbi;
 }
@@ -912,7 +910,7 @@ int ll_fill_super(struct super_block *sb)
 	try_module_get(THIS_MODULE);
 
 	/* client additional sb info */
-	sbi = ll_init_sbi(sb);
+	sbi = ll_init_sbi();
 	lsi->lsi_llsbi = sbi;
 	if (!sbi) {
 		module_put(THIS_MODULE);

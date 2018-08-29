@@ -524,7 +524,6 @@ struct ll_sb_info {
 
 	__kernel_fsid_t		  ll_fsid;
 	struct kobject		 ll_kobj; /* sysfs object */
-	struct super_block	*ll_sb; /* struct super_block (for sysfs code)*/
 	struct completion	 ll_kobj_unregister;
 };
 

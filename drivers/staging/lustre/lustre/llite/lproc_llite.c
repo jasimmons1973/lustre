@@ -212,10 +212,7 @@ LUSTRE_RO_ATTR(client_type);
 static ssize_t fstype_show(struct kobject *kobj, struct attribute *attr,
 			   char *buf)
 {
-	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
-					      ll_kobj);
-
-	return sprintf(buf, "%s\n", sbi->ll_sb->s_type->name);
+	return sprintf(buf, "lustre\n");
 }
 LUSTRE_RO_ATTR(fstype);
 
