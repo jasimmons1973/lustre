@@ -156,7 +156,6 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 {
 	struct inode *root = NULL;
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
-	struct obd_device *obd;
 	struct obd_statfs *osfs = NULL;
 	struct ptlrpc_request *request = NULL;
 	struct obd_connect_data *data = NULL;
@@ -166,8 +165,8 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	u64 valid;
 	int size, err, checksum;
 
-	obd = class_name2obd(md);
-	if (!obd) {
+	sbi->ll_md_obd  = class_name2obd(md);
+	if (!sbi->ll_md_obd) {
 		CERROR("MD %s: not setup or attached\n", md);
 		return -EINVAL;
 	}
@@ -247,8 +246,8 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 
 	data->ocd_brw_size = MD_MAX_BRW_SIZE;
 
-	err = obd_connect(NULL, &sbi->ll_md_exp, obd, &sbi->ll_sb_uuid,
-			  data, NULL);
+	err = obd_connect(NULL, &sbi->ll_md_exp, sbi->ll_md_obd,
+			  &sbi->ll_sb_uuid, data, NULL);
 	if (err == -EBUSY) {
 		LCONSOLE_ERROR_MSG(0x14f,
 				   "An MDT (md %s) is performing recovery, of which this client is not a part. Please wait for recovery to complete, abort, or time out.\n",
@@ -360,14 +359,19 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 			LCONSOLE_INFO(
 				"%s: disabling xattr cache due to unknown maximum xattr size.\n",
 				dt);
-		} else {
+		} else if (!sbi->ll_xattr_cache_set) {
+			/* If xattr_cache is already set (no matter 0 or 1)
+			 * during processing llog, it won't be enabled here.
+			 */
+			spin_lock(&sbi->ll_lock);
 			sbi->ll_flags |= LL_SBI_XATTR_CACHE;
+			spin_unlock(&sbi->ll_lock);
 			sbi->ll_xattr_cache_enabled = 1;
 		}
 	}
 
-	obd = class_name2obd(dt);
-	if (!obd) {
+	sbi->ll_dt_obd  = class_name2obd(dt);
+	if (!sbi->ll_dt_obd) {
 		CERROR("DT %s: not setup or attached\n", dt);
 		err = -ENODEV;
 		goto out_md_fid;
@@ -414,13 +418,13 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	       data->ocd_connect_flags,
 	       data->ocd_version, data->ocd_grant);
 
-	obd->obd_upcall.onu_owner = &sbi->ll_lco;
-	obd->obd_upcall.onu_upcall = cl_ocd_update;
+	sbi->ll_dt_obd->obd_upcall.onu_owner = &sbi->ll_lco;
+	sbi->ll_dt_obd->obd_upcall.onu_upcall = cl_ocd_update;
 
 	data->ocd_brw_size = DT_MAX_BRW_SIZE;
 
-	err = obd_connect(NULL, &sbi->ll_dt_exp, obd, &sbi->ll_sb_uuid, data,
-			  NULL);
+	err = obd_connect(NULL, &sbi->ll_dt_exp, sbi->ll_dt_obd,
+			  &sbi->ll_sb_uuid, data, NULL);
 	if (err == -EBUSY) {
 		LCONSOLE_ERROR_MSG(0x150,
 				   "An OST (dt %s) is performing recovery, of which this client is not a part.  Please wait for recovery to complete, abort, or time out.\n",
@@ -568,11 +572,26 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	kfree(data);
 	kfree(osfs);
 
-	err = ll_debugfs_register_super(sb, dt, md);
-	if (err < 0) {
-		CERROR("%s: could not register mount in debugfs: rc = %d\n",
-		       ll_get_fsname(sb, NULL, 0), err);
-		err = 0;
+	if (sbi->ll_dt_obd) {
+		err = sysfs_create_link(&sbi->ll_kset.kobj,
+					&sbi->ll_dt_obd->obd_kobj,
+					sbi->ll_dt_obd->obd_type->typ_name);
+		if (err < 0) {
+			CERROR("%s: could not register %s in llite: rc = %d\n",
+			       dt, ll_get_fsname(sb, NULL, 0), err);
+			err = 0;
+		}
+	}
+
+	if (sbi->ll_md_obd) {
+		err = sysfs_create_link(&sbi->ll_kset.kobj,
+					&sbi->ll_md_obd->obd_kobj,
+					sbi->ll_md_obd->obd_type->typ_name);
+		if (err < 0) {
+			CERROR("%s: could not register %s in llite: rc = %d\n",
+			       md, ll_get_fsname(sb, NULL, 0), err);
+			err = 0;
+		}
 	}
 
 	return err;
@@ -583,6 +602,7 @@ out_lock_cn_cb:
 out_dt:
 	obd_disconnect(sbi->ll_dt_exp);
 	sbi->ll_dt_exp = NULL;
+	sbi->ll_dt_obd = NULL;
 out_md_fid:
 	obd_fid_fini(sbi->ll_md_exp->exp_obd);
 out_md:
@@ -931,6 +951,16 @@ int ll_fill_super(struct super_block *sb)
 	/* kernel >= 2.6.38 store dentry operations in sb->s_d_op. */
 	sb->s_d_op = &ll_d_ops;
 
+	/* Call ll_debugsfs_register_super() before lustre_process_log()
+	 * so that "llite.*.*" params can be processed correctly.
+	 */
+	err = ll_debugfs_register_super(sb);
+	if (err < 0) {
+		CERROR("%s: could not register mountpoint in llite: rc = %d\n",
+		       ll_get_fsname(sb, NULL, 0), err);
+		err = 0;
+	}
+
 	/* Generate a string unique to this super, in case some joker tries
 	 * to mount the same fs at two mount points.
 	 * Use the address of the super itself.
@@ -942,7 +972,7 @@ int ll_fill_super(struct super_block *sb)
 	/* set up client obds */
 	err = lustre_process_log(sb, profilenm, cfg);
 	if (err < 0)
-		goto out_free;
+		goto out_debugfs;
 
 	/* Profile set with LCFG_MOUNTOPT so we can find our mdc and osc obds */
 	lprof = class_get_profile(profilenm);
@@ -951,7 +981,7 @@ int ll_fill_super(struct super_block *sb)
 				   "The client profile '%s' could not be read from the MGS.  Does that filesystem exist?\n",
 				   profilenm);
 		err = -EINVAL;
-		goto out_free;
+		goto out_debugfs;
 	}
 	CDEBUG(D_CONFIG, "Found profile %s: mdc=%s osc=%s\n", profilenm,
 	       lprof->lp_md, lprof->lp_dt);
@@ -959,13 +989,13 @@ int ll_fill_super(struct super_block *sb)
 	dt = kasprintf(GFP_NOFS, "%s-%p", lprof->lp_dt, cfg->cfg_instance);
 	if (!dt) {
 		err = -ENOMEM;
-		goto out_free;
+		goto out_debugfs;
 	}
 
 	md = kasprintf(GFP_NOFS, "%s-%p", lprof->lp_md, cfg->cfg_instance);
 	if (!md) {
 		err = -ENOMEM;
-		goto out_free;
+		goto out_debugfs;
 	}
 
 	/* connections, registrations, sb setup */
@@ -973,6 +1003,9 @@ int ll_fill_super(struct super_block *sb)
 	if (!err)
 		sbi->ll_client_common_fill_super_succeeded = 1;
 
+out_debugfs:
+	if (err < 0)
+		ll_debugfs_unregister_super(sbi);
 out_free:
 	kfree(md);
 	kfree(dt);

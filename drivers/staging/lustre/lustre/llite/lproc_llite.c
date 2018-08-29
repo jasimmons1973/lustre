@@ -920,6 +920,7 @@ static ssize_t xattr_cache_store(struct kobject *kobj,
 		return -ENOTSUPP;
 
 	sbi->ll_xattr_cache_enabled = val;
+	sbi->ll_xattr_cache_set = 1;
 
 	return count;
 }
@@ -1222,11 +1223,10 @@ static const char *ra_stat_string[] = {
 	[RA_STAT_FAILED_REACH_END] = "failed to reach end"
 };
 
-int ll_debugfs_register_super(struct super_block *sb, char *osc, char *mdc)
+int ll_debugfs_register_super(struct super_block *sb)
 {
 	struct lustre_sb_info *lsi = s2lsi(sb);
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
-	struct obd_device *obd;
 	struct dentry *dir;
 	char name[MAX_STRING_SIZE + 1], *ptr;
 	int err, id, len;
@@ -1234,8 +1234,6 @@ int ll_debugfs_register_super(struct super_block *sb, char *osc, char *mdc)
 	name[MAX_STRING_SIZE] = '\0';
 
 	LASSERT(sbi);
-	LASSERT(mdc);
-	LASSERT(osc);
 
 	/* Get fsname */
 	len = strlen(lsi->lsi_lmd->lmd_profile);
@@ -1311,22 +1309,6 @@ int ll_debugfs_register_super(struct super_block *sb, char *osc, char *mdc)
 		goto out;
 
 	err = kset_register(&sbi->ll_kset);
-	if (err)
-		goto out;
-
-	/* MDC info */
-	obd = class_name2obd(mdc);
-
-	err = sysfs_create_link(&sbi->ll_kset.kobj, &obd->obd_kobj,
-				obd->obd_type->typ_name);
-	if (err)
-		goto out;
-
-	/* OSC */
-	obd = class_name2obd(osc);
-
-	err = sysfs_create_link(&sbi->ll_kset.kobj, &obd->obd_kobj,
-				obd->obd_type->typ_name);
 out:
 	if (err) {
 		debugfs_remove_recursive(sbi->ll_debugfs_entry);
@@ -1339,6 +1321,14 @@ out:
 void ll_debugfs_unregister_super(struct ll_sb_info *sbi)
 {
 	debugfs_remove_recursive(sbi->ll_debugfs_entry);
+
+	if (sbi->ll_dt_obd)
+		sysfs_remove_link(&sbi->ll_kset.kobj,
+				  sbi->ll_dt_obd->obd_type->typ_name);
+
+	if (sbi->ll_md_obd)
+		sysfs_remove_link(&sbi->ll_kset.kobj,
+				  sbi->ll_md_obd->obd_type->typ_name);
 
 	kset_unregister(&sbi->ll_kset);
 	wait_for_completion(&sbi->ll_kobj_unregister);

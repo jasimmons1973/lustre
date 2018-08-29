@@ -461,12 +461,15 @@ struct ll_sb_info {
 	struct obd_uuid	   ll_sb_uuid;
 	struct obd_export	*ll_md_exp;
 	struct obd_export	*ll_dt_exp;
+	struct obd_device	*ll_md_obd;
+	struct obd_device	*ll_dt_obd;
 	struct dentry		*ll_debugfs_entry;
 	struct lu_fid	     ll_root_fid; /* root object fid */
 
 	int		       ll_flags;
 	unsigned int		  ll_umounting:1,
 				  ll_xattr_cache_enabled:1,
+				ll_xattr_cache_set:1, /* already set to 0/1 */
 				  ll_client_common_fill_super_succeeded:1;
 
 	struct lustre_client_ocd  ll_lco;
@@ -674,7 +677,7 @@ int cl_get_grouplock(struct cl_object *obj, unsigned long gid, int nonblock,
 void cl_put_grouplock(struct ll_grouplock *cg);
 
 /* llite/lproc_llite.c */
-int ll_debugfs_register_super(struct super_block *sb, char *osc, char *mdc);
+int ll_debugfs_register_super(struct super_block *sb);
 void ll_debugfs_unregister_super(struct ll_sb_info *sbi);
 void ll_stats_ops_tally(struct ll_sb_info *sbi, int op, int count);
 void lprocfs_llite_init_vars(struct lprocfs_static_vars *lvars);
