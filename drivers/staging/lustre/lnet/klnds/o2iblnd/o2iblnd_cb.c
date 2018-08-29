@@ -158,7 +158,7 @@ kiblnd_post_rx(struct kib_rx *rx, int credit)
 {
 	struct kib_conn *conn = rx->rx_conn;
 	struct kib_net *net = conn->ibc_peer->ibp_ni->ni_data;
-	struct ib_recv_wr *bad_wrq = NULL;
+	const struct ib_recv_wr *bad_wrq = NULL;
 	int rc;
 
 	LASSERT(net);
@@ -830,7 +830,7 @@ kiblnd_post_tx_locked(struct kib_conn *conn, struct kib_tx *tx, int credit)
 		rc = -ENETDOWN;
 	} else {
 		struct kib_fast_reg_descriptor *frd = tx->fmr.fmr_frd;
-		struct ib_send_wr *bad = &tx->tx_wrq[tx->tx_nwrq - 1].wr;
+		const struct ib_send_wr *bad = &tx->tx_wrq[tx->tx_nwrq - 1].wr;
 		struct ib_send_wr *wrq = &tx->tx_wrq[0].wr;
 
 		if (frd) {

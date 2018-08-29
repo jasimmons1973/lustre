@@ -691,15 +691,14 @@ static struct dentry *ll_lookup_nd(struct inode *parent, struct dentry *dentry,
  */
 static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 			  struct file *file, unsigned int open_flags,
-			  umode_t mode, int *opened)
+			  umode_t mode)
 {
 	struct lookup_intent *it;
 	struct dentry *de;
 	int rc = 0;
 
-	CDEBUG(D_VFSTRACE, "VFS Op:name=%pd, dir=" DFID "(%p),file %p,open_flags %x,mode %x opened %d\n",
-	       dentry, PFID(ll_inode2fid(dir)), dir, file, open_flags, mode,
-	       *opened);
+	CDEBUG(D_VFSTRACE, "VFS Op:name=%pd, dir=" DFID "(%p),file %p,open_flags %x,mode %x\n",
+	       dentry, PFID(ll_inode2fid(dir)), dir, file, open_flags, mode);
 
 	/* Only negative dentries enter here */
 	LASSERT(!d_inode(dentry));
@@ -748,7 +747,7 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 				goto out_release;
 			}
 
-			*opened |= FILE_CREATED;
+			file->f_mode |= FMODE_CREATED;
 		}
 		if (d_really_is_positive(dentry) &&
 		    it_disposition(it, DISP_OPEN_OPEN)) {
@@ -761,7 +760,7 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 				rc = finish_no_open(file, de);
 			} else {
 				file->private_data = it;
-				rc = finish_open(file, dentry, NULL, opened);
+				rc = finish_open(file, dentry, NULL);
 				/* We dget in ll_splice_alias. finish_open takes
 				 * care of dget for fd open.
 				 */
