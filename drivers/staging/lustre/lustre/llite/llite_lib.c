@@ -1643,10 +1643,9 @@ int ll_setattr(struct dentry *de, struct iattr *attr)
 	return ll_setattr_raw(de, attr, xvalid, false);
 }
 
-int ll_statfs_internal(struct super_block *sb, struct obd_statfs *osfs,
-		       __u64 max_age, __u32 flags)
+int ll_statfs_internal(struct ll_sb_info *sbi, struct obd_statfs *osfs,
+		       u64 max_age, u32 flags)
 {
-	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	struct obd_statfs obd_osfs;
 	int rc;
 
@@ -1656,7 +1655,7 @@ int ll_statfs_internal(struct super_block *sb, struct obd_statfs *osfs,
 		return rc;
 	}
 
-	osfs->os_type = sb->s_magic;
+	osfs->os_type = LL_SUPER_MAGIC;
 
 	CDEBUG(D_SUPER, "MDC blocks %llu/%llu objects %llu/%llu\n",
 	       osfs->os_bavail, osfs->os_blocks, osfs->os_ffree,
@@ -1703,7 +1702,7 @@ int ll_statfs(struct dentry *de, struct kstatfs *sfs)
 	ll_stats_ops_tally(ll_s2sbi(sb), LPROC_LL_STAFS, 1);
 
 	/* Some amount of caching on the client is allowed */
-	rc = ll_statfs_internal(sb, &osfs,
+	rc = ll_statfs_internal(ll_s2sbi(sb), &osfs,
 				get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 				0);
 	if (rc)
