@@ -1248,6 +1248,7 @@ static const char *ra_stat_string[] = {
 
 int ll_debugfs_register_super(struct super_block *sb, const char *name)
 {
+	struct lustre_sb_info *lsi = s2lsi(sb);
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	struct dentry *dir;
 	int err, id;
@@ -1325,6 +1326,8 @@ out_ll_kset:
 	if (err)
 		goto out_ra_stats;
 
+	lsi->lsi_kobj = kobject_get(&sbi->ll_kset.kobj);
+
 	return 0;
 
 out_ra_stats:
@@ -1337,8 +1340,13 @@ out_debugfs:
 	return err;
 }
 
-void ll_debugfs_unregister_super(struct ll_sb_info *sbi)
+void ll_debugfs_unregister_super(struct super_block *sb)
 {
+	struct lustre_sb_info *lsi = s2lsi(sb);
+	struct ll_sb_info *sbi = ll_s2sbi(sb);
+
+	kobject_put(lsi->lsi_kobj);
+
 	debugfs_remove_recursive(sbi->ll_debugfs_entry);
 
 	if (sbi->ll_dt_obd)
@@ -1715,8 +1723,3 @@ static ssize_t ll_rw_offset_stats_seq_write(struct file *file,
 }
 
 LPROC_SEQ_FOPS(ll_rw_offset_stats);
-
-void lprocfs_llite_init_vars(struct lprocfs_static_vars *lvars)
-{
-	lvars->obd_vars = lprocfs_llite_obd_vars;
-}

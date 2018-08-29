@@ -253,8 +253,6 @@ static int __init lustre_init(void)
 	if (rc)
 		goto out_inode_fini_env;
 
-	lustre_register_client_process_config(ll_process_config);
-
 	return 0;
 
 out_inode_fini_env:
@@ -272,8 +270,6 @@ out_cache:
 static void __exit lustre_exit(void)
 {
 	lustre_unregister_fs();
-
-	lustre_register_client_process_config(NULL);
 
 	llite_tunables_unregister();
 

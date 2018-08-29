@@ -678,9 +678,8 @@ void cl_put_grouplock(struct ll_grouplock *cg);
 
 /* llite/lproc_llite.c */
 int ll_debugfs_register_super(struct super_block *sb, const char *name);
-void ll_debugfs_unregister_super(struct ll_sb_info *sbi);
+void ll_debugfs_unregister_super(struct super_block *sb);
 void ll_stats_ops_tally(struct ll_sb_info *sbi, int op, int count);
-void lprocfs_llite_init_vars(struct lprocfs_static_vars *lvars);
 void ll_rw_stats_tally(struct ll_sb_info *sbi, pid_t pid,
 		       struct ll_file_data *file, loff_t pos,
 		       size_t count, int rw);
@@ -851,7 +850,6 @@ int ll_obd_statfs(struct inode *inode, void __user *arg);
 int ll_get_max_mdsize(struct ll_sb_info *sbi, int *max_mdsize);
 int ll_get_default_mdsize(struct ll_sb_info *sbi, int *default_mdsize);
 int ll_set_default_mdsize(struct ll_sb_info *sbi, int default_mdsize);
-int ll_process_config(struct lustre_cfg *lcfg);
 
 enum {
 	LUSTRE_OPC_MKDIR	= 0,

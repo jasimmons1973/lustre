@@ -693,7 +693,7 @@ static void client_common_put_super(struct super_block *sb)
 	obd_disconnect(sbi->ll_dt_exp);
 	sbi->ll_dt_exp = NULL;
 
-	ll_debugfs_unregister_super(sbi);
+	ll_debugfs_unregister_super(sb);
 
 	obd_fid_fini(sbi->ll_md_exp->exp_obd);
 	obd_disconnect(sbi->ll_md_exp);
@@ -1020,7 +1020,7 @@ int ll_fill_super(struct super_block *sb)
 
 out_debugfs:
 	if (err < 0)
-		ll_debugfs_unregister_super(sbi);
+		ll_debugfs_unregister_super(sb);
 out_free:
 	kfree(md);
 	kfree(dt);
@@ -2316,38 +2316,6 @@ int ll_obd_statfs(struct inode *inode, void __user *arg)
 		goto out_statfs;
 out_statfs:
 	kvfree(buf);
-	return rc;
-}
-
-int ll_process_config(struct lustre_cfg *lcfg)
-{
-	char *ptr;
-	void *sb;
-	struct lprocfs_static_vars lvars;
-	unsigned long x;
-	int rc = 0;
-
-	lprocfs_llite_init_vars(&lvars);
-
-	/* The instance name contains the sb: lustre-client-aacfe000 */
-	ptr = strrchr(lustre_cfg_string(lcfg, 0), '-');
-	if (!ptr || !*(++ptr))
-		return -EINVAL;
-	rc = kstrtoul(ptr, 16, &x);
-	if (rc != 0)
-		return -EINVAL;
-	sb = (void *)x;
-	/* This better be a real Lustre superblock! */
-	LASSERT(s2lsi((struct super_block *)sb)->lsi_lmd->lmd_magic ==
-		LMD_MAGIC);
-
-	/* Note we have not called client_common_fill_super yet, so
-	 * proc fns must be able to handle that!
-	 */
-	rc = class_process_proc_param(PARAM_LLITE, lvars.obd_vars,
-				      lcfg, sb);
-	if (rc > 0)
-		rc = 0;
 	return rc;
 }
 

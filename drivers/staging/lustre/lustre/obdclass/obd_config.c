@@ -814,17 +814,10 @@ void class_del_profiles(void)
 }
 EXPORT_SYMBOL(class_del_profiles);
 
-/* We can't call ll_process_config or lquota_process_config directly because
+/* We can't call lquota_process_config directly because
  * it lives in a module that must be loaded after this one.
  */
-static int (*client_process_config)(struct lustre_cfg *lcfg);
 static int (*quota_process_config)(struct lustre_cfg *lcfg);
-
-void lustre_register_client_process_config(int (*cpc)(struct lustre_cfg *lcfg))
-{
-	client_process_config = cpc;
-}
-EXPORT_SYMBOL(lustre_register_client_process_config);
 
 static int process_param2_config(struct lustre_cfg *lcfg)
 {
@@ -958,11 +951,35 @@ int class_process_config(struct lustre_cfg *lcfg)
 	}
 	case LCFG_PARAM: {
 		char *tmp;
+
 		/* llite has no obd */
-		if ((class_match_param(lustre_cfg_string(lcfg, 1),
-				       PARAM_LLITE, NULL) == 0) &&
-		    client_process_config) {
-			err = (*client_process_config)(lcfg);
+		if (class_match_param(lustre_cfg_string(lcfg, 1),
+				      PARAM_LLITE, NULL) == 0) {
+			struct lustre_sb_info *lsi;
+			unsigned long addr;
+			ssize_t count;
+
+			/* The instance name contains the sb:
+			 * lustre-client-aacfe000
+			 */
+			tmp = strrchr(lustre_cfg_string(lcfg, 0), '-');
+			if (!tmp || !*(++tmp)) {
+				err = -EINVAL;
+				goto out;
+			}
+
+			if (sscanf(tmp, "%lx", &addr) != 1) {
+				err = -EINVAL;
+				goto out;
+			}
+
+			lsi = s2lsi((struct super_block *)addr);
+			/* This better be a real Lustre superblock! */
+			LASSERT(lsi->lsi_lmd->lmd_magic == LMD_MAGIC);
+
+			count = class_modify_config(lcfg, PARAM_LLITE,
+						    lsi->lsi_kobj);
+			err = count < 0 ? count : 0;
 			goto out;
 		} else if ((class_match_param(lustre_cfg_string(lcfg, 1),
 					      PARAM_SYS, &tmp) == 0)) {
