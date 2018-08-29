@@ -589,25 +589,28 @@ static ssize_t checksum_pages_store(struct kobject *kobj,
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
+	bool val;
+	int tmp;
 	int rc;
-	unsigned long val;
 
 	if (!sbi->ll_dt_exp)
 		/* Not set up yet */
 		return -EAGAIN;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtobool(buffer, &val);
 	if (rc)
 		return rc;
+
 	spin_lock(&sbi->ll_lock);
 	if (val)
 		sbi->ll_flags |= LL_SBI_CHECKSUM;
 	else
 		sbi->ll_flags &= ~LL_SBI_CHECKSUM;
 	spin_unlock(&sbi->ll_lock);
+	tmp = val;
 
 	rc = obd_set_info_async(NULL, sbi->ll_dt_exp, sizeof(KEY_CHECKSUM),
-				KEY_CHECKSUM, sizeof(val), &val, NULL);
+				KEY_CHECKSUM, sizeof(tmp), &tmp, NULL);
 	if (rc)
 		CWARN("Failed to set OSC checksum flags: %d\n", rc);
 
@@ -749,10 +752,10 @@ static ssize_t statahead_agl_store(struct kobject *kobj,
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
+	bool val;
 	int rc;
-	unsigned long val;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtobool(buffer, &val);
 	if (rc)
 		return rc;
 
@@ -801,10 +804,10 @@ static ssize_t lazystatfs_store(struct kobject *kobj,
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
+	bool val;
 	int rc;
-	unsigned long val;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtobool(buffer, &val);
 	if (rc)
 		return rc;
 
@@ -944,17 +947,14 @@ static ssize_t xattr_cache_store(struct kobject *kobj,
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
+	bool val;
 	int rc;
-	unsigned long val;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtobool(buffer, &val);
 	if (rc)
 		return rc;
 
-	if (val != 0 && val != 1)
-		return -ERANGE;
-
-	if (val == 1 && !(sbi->ll_flags & LL_SBI_XATTR_CACHE))
+	if (val && !(sbi->ll_flags & LL_SBI_XATTR_CACHE))
 		return -ENOTSUPP;
 
 	sbi->ll_xattr_cache_enabled = val;
@@ -1026,7 +1026,8 @@ static ssize_t ll_unstable_stats_seq_write(struct file *file,
 	struct super_block *sb = ((struct seq_file *)file->private_data)->private;
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	char kernbuf[128];
-	int val, rc;
+	bool val;
+	int rc;
 
 	if (!count)
 		return 0;
@@ -1039,13 +1040,13 @@ static ssize_t ll_unstable_stats_seq_write(struct file *file,
 
 	buffer += lprocfs_find_named_value(kernbuf, "unstable_check:", &count) -
 		  kernbuf;
-	rc = lprocfs_write_helper(buffer, count, &val);
+	rc = kstrtobool_from_user(buffer, count, &val);
 	if (rc < 0)
 		return rc;
 
 	/* borrow lru lock to set the value */
 	spin_lock(&sbi->ll_cache->ccc_lru_lock);
-	sbi->ll_cache->ccc_unstable_check = !!val;
+	sbi->ll_cache->ccc_unstable_check = val;
 	spin_unlock(&sbi->ll_cache->ccc_lru_lock);
 
 	return count;
