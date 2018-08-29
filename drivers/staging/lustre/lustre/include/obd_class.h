@@ -33,6 +33,7 @@
 #ifndef __CLASS_OBD_H
 #define __CLASS_OBD_H
 
+#include <linux/kobject.h>
 #include <obd_support.h>
 #include <lustre_import.h>
 #include <lustre_net.h>
@@ -59,6 +60,7 @@ struct lu_device_type;
 
 /* genops.c */
 struct obd_export *class_conn2export(struct lustre_handle *conn);
+struct kobject *class_setup_tunables(const char *name);
 int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 			const char *name, struct lu_device_type *ldt);
 int class_unregister_type(const char *name);

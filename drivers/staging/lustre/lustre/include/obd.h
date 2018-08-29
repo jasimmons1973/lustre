@@ -111,8 +111,7 @@ struct obd_type {
 	int  typ_refcnt;
 	struct lu_device_type *typ_lu;
 	spinlock_t obd_type_lock;
-	struct kobject		typ_kobj;
-	struct completion	typ_kobj_unregister;
+	struct kobject		*typ_kobj;
 };
 
 struct brw_page {

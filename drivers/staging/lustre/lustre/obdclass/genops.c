@@ -135,16 +135,33 @@ void class_put_type(struct obd_type *type)
 
 static void class_sysfs_release(struct kobject *kobj)
 {
-	struct obd_type *type = container_of(kobj, struct obd_type,
-					     typ_kobj);
-
-	complete(&type->typ_kobj_unregister);
+	kfree(kobj);
 }
 
 static struct kobj_type class_ktype = {
 	.sysfs_ops	= &lustre_sysfs_ops,
 	.release	= class_sysfs_release,
 };
+
+struct kobject *class_setup_tunables(const char *name)
+{
+	struct kobject *kobj;
+	int rc;
+
+	kobj = kzalloc(sizeof(*kobj), GFP_KERNEL);
+	if (!kobj)
+		return ERR_PTR(-ENOMEM);
+
+	kobj->kset = lustre_kset;
+	kobject_init(kobj, &class_ktype);
+	rc = kobject_add(kobj, &lustre_kset->kobj, "%s", name);
+	if (rc) {
+		kobject_put(kobj);
+		return ERR_PTR(rc);
+	}
+	return kobj;
+}
+EXPORT_SYMBOL(class_setup_tunables);
 
 #define CLASS_MAX_NAME 1024
 
@@ -187,19 +204,17 @@ int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 	type->typ_debugfs_entry = debugfs_create_dir(type->typ_name,
 						     debugfs_lustre_root);
 
-	type->typ_kobj.kset = lustre_kset;
-	init_completion(&type->typ_kobj_unregister);
-	rc = kobject_init_and_add(&type->typ_kobj, &class_ktype,
-				  &lustre_kset->kobj, "%s", type->typ_name);
-	if (rc)
+	type->typ_kobj = class_setup_tunables(type->typ_name);
+	if (IS_ERR(type->typ_kobj)) {
+		rc = PTR_ERR(type->typ_kobj);
 		goto failed;
-
+	}
 
 	if (ldt) {
 		type->typ_lu = ldt;
 		rc = lu_device_type_init(ldt);
 		if (rc != 0) {
-			kobject_put(&type->typ_kobj);
+			kobject_put(type->typ_kobj);
 			goto failed;
 		}
 	}
@@ -237,8 +252,7 @@ int class_unregister_type(const char *name)
 		return -EBUSY;
 	}
 
-	kobject_put(&type->typ_kobj);
-	wait_for_completion(&type->typ_kobj_unregister);
+	kobject_put(type->typ_kobj);
 
 	debugfs_remove_recursive(type->typ_debugfs_entry);
 

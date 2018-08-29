@@ -42,40 +42,20 @@
 static struct kobject *llite_kobj;
 static struct dentry *llite_root;
 
-static void class_sysfs_release(struct kobject *kobj)
-{
-	kfree(kobj);
-}
-
-static struct kobj_type class_ktype = {
-	.sysfs_ops	= &lustre_sysfs_ops,
-	.release	= class_sysfs_release,
-};
-
 int llite_tunables_register(void)
 {
-	const char *name = "llite";
-	struct kobject *kobj;
 	int rc = 0;
 
-	kobj = kzalloc(sizeof(*kobj), GFP_KERNEL);
-	if (!kobj)
-		return -ENOMEM;
-
-	kobj->kset = lustre_kset;
-	kobject_init(kobj, &class_ktype);
-	rc = kobject_add(kobj, &lustre_kset->kobj, "%s", name);
-	if (rc) {
-		kobject_put(kobj);
-		return -ENOMEM;
-	}
-	llite_kobj = kobj;
+	llite_kobj = class_setup_tunables("llite");
+	if (IS_ERR(llite_kobj))
+		return PTR_ERR(llite_kobj);
 
 	llite_root = debugfs_create_dir("llite", debugfs_lustre_root);
 	if (IS_ERR_OR_NULL(llite_root)) {
 		rc = llite_root ? PTR_ERR(llite_root) : -ENOMEM;
 		llite_root = NULL;
-		kobject_put(kobj);
+		kobject_put(llite_kobj);
+		llite_kobj = NULL;
 	}
 
 	return rc;
