@@ -1425,8 +1425,8 @@ static int ll_rw_extents_stats_pp_seq_show(struct seq_file *seq, void *v)
 	ktime_get_real_ts64(&now);
 
 	if (!sbi->ll_rw_stats_on) {
-		seq_printf(seq, "disabled\n"
-			   "write anything in this file to activate, then 0 or \"[D/d]isabled\" to deactivate\n");
+		seq_puts(seq, "disabled\n"
+			 "write anything in this file to activate, then '0' or 'disabled' to deactivate\n");
 		return 0;
 	}
 	seq_printf(seq, "snapshot_time:	 %llu.%09lu (secs.usecs)\n",
@@ -1489,8 +1489,8 @@ static int ll_rw_extents_stats_seq_show(struct seq_file *seq, void *v)
 	ktime_get_real_ts64(&now);
 
 	if (!sbi->ll_rw_stats_on) {
-		seq_printf(seq, "disabled\n"
-			   "write anything in this file to activate, then 0 or \"[D/d]isabled\" to deactivate\n");
+		seq_puts(seq, "disabled\n"
+			 "write anything in this file to activate, then '0' or 'disabled' to deactivate\n");
 		return 0;
 	}
 	seq_printf(seq, "snapshot_time:	 %llu.%09lu (secs.usecs)\n",
@@ -1655,8 +1655,8 @@ static int ll_rw_offset_stats_seq_show(struct seq_file *seq, void *v)
 	ktime_get_real_ts64(&now);
 
 	if (!sbi->ll_rw_stats_on) {
-		seq_printf(seq, "disabled\n"
-			   "write anything in this file to activate, then 0 or \"[D/d]isabled\" to deactivate\n");
+		seq_puts(seq, "disabled\n"
+			 "write anything in this file to activate, then 0 or \"[D/d]isabled\" to deactivate\n");
 		return 0;
 	}
 	spin_lock(&sbi->ll_process_lock);
