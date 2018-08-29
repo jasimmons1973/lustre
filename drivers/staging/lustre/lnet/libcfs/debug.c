@@ -219,6 +219,7 @@ MODULE_PARM_DESC(libcfs_panic_on_lbug, "Lustre kernel panic on LBUG");
 static wait_queue_head_t debug_ctlwq;
 
 char libcfs_debug_file_path_arr[PATH_MAX] = LIBCFS_DEBUG_FILE_PATH_DEFAULT;
+EXPORT_SYMBOL(libcfs_debug_file_path_arr);
 
 /* We need to pass a pointer here, but elsewhere this must be a const */
 static char *libcfs_debug_file_path;

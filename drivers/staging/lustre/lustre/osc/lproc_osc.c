@@ -465,6 +465,36 @@ static ssize_t resend_count_store(struct kobject *kobj,
 }
 LUSTRE_RW_ATTR(resend_count);
 
+static ssize_t checksum_dump_show(struct kobject *kobj,
+				  struct attribute *attr,
+				  char *buf)
+{
+	struct obd_device *obd = container_of(kobj, struct obd_device,
+					      obd_kset.kobj);
+
+	return sprintf(buf, "%d\n", obd->u.cli.cl_checksum_dump ? 1 : 0);
+}
+
+static ssize_t checksum_dump_store(struct kobject *kobj,
+				   struct attribute *attr,
+				   const char *buffer,
+				   size_t count)
+{
+	struct obd_device *obd = container_of(kobj, struct obd_device,
+					      obd_kset.kobj);
+	bool val;
+	int rc;
+
+	rc = kstrtobool(buffer, &val);
+	if (rc)
+		return rc;
+
+	obd->u.cli.cl_checksum_dump = val;
+
+	return count;
+}
+LUSTRE_RW_ATTR(checksum_dump);
+
 static ssize_t contention_seconds_show(struct kobject *kobj,
 				       struct attribute *attr,
 				       char *buf)
@@ -802,6 +832,7 @@ void lproc_osc_attach_seqstat(struct obd_device *dev)
 static struct attribute *osc_attrs[] = {
 	&lustre_attr_active.attr,
 	&lustre_attr_checksums.attr,
+	&lustre_attr_checksum_dump.attr,
 	&lustre_attr_contention_seconds.attr,
 	&lustre_attr_cur_dirty_bytes.attr,
 	&lustre_attr_cur_grant_bytes.attr,

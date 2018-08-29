@@ -324,7 +324,8 @@ struct client_obd {
 	struct obd_export       *cl_mgc_mgsexp;
 
 	/* checksumming for data sent over the network */
-	unsigned int	     cl_checksum:1; /* 0 = disabled, 1 = enabled */
+	unsigned int		 cl_checksum:1,	/* 0 = disabled, 1 = enabled */
+				 cl_checksum_dump:1; /* same */
 	/* supported checksum types that are worked out at connect time */
 	__u32		    cl_supp_cksum_types;
 	/* checksum algorithm to be used */
@@ -557,7 +558,8 @@ struct obd_device {
 					    * (for sysfs status only!!)
 					    */
 		      obd_no_ir:1,	 /* no imperative recovery. */
-		      obd_process_conf:1;  /* device is processing mgs config */
+		      obd_process_conf:1,  /* device is processing mgs config */
+		      obd_checksum_dump:1; /* dump pages upon cksum error */
 	/* use separate field as it is set in interrupt to don't mess with
 	 * protection of other bits using _bh lock
 	 */
