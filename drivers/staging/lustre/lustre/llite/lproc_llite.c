@@ -1082,17 +1082,20 @@ static ssize_t ll_nosquash_nids_seq_write(struct file *file,
 LPROC_SEQ_FOPS(ll_nosquash_nids);
 
 static struct lprocfs_vars lprocfs_llite_obd_vars[] = {
-	/* { "mntpt_path",   ll_rd_path,	     0, 0 }, */
-	{ "site",	  &ll_site_stats_fops,    NULL, 0 },
-	/* { "filegroups",   lprocfs_rd_filegroups,  0, 0 }, */
-	{ "max_cached_mb",    &ll_max_cached_mb_fops, NULL },
-	{ "statahead_stats",  &ll_statahead_stats_fops, NULL, 0 },
-	{ "unstable_stats",   &ll_unstable_stats_fops, NULL },
-	{ "sbi_flags",	      &ll_sbi_flags_fops, NULL, 0 },
-	{ .name =       "root_squash",
+	{ .name	=	"site",
+	  .fops	=	&ll_site_stats_fops			},
+	{ .name	=	"max_cached_mb",
+	  .fops	=	&ll_max_cached_mb_fops			},
+	{ .name	=	"statahead_stats",
+	  .fops	=	&ll_statahead_stats_fops		},
+	{ .name	=	"unstable_stats",
+	  .fops	=	&ll_unstable_stats_fops			},
+	{ .name	=	"sbi_flags",
+	  .fops	=	&ll_sbi_flags_fops			},
+	{ .name =	"root_squash",
 	  .fops =       &ll_root_squash_fops			},
-	{ .name =		"nosquash_nids",
-	  .fops =		&ll_nosquash_nids_fops		},
+	{ .name =	"nosquash_nids",
+	  .fops =	&ll_nosquash_nids_fops			},
 	{ NULL }
 };
 
