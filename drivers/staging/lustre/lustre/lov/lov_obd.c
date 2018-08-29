@@ -769,7 +769,7 @@ int lov_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 		goto out;
 
 	lprocfs_lov_init_vars(obd);
-	lprocfs_obd_setup(obd);
+	lprocfs_obd_setup(obd, false);
 
 	debugfs_create_file("target_obd", 0444, obd->obd_debugfs_entry, obd,
 			    &lov_proc_target_fops);

@@ -748,7 +748,7 @@ static int mgc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	}
 
 	lprocfs_mgc_init_vars(obd);
-	lprocfs_obd_setup(obd);
+	lprocfs_obd_setup(obd, true);
 	sptlrpc_lprocfs_cliobd_attach(obd);
 
 	if (atomic_inc_return(&mgc_count) == 1) {

@@ -2648,7 +2648,7 @@ static int mdc_setup(struct obd_device *obd, struct lustre_cfg *cfg)
 		goto err_ptlrpcd_decref;
 
 	lprocfs_mdc_init_vars(obd);
-	lprocfs_obd_setup(obd);
+	lprocfs_obd_setup(obd, false);
 	sptlrpc_lprocfs_cliobd_attach(obd);
 	ptlrpc_lprocfs_register_obd(obd);
 

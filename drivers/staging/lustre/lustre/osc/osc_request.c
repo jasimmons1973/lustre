@@ -2804,7 +2804,7 @@ int osc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	cli->cl_grant_shrink_interval = GRANT_SHRINK_INTERVAL;
 
 	lprocfs_osc_init_vars(obd);
-	if (lprocfs_obd_setup(obd) == 0) {
+	if (lprocfs_obd_setup(obd, false) == 0) {
 		lproc_osc_attach_seqstat(obd);
 		sptlrpc_lprocfs_cliobd_attach(obd);
 		ptlrpc_lprocfs_register_obd(obd);

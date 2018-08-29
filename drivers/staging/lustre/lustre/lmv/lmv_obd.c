@@ -1255,7 +1255,7 @@ static int lmv_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 
 	lprocfs_lmv_init_vars(obd);
 
-	lprocfs_obd_setup(obd);
+	lprocfs_obd_setup(obd, true);
 	debugfs_create_file("target_obd", 0444, obd->obd_debugfs_entry, obd,
 			    &lmv_proc_target_fops);
 	rc = fld_client_init(&lmv->lmv_fld, obd->obd_name,

@@ -989,6 +989,11 @@ int lprocfs_rd_connect_flags(struct seq_file *m, void *data)
 }
 EXPORT_SYMBOL(lprocfs_rd_connect_flags);
 
+static const struct attribute *obd_def_uuid_attrs[] = {
+	&lustre_attr_uuid.attr,
+	NULL,
+};
+
 static const struct attribute *obd_def_attrs[] = {
 	&lustre_attr_blocksize.attr,
 	&lustre_attr_kbytestotal.attr,
@@ -1008,7 +1013,7 @@ static void obd_sysfs_release(struct kobject *kobj)
 	complete(&obd->obd_kobj_unregister);
 }
 
-int lprocfs_obd_setup(struct obd_device *obd)
+int lprocfs_obd_setup(struct obd_device *obd, bool uuid_only)
 {
 	int rc;
 
@@ -1022,7 +1027,12 @@ int lprocfs_obd_setup(struct obd_device *obd)
 	if (rc)
 		return rc;
 
-	rc = sysfs_create_files(&obd->obd_kobj, obd_def_attrs);
+	if (uuid_only)
+		obd->obd_attrs = obd_def_uuid_attrs;
+	else
+		obd->obd_attrs = obd_def_attrs;
+
+	rc = sysfs_create_files(&obd->obd_kobj, obd->obd_attrs);
 	if (rc) {
 		kobject_put(&obd->obd_kobj);
 		return rc;
@@ -1043,7 +1053,10 @@ int lprocfs_obd_cleanup(struct obd_device *obd)
 
 	debugfs_remove_recursive(obd->obd_debugfs_entry);
 
-	sysfs_remove_files(&obd->obd_kobj, obd_def_attrs);
+	if (obd->obd_attrs) {
+		sysfs_remove_files(&obd->obd_kobj, obd->obd_attrs);
+		obd->obd_attrs = NULL;
+	}
 
 	kobject_put(&obd->obd_kobj);
 	wait_for_completion(&obd->obd_kobj_unregister);
