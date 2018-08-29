@@ -494,10 +494,6 @@ static int __init obdclass_init(void)
 	if (err)
 		goto cleanup_caches;
 
-	err = obd_sysctl_init();
-	if (err)
-		goto cleanup_class_procfs;
-
 	err = lu_global_init();
 	if (err)
 		goto cleanup_class_procfs;

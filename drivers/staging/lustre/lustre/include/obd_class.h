@@ -1553,9 +1553,6 @@ int lustre_unregister_fs(void);
 int lustre_register_fs(void);
 int lustre_check_exclusion(struct super_block *sb, char *svname);
 
-/* sysctl.c */
-int obd_sysctl_init(void);
-
 /* uuid.c  */
 typedef __u8 class_uuid_t[16];
 void class_uuid_unparse(class_uuid_t in, struct obd_uuid *out);
