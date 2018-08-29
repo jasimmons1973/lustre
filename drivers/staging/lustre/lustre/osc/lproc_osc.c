@@ -55,20 +55,18 @@ static ssize_t active_store(struct kobject *kobj, struct attribute *attr,
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
+	bool val;
 	int rc;
-	unsigned long val;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtobool(buffer, &val);
 	if (rc)
 		return rc;
-	if (val > 1)
-		return -ERANGE;
 
 	/* opposite senses */
 	if (dev->u.cli.cl_import->imp_deactive == val)
 		rc = ptlrpc_set_import_active(dev->u.cli.cl_import, val);
 	else
-		CDEBUG(D_CONFIG, "activate %ld: ignoring repeat request\n",
+		CDEBUG(D_CONFIG, "activate %u: ignoring repeat request\n",
 		       val);
 
 	return count;
@@ -94,15 +92,15 @@ static ssize_t max_rpcs_in_flight_store(struct kobject *kobj,
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
-	int rc;
-	unsigned long val;
 	int adding, added, req_count;
+	unsigned int val;
+	int rc;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtouint(buffer, 10, &val);
 	if (rc)
 		return rc;
 
-	if (val < 1 || val > OSC_MAX_RIF_MAX)
+	if (val == 0 || val > OSC_MAX_RIF_MAX)
 		return -ERANGE;
 
 	adding = val - cli->cl_max_rpcs_in_flight;
@@ -334,14 +332,14 @@ static ssize_t grant_shrink_interval_store(struct kobject *kobj,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
+	unsigned int val;
 	int rc;
-	unsigned long val;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtouint(buffer, 10, &val);
 	if (rc)
 		return rc;
 
-	if (val <= 0)
+	if (val == 0)
 		return -ERANGE;
 
 	obd->u.cli.cl_grant_shrink_interval = val;
@@ -367,14 +365,14 @@ static ssize_t checksums_store(struct kobject *kobj,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
+	bool val;
 	int rc;
-	unsigned long val;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtobool(buffer, &val);
 	if (rc)
 		return rc;
 
-	obd->u.cli.cl_checksum = (val ? 1 : 0);
+	obd->u.cli.cl_checksum = val;
 
 	return count;
 }
@@ -454,10 +452,10 @@ static ssize_t resend_count_store(struct kobject *kobj,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
+	unsigned int val;
 	int rc;
-	unsigned long val;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtouint(buffer, 10, &val);
 	if (rc)
 		return rc;
 
@@ -486,15 +484,12 @@ static ssize_t contention_seconds_store(struct kobject *kobj,
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
 	struct osc_device *od  = obd2osc_dev(obd);
+	unsigned int val;
 	int rc;
-	int val;
 
-	rc = kstrtoint(buffer, 10, &val);
+	rc = kstrtouint(buffer, 10, &val);
 	if (rc)
 		return rc;
-
-	if (val < 0)
-		return -EINVAL;
 
 	od->od_contention_time = val;
 
@@ -521,10 +516,10 @@ static ssize_t lockless_truncate_store(struct kobject *kobj,
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
 	struct osc_device *od  = obd2osc_dev(obd);
+	bool val;
 	int rc;
-	unsigned int val;
 
-	rc = kstrtouint(buffer, 10, &val);
+	rc = kstrtobool(buffer, &val);
 	if (rc)
 		return rc;
 
