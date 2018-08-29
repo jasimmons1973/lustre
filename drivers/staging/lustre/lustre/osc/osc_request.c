@@ -2885,12 +2885,9 @@ int osc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 
 	cli->cl_grant_shrink_interval = GRANT_SHRINK_INTERVAL;
 
-	lprocfs_osc_init_vars(obd);
-	if (lprocfs_obd_setup(obd, false) == 0) {
-		lproc_osc_attach_seqstat(obd);
-		sptlrpc_lprocfs_cliobd_attach(obd);
-		ptlrpc_lprocfs_register_obd(obd);
-	}
+	rc = osc_tunables_init(obd);
+	if (rc)
+		goto out_quota;
 
 	/*
 	 * We try to control the total number of requests with a upper limit
@@ -2916,6 +2913,8 @@ int osc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 
 	return rc;
 
+out_quota:
+	osc_quota_cleanup(obd);
 out_ptlrpcd_work:
 	if (cli->cl_writeback_work) {
 		ptlrpcd_destroy_work(cli->cl_writeback_work);
@@ -2993,18 +2992,9 @@ static int osc_cleanup(struct obd_device *obd)
 
 int osc_process_config_base(struct obd_device *obd, struct lustre_cfg *lcfg)
 {
-	int rc = 0;
-
-	switch (lcfg->lcfg_command) {
-	default:
-		rc = class_process_proc_param(PARAM_OSC, obd->obd_vars,
-					      lcfg, obd);
-		if (rc > 0)
-			rc = 0;
-		break;
-	}
-
-	return rc;
+	ssize_t count  = class_modify_config(lcfg, PARAM_OSC,
+					     &obd->obd_kset.kobj);
+	return count > 0 ? 0 : count;
 }
 
 static int osc_process_config(struct obd_device *obd, u32 len, void *buf)
