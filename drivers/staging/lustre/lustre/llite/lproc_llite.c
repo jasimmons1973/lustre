@@ -153,22 +153,23 @@ static ssize_t kbytestotal_show(struct kobject *kobj, struct attribute *attr,
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
 	struct obd_statfs osfs;
+	u32 blk_size;
+	u64 result;
 	int rc;
 
 	rc = ll_statfs_internal(sbi, &osfs,
 				get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 				OBD_STATFS_NODELAY);
-	if (!rc) {
-		__u32 blk_size = osfs.os_bsize >> 10;
-		__u64 result = osfs.os_blocks;
+	if (rc)
+		return rc;
 
-		while (blk_size >>= 1)
-			result <<= 1;
+	blk_size = osfs.os_bsize >> 10;
+	result = osfs.os_blocks;
 
-		rc = sprintf(buf, "%llu\n", result);
-	}
+	while (blk_size >>= 1)
+		result <<= 1;
 
-	return rc;
+	return sprintf(buf, "%llu\n", result);
 }
 LUSTRE_RO_ATTR(kbytestotal);
 
@@ -178,22 +179,23 @@ static ssize_t kbytesfree_show(struct kobject *kobj, struct attribute *attr,
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
 	struct obd_statfs osfs;
+	u32 blk_size;
+	u64 result;
 	int rc;
 
 	rc = ll_statfs_internal(sbi, &osfs,
 				get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 				OBD_STATFS_NODELAY);
-	if (!rc) {
-		__u32 blk_size = osfs.os_bsize >> 10;
-		__u64 result = osfs.os_bfree;
+	if (rc)
+		return rc;
 
-		while (blk_size >>= 1)
-			result <<= 1;
+	blk_size = osfs.os_bsize >> 10;
+	result = osfs.os_bfree;
 
-		rc = sprintf(buf, "%llu\n", result);
-	}
+	while (blk_size >>= 1)
+		result <<= 1;
 
-	return rc;
+	return sprintf(buf, "%llu\n", result);
 }
 LUSTRE_RO_ATTR(kbytesfree);
 
@@ -203,22 +205,23 @@ static ssize_t kbytesavail_show(struct kobject *kobj, struct attribute *attr,
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
 	struct obd_statfs osfs;
+	u32 blk_size;
+	u64 result;
 	int rc;
 
 	rc = ll_statfs_internal(sbi, &osfs,
 				get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 				OBD_STATFS_NODELAY);
-	if (!rc) {
-		__u32 blk_size = osfs.os_bsize >> 10;
-		__u64 result = osfs.os_bavail;
+	if (rc)
+		return rc;
 
-		while (blk_size >>= 1)
-			result <<= 1;
+	blk_size = osfs.os_bsize >> 10;
+	result = osfs.os_bavail;
 
-		rc = sprintf(buf, "%llu\n", result);
-	}
+	while (blk_size >>= 1)
+		result <<= 1;
 
-	return rc;
+	return sprintf(buf, "%llu\n", result);
 }
 LUSTRE_RO_ATTR(kbytesavail);
 
