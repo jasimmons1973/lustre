@@ -588,12 +588,9 @@ static ssize_t max_pages_per_rpc_store(struct kobject *kobj,
 }
 LUSTRE_RW_ATTR(max_pages_per_rpc);
 
-static ssize_t unstable_stats_show(struct kobject *kobj,
-				   struct attribute *attr,
-				   char *buf)
+static int osc_unstable_stats_seq_show(struct seq_file *m, void *v)
 {
-	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kset.kobj);
+	struct obd_device *dev = m->private;
 	struct client_obd *cli = &dev->u.cli;
 	long pages;
 	int mb;
@@ -601,10 +598,14 @@ static ssize_t unstable_stats_show(struct kobject *kobj,
 	pages = atomic_long_read(&cli->cl_unstable_count);
 	mb = (pages * PAGE_SIZE) >> 20;
 
-	return sprintf(buf, "unstable_pages: %20ld\n"
-		       "unstable_mb:              %10d\n", pages, mb);
+	seq_printf(m,
+		   "unstable_pages: %20ld\n"
+		   "unstable_mb:              %10d\n",
+		   pages, mb);
+	return 0;
 }
-LUSTRE_RO_ATTR(unstable_stats);
+
+LPROC_SEQ_FOPS_RO(osc_unstable_stats);
 
 LPROC_SEQ_FOPS_RO_TYPE(osc, connect_flags);
 LPROC_SEQ_FOPS_RO_TYPE(osc, server_uuid);
@@ -629,6 +630,8 @@ static struct lprocfs_vars lprocfs_osc_obd_vars[] = {
 	{ "import",		&osc_import_fops, NULL },
 	{ "state",		&osc_state_fops, NULL, 0 },
 	{ "pinger_recov",	&osc_pinger_recov_fops, NULL },
+	{ .name	=	"unstable_stats",
+	  .fops	=	&osc_unstable_stats_fops	},
 	{ NULL }
 };
 
@@ -811,7 +814,6 @@ static struct attribute *osc_attrs[] = {
 	&lustre_attr_max_pages_per_rpc.attr,
 	&lustre_attr_max_rpcs_in_flight.attr,
 	&lustre_attr_resend_count.attr,
-	&lustre_attr_unstable_stats.attr,
 	NULL,
 };
 
