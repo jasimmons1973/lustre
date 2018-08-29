@@ -51,15 +51,12 @@ static ssize_t active_store(struct kobject *kobj, struct attribute *attr,
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	unsigned long val;
+	bool val;
 	int rc;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtobool(buffer, &val);
 	if (rc)
 		return rc;
-
-	if (val > 1)
-		return -ERANGE;
 
 	/* opposite senses */
 	if (dev->u.cli.cl_import->imp_deactive == val) {
@@ -67,7 +64,7 @@ static ssize_t active_store(struct kobject *kobj, struct attribute *attr,
 		if (rc)
 			count = rc;
 	} else {
-		CDEBUG(D_CONFIG, "activate %lu: ignoring repeat request\n", val);
+		CDEBUG(D_CONFIG, "activate %u: ignoring repeat request\n", val);
 	}
 	return count;
 }
@@ -77,15 +74,10 @@ static ssize_t max_rpcs_in_flight_show(struct kobject *kobj,
 				       struct attribute *attr,
 				       char *buf)
 {
-	int len;
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	__u32 max;
 
-	max = obd_get_max_rpcs_in_flight(&dev->u.cli);
-	len = sprintf(buf, "%u\n", max);
-
-	return len;
+	return sprintf(buf, "%u\n", obd_get_max_rpcs_in_flight(&dev->u.cli));
 }
 
 static ssize_t max_rpcs_in_flight_store(struct kobject *kobj,
@@ -95,10 +87,10 @@ static ssize_t max_rpcs_in_flight_store(struct kobject *kobj,
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
+	unsigned int val;
 	int rc;
-	unsigned long val;
 
-	rc = kstrtoul(buffer, 10, &val);
+	rc = kstrtouint(buffer, 10, &val);
 	if (rc)
 		return rc;
 
@@ -116,13 +108,8 @@ static ssize_t max_mod_rpcs_in_flight_show(struct kobject *kobj,
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	u16 max;
-	int len;
 
-	max = dev->u.cli.cl_max_mod_rpcs_in_flight;
-	len = sprintf(buf, "%hu\n", max);
-
-	return len;
+	return sprintf(buf, "%hu\n", dev->u.cli.cl_max_mod_rpcs_in_flight);
 }
 
 static ssize_t max_mod_rpcs_in_flight_store(struct kobject *kobj,
@@ -146,6 +133,9 @@ static ssize_t max_mod_rpcs_in_flight_store(struct kobject *kobj,
 	return count;
 }
 LUSTRE_RW_ATTR(max_mod_rpcs_in_flight);
+
+#define mdc_conn_uuid_show conn_uuid_show
+LUSTRE_RO_ATTR(mdc_conn_uuid);
 
 static int mdc_rpc_stats_seq_show(struct seq_file *seq, void *v)
 {
@@ -172,7 +162,6 @@ LPROC_SEQ_FOPS_WR_ONLY(mdc, ping);
 
 LPROC_SEQ_FOPS_RO_TYPE(mdc, connect_flags);
 LPROC_SEQ_FOPS_RO_TYPE(mdc, server_uuid);
-LPROC_SEQ_FOPS_RO_TYPE(mdc, conn_uuid);
 LPROC_SEQ_FOPS_RO_TYPE(mdc, timeouts);
 LPROC_SEQ_FOPS_RO_TYPE(mdc, state);
 
@@ -198,15 +187,20 @@ LPROC_SEQ_FOPS_RW_TYPE(mdc, import);
 LPROC_SEQ_FOPS_RW_TYPE(mdc, pinger_recov);
 
 static struct lprocfs_vars lprocfs_mdc_obd_vars[] = {
-	{ "ping",		&mdc_ping_fops,			NULL, 0222 },
-	{ "connect_flags",	&mdc_connect_flags_fops,	NULL, 0 },
-	/*{ "filegroups",	lprocfs_rd_filegroups,		NULL, 0 },*/
-	{ "mds_server_uuid",	&mdc_server_uuid_fops,		NULL, 0 },
-	{ "mds_conn_uuid",	&mdc_conn_uuid_fops,		NULL, 0 },
-	{ "timeouts",		&mdc_timeouts_fops,		NULL, 0 },
-	{ "import",		&mdc_import_fops,		NULL, 0 },
-	{ "state",		&mdc_state_fops,		NULL, 0 },
-	{ "pinger_recov",	&mdc_pinger_recov_fops,		NULL, 0 },
+	{ .name	=	"ping",
+	  .fops	=	&mdc_ping_fops			},
+	{ .name	=	"connect_flags",
+	  .fops	=	&mdc_connect_flags_fops		},
+	{ .name	=	"mds_server_uuid",
+	  .fops	=	&mdc_server_uuid_fops,		},
+	{ .name	=	"timeouts",
+	  .fops	=	&mdc_timeouts_fops		},
+	{ .name	=	"import",
+	  .fops	=	&mdc_import_fops		},
+	{ .name	=	"state",
+	  .fops	=	&mdc_state_fops			},
+	{ .name	=	"pinger_recov",
+	  .fops	=	&mdc_pinger_recov_fops		},
 	{ .name =	"rpc_stats",
 	  .fops =	&mdc_rpc_stats_fops		},
 	{ NULL }
@@ -217,11 +211,27 @@ static struct attribute *mdc_attrs[] = {
 	&lustre_attr_max_rpcs_in_flight.attr,
 	&lustre_attr_max_mod_rpcs_in_flight.attr,
 	&lustre_attr_max_pages_per_rpc.attr,
+	&lustre_attr_mdc_conn_uuid.attr,
 	NULL,
 };
 
-void lprocfs_mdc_init_vars(struct obd_device *obd)
+int mdc_tunables_init(struct obd_device *obd)
 {
+	int rc;
+
 	obd->obd_ktype.default_attrs = mdc_attrs;
 	obd->obd_vars = lprocfs_mdc_obd_vars;
+
+	rc = lprocfs_obd_setup(obd, false);
+	if (rc)
+		return rc;
+
+	rc = sptlrpc_lprocfs_cliobd_attach(obd);
+	if (rc) {
+		lprocfs_obd_cleanup(obd);
+		return rc;
+	}
+	ptlrpc_lprocfs_register_obd(obd);
+
+	return 0;
 }

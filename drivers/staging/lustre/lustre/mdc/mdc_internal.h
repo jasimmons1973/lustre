@@ -36,7 +36,8 @@
 
 #include <lustre_mdc.h>
 
-void lprocfs_mdc_init_vars(struct obd_device *obd);
+int mdc_tunables_init(struct obd_device *obd);
+
 void mdc_pack_body(struct ptlrpc_request *req, const struct lu_fid *fid,
 		   __u64 valid, size_t ea_size, __u32 suppgid, u32 flags);
 void mdc_swap_layouts_pack(struct ptlrpc_request *req,
