@@ -342,8 +342,8 @@ lnet_nid2peer_locked(struct lnet_peer **lpp, lnet_nid_t nid, int cpt)
 		goto out;
 	}
 
-	lp->lp_txcredits = lp->lp_ni->ni_peertxcredits;
-	lp->lp_mintxcredits = lp->lp_ni->ni_peertxcredits;
+	lp->lp_txcredits = lp->lp_ni->ni_net->net_tunables.lct_peer_tx_credits;
+	lp->lp_mintxcredits = lp->lp_ni->ni_net->net_tunables.lct_peer_tx_credits;
 	lp->lp_rtrcredits = lnet_peer_buffer_credits(lp->lp_ni);
 	lp->lp_minrtrcredits = lnet_peer_buffer_credits(lp->lp_ni);
 
@@ -383,7 +383,7 @@ lnet_debug_peer(lnet_nid_t nid)
 
 	CDEBUG(D_WARNING, "%-24s %4d %5s %5d %5d %5d %5d %5d %ld\n",
 	       libcfs_nid2str(lp->lp_nid), lp->lp_refcount,
-	       aliveness, lp->lp_ni->ni_peertxcredits,
+	       aliveness, lp->lp_ni->ni_net->net_tunables.lct_peer_tx_credits,
 	       lp->lp_rtrcredits, lp->lp_minrtrcredits,
 	       lp->lp_txcredits, lp->lp_mintxcredits, lp->lp_txqnob);
 
@@ -438,7 +438,8 @@ lnet_get_peer_info(__u32 peer_index, __u64 *nid,
 
 			*nid = lp->lp_nid;
 			*refcount = lp->lp_refcount;
-			*ni_peer_tx_credits = lp->lp_ni->ni_peertxcredits;
+			*ni_peer_tx_credits =
+				lp->lp_ni->ni_net->net_tunables.lct_peer_tx_credits;
 			*peer_tx_credits = lp->lp_txcredits;
 			*peer_rtr_credits = lp->lp_rtrcredits;
 			*peer_min_rtr_credits = lp->lp_mintxcredits;

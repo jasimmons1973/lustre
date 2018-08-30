@@ -57,9 +57,11 @@ MODULE_PARM_DESC(auto_down, "Automatically mark peers down on comms error");
 int
 lnet_peer_buffer_credits(struct lnet_ni *ni)
 {
+	struct lnet_net *net = ni->ni_net;
+
 	/* NI option overrides LNet default */
-	if (ni->ni_peerrtrcredits > 0)
-		return ni->ni_peerrtrcredits;
+	if (net->net_tunables.lct_peer_rtr_credits > 0)
+		return net->net_tunables.lct_peer_rtr_credits;
 	if (peer_buffer_credits > 0)
 		return peer_buffer_credits;
 
@@ -67,7 +69,7 @@ lnet_peer_buffer_credits(struct lnet_ni *ni)
 	 * As an approximation, allow this peer the same number of router
 	 * buffers as it is allowed outstanding sends
 	 */
-	return ni->ni_peertxcredits;
+	return net->net_tunables.lct_peer_tx_credits;
 }
 
 /* forward ref's */

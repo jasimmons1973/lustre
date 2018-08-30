@@ -524,7 +524,8 @@ lnet_peer_is_alive(struct lnet_peer *lp, unsigned long now)
 	    lp->lp_timestamp >= lp->lp_last_alive)
 		return 0;
 
-	deadline = lp->lp_last_alive + lp->lp_ni->ni_peertimeout;
+	deadline = lp->lp_last_alive +
+		lp->lp_ni->ni_net->net_tunables.lct_peer_timeout;
 	alive = deadline > now;
 
 	/* Update obsolete lp_alive except for routers assumed to be dead
@@ -569,7 +570,7 @@ lnet_peer_alive_locked(struct lnet_peer *lp)
 				      libcfs_nid2str(lp->lp_nid),
 				      now, next_query,
 				      lnet_queryinterval,
-				      lp->lp_ni->ni_peertimeout);
+				      lp->lp_ni->ni_net->net_tunables.lct_peer_timeout);
 			return 0;
 		}
 	}

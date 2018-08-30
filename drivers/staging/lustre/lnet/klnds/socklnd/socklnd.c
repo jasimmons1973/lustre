@@ -2741,10 +2741,17 @@ ksocknal_startup(struct lnet_ni *ni)
 	spin_lock_init(&net->ksnn_lock);
 	net->ksnn_incarnation = ktime_get_real_ns();
 	ni->ni_data = net;
-	ni->ni_peertimeout    = *ksocknal_tunables.ksnd_peertimeout;
-	ni->ni_maxtxcredits   = *ksocknal_tunables.ksnd_credits;
-	ni->ni_peertxcredits  = *ksocknal_tunables.ksnd_peertxcredits;
-	ni->ni_peerrtrcredits = *ksocknal_tunables.ksnd_peerrtrcredits;
+	if (!ni->ni_net->net_tunables_set) {
+		ni->ni_net->net_tunables.lct_peer_timeout =
+			*ksocknal_tunables.ksnd_peertimeout;
+		ni->ni_net->net_tunables.lct_max_tx_credits =
+			*ksocknal_tunables.ksnd_credits;
+		ni->ni_net->net_tunables.lct_peer_tx_credits =
+			*ksocknal_tunables.ksnd_peertxcredits;
+		ni->ni_net->net_tunables.lct_peer_rtr_credits =
+			*ksocknal_tunables.ksnd_peerrtrcredits;
+		ni->ni_net->net_tunables_set = true;
+	}
 
 	net->ksnn_ninterfaces = 0;
 	if (!ni->ni_interfaces[0]) {

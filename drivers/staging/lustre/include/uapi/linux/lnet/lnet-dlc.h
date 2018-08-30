@@ -39,10 +39,10 @@
 
 struct lnet_ioctl_config_lnd_cmn_tunables {
 	__u32 lct_version;
-	__u32 lct_peer_timeout;
-	__u32 lct_peer_tx_credits;
-	__u32 lct_peer_rtr_credits;
-	__u32 lct_max_tx_credits;
+	__s32 lct_peer_timeout;
+	__s32 lct_peer_tx_credits;
+	__s32 lct_peer_rtr_credits;
+	__s32 lct_max_tx_credits;
 };
 
 struct lnet_ioctl_config_o2iblnd_tunables {

@@ -114,29 +114,38 @@ lnet_ni_free(struct lnet_ni *ni)
 	if (ni->ni_net_ns)
 		put_net(ni->ni_net_ns);
 
+	kfree(ni->ni_net);
 	kfree(ni);
 }
 
 struct lnet_ni *
-lnet_ni_alloc(__u32 net, struct cfs_expr_list *el, struct list_head *nilist)
+lnet_ni_alloc(__u32 net_id, struct cfs_expr_list *el, struct list_head *nilist)
 {
 	struct lnet_tx_queue *tq;
+	struct lnet_net *net;
 	struct lnet_ni *ni;
 	int rc;
 	int i;
 
-	if (!lnet_net_unique(net, nilist)) {
+	if (!lnet_net_unique(net_id, nilist)) {
 		LCONSOLE_ERROR_MSG(0x111, "Duplicate network specified: %s\n",
-				   libcfs_net2str(net));
+				   libcfs_net2str(net_id));
 		return NULL;
 	}
 
 	ni = kzalloc(sizeof(*ni), GFP_NOFS);
-	if (!ni) {
+	net = kzalloc(sizeof(*net), GFP_NOFS);
+	if (!ni || !net) {
+		kfree(ni); kfree(net);
 		CERROR("Out of memory creating network %s\n",
-		       libcfs_net2str(net));
+		       libcfs_net2str(net_id));
 		return NULL;
 	}
+	/* initialize global paramters to undefiend */
+	net->net_tunables.lct_peer_timeout = -1;
+	net->net_tunables.lct_max_tx_credits = -1;
+	net->net_tunables.lct_peer_tx_credits = -1;
+	net->net_tunables.lct_peer_rtr_credits = -1;
 
 	spin_lock_init(&ni->ni_lock);
 	INIT_LIST_HEAD(&ni->ni_cptlist);
@@ -160,7 +169,7 @@ lnet_ni_alloc(__u32 net, struct cfs_expr_list *el, struct list_head *nilist)
 		rc = cfs_expr_list_values(el, LNET_CPT_NUMBER, &ni->ni_cpts);
 		if (rc <= 0) {
 			CERROR("Failed to set CPTs for NI %s: %d\n",
-			       libcfs_net2str(net), rc);
+			       libcfs_net2str(net_id), rc);
 			goto failed;
 		}
 
@@ -173,8 +182,9 @@ lnet_ni_alloc(__u32 net, struct cfs_expr_list *el, struct list_head *nilist)
 		ni->ni_ncpts = rc;
 	}
 
+	ni->ni_net = net;
 	/* LND will fill in the address part of the NID */
-	ni->ni_nid = LNET_MKNID(net, 0);
+	ni->ni_nid = LNET_MKNID(net_id, 0);
 
 	/* Store net namespace in which current ni is being created */
 	if (current->nsproxy->net_ns)
