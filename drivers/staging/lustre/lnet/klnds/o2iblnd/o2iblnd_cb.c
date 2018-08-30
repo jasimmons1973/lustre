@@ -1452,7 +1452,7 @@ kiblnd_launch_tx(struct lnet_ni *ni, struct kib_tx *tx, lnet_nid_t nid)
 
 	/* Brand new peer */
 	LASSERT(!peer->ibp_connecting);
-	tunables = &peer->ibp_ni->ni_lnd_tunables->lt_tun_u.lt_o2ib;
+	tunables = &peer->ibp_ni->ni_lnd_tunables.lnd_tun_u.lnd_o2ib;
 	peer->ibp_connecting = tunables->lnd_conns_per_peer;
 
 	/* always called with a ref on ni, which prevents ni being shutdown */
@@ -2592,14 +2592,14 @@ kiblnd_check_reconnect(struct kib_conn *conn, int version,
 		break;
 
 	case IBLND_REJECT_RDMA_FRAGS: {
-		struct lnet_ioctl_config_lnd_tunables *tunables;
+		struct lnet_ioctl_config_o2iblnd_tunables *tunables;
 
 		if (!cp) {
 			reason = "can't negotiate max frags";
 			goto out;
 		}
-		tunables = peer->ibp_ni->ni_lnd_tunables;
-		if (!tunables->lt_tun_u.lt_o2ib.lnd_map_on_demand) {
+		tunables = &peer->ibp_ni->ni_lnd_tunables.lnd_tun_u.lnd_o2ib;
+		if (!tunables->lnd_map_on_demand) {
 			reason = "map_on_demand must be enabled";
 			goto out;
 		}

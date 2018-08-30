@@ -57,11 +57,15 @@ struct lnet_ioctl_config_o2iblnd_tunables {
 	__u16 pad;
 };
 
+struct lnet_lnd_tunables {
+	union {
+		struct lnet_ioctl_config_o2iblnd_tunables lnd_o2ib;
+	} lnd_tun_u;
+};
+
 struct lnet_ioctl_config_lnd_tunables {
 	struct lnet_ioctl_config_lnd_cmn_tunables lt_cmn;
-	union {
-		struct lnet_ioctl_config_o2iblnd_tunables lt_o2ib;
-	} lt_tun_u;
+	struct lnet_lnd_tunables lt_tun;
 };
 
 struct lnet_ioctl_net_config {

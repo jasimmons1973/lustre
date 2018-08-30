@@ -2122,7 +2122,7 @@ static int kiblnd_net_init_pools(struct kib_net *net, struct lnet_ni *ni,
 	int rc;
 	int i;
 
-	tunables = &ni->ni_lnd_tunables->lt_tun_u.lt_o2ib;
+	tunables = &ni->ni_lnd_tunables.lnd_tun_u.lnd_o2ib;
 
 	if (tunables->lnd_fmr_pool_size < *kiblnd_tunables.kib_ntx / 4) {
 		CERROR("Can't set fmr pool size (%d) < ntx / 4(%d)\n",

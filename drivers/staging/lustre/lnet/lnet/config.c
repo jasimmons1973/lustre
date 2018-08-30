@@ -105,8 +105,6 @@ lnet_ni_free(struct lnet_ni *ni)
 	if (ni->ni_cpts)
 		cfs_expr_list_values_free(ni->ni_cpts, ni->ni_ncpts);
 
-	kfree(ni->ni_lnd_tunables);
-
 	for (i = 0; i < LNET_MAX_INTERFACES && ni->ni_interfaces[i]; i++)
 		kfree(ni->ni_interfaces[i]);
 

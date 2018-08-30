@@ -185,16 +185,11 @@ int kiblnd_tunables_setup(struct lnet_ni *ni)
 	 * if there was no tunables specified, setup the tunables to be
 	 * defaulted
 	 */
-	if (!ni->ni_lnd_tunables) {
-		ni->ni_lnd_tunables = kzalloc(sizeof(*ni->ni_lnd_tunables),
-					      GFP_NOFS);
-		if (!ni->ni_lnd_tunables)
-			return -ENOMEM;
-
-		memcpy(&ni->ni_lnd_tunables->lt_tun_u.lt_o2ib,
+	if (!ni->ni_lnd_tunables_set)
+		memcpy(&ni->ni_lnd_tunables.lnd_tun_u.lnd_o2ib,
 		       &default_tunables, sizeof(*tunables));
-	}
-	tunables = &ni->ni_lnd_tunables->lt_tun_u.lt_o2ib;
+
+	tunables = &ni->ni_lnd_tunables.lnd_tun_u.lnd_o2ib;
 
 	/* Current API version */
 	tunables->lnd_version = 0;
