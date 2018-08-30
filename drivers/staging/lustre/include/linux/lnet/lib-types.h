@@ -253,28 +253,52 @@ struct lnet_tx_queue {
 };
 
 struct lnet_ni {
-	spinlock_t		  ni_lock;
-	struct list_head	  ni_list;	/* chain on ln_nis */
-	struct list_head	  ni_cptlist;	/* chain on ln_nis_cpt */
-	int			  ni_maxtxcredits; /* # tx credits  */
+	spinlock_t		ni_lock;
+	/* chain on ln_nis */
+	struct list_head	ni_list;
+	/* chain on ln_nis_cpt */
+	struct list_head	ni_cptlist;
+	/* # tx credits  */
+	int			ni_maxtxcredits;
 	/* # per-peer send credits */
-	int			  ni_peertxcredits;
+	int			ni_peertxcredits;
 	/* # per-peer router buffer credits */
-	int			  ni_peerrtrcredits;
+	int			ni_peerrtrcredits;
 	/* seconds to consider peer dead */
-	int			  ni_peertimeout;
-	int			  ni_ncpts;	/* number of CPTs */
-	__u32			 *ni_cpts;	/* bond NI on some CPTs */
-	lnet_nid_t		  ni_nid;	/* interface's NID */
-	void			 *ni_data;	/* instance-specific data */
-	struct lnet_lnd		 *ni_lnd;	/* procedural interface */
-	struct lnet_tx_queue	**ni_tx_queues;	/* percpt TX queues */
-	int			**ni_refs;	/* percpt reference count */
-	time64_t		  ni_last_alive;/* when I was last alive */
-	struct lnet_ni_status	 *ni_status;	/* my health status */
+	int			ni_peertimeout;
+	/* number of CPTs */
+	int			ni_ncpts;
+
+	/* bond NI on some CPTs */
+	__u32			*ni_cpts;
+
+	/* interface's NID */
+	lnet_nid_t		ni_nid;
+
+	/* instance-specific data */
+	void			*ni_data;
+
+	/* procedural interface */
+	struct lnet_lnd		*ni_lnd;
+
+	/* percpt TX queues */
+	struct lnet_tx_queue	**ni_tx_queues;
+
+	/* percpt reference count */
+	int			**ni_refs;
+
+	/* when I was last alive */
+	time64_t		ni_last_alive;
+
+	/* my health status */
+	struct lnet_ni_status	*ni_status;
+
 	/* per NI LND tunables */
 	struct lnet_ioctl_config_lnd_tunables *ni_lnd_tunables;
-	/* equivalent interfaces to use */
+	/*
+	 * equivalent interfaces to use
+	 * This is an array because socklnd bonding can still be configured
+	 */
 	char			 *ni_interfaces[LNET_MAX_INTERFACES];
 	/* original net namespace */
 	struct net		 *ni_net_ns;
@@ -299,63 +323,72 @@ struct lnet_ni {
 #define LNET_PINGINFO_SIZE offsetof(struct lnet_ping_info, pi_ni[LNET_MAX_RTR_NIS])
 struct lnet_rc_data {
 	/* chain on the_lnet.ln_zombie_rcd or ln_deathrow_rcd */
-	struct list_head	 rcd_list;
-	struct lnet_handle_md	 rcd_mdh;	/* ping buffer MD */
-	struct lnet_peer	*rcd_gateway;	/* reference to gateway */
-	struct lnet_ping_info	*rcd_pinginfo;	/* ping buffer */
+	struct list_head	rcd_list;
+	/* ping buffer MD */
+	struct lnet_handle_md	rcd_mdh;
+	/* reference to gateway */
+	struct lnet_peer	*rcd_gateway;
+	/* ping buffer */
+	struct lnet_ping_info	*rcd_pinginfo;
 };
 
 struct lnet_peer {
-	struct list_head	 lp_hashlist;	/* chain on peer hash */
-	struct list_head	 lp_txq;	/* messages blocking for
-						 * tx credits
-						 */
-	struct list_head	 lp_rtrq;	/* messages blocking for
-						 * router credits
-						 */
-	struct list_head	 lp_rtr_list;	/* chain on router list */
-	int			 lp_txcredits;	/* # tx credits available */
-	int			 lp_mintxcredits;  /* low water mark */
-	int			 lp_rtrcredits;	   /* # router credits */
-	int			 lp_minrtrcredits; /* low water mark */
-	unsigned int		 lp_alive:1;	   /* alive/dead? */
-	unsigned int		 lp_notify:1;	/* notification outstanding? */
-	unsigned int		 lp_notifylnd:1;/* outstanding notification
-						 * for LND?
-						 */
-	unsigned int		 lp_notifying:1; /* some thread is handling
-						  * notification
-						  */
-	unsigned int		 lp_ping_notsent;/* SEND event outstanding
-						  * from ping
-						  */
-	int			 lp_alive_count; /* # times router went
-						  * dead<->alive
-						  */
-	long			 lp_txqnob;	 /* ytes queued for sending */
-	time64_t		 lp_timestamp;	 /* time of last aliveness
-						  * news
-						  */
-	time64_t		 lp_ping_timestamp;/* time of last ping
-						    * attempt
-						    */
-	time64_t		 lp_ping_deadline; /* != 0 if ping reply
-						    * expected
-						    */
-	time64_t		 lp_last_alive;	/* when I was last alive */
-	time64_t		 lp_last_query;	/* when lp_ni was queried
-						 * last time
-						 */
-	struct lnet_ni		*lp_ni;		/* interface peer is on */
-	lnet_nid_t		 lp_nid;	/* peer's NID */
-	int			 lp_refcount;	/* # refs */
-	int			 lp_cpt;	/* CPT this peer attached on */
+	/* chain on peer hash */
+	struct list_head	 lp_hashlist;
+	/* messages blocking for tx credits */
+	struct list_head	 lp_txq;
+	/* messages blocking for router credits */
+	struct list_head	 lp_rtrq;
+	/* chain on router list */
+	struct list_head	 lp_rtr_list;
+	/* # tx credits available */
+	int			 lp_txcredits;
+	/* low water mark */
+	int			 lp_mintxcredits;
+	/* # router credits */
+	int			 lp_rtrcredits;
+	/* low water mark */
+	int			 lp_minrtrcredits;
+	/* alive/dead? */
+	unsigned int		 lp_alive:1;
+	/* notification outstanding? */
+	unsigned int		 lp_notify:1;
+	/* outstanding notification for LND? */
+	unsigned int		 lp_notifylnd:1;
+	/* some thread is handling notification */
+	unsigned int		 lp_notifying:1;
+	/* SEND event outstanding from ping */
+	unsigned int		 lp_ping_notsent;
+	/* # times router went dead<->alive */
+	int			 lp_alive_count;
+	 /* ytes queued for sending */
+	long			 lp_txqnob;
+	/* time of last aliveness news */
+	time64_t		 lp_timestamp;
+	/* time of last ping attempt */
+	time64_t		 lp_ping_timestamp;
+	/* != 0 if ping reply expected */
+	time64_t		 lp_ping_deadline;
+	/* when I was last alive */
+	time64_t		 lp_last_alive;
+	/* when lp_ni was queried last time */
+	time64_t		 lp_last_query;
+	/* interface peer is on */
+	struct lnet_ni		*lp_ni;
+	/* peer's NID */
+	lnet_nid_t		 lp_nid;
+	/* # refs */
+	int			 lp_refcount;
+	/* CPT this peer attached on */
+	int			 lp_cpt;
 	/* # refs from lnet_route::lr_gateway */
 	int			 lp_rtr_refcount;
 	/* returned RC ping features */
 	unsigned int		 lp_ping_feats;
-	struct list_head	 lp_routes;	/* routers on this peer */
-	struct lnet_rc_data	*lp_rcd;	/* router checker state */
+	/* routers on this peer */
+	struct list_head	 lp_routes;
+	/* router checker state */
+	struct lnet_rc_data	*lp_rcd;
 };
 
 /* peer hash size */
@@ -364,12 +397,16 @@ struct lnet_peer {
 
 /* peer hash table */
 struct lnet_peer_table {
-	int			 pt_version;	/* /proc validity stamp */
-	int			 pt_number;	/* # peers extant */
+	/* /proc validity stamp */
+	int			 pt_version;
+	/* # peers extant */
+	int			 pt_number;
 	/* # zombies to go to deathrow (and not there yet) */
 	int			 pt_zombies;
-	struct list_head	 pt_deathrow;	/* zombie peers */
-	struct list_head	*pt_hash;	/* NID->peer hash */
+	/* zombie peers */
+	struct list_head	 pt_deathrow;
+	/* NID->peer hash */
+	struct list_head	*pt_hash;
 };
 
 /*
@@ -380,14 +417,22 @@ struct lnet_peer_table {
 					 (lp)->lp_ni->ni_peertimeout > 0)
 
 struct lnet_route {
-	struct list_head	 lr_list;	/* chain on net */
-	struct list_head	 lr_gwlist;	/* chain on gateway */
-	struct lnet_peer	*lr_gateway;	/* router node */
-	__u32			 lr_net;	/* remote network number */
-	int			 lr_seq;	/* sequence for round-robin */
-	unsigned int		 lr_downis;	/* number of down NIs */
-	__u32			 lr_hops;	/* how far I am */
-	unsigned int             lr_priority;	/* route priority */
+	/* chain on net */
+	struct list_head	lr_list;
+	/* chain on gateway */
+	struct list_head	lr_gwlist;
+	/* router node */
+	struct lnet_peer	*lr_gateway;
+	/* remote network number */
+	__u32			lr_net;
+	/* sequence for round-robin */
+	int			lr_seq;
+	/* number of down NIs */
+	unsigned int		lr_downis;
+	/* how far I am */
+	__u32			lr_hops;
+	/* route priority */
+	unsigned int		lr_priority;
 };
 
 #define LNET_REMOTE_NETS_HASH_DEFAULT	(1U << 7)
@@ -395,11 +440,12 @@ struct lnet_route {
 #define LNET_REMOTE_NETS_HASH_SIZE	(1 << the_lnet.ln_remote_nets_hbits)
 
 struct lnet_remotenet {
-	struct list_head	lrn_list;	/* chain on
-						 * ln_remote_nets_hash
-						 */
-	struct list_head	lrn_routes;	/* routes to me */
-	__u32			lrn_net;	/* my net number */
+	/* chain on ln_remote_nets_hash */
+	struct list_head	lrn_list;
+	/* routes to me */
+	struct list_head	lrn_routes;
+	/* my net number */
+	__u32			lrn_net;
 };
 
 /** lnet message has credit and can be submitted to lnd for send/receive */
@@ -592,12 +638,14 @@ struct lnet {
 	struct list_head		  ln_drop_rules;
 	struct list_head		  ln_delay_rules;
 
-	struct list_head		  ln_nis;	/* LND instances */
+	/* LND instances */
+	struct list_head		ln_nis;
 	/* NIs bond on specific CPT(s) */
-	struct list_head		  ln_nis_cpt;
+	struct list_head		ln_nis_cpt;
 	/* dying LND instances */
-	struct list_head		  ln_nis_zombie;
-	struct lnet_ni			 *ln_loni;	/* the loopback NI */
+	struct list_head		ln_nis_zombie;
+	/* the loopback NI */
+	struct lnet_ni			*ln_loni;
 
 	/* remote networks with routes to them */
 	struct list_head		 *ln_remote_nets_hash;
