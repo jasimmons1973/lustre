@@ -154,14 +154,14 @@ lnet_ni_notify_locked(struct lnet_ni *ni, struct lnet_peer *lp)
 		lp->lp_notifylnd = 0;
 		lp->lp_notify    = 0;
 
-		if (notifylnd && ni->ni_lnd->lnd_notify) {
+		if (notifylnd && ni->ni_net->net_lnd->lnd_notify) {
 			lnet_net_unlock(lp->lp_cpt);
 
 			/*
 			 * A new notification could happen now; I'll handle it
 			 * when control returns to me
 			 */
-			ni->ni_lnd->lnd_notify(ni, lp->lp_nid, alive);
+			ni->ni_net->net_lnd->lnd_notify(ni, lp->lp_nid, alive);
 
 			lnet_net_lock(lp->lp_cpt);
 		}
@@ -380,8 +380,8 @@ lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway,
 		lnet_net_unlock(LNET_LOCK_EX);
 
 		/* XXX Assume alive */
-		if (ni->ni_lnd->lnd_notify)
-			ni->ni_lnd->lnd_notify(ni, gateway, 1);
+		if (ni->ni_net->net_lnd->lnd_notify)
+			ni->ni_net->net_lnd->lnd_notify(ni, gateway, 1);
 
 		lnet_net_lock(LNET_LOCK_EX);
 	}
@@ -818,7 +818,7 @@ lnet_update_ni_status_locked(void)
 
 	now = ktime_get_real_seconds();
 	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
-		if (ni->ni_lnd->lnd_type == LOLND)
+		if (ni->ni_net->net_lnd->lnd_type == LOLND)
 			continue;
 
 		if (now < ni->ni_last_alive + timeout)

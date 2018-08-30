@@ -306,7 +306,7 @@ lnet_accept(struct socket *sock, __u32 magic)
 		return -EPERM;
 	}
 
-	if (!ni->ni_lnd->lnd_accept) {
+	if (!ni->ni_net->net_lnd->lnd_accept) {
 		/* This catches a request for the loopback LND */
 		lnet_ni_decref(ni);
 		LCONSOLE_ERROR_MSG(0x121, "Refusing connection from %pI4h for %s: NI doesn not accept IP connections\n",
@@ -317,7 +317,7 @@ lnet_accept(struct socket *sock, __u32 magic)
 	CDEBUG(D_NET, "Accept %s from %pI4h\n",
 	       libcfs_nid2str(cr.acr_nid), &peer_ip);
 
-	rc = ni->ni_lnd->lnd_accept(ni, sock);
+	rc = ni->ni_net->net_lnd->lnd_accept(ni, sock);
 
 	lnet_ni_decref(ni);
 	return rc;

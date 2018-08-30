@@ -406,7 +406,7 @@ lnet_ni_recv(struct lnet_ni *ni, void *private, struct lnet_msg *msg,
 		iov_iter_bvec(&to, ITER_BVEC | READ, kiov, niov, mlen + offset);
 		iov_iter_advance(&to, offset);
 	}
-	rc = ni->ni_lnd->lnd_recv(ni, private, msg, delayed, &to, rlen);
+	rc = ni->ni_net->net_lnd->lnd_recv(ni, private, msg, delayed, &to, rlen);
 	if (rc < 0)
 		lnet_finalize(ni, msg, rc);
 }
@@ -461,7 +461,7 @@ lnet_ni_send(struct lnet_ni *ni, struct lnet_msg *msg)
 	LASSERT(LNET_NETTYP(LNET_NIDNET(ni->ni_nid)) == LOLND ||
 		(msg->msg_txcredit && msg->msg_peertxcredit));
 
-	rc = ni->ni_lnd->lnd_send(ni, priv, msg);
+	rc = ni->ni_net->net_lnd->lnd_send(ni, priv, msg);
 	if (rc < 0)
 		lnet_finalize(ni, msg, rc);
 }
@@ -474,10 +474,10 @@ lnet_ni_eager_recv(struct lnet_ni *ni, struct lnet_msg *msg)
 	LASSERT(!msg->msg_sending);
 	LASSERT(msg->msg_receiving);
 	LASSERT(!msg->msg_rx_ready_delay);
-	LASSERT(ni->ni_lnd->lnd_eager_recv);
+	LASSERT(ni->ni_net->net_lnd->lnd_eager_recv);
 
 	msg->msg_rx_ready_delay = 1;
-	rc = ni->ni_lnd->lnd_eager_recv(ni, msg->msg_private, msg,
+	rc = ni->ni_net->net_lnd->lnd_eager_recv(ni, msg->msg_private, msg,
 					&msg->msg_private);
 	if (rc) {
 		CERROR("recv from %s / send to %s aborted: eager_recv failed %d\n",
@@ -496,10 +496,10 @@ lnet_ni_query_locked(struct lnet_ni *ni, struct lnet_peer *lp)
 	time64_t last_alive = 0;
 
 	LASSERT(lnet_peer_aliveness_enabled(lp));
-	LASSERT(ni->ni_lnd->lnd_query);
+	LASSERT(ni->ni_net->net_lnd->lnd_query);
 
 	lnet_net_unlock(lp->lp_cpt);
-	ni->ni_lnd->lnd_query(ni, lp->lp_nid, &last_alive);
+	ni->ni_net->net_lnd->lnd_query(ni, lp->lp_nid, &last_alive);
 	lnet_net_lock(lp->lp_cpt);
 
 	lp->lp_last_query = ktime_get_seconds();
@@ -1287,7 +1287,7 @@ lnet_parse_put(struct lnet_ni *ni, struct lnet_msg *msg)
 	info.mi_roffset	= hdr->msg.put.offset;
 	info.mi_mbits	= hdr->msg.put.match_bits;
 
-	msg->msg_rx_ready_delay = !ni->ni_lnd->lnd_eager_recv;
+	msg->msg_rx_ready_delay = !ni->ni_net->net_lnd->lnd_eager_recv;
 	ready_delay = msg->msg_rx_ready_delay;
 
  again:
@@ -1518,7 +1518,7 @@ lnet_parse_forward_locked(struct lnet_ni *ni, struct lnet_msg *msg)
 
 	if (msg->msg_rxpeer->lp_rtrcredits <= 0 ||
 	    lnet_msg2bufpool(msg)->rbp_credits <= 0) {
-		if (!ni->ni_lnd->lnd_eager_recv) {
+		if (!ni->ni_net->net_lnd->lnd_eager_recv) {
 			msg->msg_rx_ready_delay = 1;
 		} else {
 			lnet_net_unlock(msg->msg_rx_cpt);

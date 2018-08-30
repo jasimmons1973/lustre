@@ -262,6 +262,8 @@ struct lnet_net {
 	 * shouldn't be reset
 	 */
 	bool			net_tunables_set;
+	/* procedural interface */
+	struct lnet_lnd		*net_lnd;
 };
 
 struct lnet_ni {
@@ -282,9 +284,6 @@ struct lnet_ni {
 
 	/* instance-specific data */
 	void			*ni_data;
-
-	/* procedural interface */
-	struct lnet_lnd		*ni_lnd;
 
 	/* percpt TX queues */
 	struct lnet_tx_queue	**ni_tx_queues;
