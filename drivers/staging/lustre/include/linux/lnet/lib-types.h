@@ -531,6 +531,7 @@ enum lnet_match_flags {
 struct lnet_match_info {
 	__u64			mi_mbits;
 	struct lnet_process_id	mi_id;
+	unsigned int		mi_cpt;
 	unsigned int		mi_opc;
 	unsigned int		mi_portal;
 	unsigned int		mi_rlength;

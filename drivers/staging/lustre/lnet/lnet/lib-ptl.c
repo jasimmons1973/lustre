@@ -292,7 +292,7 @@ lnet_mt_of_match(struct lnet_match_info *info, struct lnet_msg *msg)
 
 	rotor = ptl->ptl_rotor++; /* get round-robin factor */
 	if (portal_rotor == LNET_PTL_ROTOR_HASH_RT && routed)
-		cpt = lnet_cpt_of_nid(msg->msg_hdr.src_nid);
+		cpt = info->mi_cpt;
 	else
 		cpt = rotor % LNET_CPT_NUMBER;
 
