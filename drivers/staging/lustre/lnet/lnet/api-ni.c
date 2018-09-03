@@ -713,31 +713,41 @@ lnet_nid_cpt_hash(lnet_nid_t nid, unsigned int number)
 }
 
 int
-lnet_cpt_of_nid_locked(lnet_nid_t nid)
+lnet_cpt_of_nid_locked(lnet_nid_t nid, struct lnet_ni *ni)
 {
-	struct lnet_ni *ni;
+	struct lnet_net *net;
 
 	/* must called with hold of lnet_net_lock */
 	if (LNET_CPT_NUMBER == 1)
 		return 0; /* the only one */
 
-	/* take lnet_net_lock(any) would be OK */
-	if (!list_empty(&the_lnet.ln_nis_cpt)) {
-		list_for_each_entry(ni, &the_lnet.ln_nis_cpt, ni_cptlist) {
-			if (LNET_NIDNET(ni->ni_nid) != LNET_NIDNET(nid))
-				continue;
+	/*
+	 * If NI is provided then use the CPT identified in the NI cpt
+	 * list if one exists. If one doesn't exist, then that NI is
+	 * associated with all CPTs and it follows that the net it belongs
+	 * to is implicitly associated with all CPTs, so just hash the nid
+	 * and return that.
+	 */
+	if (ni) {
+		if (ni->ni_cpts)
+			return ni->ni_cpts[lnet_nid_cpt_hash(nid,
+							     ni->ni_ncpts)];
+		else
+			return lnet_nid_cpt_hash(nid, LNET_CPT_NUMBER);
+	}
 
-			LASSERT(ni->ni_cpts);
-			return ni->ni_cpts[lnet_nid_cpt_hash
-					   (nid, ni->ni_ncpts)];
-		}
+	/* no NI provided so look at the net */
+	net = lnet_get_net_locked(LNET_NIDNET(nid));
+
+	if (net && net->net_cpts) {
+		return net->net_cpts[lnet_nid_cpt_hash(nid, net->net_ncpts)];
 	}
 
 	return lnet_nid_cpt_hash(nid, LNET_CPT_NUMBER);
 }
 
 int
-lnet_cpt_of_nid(lnet_nid_t nid)
+lnet_cpt_of_nid(lnet_nid_t nid, struct lnet_ni *ni)
 {
 	int cpt;
 	int cpt2;
@@ -745,11 +755,8 @@ lnet_cpt_of_nid(lnet_nid_t nid)
 	if (LNET_CPT_NUMBER == 1)
 		return 0; /* the only one */
 
-	if (list_empty(&the_lnet.ln_nis_cpt))
-		return lnet_nid_cpt_hash(nid, LNET_CPT_NUMBER);
-
 	cpt = lnet_net_lock_current();
-	cpt2 = lnet_cpt_of_nid_locked(nid);
+	cpt2 = lnet_cpt_of_nid_locked(nid, ni);
 	lnet_net_unlock(cpt);
 
 	return cpt2;

@@ -101,7 +101,7 @@ static int
 ksocknal_create_peer(struct ksock_peer **peerp, struct lnet_ni *ni,
 		     struct lnet_process_id id)
 {
-	int cpt = lnet_cpt_of_nid(id.nid);
+	int cpt = lnet_cpt_of_nid(id.nid, ni);
 	struct ksock_net *net = ni->ni_data;
 	struct ksock_peer *peer;
 
@@ -1099,7 +1099,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	LASSERT(conn->ksnc_proto);
 	LASSERT(peerid.nid != LNET_NID_ANY);
 
-	cpt = lnet_cpt_of_nid(peerid.nid);
+	cpt = lnet_cpt_of_nid(peerid.nid, ni);
 
 	if (active) {
 		ksocknal_peer_addref(peer);

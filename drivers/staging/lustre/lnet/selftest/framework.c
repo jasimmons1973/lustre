@@ -1013,7 +1013,8 @@ sfw_run_batch(struct sfw_batch *tsb)
 			tsu->tsu_loop = tsi->tsi_loop;
 			wi = &tsu->tsu_worker;
 			swi_init_workitem(wi, sfw_run_test,
-					  lst_test_wq[lnet_cpt_of_nid(tsu->tsu_dest.nid)]);
+					  lst_test_wq[lnet_cpt_of_nid(tsu->tsu_dest.nid,
+							  NULL)]);
 			swi_schedule_workitem(wi);
 		}
 	}

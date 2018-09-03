@@ -220,7 +220,7 @@ lnet_match2mt(struct lnet_portal *ptl, struct lnet_process_id id, __u64 mbits)
 
 	/* if it's a unique portal, return match-table hashed by NID */
 	return lnet_ptl_is_unique(ptl) ?
-	       ptl->ptl_mtables[lnet_cpt_of_nid(id.nid)] : NULL;
+	       ptl->ptl_mtables[lnet_cpt_of_nid(id.nid, NULL)] : NULL;
 }
 
 struct lnet_match_table *

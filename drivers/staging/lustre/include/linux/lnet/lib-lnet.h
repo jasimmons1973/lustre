@@ -395,8 +395,8 @@ lnet_net2rnethash(__u32 net)
 extern struct lnet_lnd the_lolnd;
 extern int avoid_asym_router_failure;
 
-int lnet_cpt_of_nid_locked(lnet_nid_t nid);
-int lnet_cpt_of_nid(lnet_nid_t nid);
+int lnet_cpt_of_nid_locked(lnet_nid_t nid, struct lnet_ni *ni);
+int lnet_cpt_of_nid(lnet_nid_t nid, struct lnet_ni *ni);
 struct lnet_ni *lnet_nid2ni_locked(lnet_nid_t nid, int cpt);
 struct lnet_ni *lnet_net2ni_locked(__u32 net, int cpt);
 struct lnet_ni *lnet_net2ni(__u32 net);

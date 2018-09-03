@@ -124,7 +124,7 @@ brw_client_init(struct sfw_test_instance *tsi)
 		return -EINVAL;
 
 	list_for_each_entry(tsu, &tsi->tsi_units, tsu_list) {
-		bulk = srpc_alloc_bulk(lnet_cpt_of_nid(tsu->tsu_dest.nid),
+		bulk = srpc_alloc_bulk(lnet_cpt_of_nid(tsu->tsu_dest.nid, NULL),
 				       off, npg, len, opc == LST_BRW_READ);
 		if (!bulk) {
 			brw_client_fini(tsi);

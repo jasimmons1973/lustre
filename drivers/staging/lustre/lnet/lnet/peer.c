@@ -270,7 +270,7 @@ lnet_nid2peer_locked(struct lnet_peer **lpp, lnet_nid_t nid, int cpt)
 		return -ESHUTDOWN;
 
 	/* cpt can be LNET_LOCK_EX if it's called from router functions */
-	cpt2 = cpt != LNET_LOCK_EX ? cpt : lnet_cpt_of_nid_locked(nid);
+	cpt2 = cpt != LNET_LOCK_EX ? cpt : lnet_cpt_of_nid_locked(nid, NULL);
 
 	ptable = the_lnet.ln_peer_tables[cpt2];
 	lp = lnet_find_peer_locked(ptable, nid);
@@ -362,7 +362,7 @@ lnet_debug_peer(lnet_nid_t nid)
 	int rc;
 	int cpt;
 
-	cpt = lnet_cpt_of_nid(nid);
+	cpt = lnet_cpt_of_nid(nid, NULL);
 	lnet_net_lock(cpt);
 
 	rc = lnet_nid2peer_locked(&lp, nid, cpt);

@@ -320,7 +320,7 @@ int kiblnd_create_peer(struct lnet_ni *ni, struct kib_peer **peerp,
 {
 	struct kib_peer *peer;
 	struct kib_net *net = ni->ni_data;
-	int cpt = lnet_cpt_of_nid(nid);
+	int cpt = lnet_cpt_of_nid(nid, ni);
 	unsigned long flags;
 
 	LASSERT(net);
@@ -643,7 +643,7 @@ struct kib_conn *kiblnd_create_conn(struct kib_peer *peer, struct rdma_cm_id *cm
 
 	dev = net->ibn_dev;
 
-	cpt = lnet_cpt_of_nid(peer->ibp_nid);
+	cpt = lnet_cpt_of_nid(peer->ibp_nid, peer->ibp_ni);
 	sched = kiblnd_data.kib_scheds[cpt];
 
 	LASSERT(sched->ibs_nthreads > 0);
