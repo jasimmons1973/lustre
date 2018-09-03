@@ -398,8 +398,8 @@ struct lnet_peer {
 	time64_t		 lp_last_alive;
 	/* when lp_ni was queried last time */
 	time64_t		 lp_last_query;
-	/* interface peer is on */
-	struct lnet_ni		*lp_ni;
+	/* network peer is on */
+	struct lnet_net		*lp_net;
 	/* peer's NID */
 	lnet_nid_t		 lp_nid;
 	/* # refs */
@@ -439,7 +439,7 @@ struct lnet_peer_table {
  * lnet_ni::ni_peertimeout has been set to a positive value
  */
 #define lnet_peer_aliveness_enabled(lp) (the_lnet.ln_routing && \
-					 (lp)->lp_ni->ni_net->net_tunables.lct_peer_timeout > 0)
+					 (lp)->lp_net->net_tunables.lct_peer_timeout > 0)
 
 struct lnet_route {
 	/* chain on net */

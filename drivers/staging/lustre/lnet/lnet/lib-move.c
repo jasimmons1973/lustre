@@ -525,7 +525,7 @@ lnet_peer_is_alive(struct lnet_peer *lp, unsigned long now)
 		return 0;
 
 	deadline = lp->lp_last_alive +
-		lp->lp_ni->ni_net->net_tunables.lct_peer_timeout;
+		lp->lp_net->net_tunables.lct_peer_timeout;
 	alive = deadline > now;
 
 	/* Update obsolete lp_alive except for routers assumed to be dead
@@ -544,7 +544,7 @@ lnet_peer_is_alive(struct lnet_peer *lp, unsigned long now)
  *     may drop the lnet_net_lock
  */
 static int
-lnet_peer_alive_locked(struct lnet_peer *lp)
+lnet_peer_alive_locked(struct lnet_ni *ni, struct lnet_peer *lp)
 {
 	time64_t now = ktime_get_seconds();
 
@@ -570,13 +570,13 @@ lnet_peer_alive_locked(struct lnet_peer *lp)
 				      libcfs_nid2str(lp->lp_nid),
 				      now, next_query,
 				      lnet_queryinterval,
-				      lp->lp_ni->ni_net->net_tunables.lct_peer_timeout);
+				      lp->lp_net->net_tunables.lct_peer_timeout);
 			return 0;
 		}
 	}
 
 	/* query NI for latest aliveness news */
-	lnet_ni_query_locked(lp->lp_ni, lp);
+	lnet_ni_query_locked(ni, lp);
 
 	if (lnet_peer_is_alive(lp, now))
 		return 1;
@@ -600,7 +600,7 @@ static int
 lnet_post_send_locked(struct lnet_msg *msg, int do_send)
 {
 	struct lnet_peer *lp = msg->msg_txpeer;
-	struct lnet_ni *ni = lp->lp_ni;
+	struct lnet_ni *ni = msg->msg_txni;
 	int cpt = msg->msg_tx_cpt;
 	struct lnet_tx_queue *tq = ni->ni_tx_queues[cpt];
 
@@ -611,7 +611,7 @@ lnet_post_send_locked(struct lnet_msg *msg, int do_send)
 
 	/* NB 'lp' is always the next hop */
 	if (!(msg->msg_target.pid & LNET_PID_USERFLAG) &&
-	    !lnet_peer_alive_locked(lp)) {
+	    !lnet_peer_alive_locked(ni, lp)) {
 		the_lnet.ln_counters[cpt]->drop_count++;
 		the_lnet.ln_counters[cpt]->drop_length += msg->msg_len;
 		lnet_net_unlock(cpt);
@@ -770,7 +770,7 @@ lnet_post_routed_recv_locked(struct lnet_msg *msg, int do_recv)
 		int cpt = msg->msg_rx_cpt;
 
 		lnet_net_unlock(cpt);
-		lnet_ni_recv(lp->lp_ni, msg->msg_private, msg, 1,
+		lnet_ni_recv(msg->msg_rxni, msg->msg_private, msg, 1,
 			     0, msg->msg_len, msg->msg_len);
 		lnet_net_lock(cpt);
 	}
@@ -785,7 +785,7 @@ lnet_return_tx_credits_locked(struct lnet_msg *msg)
 	struct lnet_ni	*txni = msg->msg_txni;
 
 	if (msg->msg_txcredit) {
-		struct lnet_ni *ni = txpeer->lp_ni;
+		struct lnet_ni *ni = msg->msg_txni;
 		struct lnet_tx_queue *tq = ni->ni_tx_queues[msg->msg_tx_cpt];
 
 		/* give back NI txcredits */
@@ -800,7 +800,7 @@ lnet_return_tx_credits_locked(struct lnet_msg *msg)
 					  struct lnet_msg, msg_list);
 			list_del(&msg2->msg_list);
 
-			LASSERT(msg2->msg_txpeer->lp_ni == ni);
+			LASSERT(msg2->msg_txni == ni);
 			LASSERT(msg2->msg_tx_delayed);
 
 			(void)lnet_post_send_locked(msg2, 1);
@@ -869,7 +869,7 @@ lnet_drop_routed_msgs_locked(struct list_head *list, int cpt)
 
 	while(!list_empty(&drop)) {
 		msg = list_first_entry(&drop, struct lnet_msg, msg_list);
-		lnet_ni_recv(msg->msg_rxpeer->lp_ni, msg->msg_private, NULL,
+		lnet_ni_recv(msg->msg_rxni, msg->msg_private, NULL,
 			     0, 0, 0, msg->msg_hdr.payload_length);
 		list_del_init(&msg->msg_list);
 		lnet_finalize(NULL, msg, -ECANCELED);
@@ -1007,7 +1007,7 @@ lnet_compare_routes(struct lnet_route *r1, struct lnet_route *r2)
 }
 
 static struct lnet_peer *
-lnet_find_route_locked(struct lnet_ni *ni, lnet_nid_t target,
+lnet_find_route_locked(struct lnet_net *net, lnet_nid_t target,
 		       lnet_nid_t rtr_nid)
 {
 	struct lnet_remotenet *rnet;
@@ -1035,7 +1035,7 @@ lnet_find_route_locked(struct lnet_ni *ni, lnet_nid_t target,
 		if (!lnet_is_route_alive(route))
 			continue;
 
-		if (ni && lp->lp_ni != ni)
+		if (net && lp->lp_net != net)
 			continue;
 
 		if (lp->lp_nid == rtr_nid) /* it's pre-determined router */
@@ -1164,10 +1164,11 @@ lnet_send(lnet_nid_t src_nid, struct lnet_msg *msg, lnet_nid_t rtr_nid)
 			/* ENOMEM or shutting down */
 			return rc;
 		}
-		LASSERT(lp->lp_ni == src_ni);
+		LASSERT(lp->lp_net == src_ni->ni_net);
 	} else {
 		/* sending to a remote network */
-		lp = lnet_find_route_locked(src_ni, dst_nid, rtr_nid);
+		lp = lnet_find_route_locked(src_ni ? src_ni->ni_net : NULL,
+					    dst_nid, rtr_nid);
 		if (!lp) {
 			if (src_ni)
 				lnet_ni_decref_locked(src_ni, cpt);
@@ -1203,10 +1204,11 @@ lnet_send(lnet_nid_t src_nid, struct lnet_msg *msg, lnet_nid_t rtr_nid)
 		       lnet_msgtyp2str(msg->msg_type), msg->msg_len);
 
 		if (!src_ni) {
-			src_ni = lp->lp_ni;
+			src_ni = lnet_get_next_ni_locked(lp->lp_net, NULL);
+			LASSERT(src_ni);
 			src_nid = src_ni->ni_nid;
 		} else {
-			LASSERT(src_ni == lp->lp_ni);
+			LASSERT(src_ni->ni_net == lp->lp_net);
 			lnet_ni_decref_locked(src_ni, cpt);
 		}
 
@@ -1918,7 +1920,7 @@ lnet_drop_delayed_msg_list(struct list_head *head, char *reason)
 		 * called lnet_drop_message(), so I just hang onto msg as well
 		 * until that's done
 		 */
-		lnet_drop_message(msg->msg_rxpeer->lp_ni,
+		lnet_drop_message(msg->msg_rxni,
 				  msg->msg_rxpeer->lp_cpt,
 				  msg->msg_private, msg->msg_len);
 		/*
@@ -1926,7 +1928,7 @@ lnet_drop_delayed_msg_list(struct list_head *head, char *reason)
 		 * but we still should give error code so lnet_msg_decommit()
 		 * can skip counters operations and other checks.
 		 */
-		lnet_finalize(msg->msg_rxpeer->lp_ni, msg, -ENOENT);
+		lnet_finalize(msg->msg_rxni, msg, -ENOENT);
 	}
 }
 
@@ -1959,7 +1961,7 @@ lnet_recv_delayed_msg_list(struct list_head *head)
 		       msg->msg_hdr.msg.put.offset,
 		       msg->msg_hdr.payload_length);
 
-		lnet_recv_put(msg->msg_rxpeer->lp_ni, msg);
+		lnet_recv_put(msg->msg_rxni, msg);
 	}
 }
 
@@ -2384,8 +2386,12 @@ LNetDist(lnet_nid_t dstnid, lnet_nid_t *srcnidp, __u32 *orderp)
 
 			LASSERT(shortest);
 			hops = shortest_hops;
-			if (srcnidp)
-				*srcnidp = shortest->lr_gateway->lp_ni->ni_nid;
+			if (srcnidp) {
+				ni = lnet_get_next_ni_locked(
+					shortest->lr_gateway->lp_net,
+					NULL);
+				*srcnidp = ni->ni_nid;
+			}
 			if (orderp)
 				*orderp = order;
 			lnet_net_unlock(cpt);

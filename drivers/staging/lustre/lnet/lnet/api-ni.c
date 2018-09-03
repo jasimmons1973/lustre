@@ -680,6 +680,19 @@ lnet_net2ni(__u32 net)
 }
 EXPORT_SYMBOL(lnet_net2ni);
 
+struct lnet_net *
+lnet_get_net_locked(__u32 net_id)
+{
+	struct lnet_net *net;
+
+	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
+		if (net->net_id == net_id)
+			return net;
+	}
+
+	return NULL;
+}
+
 static unsigned int
 lnet_nid_cpt_hash(lnet_nid_t nid, unsigned int number)
 {

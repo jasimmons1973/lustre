@@ -55,10 +55,8 @@ module_param(auto_down, int, 0444);
 MODULE_PARM_DESC(auto_down, "Automatically mark peers down on comms error");
 
 int
-lnet_peer_buffer_credits(struct lnet_ni *ni)
+lnet_peer_buffer_credits(struct lnet_net *net)
 {
-	struct lnet_net *net = ni->ni_net;
-
 	/* NI option overrides LNet default */
 	if (net->net_tunables.lct_peer_rtr_credits > 0)
 		return net->net_tunables.lct_peer_rtr_credits;
@@ -373,7 +371,7 @@ lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway,
 		lnet_peer_addref_locked(route->lr_gateway); /* +1 for notify */
 		lnet_add_route_to_rnet(rnet2, route);
 
-		ni = route->lr_gateway->lp_ni;
+		ni = lnet_get_next_ni_locked(route->lr_gateway->lp_net, NULL);
 		lnet_net_unlock(LNET_LOCK_EX);
 
 		/* XXX Assume alive */
@@ -428,8 +426,8 @@ lnet_check_routes(void)
 					continue;
 				}
 
-				if (route->lr_gateway->lp_ni ==
-				    route2->lr_gateway->lp_ni)
+				if (route->lr_gateway->lp_net ==
+				    route2->lr_gateway->lp_net)
 					continue;
 
 				nid1 = route->lr_gateway->lp_nid;
@@ -952,6 +950,7 @@ lnet_ping_router_locked(struct lnet_peer *rtr)
 	struct lnet_rc_data *rcd = NULL;
 	time64_t now = ktime_get_seconds();
 	time64_t secs;
+	struct lnet_ni *ni;
 
 	lnet_peer_addref_locked(rtr);
 
@@ -960,7 +959,8 @@ lnet_ping_router_locked(struct lnet_peer *rtr)
 		lnet_notify_locked(rtr, 1, 0, now);
 
 	/* Run any outstanding notifications */
-	lnet_ni_notify_locked(rtr->lp_ni, rtr);
+	ni = lnet_get_next_ni_locked(rtr->lp_net, NULL);
+	lnet_ni_notify_locked(ni, rtr);
 
 	if (!lnet_isrouter(rtr) ||
 	    the_lnet.ln_rc_state != LNET_RC_STATE_RUNNING) {

@@ -601,8 +601,9 @@ delayed_msg_process(struct list_head *msg_list, bool drop)
 
 		msg = list_entry(msg_list->next, struct lnet_msg, msg_list);
 		LASSERT(msg->msg_rxpeer);
+		LASSERT(msg->msg_rxni);
 
-		ni = msg->msg_rxpeer->lp_ni;
+		ni = msg->msg_rxni;
 		cpt = msg->msg_rx_cpt;
 
 		list_del_init(&msg->msg_list);

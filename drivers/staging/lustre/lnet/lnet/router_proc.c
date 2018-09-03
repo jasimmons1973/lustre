@@ -489,7 +489,7 @@ static int proc_lnet_peers(struct ctl_table *table, int write,
 			int nrefs = peer->lp_refcount;
 			time64_t lastalive = -1;
 			char *aliveness = "NA";
-			int maxcr = peer->lp_ni->ni_net->net_tunables.lct_peer_tx_credits;
+			int maxcr = peer->lp_net->net_tunables.lct_peer_tx_credits;
 			int txcr = peer->lp_txcredits;
 			int mintxcr = peer->lp_mintxcredits;
 			int rtrcr = peer->lp_rtrcredits;

@@ -435,6 +435,7 @@ int lnet_dyn_add_ni(lnet_pid_t requested_pid,
 		    struct lnet_ioctl_config_data *conf);
 int lnet_dyn_del_ni(__u32 net);
 int lnet_clear_lazy_portal(struct lnet_ni *ni, int portal, char *reason);
+struct lnet_net *lnet_get_net_locked(__u32 net_id);
 
 int lnet_islocalnid(lnet_nid_t nid);
 int lnet_islocalnet(__u32 net);
@@ -617,7 +618,7 @@ int lnet_sock_connect(struct socket **sockp, int *fatal,
 void libcfs_sock_release(struct socket *sock);
 
 int lnet_peers_start_down(void);
-int lnet_peer_buffer_credits(struct lnet_ni *ni);
+int lnet_peer_buffer_credits(struct lnet_net *net);
 
 int lnet_router_checker_start(void);
 void lnet_router_checker_stop(void);
