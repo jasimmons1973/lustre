@@ -454,7 +454,7 @@ lnet_acceptor_start(void)
 	if (rc <= 0)
 		return rc;
 
-	if (!lnet_count_acceptor_nis())  /* not required */
+	if (!lnet_count_acceptor_nets())  /* not required */
 		return 0;
 
 	task = kthread_run(lnet_acceptor, (void *)(uintptr_t)secure,

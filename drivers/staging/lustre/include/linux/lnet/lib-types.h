@@ -254,6 +254,15 @@ struct lnet_tx_queue {
 };
 
 struct lnet_net {
+	/* chain on the ln_nets */
+	struct list_head	net_list;
+
+	/* net ID, which is compoed of
+	 * (net_type << 16) | net_num.
+	 * net_type can be one of the enumarated types defined in
+	 * lnet/include/lnet/nidstr.h */
+	__u32			net_id;
+
 	/* network tunables */
 	struct lnet_ioctl_config_lnd_cmn_tunables net_tunables;
 
@@ -264,12 +273,14 @@ struct lnet_net {
 	bool			net_tunables_set;
 	/* procedural interface */
 	struct lnet_lnd		*net_lnd;
+	/* list of NIs on this net */
+	struct list_head	net_ni_list;
 };
 
 struct lnet_ni {
 	spinlock_t		ni_lock;
-	/* chain on ln_nis */
-	struct list_head	ni_list;
+	/* chain on the lnet_net structure */
+	struct list_head	ni_netlist;
 	/* chain on ln_nis_cpt */
 	struct list_head	ni_cptlist;
 
@@ -650,7 +661,7 @@ struct lnet {
 	struct list_head		  ln_delay_rules;
 
 	/* LND instances */
-	struct list_head		ln_nis;
+	struct list_head		ln_nets;
 	/* NIs bond on specific CPT(s) */
 	struct list_head		ln_nis_cpt;
 	/* dying LND instances */

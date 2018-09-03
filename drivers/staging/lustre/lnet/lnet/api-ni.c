@@ -537,7 +537,7 @@ lnet_prepare(lnet_pid_t requested_pid)
 	the_lnet.ln_pid = requested_pid;
 
 	INIT_LIST_HEAD(&the_lnet.ln_test_peers);
-	INIT_LIST_HEAD(&the_lnet.ln_nis);
+	INIT_LIST_HEAD(&the_lnet.ln_nets);
 	INIT_LIST_HEAD(&the_lnet.ln_nis_cpt);
 	INIT_LIST_HEAD(&the_lnet.ln_nis_zombie);
 	INIT_LIST_HEAD(&the_lnet.ln_routers);
@@ -616,7 +616,7 @@ lnet_unprepare(void)
 
 	LASSERT(!the_lnet.ln_refcount);
 	LASSERT(list_empty(&the_lnet.ln_test_peers));
-	LASSERT(list_empty(&the_lnet.ln_nis));
+	LASSERT(list_empty(&the_lnet.ln_nets));
 	LASSERT(list_empty(&the_lnet.ln_nis_cpt));
 	LASSERT(list_empty(&the_lnet.ln_nis_zombie));
 
@@ -648,14 +648,17 @@ lnet_unprepare(void)
 }
 
 struct lnet_ni  *
-lnet_net2ni_locked(__u32 net, int cpt)
+lnet_net2ni_locked(__u32 net_id, int cpt)
 {
 	struct lnet_ni *ni;
+	struct lnet_net *net;
 
 	LASSERT(cpt != LNET_LOCK_EX);
 
-	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
-		if (LNET_NIDNET(ni->ni_nid) == net) {
+	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
+		if (net->net_id == net_id) {
+			ni = list_entry(net->net_ni_list.next, struct lnet_ni,
+					ni_netlist);
 			lnet_ni_addref_locked(ni, cpt);
 			return ni;
 		}
@@ -760,14 +763,17 @@ lnet_islocalnet(__u32 net)
 struct lnet_ni  *
 lnet_nid2ni_locked(lnet_nid_t nid, int cpt)
 {
+	struct lnet_net *net;
 	struct lnet_ni *ni;
 
 	LASSERT(cpt != LNET_LOCK_EX);
 
-	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
-		if (ni->ni_nid == nid) {
-			lnet_ni_addref_locked(ni, cpt);
-			return ni;
+	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
+		list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
+			if (ni->ni_nid == nid) {
+				lnet_ni_addref_locked(ni, cpt);
+				return ni;
+			}
 		}
 	}
 
@@ -790,16 +796,18 @@ lnet_islocalnid(lnet_nid_t nid)
 }
 
 int
-lnet_count_acceptor_nis(void)
+lnet_count_acceptor_nets(void)
 {
 	/* Return the # of NIs that need the acceptor. */
 	int count = 0;
-	struct lnet_ni *ni;
+	struct lnet_net *net;
 	int cpt;
 
 	cpt = lnet_net_lock_current();
-	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
-		if (ni->ni_net->net_lnd->lnd_accept)
+	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
+		/* all socklnd type networks should have the acceptor
+		 * thread started */
+		if (net->net_lnd->lnd_accept)
 			count++;
 	}
 
@@ -833,12 +841,15 @@ static inline int
 lnet_get_ni_count(void)
 {
 	struct lnet_ni *ni;
+	struct lnet_net *net;
 	int count = 0;
 
 	lnet_net_lock(0);
 
-	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list)
-		count++;
+	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
+		list_for_each_entry(ni, &net->net_ni_list, ni_netlist)
+			count++;
+	}
 
 	lnet_net_unlock(0);
 
@@ -854,14 +865,17 @@ lnet_ping_info_free(struct lnet_ping_info *pinfo)
 static void
 lnet_ping_info_destroy(void)
 {
+	struct lnet_net *net;
 	struct lnet_ni *ni;
 
 	lnet_net_lock(LNET_LOCK_EX);
 
-	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
-		lnet_ni_lock(ni);
-		ni->ni_status = NULL;
-		lnet_ni_unlock(ni);
+	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
+		list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
+			lnet_ni_lock(ni);
+			ni->ni_status = NULL;
+			lnet_ni_unlock(ni);
+		}
 	}
 
 	lnet_ping_info_free(the_lnet.ln_ping_info);
@@ -965,22 +979,26 @@ lnet_ping_info_install_locked(struct lnet_ping_info *ping_info)
 {
 	struct lnet_ni_status *ns;
 	struct lnet_ni *ni;
+	struct lnet_net *net;
 	int i = 0;
 
-	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
-		LASSERT(i < ping_info->pi_nnis);
+	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
+		list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
+			LASSERT(i < ping_info->pi_nnis);
 
-		ns = &ping_info->pi_ni[i];
+			ns = &ping_info->pi_ni[i];
 
-		ns->ns_nid = ni->ni_nid;
+			ns->ns_nid = ni->ni_nid;
 
-		lnet_ni_lock(ni);
-		ns->ns_status = (ni->ni_status) ?
-				 ni->ni_status->ns_status : LNET_NI_STATUS_UP;
-		ni->ni_status = ns;
-		lnet_ni_unlock(ni);
+			lnet_ni_lock(ni);
+			ns->ns_status = ni->ni_status ?
+					ni->ni_status->ns_status :
+						LNET_NI_STATUS_UP;
+			ni->ni_status = ns;
+			lnet_ni_unlock(ni);
 
-		i++;
+			i++;
+		}
 	}
 }
 
@@ -1054,9 +1072,9 @@ lnet_ni_unlink_locked(struct lnet_ni *ni)
 	}
 
 	/* move it to zombie list and nobody can find it anymore */
-	LASSERT(!list_empty(&ni->ni_list));
-	list_move(&ni->ni_list, &the_lnet.ln_nis_zombie);
-	lnet_ni_decref_locked(ni, 0);	/* drop ln_nis' ref */
+	LASSERT(!list_empty(&ni->ni_netlist));
+	list_move(&ni->ni_netlist, &the_lnet.ln_nis_zombie);
+	lnet_ni_decref_locked(ni, 0);
 }
 
 static void
@@ -1076,17 +1094,17 @@ lnet_clear_zombies_nis_locked(void)
 		int j;
 
 		ni = list_entry(the_lnet.ln_nis_zombie.next,
-				struct lnet_ni, ni_list);
-		list_del_init(&ni->ni_list);
+				struct lnet_ni, ni_netlist);
+		list_del_init(&ni->ni_netlist);
 		cfs_percpt_for_each(ref, j, ni->ni_refs) {
 			if (!*ref)
 				continue;
 			/* still busy, add it back to zombie list */
-			list_add(&ni->ni_list, &the_lnet.ln_nis_zombie);
+			list_add(&ni->ni_netlist, &the_lnet.ln_nis_zombie);
 			break;
 		}
 
-		if (!list_empty(&ni->ni_list)) {
+		if (!list_empty(&ni->ni_netlist)) {
 			lnet_net_unlock(LNET_LOCK_EX);
 			++i;
 			if ((i & (-i)) == i) {
@@ -1125,6 +1143,7 @@ static void
 lnet_shutdown_lndnis(void)
 {
 	struct lnet_ni *ni;
+	struct lnet_net *net;
 	int i;
 
 	/* NB called holding the global mutex */
@@ -1138,10 +1157,14 @@ lnet_shutdown_lndnis(void)
 	the_lnet.ln_shutdown = 1;	/* flag shutdown */
 
 	/* Unlink NIs from the global table */
-	while (!list_empty(&the_lnet.ln_nis)) {
-		ni = list_entry(the_lnet.ln_nis.next,
-				struct lnet_ni, ni_list);
-		lnet_ni_unlink_locked(ni);
+	while (!list_empty(&the_lnet.ln_nets)) {
+		net = list_entry(the_lnet.ln_nets.next,
+				 struct lnet_net, net_list);
+		while (!list_empty(&net->net_ni_list)) {
+			ni = list_entry(net->net_ni_list.next,
+					struct lnet_ni, ni_netlist);
+			lnet_ni_unlink_locked(ni);
+		}
 	}
 
 	/* Drop the cached loopback NI. */
@@ -1212,7 +1235,7 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
 
 	/* Make sure this new NI is unique. */
 	lnet_net_lock(LNET_LOCK_EX);
-	rc = lnet_net_unique(LNET_NIDNET(ni->ni_nid), &the_lnet.ln_nis);
+	rc = lnet_net_unique(LNET_NIDNET(ni->ni_nid), &the_lnet.ln_nets);
 	lnet_net_unlock(LNET_LOCK_EX);
 	if (!rc) {
 		if (lnd_type == LOLND) {
@@ -1297,7 +1320,7 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_ioctl_config_data *conf)
 	lnet_net_lock(LNET_LOCK_EX);
 	/* refcount for ln_nis */
 	lnet_ni_addref_locked(ni, 0);
-	list_add_tail(&ni->ni_list, &the_lnet.ln_nis);
+	list_add_tail(&ni->ni_net->net_list, &the_lnet.ln_nets);
 	if (ni->ni_cpts) {
 		lnet_ni_addref_locked(ni, 0);
 		list_add_tail(&ni->ni_cptlist, &the_lnet.ln_nis_cpt);
@@ -1363,8 +1386,8 @@ lnet_startup_lndnis(struct list_head *nilist)
 	int ni_count = 0;
 
 	while (!list_empty(nilist)) {
-		ni = list_entry(nilist->next, struct lnet_ni, ni_list);
-		list_del(&ni->ni_list);
+		ni = list_entry(nilist->next, struct lnet_ni, ni_netlist);
+		list_del(&ni->ni_netlist);
 		rc = lnet_startup_lndni(ni, NULL);
 
 		if (rc < 0)
@@ -1486,6 +1509,7 @@ LNetNIInit(lnet_pid_t requested_pid)
 	struct lnet_ping_info *pinfo;
 	struct lnet_handle_md md_handle;
 	struct list_head net_head;
+	struct lnet_net *net;
 
 	INIT_LIST_HEAD(&net_head);
 
@@ -1505,8 +1529,15 @@ LNetNIInit(lnet_pid_t requested_pid)
 		return rc;
 	}
 
-	/* Add in the loopback network */
-	if (!lnet_ni_alloc(LNET_MKNET(LOLND, 0), NULL, &net_head)) {
+	/* create a network for Loopback network */
+	net = lnet_net_alloc(LNET_MKNET(LOLND, 0), &net_head);
+	if (!net) {
+		rc = -ENOMEM;
+		goto err_empty_list;
+	}
+
+	/* Add in the loopback NI */
+	if (!lnet_ni_alloc(net, NULL, NULL)) {
 		rc = -ENOMEM;
 		goto err_empty_list;
 	}
@@ -1584,11 +1615,11 @@ err_empty_list:
 	LASSERT(rc < 0);
 	mutex_unlock(&the_lnet.ln_api_mutex);
 	while (!list_empty(&net_head)) {
-		struct lnet_ni *ni;
+		struct lnet_net *net;
 
-		ni = list_entry(net_head.next, struct lnet_ni, ni_list);
-		list_del_init(&ni->ni_list);
-		lnet_ni_free(ni);
+		net = list_entry(net_head.next, struct lnet_net, net_list);
+		list_del_init(&net->net_list);
+		lnet_net_free(net);
 	}
 	return rc;
 }
@@ -1714,25 +1745,83 @@ lnet_fill_ni_info(struct lnet_ni *ni, struct lnet_ioctl_config_data *config)
 	}
 }
 
+struct lnet_ni *
+lnet_get_ni_idx_locked(int idx)
+{
+	struct lnet_ni *ni;
+	struct lnet_net *net;
+
+	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
+		list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
+			if (idx-- == 0)
+				return ni;
+		}
+	}
+
+	return NULL;
+}
+
+struct lnet_ni *
+lnet_get_next_ni_locked(struct lnet_net *mynet, struct lnet_ni *prev)
+{
+	struct lnet_ni *ni;
+	struct lnet_net *net = mynet;
+
+	if (!prev) {
+		if (!net)
+			net = list_entry(the_lnet.ln_nets.next, struct lnet_net,
+					net_list);
+		ni = list_entry(net->net_ni_list.next, struct lnet_ni,
+				ni_netlist);
+
+		return ni;
+	}
+
+	if (prev->ni_netlist.next == &prev->ni_net->net_ni_list) {
+		/* if you reached the end of the ni list and the net is
+		 * specified, then there are no more nis in that net */
+		if (net)
+			return NULL;
+
+		/* we reached the end of this net ni list. move to the
+		 * next net */
+		if (prev->ni_net->net_list.next == &the_lnet.ln_nets)
+			/* no more nets and no more NIs. */
+			return NULL;
+
+		/* get the next net */
+		net = list_entry(prev->ni_net->net_list.next, struct lnet_net,
+				 net_list);
+		/* get the ni on it */
+		ni = list_entry(net->net_ni_list.next, struct lnet_ni,
+				ni_netlist);
+
+		return ni;
+	}
+
+	/* there are more nis left */
+	ni = list_entry(prev->ni_netlist.next, struct lnet_ni, ni_netlist);
+
+	return ni;
+}
+
 static int
 lnet_get_net_config(struct lnet_ioctl_config_data *config)
 {
 	struct lnet_ni *ni;
 	int idx = config->cfg_count;
-	int cpt, i = 0;
+	int cpt;
 	int rc = -ENOENT;
 
 	cpt = lnet_net_lock_current();
 
-	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
-		if (i++ != idx)
-			continue;
+	ni = lnet_get_ni_idx_locked(idx);
 
+	if (ni) {
+		rc = 0;
 		lnet_ni_lock(ni);
 		lnet_fill_ni_info(ni, config);
 		lnet_ni_unlock(ni);
-		rc = 0;
-		break;
 	}
 
 	lnet_net_unlock(cpt);
@@ -1745,6 +1834,7 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 	char *nets = conf->cfg_config_u.cfg_net.net_intf;
 	struct lnet_ping_info *pinfo;
 	struct lnet_handle_md md_handle;
+	struct lnet_net *net;
 	struct lnet_ni *ni;
 	struct list_head net_head;
 	struct lnet_remotenet *rnet;
@@ -1752,7 +1842,7 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 
 	INIT_LIST_HEAD(&net_head);
 
-	/* Create a ni structure for the network string */
+	/* Create a net/ni structures for the network string */
 	rc = lnet_parse_networks(&net_head, nets);
 	if (rc <= 0)
 		return !rc ? -EINVAL : rc;
@@ -1760,14 +1850,14 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 	mutex_lock(&the_lnet.ln_api_mutex);
 
 	if (rc > 1) {
-		rc = -EINVAL; /* only add one interface per call */
+		rc = -EINVAL; /* only add one network per call */
 		goto failed0;
 	}
 
-	ni = list_entry(net_head.next, struct lnet_ni, ni_list);
+	net = list_entry(net_head.next, struct lnet_net, net_list);
 
 	lnet_net_lock(LNET_LOCK_EX);
-	rnet = lnet_find_net_locked(LNET_NIDNET(ni->ni_nid));
+	rnet = lnet_find_net_locked(net->net_id);
 	lnet_net_unlock(LNET_LOCK_EX);
 	/*
 	 * make sure that the net added doesn't invalidate the current
@@ -1785,8 +1875,8 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 	if (rc)
 		goto failed0;
 
-	list_del_init(&ni->ni_list);
-
+	list_del_init(&net->net_list);
+	ni = list_first_entry(&net->net_ni_list, struct lnet_ni, ni_netlist);
 	rc = lnet_startup_lndni(ni, conf);
 	if (rc)
 		goto failed1;
@@ -1812,9 +1902,9 @@ failed1:
 failed0:
 	mutex_unlock(&the_lnet.ln_api_mutex);
 	while (!list_empty(&net_head)) {
-		ni = list_entry(net_head.next, struct lnet_ni, ni_list);
-		list_del_init(&ni->ni_list);
-		lnet_ni_free(ni);
+		net = list_entry(net_head.next, struct lnet_net, net_list);
+		list_del_init(&net->net_list);
+		lnet_net_free(net);
 	}
 	return rc;
 }
@@ -1849,7 +1939,7 @@ lnet_dyn_del_ni(__u32 net)
 
 	lnet_shutdown_lndni(ni);
 
-	if (!lnet_count_acceptor_nis())
+	if (!lnet_count_acceptor_nets())
 		lnet_acceptor_stop();
 
 	lnet_ping_target_update(pinfo, md_handle);
@@ -2104,6 +2194,7 @@ int
 LNetGetId(unsigned int index, struct lnet_process_id *id)
 {
 	struct lnet_ni *ni;
+	struct lnet_net *net;
 	int cpt;
 	int rc = -ENOENT;
 
@@ -2111,14 +2202,16 @@ LNetGetId(unsigned int index, struct lnet_process_id *id)
 
 	cpt = lnet_net_lock_current();
 
-	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
-		if (index--)
-			continue;
+	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
+		list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
+			if (index-- != 0)
+				continue;
 
-		id->nid = ni->ni_nid;
-		id->pid = the_lnet.ln_pid;
-		rc = 0;
-		break;
+			id->nid = ni->ni_nid;
+			id->pid = the_lnet.ln_pid;
+			rc = 0;
+			break;
+		}
 	}
 
 	lnet_net_unlock(cpt);

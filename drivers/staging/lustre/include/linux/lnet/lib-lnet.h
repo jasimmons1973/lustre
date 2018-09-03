@@ -369,8 +369,14 @@ lnet_ni_decref(struct lnet_ni *ni)
 }
 
 void lnet_ni_free(struct lnet_ni *ni);
+void lnet_net_free(struct lnet_net *net);
+
+struct lnet_net *
+lnet_net_alloc(__u32 net_type, struct list_head *netlist);
+
 struct lnet_ni *
-lnet_ni_alloc(__u32 net, struct cfs_expr_list *el, struct list_head *nilist);
+lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el,
+	      char *iface);
 
 static inline int
 lnet_nid2peerhash(lnet_nid_t nid)
@@ -412,6 +418,9 @@ void lnet_destroy_routes(void);
 int lnet_get_route(int idx, __u32 *net, __u32 *hops,
 		   lnet_nid_t *gateway, __u32 *alive, __u32 *priority);
 int lnet_get_rtr_pool_cfg(int idx, struct lnet_ioctl_pool_cfg *pool_cfg);
+struct lnet_ni *lnet_get_next_ni_locked(struct lnet_net *mynet,
+					struct lnet_ni *prev);
+struct lnet_ni *lnet_get_ni_idx_locked(int idx);
 
 void lnet_router_debugfs_init(void);
 void lnet_router_debugfs_fini(void);
@@ -584,7 +593,7 @@ int lnet_connect(struct socket **sockp, lnet_nid_t peer_nid,
 		 __u32 local_ip, __u32 peer_ip, int peer_port);
 void lnet_connect_console_error(int rc, lnet_nid_t peer_nid,
 				__u32 peer_ip, int port);
-int lnet_count_acceptor_nis(void);
+int lnet_count_acceptor_nets(void);
 int lnet_acceptor_timeout(void);
 int lnet_acceptor_port(void);
 
@@ -618,7 +627,7 @@ void lnet_swap_pinginfo(struct lnet_ping_info *info);
 int lnet_parse_ip2nets(char **networksp, char *ip2nets);
 int lnet_parse_routes(char *route_str, int *im_a_router);
 int lnet_parse_networks(struct list_head *nilist, char *networks);
-int lnet_net_unique(__u32 net, struct list_head *nilist);
+bool lnet_net_unique(__u32 net, struct list_head *nilist);
 
 int lnet_nid2peer_locked(struct lnet_peer **lpp, lnet_nid_t nid, int cpt);
 struct lnet_peer *lnet_find_peer_locked(struct lnet_peer_table *ptable,

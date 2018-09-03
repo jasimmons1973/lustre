@@ -240,18 +240,15 @@ lnet_find_net_locked(__u32 net)
 static void lnet_shuffle_seed(void)
 {
 	static int seeded;
-	struct lnet_ni *ni;
+	struct lnet_ni *ni = NULL;
 
 	if (seeded)
 		return;
 
-	/*
-	 * Nodes with small feet have little entropy
-	 * the NID for this node gives the most entropy in the low bits
-	 */
-	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
+	/* Nodes with small feet have little entropy
+	 * the NID for this node gives the most entropy in the low bits */
+	while ((ni = lnet_get_next_ni_locked(NULL, ni))) {
 		__u32 lnd_type, seed;
-
 		lnd_type = LNET_NETTYP(LNET_NIDNET(ni->ni_nid));
 		if (lnd_type != LOLND) {
 			seed = (LNET_NIDADDR(ni->ni_nid) | lnd_type);
@@ -807,7 +804,7 @@ lnet_router_ni_update_locked(struct lnet_peer *gw, __u32 net)
 static void
 lnet_update_ni_status_locked(void)
 {
-	struct lnet_ni *ni;
+	struct lnet_ni *ni = NULL;
 	time64_t now;
 	time64_t timeout;
 
@@ -817,7 +814,7 @@ lnet_update_ni_status_locked(void)
 		  max(live_router_check_interval, dead_router_check_interval);
 
 	now = ktime_get_real_seconds();
-	list_for_each_entry(ni, &the_lnet.ln_nis, ni_list) {
+	while ((ni = lnet_get_next_ni_locked(NULL, ni))) {
 		if (ni->ni_net->net_lnd->lnd_type == LOLND)
 			continue;
 
