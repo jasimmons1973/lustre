@@ -782,6 +782,7 @@ lnet_return_tx_credits_locked(struct lnet_msg *msg)
 {
 	struct lnet_peer *txpeer = msg->msg_txpeer;
 	struct lnet_msg *msg2;
+	struct lnet_ni	*txni = msg->msg_txni;
 
 	if (msg->msg_txcredit) {
 		struct lnet_ni *ni = txpeer->lp_ni;
@@ -827,6 +828,11 @@ lnet_return_tx_credits_locked(struct lnet_msg *msg)
 
 			(void)lnet_post_send_locked(msg2, 1);
 		}
+	}
+
+	if (txni) {
+		msg->msg_txni = NULL;
+		lnet_ni_decref_locked(txni, msg->msg_tx_cpt);
 	}
 
 	if (txpeer) {
@@ -876,6 +882,7 @@ void
 lnet_return_rx_credits_locked(struct lnet_msg *msg)
 {
 	struct lnet_peer *rxpeer = msg->msg_rxpeer;
+	struct lnet_ni	*rxni = msg->msg_rxni;
 	struct lnet_msg *msg2;
 
 	if (msg->msg_rtrcredit) {
@@ -950,6 +957,10 @@ routing_off:
 
 			(void)lnet_post_routed_recv_locked(msg2, 1);
 		}
+	}
+	if (rxni) {
+		msg->msg_rxni = NULL;
+		lnet_ni_decref_locked(rxni, msg->msg_rx_cpt);
 	}
 	if (rxpeer) {
 		msg->msg_rxpeer = NULL;
@@ -1221,6 +1232,9 @@ lnet_send(lnet_nid_t src_nid, struct lnet_msg *msg, lnet_nid_t rtr_nid)
 	LASSERT(!msg->msg_txpeer);
 
 	msg->msg_txpeer = lp;		   /* msg takes my ref on lp */
+	/* set the NI for this message */
+	msg->msg_txni = src_ni;
+	lnet_ni_addref_locked(msg->msg_txni, cpt);
 
 	rc = lnet_post_send_locked(msg, 0);
 	lnet_net_unlock(cpt);
@@ -1818,6 +1832,8 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr, lnet_nid_t from_nid,
 			return 0;
 		goto drop;
 	}
+	msg->msg_rxni = ni;
+	lnet_ni_addref_locked(ni, cpt);
 
 	if (lnet_isrouter(msg->msg_rxpeer)) {
 		lnet_peer_set_alive(msg->msg_rxpeer);
@@ -1934,6 +1950,7 @@ lnet_recv_delayed_msg_list(struct list_head *head)
 		LASSERT(msg->msg_rx_delayed);
 		LASSERT(msg->msg_md);
 		LASSERT(msg->msg_rxpeer);
+		LASSERT(msg->msg_rxni);
 		LASSERT(msg->msg_hdr.type == LNET_MSG_PUT);
 
 		CDEBUG(D_NET, "Resuming delayed PUT from %s portal %d match %llu offset %d length %d.\n",

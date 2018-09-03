@@ -98,6 +98,9 @@ struct lnet_msg {
 
 	void			*msg_private;
 	struct lnet_libmd	*msg_md;
+	/* the NI the message was sent or received over */
+	struct lnet_ni		*msg_txni;
+	struct lnet_ni		*msg_rxni;
 
 	unsigned int		 msg_len;
 	unsigned int		 msg_wanted;
