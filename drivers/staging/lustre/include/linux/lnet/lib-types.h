@@ -266,6 +266,12 @@ struct lnet_net {
 	 * lnet/include/lnet/nidstr.h */
 	__u32			net_id;
 
+	/* total number of CPTs in the array */
+	__u32			net_ncpts;
+
+	/* cumulative CPTs of all NIs in this net */
+	__u32			*net_cpts;
+
 	/* network tunables */
 	struct lnet_ioctl_config_lnd_cmn_tunables net_tunables;
 
