@@ -298,6 +298,9 @@ struct lnet_net {
 	/* list of NIs on this net */
 	struct list_head	net_ni_list;
 
+	/* list of NIs being added, but not started yet */
+	struct list_head	net_ni_added;
+
 	/* dying LND instances */
 	struct list_head	net_ni_zombie;
 };

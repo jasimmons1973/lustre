@@ -278,6 +278,16 @@ lnet_net_free(struct lnet_net *net)
 
 	LASSERT(list_empty(&net->net_ni_zombie));
 
+	/*
+	 * delete any nis that haven't been added yet. This could happen
+	 * if there is a failure on net startup
+	 */
+	list_for_each_safe(tmp, tmp2, &net->net_ni_added) {
+		ni = list_entry(tmp, struct lnet_ni, ni_netlist);
+		list_del_init(&ni->ni_netlist);
+		lnet_ni_free(ni);
+	}
+
 	/* delete any nis which have been started. */
 	list_for_each_safe(tmp, tmp2, &net->net_ni_list) {
 		ni = list_entry(tmp, struct lnet_ni, ni_netlist);
@@ -309,6 +319,7 @@ lnet_net_alloc(__u32 net_id, struct list_head *net_list)
 
 	INIT_LIST_HEAD(&net->net_list);
 	INIT_LIST_HEAD(&net->net_ni_list);
+	INIT_LIST_HEAD(&net->net_ni_added);
 	INIT_LIST_HEAD(&net->net_ni_zombie);
 
 	net->net_id = net_id;
@@ -392,7 +403,7 @@ lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el, char *iface)
 	rc = lnet_net_append_cpts(ni->ni_cpts, ni->ni_ncpts, net);
 	if (rc != 0)
 		goto failed;
-	list_add_tail(&ni->ni_netlist, &net->net_ni_list);
+	list_add_tail(&ni->ni_netlist, &net->net_ni_added);
 
 	return ni;
  failed:
