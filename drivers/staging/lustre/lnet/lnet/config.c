@@ -95,6 +95,25 @@ lnet_net_unique(__u32 net_id, struct list_head *netlist,
 	return true;
 }
 
+/* check that the NI is unique within the list of NIs already added to
+ * a network */
+bool
+lnet_ni_unique_net(struct list_head *nilist, char *iface)
+{
+	struct list_head *tmp;
+	struct lnet_ni *ni;
+
+	list_for_each(tmp, nilist) {
+		ni = list_entry(tmp, struct lnet_ni, ni_netlist);
+
+		if (ni->ni_interfaces[0] &&
+		    strncmp(ni->ni_interfaces[0], iface, strlen(iface)) == 0)
+			return false;
+	}
+
+	return true;
+}
+
 static bool
 in_array(__u32 *array, __u32 size, __u32 value)
 {
@@ -346,6 +365,12 @@ lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el, char *iface)
 	struct lnet_ni *ni;
 	int rc;
 	int i;
+
+	if (iface)
+		/* make sure that this NI is unique in the net it's
+		 * being added to */
+		if (!lnet_ni_unique_net(&net->net_ni_added, iface))
+			return NULL;
 
 	ni = kzalloc(sizeof(*ni), GFP_KERNEL);
 	if (!ni) {

@@ -1431,6 +1431,14 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 				ni_netlist);
 		list_del_init(&ni->ni_netlist);
 
+		/* make sure that the the NI we're about to start
+		 * up is actually unique. if it's not fail. */
+		if (!lnet_ni_unique_net(&net_l->net_ni_list,
+					ni->ni_interfaces[0])) {
+			rc = -EINVAL;
+			goto failed1;
+		}
+
 		/* adjust the pointer the parent network, just in case it
 		 * the net is a duplicate */
 		ni->ni_net = net_l;

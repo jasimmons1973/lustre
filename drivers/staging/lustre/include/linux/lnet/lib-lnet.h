@@ -632,6 +632,7 @@ int lnet_parse_routes(char *route_str, int *im_a_router);
 int lnet_parse_networks(struct list_head *nilist, char *networks);
 bool lnet_net_unique(__u32 net_id, struct list_head *nilist,
 		     struct lnet_net **net);
+bool lnet_ni_unique_net(struct list_head *nilist, char *iface);
 
 int lnet_nid2peer_locked(struct lnet_peer **lpp, lnet_nid_t nid, int cpt);
 struct lnet_peer *lnet_find_peer_locked(struct lnet_peer_table *ptable,
