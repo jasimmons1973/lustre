@@ -1153,53 +1153,6 @@ lnet_clear_zombies_nis_locked(struct lnet_net *net)
 	}
 }
 
-static void
-lnet_shutdown_lndnet(struct lnet_net *net);
-
-static void
-lnet_shutdown_lndnets(void)
-{
-	struct lnet_net *net;
-
-	/* NB called holding the global mutex */
-
-	/* All quiet on the API front */
-	LASSERT(!the_lnet.ln_shutdown);
-	LASSERT(!the_lnet.ln_refcount);
-
-	lnet_net_lock(LNET_LOCK_EX);
-	the_lnet.ln_shutdown = 1;	/* flag shutdown */
-
-	while (!list_empty(&the_lnet.ln_nets)) {
-		/*
-		 * move the nets to the zombie list to avoid them being
-		 * picked up for new work. LONET is also included in the
-		 * Nets that will be moved to the zombie list
-		 */
-		net = list_entry(the_lnet.ln_nets.next,
-				 struct lnet_net, net_list);
-		list_move(&net->net_list, &the_lnet.ln_net_zombie);
-	}
-
-	/* Drop the cached loopback Net. */
-	if (the_lnet.ln_loni) {
-		lnet_ni_decref_locked(the_lnet.ln_loni, 0);
-		the_lnet.ln_loni = NULL;
-	}
-	lnet_net_unlock(LNET_LOCK_EX);
-
-	/* iterate through the net zombie list and delete each net */
-	while (!list_empty(&the_lnet.ln_net_zombie)) {
-		net = list_entry(the_lnet.ln_net_zombie.next,
-				 struct lnet_net, net_list);
-		lnet_shutdown_lndnet(net);
-	}
-
-	lnet_net_lock(LNET_LOCK_EX);
-	the_lnet.ln_shutdown = 0;
-	lnet_net_unlock(LNET_LOCK_EX);
-}
-
 /* shutdown down the NI and release refcount */
 static void
 lnet_shutdown_lndni(struct lnet_ni *ni)
@@ -1249,6 +1202,50 @@ lnet_shutdown_lndnet(struct lnet_net *net)
 	lnet_net_unlock(LNET_LOCK_EX);
 
 	lnet_net_free(net);
+}
+
+static void
+lnet_shutdown_lndnets(void)
+{
+	struct lnet_net *net;
+
+	/* NB called holding the global mutex */
+
+	/* All quiet on the API front */
+	LASSERT(!the_lnet.ln_shutdown);
+	LASSERT(!the_lnet.ln_refcount);
+
+	lnet_net_lock(LNET_LOCK_EX);
+	the_lnet.ln_shutdown = 1;	/* flag shutdown */
+
+	while (!list_empty(&the_lnet.ln_nets)) {
+		/*
+		 * move the nets to the zombie list to avoid them being
+		 * picked up for new work. LONET is also included in the
+		 * Nets that will be moved to the zombie list
+		 */
+		net = list_entry(the_lnet.ln_nets.next,
+				 struct lnet_net, net_list);
+		list_move(&net->net_list, &the_lnet.ln_net_zombie);
+	}
+
+	/* Drop the cached loopback Net. */
+	if (the_lnet.ln_loni) {
+		lnet_ni_decref_locked(the_lnet.ln_loni, 0);
+		the_lnet.ln_loni = NULL;
+	}
+	lnet_net_unlock(LNET_LOCK_EX);
+
+	/* iterate through the net zombie list and delete each net */
+	while (!list_empty(&the_lnet.ln_net_zombie)) {
+		net = list_entry(the_lnet.ln_net_zombie.next,
+				 struct lnet_net, net_list);
+		lnet_shutdown_lndnet(net);
+	}
+
+	lnet_net_lock(LNET_LOCK_EX);
+	the_lnet.ln_shutdown = 0;
+	lnet_net_unlock(LNET_LOCK_EX);
 }
 
 static int
