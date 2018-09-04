@@ -1370,9 +1370,7 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 	LASSERT(libcfs_isknown_lnd(lnd_type));
 
 	/* Make sure this new NI is unique. */
-	lnet_net_lock(LNET_LOCK_EX);
 	rc = lnet_net_unique(net->net_id, &the_lnet.ln_nets);
-	lnet_net_unlock(LNET_LOCK_EX);
 	if (!rc) {
 		if (lnd_type == LOLND) {
 			lnet_net_free(net);
