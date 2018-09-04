@@ -1364,13 +1364,14 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 	struct lnet_lnd *lnd;
 	int rc;
 
-	lnd_type = LNET_NETTYP(net->net_id);
-
 	INIT_LIST_HEAD(&local_ni_list);
-	LASSERT(libcfs_isknown_lnd(lnd_type));
 
 	/* Make sure this new NI is unique. */
 	if (lnet_net_unique(net->net_id, &the_lnet.ln_nets)) {
+		lnd_type = LNET_NETTYP(net->net_id);
+
+		LASSERT(libcfs_isknown_lnd(lnd_type));
+
 		mutex_lock(&the_lnet.ln_lnd_mutex);
 		lnd = lnet_find_lnd_by_type(lnd_type);
 
