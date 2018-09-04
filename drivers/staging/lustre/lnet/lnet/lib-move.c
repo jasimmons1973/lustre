@@ -1022,7 +1022,7 @@ lnet_find_route_locked(struct lnet_net *net, lnet_nid_t target,
 	 * If @rtr_nid is not LNET_NID_ANY, return the gateway with
 	 * rtr_nid nid, otherwise find the best gateway I can use
 	 */
-	rnet = lnet_find_net_locked(LNET_NIDNET(target));
+	rnet = lnet_find_rnet_locked(LNET_NIDNET(target));
 	if (!rnet)
 		return NULL;
 

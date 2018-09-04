@@ -1907,7 +1907,7 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 	net = list_entry(net_head.next, struct lnet_net, net_list);
 
 	lnet_net_lock(LNET_LOCK_EX);
-	rnet = lnet_find_net_locked(net->net_id);
+	rnet = lnet_find_rnet_locked(net->net_id);
 	lnet_net_unlock(LNET_LOCK_EX);
 	/*
 	 * make sure that the net added doesn't invalidate the current
