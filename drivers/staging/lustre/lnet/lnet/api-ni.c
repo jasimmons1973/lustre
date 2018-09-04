@@ -762,20 +762,16 @@ lnet_cpt_of_nid(lnet_nid_t nid, struct lnet_ni *ni)
 EXPORT_SYMBOL(lnet_cpt_of_nid);
 
 int
-lnet_islocalnet(__u32 net)
+lnet_islocalnet(__u32 net_id)
 {
-	struct lnet_ni *ni;
+	struct lnet_net *net;
 	int cpt;
 
 	cpt = lnet_net_lock_current();
-
-	ni = lnet_net2ni_locked(net, cpt);
-	if (ni)
-		lnet_ni_decref_locked(ni, cpt);
-
+	net = lnet_get_net_locked(net_id);
 	lnet_net_unlock(cpt);
 
-	return !!ni;
+	return !!net;
 }
 
 bool
