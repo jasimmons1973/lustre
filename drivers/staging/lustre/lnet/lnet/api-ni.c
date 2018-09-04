@@ -1160,7 +1160,6 @@ static void
 lnet_shutdown_lndnets(void)
 {
 	struct lnet_net *net;
-	int i;
 
 	/* NB called holding the global mutex */
 
@@ -1195,19 +1194,6 @@ lnet_shutdown_lndnets(void)
 				 struct lnet_net, net_list);
 		lnet_shutdown_lndnet(net);
 	}
-
-	/*
-	 * Clear lazy portals and drop delayed messages which hold refs
-	 * on their lnet_msg::msg_rxpeer
-	 */
-	for (i = 0; i < the_lnet.ln_nportals; i++)
-		LNetClearLazyPortal(i);
-
-	/*
-	 * Clear the peer table and wait for all peers to go (they hold refs on
-	 * their NIs)
-	 */
-	lnet_peer_tables_cleanup(NULL);
 
 	lnet_net_lock(LNET_LOCK_EX);
 	the_lnet.ln_shutdown = 0;
