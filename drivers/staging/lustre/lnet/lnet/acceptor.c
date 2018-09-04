@@ -296,7 +296,7 @@ lnet_accept(struct socket *sock, __u32 magic)
 	if (flip)
 		__swab64s(&cr.acr_nid);
 
-	ni = lnet_net2ni(LNET_NIDNET(cr.acr_nid));
+	ni = lnet_nid2ni_addref(cr.acr_nid);
 	if (!ni ||	       /* no matching net */
 	    ni->ni_nid != cr.acr_nid) { /* right NET, wrong NID! */
 		if (ni)

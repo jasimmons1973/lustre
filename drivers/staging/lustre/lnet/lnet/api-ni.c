@@ -655,7 +655,6 @@ lnet_net2ni_locked(__u32 net_id, int cpt)
 		if (net->net_id == net_id) {
 			ni = list_entry(net->net_ni_list.next, struct lnet_ni,
 					ni_netlist);
-			lnet_ni_addref_locked(ni, cpt);
 			return ni;
 		}
 	}
@@ -792,15 +791,28 @@ lnet_nid2ni_locked(lnet_nid_t nid, int cpt)
 
 	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
 		list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
-			if (ni->ni_nid == nid) {
-				lnet_ni_addref_locked(ni, cpt);
+			if (ni->ni_nid == nid)
 				return ni;
-			}
 		}
 	}
 
 	return NULL;
 }
+
+struct lnet_ni *
+lnet_nid2ni_addref(lnet_nid_t nid)
+{
+	struct lnet_ni *ni;
+
+	lnet_net_lock(0);
+	ni = lnet_nid2ni_locked(nid, 0);
+	if (ni)
+		lnet_ni_addref_locked(ni, 0);
+	lnet_net_unlock(0);
+
+	return ni;
+}
+EXPORT_SYMBOL(lnet_nid2ni_addref);
 
 int
 lnet_islocalnid(lnet_nid_t nid)
@@ -810,8 +822,6 @@ lnet_islocalnid(lnet_nid_t nid)
 
 	cpt = lnet_net_lock_current();
 	ni = lnet_nid2ni_locked(nid, cpt);
-	if (ni)
-		lnet_ni_decref_locked(ni, cpt);
 	lnet_net_unlock(cpt);
 
 	return !!ni;
@@ -1410,6 +1420,7 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 		if (rc < 0)
 			goto failed1;
 
+		lnet_ni_addref(ni);
 		list_add_tail(&ni->ni_netlist, &local_ni_list);
 
 		ni_count++;
@@ -2029,9 +2040,6 @@ lnet_dyn_del_ni(__u32 net)
 		goto failed;
 	}
 
-	/* decrement the reference counter taken by lnet_net2ni() */
-	lnet_ni_decref_locked(ni, 0);
-
 	lnet_shutdown_lndni(ni);
 
 	if (!lnet_count_acceptor_nets())
@@ -2261,7 +2269,6 @@ LNetCtl(unsigned int cmd, void *arg)
 		else
 			rc = ni->ni_net->net_lnd->lnd_ctl(ni, cmd, arg);
 
-		lnet_ni_decref(ni);
 		return rc;
 	}
 	/* not reached */
