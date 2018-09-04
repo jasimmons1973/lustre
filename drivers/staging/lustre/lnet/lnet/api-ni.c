@@ -1866,7 +1866,7 @@ lnet_fill_ni_info(struct lnet_ni *ni, struct lnet_ioctl_config_data *config)
 	if (config->cfg_hdr.ioc_len > min_size)
 		tunable_size = config->cfg_hdr.ioc_len - min_size;
 
-	/* Don't copy to much data to user space */
+	/* Don't copy too much data to user space */
 	min_size = min(tunable_size, sizeof(ni->ni_lnd_tunables));
 	lnd_cfg = (struct lnet_ioctl_config_lnd_tunables *)net_config->cfg_bulk;
 
