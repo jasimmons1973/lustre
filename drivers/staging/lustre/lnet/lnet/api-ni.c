@@ -778,6 +778,16 @@ lnet_islocalnet(__u32 net)
 	return !!ni;
 }
 
+bool
+lnet_is_ni_healthy_locked(struct lnet_ni *ni)
+{
+	if (ni->ni_state == LNET_NI_STATE_ACTIVE ||
+	    ni->ni_state == LNET_NI_STATE_DEGRADED)
+		return true;
+
+	return false;
+}
+
 struct lnet_ni  *
 lnet_nid2ni_locked(lnet_nid_t nid, int cpt)
 {
@@ -1115,6 +1125,9 @@ lnet_clear_zombies_nis_locked(struct lnet_net *net)
 		ni = list_entry(zombie_list->next,
 				struct lnet_ni, ni_netlist);
 		list_del_init(&ni->ni_netlist);
+		/* the ni should be in deleting state. If it's not it's
+		 * a bug */
+		LASSERT(ni->ni_state == LNET_NI_STATE_DELETING);
 		cfs_percpt_for_each(ref, j, ni->ni_refs) {
 			if (!*ref)
 				continue;
@@ -1161,6 +1174,7 @@ lnet_shutdown_lndni(struct lnet_ni *ni)
 	struct lnet_net *net = ni->ni_net;
 
 	lnet_net_lock(LNET_LOCK_EX);
+	ni->ni_state = LNET_NI_STATE_DELETING;
 	lnet_ni_unlink_locked(ni);
 	lnet_net_unlock(LNET_LOCK_EX);
 
@@ -1288,6 +1302,8 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_lnd_tunables *tun)
 	}
 
 	lnet_net_unlock(LNET_LOCK_EX);
+
+	ni->ni_state = LNET_NI_STATE_ACTIVE;
 
 	if (net->net_lnd->lnd_type == LOLND) {
 		lnet_ni_addref(ni);

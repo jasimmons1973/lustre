@@ -400,6 +400,7 @@ int lnet_cpt_of_nid(lnet_nid_t nid, struct lnet_ni *ni);
 struct lnet_ni *lnet_nid2ni_locked(lnet_nid_t nid, int cpt);
 struct lnet_ni *lnet_net2ni_locked(__u32 net, int cpt);
 struct lnet_ni *lnet_net2ni(__u32 net);
+bool lnet_is_ni_healthy_locked(struct lnet_ni *ni);
 
 extern int portal_rotor;
 

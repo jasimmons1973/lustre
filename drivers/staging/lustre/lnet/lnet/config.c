@@ -388,6 +388,7 @@ lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el, char *iface)
 		ni->ni_net_ns = NULL;
 
 	ni->ni_last_alive = ktime_get_real_seconds();
+	ni->ni_state = LNET_NI_STATE_INIT;
 	rc = lnet_net_append_cpts(ni->ni_cpts, ni->ni_ncpts, net);
 	if (rc != 0)
 		goto failed;
