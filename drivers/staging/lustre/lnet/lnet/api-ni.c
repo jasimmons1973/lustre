@@ -1370,8 +1370,34 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 	LASSERT(libcfs_isknown_lnd(lnd_type));
 
 	/* Make sure this new NI is unique. */
-	rc = lnet_net_unique(net->net_id, &the_lnet.ln_nets);
-	if (!rc) {
+	if (lnet_net_unique(net->net_id, &the_lnet.ln_nets)) {
+		mutex_lock(&the_lnet.ln_lnd_mutex);
+		lnd = lnet_find_lnd_by_type(lnd_type);
+
+		if (!lnd) {
+			mutex_unlock(&the_lnet.ln_lnd_mutex);
+			rc = request_module("%s", libcfs_lnd2modname(lnd_type));
+			mutex_lock(&the_lnet.ln_lnd_mutex);
+
+			lnd = lnet_find_lnd_by_type(lnd_type);
+			if (!lnd) {
+				mutex_unlock(&the_lnet.ln_lnd_mutex);
+				CERROR("Can't load LND %s, module %s, rc=%d\n",
+				libcfs_lnd2str(lnd_type),
+				libcfs_lnd2modname(lnd_type), rc);
+				rc = -EINVAL;
+				goto failed0;
+			}
+		}
+
+		lnet_net_lock(LNET_LOCK_EX);
+		lnd->lnd_refcount++;
+		lnet_net_unlock(LNET_LOCK_EX);
+
+		net->net_lnd = lnd;
+
+		mutex_unlock(&the_lnet.ln_lnd_mutex);
+	} else {
 		if (lnd_type == LOLND) {
 			lnet_net_free(net);
 			return 0;
@@ -1382,31 +1408,6 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 		rc = -EEXIST;
 		goto failed0;
 	}
-
-	mutex_lock(&the_lnet.ln_lnd_mutex);
-	lnd = lnet_find_lnd_by_type(lnd_type);
-
-	if (!lnd) {
-		mutex_unlock(&the_lnet.ln_lnd_mutex);
-		rc = request_module("%s", libcfs_lnd2modname(lnd_type));
-		mutex_lock(&the_lnet.ln_lnd_mutex);
-
-		lnd = lnet_find_lnd_by_type(lnd_type);
-		if (!lnd) {
-			mutex_unlock(&the_lnet.ln_lnd_mutex);
-			CERROR("Can't load LND %s, module %s, rc=%d\n",
-			       libcfs_lnd2str(lnd_type),
-			       libcfs_lnd2modname(lnd_type), rc);
-			rc = -EINVAL;
-			goto failed0;
-		}
-	}
-
-	lnet_net_lock(LNET_LOCK_EX);
-	lnd->lnd_refcount++;
-	lnet_net_unlock(LNET_LOCK_EX);
-	net->net_lnd = lnd;
-	mutex_unlock(&the_lnet.ln_lnd_mutex);
 
 	while (!list_empty(&net->net_ni_added)) {
 		ni = list_entry(net->net_ni_added.next, struct lnet_ni,
