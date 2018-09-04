@@ -59,6 +59,11 @@ static int rnet_htable_size = LNET_REMOTE_NETS_HASH_DEFAULT;
 module_param(rnet_htable_size, int, 0444);
 MODULE_PARM_DESC(rnet_htable_size, "size of remote network hash table");
 
+static int use_tcp_bonding = false;
+module_param(use_tcp_bonding, int, 0444);
+MODULE_PARM_DESC(use_tcp_bonding,
+		 "Set to 1 to use socklnd bonding. 0 to use Multi-Rail");
+
 static int lnet_ping(struct lnet_process_id id, signed long timeout,
 		     struct lnet_process_id __user *ids, int n_ids);
 
@@ -1444,6 +1449,18 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 	 * to avoid a memory leak.
 	 */
 
+	/*
+	 * When a network uses TCP bonding then all its interfaces
+	 * must be specified when the network is first defined: the
+	 * TCP bonding code doesn't allow for interfaces to be added
+	 * or removed.
+	 */
+	if (net_l && net_l != net && use_tcp_bonding &&
+	    LNET_NETTYP(net_l->net_id) == SOCKLND) {
+		rc = -EINVAL;
+		goto failed0;
+	}
+
 	while (!list_empty(&net->net_ni_added)) {
 		ni = list_entry(net->net_ni_added.next, struct lnet_ni,
 				ni_netlist);
@@ -1700,7 +1717,8 @@ LNetNIInit(lnet_pid_t requested_pid)
 	 * routes if it has been loaded
 	 */
 	if (!the_lnet.ln_nis_from_mod_params) {
-		rc = lnet_parse_networks(&net_head, lnet_get_networks());
+		rc = lnet_parse_networks(&net_head, lnet_get_networks(),
+					 use_tcp_bonding);
 		if (rc < 0)
 			goto err_empty_list;
 	}
@@ -1998,7 +2016,7 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 		lnd_tunables = (struct lnet_ioctl_config_lnd_tunables *)conf->cfg_bulk;
 
 	/* Create a net/ni structures for the network string */
-	rc = lnet_parse_networks(&net_head, nets);
+	rc = lnet_parse_networks(&net_head, nets, use_tcp_bonding);
 	if (rc <= 0)
 		return !rc ? -EINVAL : rc;
 
