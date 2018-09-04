@@ -630,7 +630,8 @@ void lnet_swap_pinginfo(struct lnet_ping_info *info);
 int lnet_parse_ip2nets(char **networksp, char *ip2nets);
 int lnet_parse_routes(char *route_str, int *im_a_router);
 int lnet_parse_networks(struct list_head *nilist, char *networks);
-bool lnet_net_unique(__u32 net, struct list_head *nilist);
+bool lnet_net_unique(__u32 net_id, struct list_head *nilist,
+		     struct lnet_net **net);
 
 int lnet_nid2peer_locked(struct lnet_peer **lpp, lnet_nid_t nid, int cpt);
 struct lnet_peer *lnet_find_peer_locked(struct lnet_peer_table *ptable,

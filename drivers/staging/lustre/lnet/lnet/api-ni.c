@@ -1296,14 +1296,9 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_lnd_tunables *tun)
 		goto failed0;
 	}
 
-	lnet_net_lock(LNET_LOCK_EX);
-	/* refcount for ln_nis */
-	lnet_ni_addref_locked(ni, 0);
-	list_add_tail(&ni->ni_net->net_list, &the_lnet.ln_nets);
-	lnet_net_unlock(LNET_LOCK_EX);
-
 	ni->ni_state = LNET_NI_STATE_ACTIVE;
 
+	/* We keep a reference on the loopback net through the loopback NI */
 	if (net->net_lnd->lnd_type == LOLND) {
 		lnet_ni_addref(ni);
 		LASSERT(!the_lnet.ln_loni);
@@ -1358,6 +1353,7 @@ static int
 lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 {
 	struct lnet_ni *ni;
+	struct lnet_net *net_l = NULL;
 	struct list_head local_ni_list;
 	int ni_count = 0;
 	u32 lnd_type;
@@ -1366,8 +1362,14 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 
 	INIT_LIST_HEAD(&local_ni_list);
 
-	/* Make sure this new NI is unique. */
-	if (lnet_net_unique(net->net_id, &the_lnet.ln_nets)) {
+	/*
+	 * make sure that this net is unique. If it isn't then
+	 * we are adding interfaces to an already existing network, and
+	 * 'net' is just a convenient way to pass in the list.
+	 * if it is unique we need to find the LND and load it if
+	 * necessary.
+	 */
+	if (lnet_net_unique(net->net_id, &the_lnet.ln_nets, &net_l)) {
 		lnd_type = LNET_NETTYP(net->net_id);
 
 		LASSERT(libcfs_isknown_lnd(lnd_type));
@@ -1398,22 +1400,40 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 		net->net_lnd = lnd;
 
 		mutex_unlock(&the_lnet.ln_lnd_mutex);
-	} else {
-		if (lnd_type == LOLND) {
-			lnet_net_free(net);
-			return 0;
-		}
 
-		CERROR("Net %s is not unique\n",
-		       libcfs_net2str(net->net_id));
-		rc = -EEXIST;
-		goto failed0;
+		net_l = net;
 	}
+
+	/*
+	 * net_l: if the network being added is unique then net_l
+	 *        will point to that network
+	 *        if the network being added is not unique then
+	 *        net_l points to the existing network.
+	 *
+	 * When we enter the loop below, we'll pick NIs off he
+	 * network beign added and start them up, then add them to
+	 * a local ni list. Once we've successfully started all
+	 * the NIs then we join the local NI list (of started up
+	 * networks) with the net_l->net_ni_list, which should
+	 * point to the correct network to add the new ni list to
+	 *
+	 * If any of the new NIs fail to start up, then we want to
+	 * iterate through the local ni list, which should include
+	 * any NIs which were successfully started up, and shut
+	 * them down.
+	 *
+	 * After than we want to delete the network being added,
+	 * to avoid a memory leak.
+	 */
 
 	while (!list_empty(&net->net_ni_added)) {
 		ni = list_entry(net->net_ni_added.next, struct lnet_ni,
 				ni_netlist);
 		list_del_init(&ni->ni_netlist);
+
+		/* adjust the pointer the parent network, just in case it
+		 * the net is a duplicate */
+		ni->ni_net = net_l;
 
 		rc = lnet_startup_lndni(ni, tun);
 
@@ -1425,9 +1445,22 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 
 		ni_count++;
 	}
+
 	lnet_net_lock(LNET_LOCK_EX);
-	list_splice_tail(&local_ni_list, &net->net_ni_list);
+	list_splice_tail(&local_ni_list, &net_l->net_ni_list);
 	lnet_net_unlock(LNET_LOCK_EX);
+
+	/* if the network is not unique then we don't want to keep
+	 * it around after we're done. Free it. Otherwise add that
+	 * net to the global the_lnet.ln_nets */
+	if (net_l && net_l != net) {
+		lnet_net_free(net);
+	} else {
+		lnet_net_lock(LNET_LOCK_EX);
+		list_add_tail(&net->net_list, &the_lnet.ln_nets);
+		lnet_net_unlock(LNET_LOCK_EX);
+	}
+
 	return ni_count;
 
 failed1:

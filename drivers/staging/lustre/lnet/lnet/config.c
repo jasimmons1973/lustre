@@ -79,13 +79,17 @@ lnet_issep(char c)
 }
 
 bool
-lnet_net_unique(__u32 net, struct list_head *netlist)
+lnet_net_unique(__u32 net_id, struct list_head *netlist,
+		struct lnet_net **net)
 {
 	struct lnet_net *net_l;
 
 	list_for_each_entry(net_l, netlist, net_list) {
-		if (net_l->net_id == net)
+		if (net_l->net_id == net_id) {
+			if (net)
+				*net = net_l;
 			return false;
+		}
 	}
 
 	return true;
@@ -304,7 +308,7 @@ lnet_net_alloc(__u32 net_id, struct list_head *net_list)
 {
 	struct lnet_net *net;
 
-	if (!lnet_net_unique(net_id, net_list)) {
+	if (!lnet_net_unique(net_id, net_list, NULL)) {
 		CERROR("Duplicate net %s. Ignore\n",
 		       libcfs_net2str(net_id));
 		return NULL;
