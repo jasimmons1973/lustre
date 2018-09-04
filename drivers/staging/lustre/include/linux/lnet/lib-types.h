@@ -306,7 +306,7 @@ struct lnet_ni {
 	spinlock_t		ni_lock;
 	/* chain on the lnet_net structure */
 	struct list_head	ni_netlist;
-	/* chain on ln_nis_cpt */
+	/* chain on net_ni_cpt */
 	struct list_head	ni_cptlist;
 
 	/* number of CPTs */
@@ -691,8 +691,6 @@ struct lnet {
 
 	/* LND instances */
 	struct list_head		ln_nets;
-	/* NIs bond on specific CPT(s) */
-	struct list_head		ln_nis_cpt;
 	/* network zombie list */
 	struct list_head		ln_net_zombie;
 	/* the loopback NI */

@@ -538,7 +538,6 @@ lnet_prepare(lnet_pid_t requested_pid)
 
 	INIT_LIST_HEAD(&the_lnet.ln_test_peers);
 	INIT_LIST_HEAD(&the_lnet.ln_nets);
-	INIT_LIST_HEAD(&the_lnet.ln_nis_cpt);
 	INIT_LIST_HEAD(&the_lnet.ln_routers);
 	INIT_LIST_HEAD(&the_lnet.ln_drop_rules);
 	INIT_LIST_HEAD(&the_lnet.ln_delay_rules);
@@ -616,7 +615,6 @@ lnet_unprepare(void)
 	LASSERT(!the_lnet.ln_refcount);
 	LASSERT(list_empty(&the_lnet.ln_test_peers));
 	LASSERT(list_empty(&the_lnet.ln_nets));
-	LASSERT(list_empty(&the_lnet.ln_nis_cpt));
 
 	lnet_portals_destroy();
 
@@ -1292,11 +1290,6 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_lnd_tunables *tun)
 	/* refcount for ln_nis */
 	lnet_ni_addref_locked(ni, 0);
 	list_add_tail(&ni->ni_net->net_list, &the_lnet.ln_nets);
-	if (ni->ni_cpts) {
-		lnet_ni_addref_locked(ni, 0);
-		list_add_tail(&ni->ni_cptlist, &the_lnet.ln_nis_cpt);
-	}
-
 	lnet_net_unlock(LNET_LOCK_EX);
 
 	ni->ni_state = LNET_NI_STATE_ACTIVE;
