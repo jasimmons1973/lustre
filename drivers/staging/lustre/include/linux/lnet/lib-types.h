@@ -284,6 +284,9 @@ struct lnet_net {
 	struct lnet_lnd		*net_lnd;
 	/* list of NIs on this net */
 	struct list_head	net_ni_list;
+
+	/* dying LND instances */
+	struct list_head	net_ni_zombie;
 };
 
 struct lnet_ni {
@@ -674,8 +677,8 @@ struct lnet {
 	struct list_head		ln_nets;
 	/* NIs bond on specific CPT(s) */
 	struct list_head		ln_nis_cpt;
-	/* dying LND instances */
-	struct list_head		ln_nis_zombie;
+	/* network zombie list */
+	struct list_head		ln_net_zombie;
 	/* the loopback NI */
 	struct lnet_ni			*ln_loni;
 

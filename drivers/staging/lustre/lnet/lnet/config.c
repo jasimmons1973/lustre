@@ -276,6 +276,8 @@ lnet_net_free(struct lnet_net *net)
 	struct list_head *tmp, *tmp2;
 	struct lnet_ni *ni;
 
+	LASSERT(list_empty(&net->net_ni_zombie));
+
 	/* delete any nis which have been started. */
 	list_for_each_safe(tmp, tmp2, &net->net_ni_list) {
 		ni = list_entry(tmp, struct lnet_ni, ni_netlist);
@@ -307,6 +309,7 @@ lnet_net_alloc(__u32 net_id, struct list_head *net_list)
 
 	INIT_LIST_HEAD(&net->net_list);
 	INIT_LIST_HEAD(&net->net_ni_list);
+	INIT_LIST_HEAD(&net->net_ni_zombie);
 
 	net->net_id = net_id;
 
