@@ -870,6 +870,18 @@ lnet_ping_info_create(int num_ni)
 }
 
 static inline int
+lnet_get_net_ni_count_locked(struct lnet_net *net)
+{
+	struct lnet_ni *ni;
+	int count = 0;
+
+	list_for_each_entry(ni, &net->net_ni_list, ni_netlist)
+		count++;
+
+	return count;
+}
+
+static inline int
 lnet_get_ni_count(void)
 {
 	struct lnet_ni *ni;
@@ -1975,6 +1987,7 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 	struct list_head net_head;
 	struct lnet_remotenet *rnet;
 	int rc;
+	int net_ni_count;
 	int num_acceptor_nets;
 	u32 net_type;
 	struct lnet_ioctl_config_lnd_tunables *lnd_tunables = NULL;
@@ -2012,7 +2025,19 @@ lnet_dyn_add_ni(lnet_pid_t requested_pid, struct lnet_ioctl_config_data *conf)
 		goto failed0;
 	}
 
-	rc = lnet_ping_info_setup(&pinfo, &md_handle, 1 + lnet_get_ni_count(),
+	/*
+	 * make sure you calculate the correct number of slots in the ping
+	 * info. Since the ping info is a flattened list of all the NIs,
+	 * we should allocate enough slots to accomodate the number of NIs
+	 * which will be added.
+	 *
+	 * We can use lnet_get_net_ni_count_locked() since the net is not
+	 * on a public list yet, so locking is not a problem
+	 */
+	net_ni_count = lnet_get_net_ni_count_locked(net);
+
+	rc = lnet_ping_info_setup(&pinfo, &md_handle,
+				  net_ni_count + lnet_get_ni_count(),
 				  false);
 	if (rc)
 		goto failed0;
