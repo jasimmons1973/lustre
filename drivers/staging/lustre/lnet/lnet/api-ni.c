@@ -2106,40 +2106,45 @@ failed0:
 }
 
 int
-lnet_dyn_del_ni(__u32 net)
+lnet_dyn_del_ni(__u32 net_id)
 {
-	struct lnet_ni *ni;
+	struct lnet_net *net;
 	struct lnet_ping_info *pinfo;
 	struct lnet_handle_md md_handle;
 	int rc;
+	int net_ni_count;
 
 	/* don't allow userspace to shutdown the LOLND */
-	if (LNET_NETTYP(net) == LOLND)
+	if (LNET_NETTYP(net_id) == LOLND)
 		return -EINVAL;
 
 	mutex_lock(&the_lnet.ln_api_mutex);
+
+	lnet_net_lock(0);
+
+	net = lnet_get_net_locked(net_id);
+	if (!net) {
+		rc = -EINVAL;
+		goto out;
+	}
+
+	net_ni_count = lnet_get_net_ni_count_locked(net);
+
+	lnet_net_unlock(0);
+
 	/* create and link a new ping info, before removing the old one */
 	rc = lnet_ping_info_setup(&pinfo, &md_handle,
-				  lnet_get_ni_count() - 1, false);
+				  lnet_get_ni_count() - net_ni_count, false);
 	if (rc)
 		goto out;
 
-	ni = lnet_net2ni(net);
-	if (!ni) {
-		rc = -EINVAL;
-		goto failed;
-	}
-
-	lnet_shutdown_lndni(ni);
+	lnet_shutdown_lndnet(net);
 
 	if (!lnet_count_acceptor_nets())
 		lnet_acceptor_stop();
 
 	lnet_ping_target_update(pinfo, md_handle);
-	goto out;
-failed:
-	lnet_ping_md_unlink(pinfo, &md_handle);
-	lnet_ping_info_free(pinfo);
+
 out:
 	mutex_unlock(&the_lnet.ln_api_mutex);
 
