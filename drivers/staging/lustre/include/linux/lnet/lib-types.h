@@ -309,8 +309,6 @@ struct lnet_ni {
 	spinlock_t		ni_lock;
 	/* chain on the lnet_net structure */
 	struct list_head	ni_netlist;
-	/* chain on net_ni_cpt */
-	struct list_head	ni_cptlist;
 
 	/* number of CPTs */
 	int			ni_ncpts;

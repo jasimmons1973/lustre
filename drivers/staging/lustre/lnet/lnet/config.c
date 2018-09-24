@@ -438,7 +438,6 @@ lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el, char *iface)
 	}
 
 	spin_lock_init(&ni->ni_lock);
-	INIT_LIST_HEAD(&ni->ni_cptlist);
 	INIT_LIST_HEAD(&ni->ni_netlist);
 	ni->ni_refs = cfs_percpt_alloc(lnet_cpt_table(),
 				       sizeof(*ni->ni_refs[0]));
