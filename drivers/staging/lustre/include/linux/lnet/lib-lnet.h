@@ -311,21 +311,21 @@ lnet_handle2me(struct lnet_handle_me *handle)
 }
 
 static inline void
-lnet_peer_addref_locked(struct lnet_peer_ni *lp)
+lnet_peer_ni_addref_locked(struct lnet_peer_ni *lp)
 {
 	LASSERT(atomic_read(&lp->lpni_refcount) > 0);
 	atomic_inc(&lp->lpni_refcount);
 }
 
-void lnet_destroy_peer_locked(struct lnet_peer_ni *lp);
+void lnet_destroy_peer_ni_locked(struct lnet_peer_ni *lp);
 
 static inline void
-lnet_peer_decref_locked(struct lnet_peer_ni *lp)
+lnet_peer_ni_decref_locked(struct lnet_peer_ni *lp)
 {
 	LASSERT(atomic_read(&lp->lpni_refcount) > 0);
 	atomic_dec(&lp->lpni_refcount);
 	if (atomic_read(&lp->lpni_refcount) == 0)
-		lnet_destroy_peer_locked(lp);
+		lnet_destroy_peer_ni_locked(lp);
 }
 
 static inline int
@@ -635,7 +635,7 @@ bool lnet_net_unique(__u32 net_id, struct list_head *nilist,
 		     struct lnet_net **net);
 bool lnet_ni_unique_net(struct list_head *nilist, char *iface);
 
-int lnet_nid2peer_locked(struct lnet_peer_ni **lpp, lnet_nid_t nid, int cpt);
+int lnet_nid2peerni_locked(struct lnet_peer_ni **lpp, lnet_nid_t nid, int cpt);
 struct lnet_peer_ni *lnet_find_peer_locked(struct lnet_peer_table *ptable,
 					   lnet_nid_t nid);
 void lnet_peer_tables_cleanup(struct lnet_ni *ni);
