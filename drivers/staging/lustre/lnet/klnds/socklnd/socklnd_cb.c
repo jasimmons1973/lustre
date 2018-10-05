@@ -328,18 +328,17 @@ ksocknal_receive(struct ksock_conn *conn)
 }
 
 void
-ksocknal_tx_done(struct lnet_ni *ni, struct ksock_tx *tx)
+ksocknal_tx_done(struct lnet_ni *ni, struct ksock_tx *tx, int rc)
 {
 	struct lnet_msg *lnetmsg = tx->tx_lnetmsg;
-	int rc = (!tx->tx_resid && !tx->tx_zc_aborted) ? 0 : -EIO;
 
 	LASSERT(ni || tx->tx_conn);
 
+	if (!rc && (tx->tx_resid != 0 || tx->tx_zc_aborted))
+		rc = -EIO;
+
 	if (tx->tx_conn)
 		ksocknal_conn_decref(tx->tx_conn);
-
-	if (!ni && tx->tx_conn)
-		ni = tx->tx_conn->ksnc_peer->ksnp_ni;
 
 	ksocknal_free_tx(tx);
 	if (lnetmsg) /* KSOCK_MSG_NOOP go without lnetmsg */
@@ -367,7 +366,7 @@ ksocknal_txlist_done(struct lnet_ni *ni, struct list_head *txlist, int error)
 		list_del(&tx->tx_list);
 
 		LASSERT(atomic_read(&tx->tx_refcount) == 1);
-		ksocknal_tx_done(ni, tx);
+		ksocknal_tx_done(ni, tx, error);
 	}
 }
 
@@ -1923,7 +1922,7 @@ ksocknal_connect(struct ksock_route *route)
 	write_unlock_bh(&ksocknal_data.ksnd_global_lock);
 
 	ksocknal_peer_failed(peer_ni);
-	ksocknal_txlist_done(peer_ni->ksnp_ni, &zombies, 1);
+	ksocknal_txlist_done(peer_ni->ksnp_ni, &zombies, rc);
 	return 0;
 }
 
@@ -2268,7 +2267,7 @@ ksocknal_flush_stale_txs(struct ksock_peer *peer_ni)
 
 	write_unlock_bh(&ksocknal_data.ksnd_global_lock);
 
-	ksocknal_txlist_done(peer_ni->ksnp_ni, &stale_txs, 1);
+	ksocknal_txlist_done(peer_ni->ksnp_ni, &stale_txs, -ETIMEDOUT);
 }
 
 static int

@@ -582,14 +582,14 @@ ksocknal_tx_addref(struct ksock_tx *tx)
 }
 
 void ksocknal_tx_prep(struct ksock_conn *, struct ksock_tx *tx);
-void ksocknal_tx_done(struct lnet_ni *ni, struct ksock_tx *tx);
+void ksocknal_tx_done(struct lnet_ni *ni, struct ksock_tx *tx, int error);
 
 static inline void
 ksocknal_tx_decref(struct ksock_tx *tx)
 {
 	LASSERT(atomic_read(&tx->tx_refcount) > 0);
 	if (atomic_dec_and_test(&tx->tx_refcount))
-		ksocknal_tx_done(NULL, tx);
+		ksocknal_tx_done(NULL, tx, 0);
 }
 
 static inline void

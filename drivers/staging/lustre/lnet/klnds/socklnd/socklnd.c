@@ -607,7 +607,7 @@ ksocknal_del_peer(struct lnet_ni *ni, struct lnet_process_id id, __u32 ip)
 
 	write_unlock_bh(&ksocknal_data.ksnd_global_lock);
 
-	ksocknal_txlist_done(ni, &zombies, 1);
+	ksocknal_txlist_done(ni, &zombies, -ENETDOWN);
 
 	return rc;
 }
@@ -1023,6 +1023,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	int cpt;
 	struct ksock_tx *tx;
 	struct ksock_tx *txtmp;
+	int rc2;
 	int rc;
 	int active;
 	char *warn = NULL;
@@ -1406,7 +1407,13 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 		write_unlock_bh(global_lock);
 	}
 
-	ksocknal_txlist_done(ni, &zombies, 1);
+	/*
+	 * If we get here without an error code, just use -EALREADY.
+	 * Depending on how we got here, the error may be positive
+	 * or negative. Normalize the value for ksocknal_txlist_done().
+	 */
+	rc2 = (rc == 0 ? -EALREADY : (rc > 0 ? -rc : rc));
+	ksocknal_txlist_done(ni, &zombies, rc2);
 	ksocknal_peer_decref(peer_ni);
 
 failed_1:
