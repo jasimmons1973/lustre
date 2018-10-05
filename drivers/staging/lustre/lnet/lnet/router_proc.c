@@ -289,7 +289,7 @@ static int proc_lnet_routers(struct ctl_table *table, int write,
 		*ppos = LNET_PROC_POS_MAKE(0, ver, 0, off);
 	} else {
 		struct list_head *r;
-		struct lnet_peer *peer = NULL;
+		struct lnet_peer_ni *peer = NULL;
 		int skip = off - 1;
 
 		lnet_net_lock(0);
@@ -304,9 +304,9 @@ static int proc_lnet_routers(struct ctl_table *table, int write,
 		r = the_lnet.ln_routers.next;
 
 		while (r != &the_lnet.ln_routers) {
-			struct lnet_peer *lp;
+			struct lnet_peer_ni *lp;
 
-			lp = list_entry(r, struct lnet_peer, lpni_rtr_list);
+			lp = list_entry(r, struct lnet_peer_ni, lpni_rtr_list);
 			if (!skip) {
 				peer = lp;
 				break;
@@ -425,7 +425,7 @@ static int proc_lnet_peers(struct ctl_table *table, int write,
 
 		hoff++;
 	} else {
-		struct lnet_peer *peer;
+		struct lnet_peer_ni *peer;
 		struct list_head *p;
 		int skip;
  again:
@@ -449,9 +449,9 @@ static int proc_lnet_peers(struct ctl_table *table, int write,
 				p = ptable->pt_hash[hash].next;
 
 			while (p != &ptable->pt_hash[hash]) {
-				struct lnet_peer *lp;
+				struct lnet_peer_ni *lp;
 
-				lp = list_entry(p, struct lnet_peer,
+				lp = list_entry(p, struct lnet_peer_ni,
 						lpni_hashlist);
 				if (!skip) {
 					peer = lp;

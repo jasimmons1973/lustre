@@ -93,8 +93,8 @@ struct lnet_msg {
 	unsigned int	msg_onactivelist:1;	/* on the activelist */
 	unsigned int	msg_rdma_get:1;
 
-	struct lnet_peer	*msg_txpeer;	 /* peer I'm sending to */
-	struct lnet_peer	*msg_rxpeer;	 /* peer I received from */
+	struct lnet_peer_ni	*msg_txpeer;	 /* peer I'm sending to */
+	struct lnet_peer_ni	*msg_rxpeer;	 /* peer I received from */
 
 	void			*msg_private;
 	struct lnet_libmd	*msg_md;
@@ -378,12 +378,12 @@ struct lnet_rc_data {
 	/* ping buffer MD */
 	struct lnet_handle_md	rcd_mdh;
 	/* reference to gateway */
-	struct lnet_peer	*rcd_gateway;
+	struct lnet_peer_ni	*rcd_gateway;
 	/* ping buffer */
 	struct lnet_ping_info	*rcd_pinginfo;
 };
 
-struct lnet_peer {
+struct lnet_peer_ni {
 	/* chain on peer hash */
 	struct list_head	 lpni_hashlist;
 	/* messages blocking for tx credits */
@@ -474,7 +474,7 @@ struct lnet_route {
 	/* chain on gateway */
 	struct list_head	lr_gwlist;
 	/* router node */
-	struct lnet_peer	*lr_gateway;
+	struct lnet_peer_ni	*lr_gateway;
 	/* remote network number */
 	__u32			lr_net;
 	/* sequence for round-robin */

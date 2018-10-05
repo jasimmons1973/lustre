@@ -106,8 +106,8 @@ lnet_peer_table_cleanup_locked(struct lnet_ni *ni,
 			       struct lnet_peer_table *ptable)
 {
 	int i;
-	struct lnet_peer *lp;
-	struct lnet_peer *tmp;
+	struct lnet_peer_ni *lp;
+	struct lnet_peer_ni *tmp;
 
 	for (i = 0; i < LNET_PEER_HASH_SIZE; i++) {
 		list_for_each_entry_safe(lp, tmp, &ptable->pt_hash[i],
@@ -146,8 +146,8 @@ lnet_peer_table_del_rtrs_locked(struct lnet_ni *ni,
 				struct lnet_peer_table *ptable,
 				int cpt_locked)
 {
-	struct lnet_peer *lp;
-	struct lnet_peer *tmp;
+	struct lnet_peer_ni *lp;
+	struct lnet_peer_ni *tmp;
 	lnet_nid_t lpni_nid;
 	int i;
 
@@ -174,7 +174,7 @@ lnet_peer_tables_cleanup(struct lnet_ni *ni)
 {
 	struct lnet_peer_table *ptable;
 	struct list_head deathrow;
-	struct lnet_peer *lp;
+	struct lnet_peer_ni *lp;
 	int i;
 
 	INIT_LIST_HEAD(&deathrow);
@@ -209,14 +209,15 @@ lnet_peer_tables_cleanup(struct lnet_ni *ni)
 	}
 
 	while (!list_empty(&deathrow)) {
-		lp = list_entry(deathrow.next, struct lnet_peer, lpni_hashlist);
+		lp = list_entry(deathrow.next, struct lnet_peer_ni,
+				lpni_hashlist);
 		list_del(&lp->lpni_hashlist);
 		kfree(lp);
 	}
 }
 
 void
-lnet_destroy_peer_locked(struct lnet_peer *lp)
+lnet_destroy_peer_locked(struct lnet_peer_ni *lp)
 {
 	struct lnet_peer_table *ptable;
 
@@ -237,11 +238,11 @@ lnet_destroy_peer_locked(struct lnet_peer *lp)
 	ptable->pt_zombies--;
 }
 
-struct lnet_peer *
+struct lnet_peer_ni *
 lnet_find_peer_locked(struct lnet_peer_table *ptable, lnet_nid_t nid)
 {
 	struct list_head *peers;
-	struct lnet_peer *lp;
+	struct lnet_peer_ni *lp;
 
 	LASSERT(!the_lnet.ln_shutdown);
 
@@ -257,11 +258,11 @@ lnet_find_peer_locked(struct lnet_peer_table *ptable, lnet_nid_t nid)
 }
 
 int
-lnet_nid2peer_locked(struct lnet_peer **lpp, lnet_nid_t nid, int cpt)
+lnet_nid2peer_locked(struct lnet_peer_ni **lpp, lnet_nid_t nid, int cpt)
 {
 	struct lnet_peer_table *ptable;
-	struct lnet_peer *lp = NULL;
-	struct lnet_peer *lp2;
+	struct lnet_peer_ni *lp = NULL;
+	struct lnet_peer_ni *lp2;
 	int cpt2;
 	int rc = 0;
 
@@ -281,7 +282,7 @@ lnet_nid2peer_locked(struct lnet_peer **lpp, lnet_nid_t nid, int cpt)
 
 	if (!list_empty(&ptable->pt_deathrow)) {
 		lp = list_entry(ptable->pt_deathrow.next,
-				struct lnet_peer, lpni_hashlist);
+				struct lnet_peer_ni, lpni_hashlist);
 		list_del(&lp->lpni_hashlist);
 	}
 
@@ -359,7 +360,7 @@ void
 lnet_debug_peer(lnet_nid_t nid)
 {
 	char *aliveness = "NA";
-	struct lnet_peer *lp;
+	struct lnet_peer_ni *lp;
 	int rc;
 	int cpt;
 
@@ -396,7 +397,7 @@ lnet_get_peer_info(__u32 peer_index, __u64 *nid,
 		   __u32 *peer_tx_qnob)
 {
 	struct lnet_peer_table *peer_table;
-	struct lnet_peer *lp;
+	struct lnet_peer_ni *lp;
 	bool found = false;
 	int lncpt, j;
 

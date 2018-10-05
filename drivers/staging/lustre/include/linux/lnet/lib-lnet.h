@@ -311,16 +311,16 @@ lnet_handle2me(struct lnet_handle_me *handle)
 }
 
 static inline void
-lnet_peer_addref_locked(struct lnet_peer *lp)
+lnet_peer_addref_locked(struct lnet_peer_ni *lp)
 {
 	LASSERT(lp->lpni_refcount > 0);
 	lp->lpni_refcount++;
 }
 
-void lnet_destroy_peer_locked(struct lnet_peer *lp);
+void lnet_destroy_peer_locked(struct lnet_peer_ni *lp);
 
 static inline void
-lnet_peer_decref_locked(struct lnet_peer *lp)
+lnet_peer_decref_locked(struct lnet_peer_ni *lp)
 {
 	LASSERT(lp->lpni_refcount > 0);
 	lp->lpni_refcount--;
@@ -329,7 +329,7 @@ lnet_peer_decref_locked(struct lnet_peer *lp)
 }
 
 static inline int
-lnet_isrouter(struct lnet_peer *lp)
+lnet_isrouter(struct lnet_peer_ni *lp)
 {
 	return lp->lpni_rtr_refcount ? 1 : 0;
 }
@@ -410,7 +410,7 @@ void lnet_lib_exit(void);
 
 int lnet_notify(struct lnet_ni *ni, lnet_nid_t peer, int alive,
 		time64_t when);
-void lnet_notify_locked(struct lnet_peer *lp, int notifylnd, int alive,
+void lnet_notify_locked(struct lnet_peer_ni *lp, int notifylnd, int alive,
 			time64_t when);
 int lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway_nid,
 		   unsigned int priority);
@@ -624,7 +624,7 @@ int lnet_peer_buffer_credits(struct lnet_net *net);
 
 int lnet_router_checker_start(void);
 void lnet_router_checker_stop(void);
-void lnet_router_ni_update_locked(struct lnet_peer *gw, __u32 net);
+void lnet_router_ni_update_locked(struct lnet_peer_ni *gw, __u32 net);
 void lnet_swap_pinginfo(struct lnet_ping_info *info);
 
 int lnet_parse_ip2nets(char **networksp, char *ip2nets);
@@ -635,9 +635,9 @@ bool lnet_net_unique(__u32 net_id, struct list_head *nilist,
 		     struct lnet_net **net);
 bool lnet_ni_unique_net(struct list_head *nilist, char *iface);
 
-int lnet_nid2peer_locked(struct lnet_peer **lpp, lnet_nid_t nid, int cpt);
-struct lnet_peer *lnet_find_peer_locked(struct lnet_peer_table *ptable,
-					lnet_nid_t nid);
+int lnet_nid2peer_locked(struct lnet_peer_ni **lpp, lnet_nid_t nid, int cpt);
+struct lnet_peer_ni *lnet_find_peer_locked(struct lnet_peer_table *ptable,
+					   lnet_nid_t nid);
 void lnet_peer_tables_cleanup(struct lnet_ni *ni);
 void lnet_peer_tables_destroy(void);
 int lnet_peer_tables_create(void);
@@ -650,7 +650,7 @@ int lnet_get_peer_info(__u32 peer_index, __u64 *nid,
 		       __u32 *peer_tx_qnob);
 
 static inline void
-lnet_peer_set_alive(struct lnet_peer *lp)
+lnet_peer_set_alive(struct lnet_peer_ni *lp)
 {
 	lp->lpni_last_query = ktime_get_seconds();
 	lp->lpni_last_alive = lp->lpni_last_query;

@@ -100,7 +100,7 @@ lnet_peers_start_down(void)
 }
 
 void
-lnet_notify_locked(struct lnet_peer *lp, int notifylnd, int alive,
+lnet_notify_locked(struct lnet_peer_ni *lp, int notifylnd, int alive,
 		   time64_t when)
 {
 	if (lp->lpni_timestamp > when) { /* out of date information */
@@ -130,7 +130,7 @@ lnet_notify_locked(struct lnet_peer *lp, int notifylnd, int alive,
 }
 
 static void
-lnet_ni_notify_locked(struct lnet_ni *ni, struct lnet_peer *lp)
+lnet_ni_notify_locked(struct lnet_ni *ni, struct lnet_peer_ni *lp)
 {
 	int alive;
 	int notifylnd;
@@ -170,7 +170,7 @@ lnet_ni_notify_locked(struct lnet_ni *ni, struct lnet_peer *lp)
 }
 
 static void
-lnet_rtr_addref_locked(struct lnet_peer *lp)
+lnet_rtr_addref_locked(struct lnet_peer_ni *lp)
 {
 	LASSERT(lp->lpni_refcount > 0);
 	LASSERT(lp->lpni_rtr_refcount >= 0);
@@ -182,9 +182,10 @@ lnet_rtr_addref_locked(struct lnet_peer *lp)
 
 		/* a simple insertion sort */
 		list_for_each_prev(pos, &the_lnet.ln_routers) {
-			struct lnet_peer *rtr;
+			struct lnet_peer_ni *rtr;
 
-			rtr = list_entry(pos, struct lnet_peer, lpni_rtr_list);
+			rtr = list_entry(pos, struct lnet_peer_ni,
+					 lpni_rtr_list);
 			if (rtr->lpni_nid < lp->lpni_nid)
 				break;
 		}
@@ -197,7 +198,7 @@ lnet_rtr_addref_locked(struct lnet_peer *lp)
 }
 
 static void
-lnet_rtr_decref_locked(struct lnet_peer *lp)
+lnet_rtr_decref_locked(struct lnet_peer_ni *lp)
 {
 	LASSERT(lp->lpni_refcount > 0);
 	LASSERT(lp->lpni_rtr_refcount > 0);
@@ -453,7 +454,7 @@ lnet_check_routes(void)
 int
 lnet_del_route(__u32 net, lnet_nid_t gw_nid)
 {
-	struct lnet_peer *gateway;
+	struct lnet_peer_ni *gateway;
 	struct lnet_remotenet *rnet;
 	struct lnet_route *route;
 	int rc = -ENOENT;
@@ -614,7 +615,7 @@ static void
 lnet_parse_rc_info(struct lnet_rc_data *rcd)
 {
 	struct lnet_ping_info *info = rcd->rcd_pinginfo;
-	struct lnet_peer *gw = rcd->rcd_gateway;
+	struct lnet_peer_ni *gw = rcd->rcd_gateway;
 	struct lnet_route *rte;
 
 	if (!gw->lpni_alive)
@@ -703,7 +704,7 @@ static void
 lnet_router_checker_event(struct lnet_event *event)
 {
 	struct lnet_rc_data *rcd = event->md.user_ptr;
-	struct lnet_peer *lp;
+	struct lnet_peer_ni *lp;
 
 	LASSERT(rcd);
 
@@ -760,7 +761,7 @@ lnet_router_checker_event(struct lnet_event *event)
 static void
 lnet_wait_known_routerstate(void)
 {
-	struct lnet_peer *rtr;
+	struct lnet_peer_ni *rtr;
 	int all_known;
 
 	LASSERT(the_lnet.ln_rc_state == LNET_RC_STATE_RUNNING);
@@ -786,7 +787,7 @@ lnet_wait_known_routerstate(void)
 }
 
 void
-lnet_router_ni_update_locked(struct lnet_peer *gw, __u32 net)
+lnet_router_ni_update_locked(struct lnet_peer_ni *gw, __u32 net)
 {
 	struct lnet_route *rte;
 
@@ -863,7 +864,7 @@ lnet_destroy_rc_data(struct lnet_rc_data *rcd)
 }
 
 static struct lnet_rc_data *
-lnet_create_rc_data_locked(struct lnet_peer *gateway)
+lnet_create_rc_data_locked(struct lnet_peer_ni *gateway)
 {
 	struct lnet_rc_data *rcd = NULL;
 	struct lnet_ping_info *pi;
@@ -933,7 +934,7 @@ lnet_create_rc_data_locked(struct lnet_peer *gateway)
 }
 
 static int
-lnet_router_check_interval(struct lnet_peer *rtr)
+lnet_router_check_interval(struct lnet_peer_ni *rtr)
 {
 	int secs;
 
@@ -946,7 +947,7 @@ lnet_router_check_interval(struct lnet_peer *rtr)
 }
 
 static void
-lnet_ping_router_locked(struct lnet_peer *rtr)
+lnet_ping_router_locked(struct lnet_peer_ni *rtr)
 {
 	struct lnet_rc_data *rcd = NULL;
 	time64_t now = ktime_get_seconds();
@@ -1092,7 +1093,7 @@ lnet_prune_rc_data(int wait_unlink)
 {
 	struct lnet_rc_data *rcd;
 	struct lnet_rc_data *tmp;
-	struct lnet_peer *lp;
+	struct lnet_peer_ni *lp;
 	struct list_head head;
 	int i = 2;
 
@@ -1197,7 +1198,7 @@ lnet_router_checker_active(void)
 static int
 lnet_router_checker(void *arg)
 {
-	struct lnet_peer *rtr;
+	struct lnet_peer_ni *rtr;
 
 	while (the_lnet.ln_rc_state == LNET_RC_STATE_RUNNING) {
 		__u64 version;
@@ -1693,7 +1694,7 @@ lnet_rtrpools_disable(void)
 int
 lnet_notify(struct lnet_ni *ni, lnet_nid_t nid, int alive, time64_t when)
 {
-	struct lnet_peer *lp = NULL;
+	struct lnet_peer_ni *lp = NULL;
 	time64_t now = ktime_get_seconds();
 	int cpt = lnet_cpt_of_nid(nid, ni);
 
