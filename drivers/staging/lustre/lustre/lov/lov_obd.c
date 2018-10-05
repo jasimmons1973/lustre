@@ -62,7 +62,7 @@
 /* Keep a refcount of lov->tgt usage to prevent racing with addition/deletion.
  * Any function that expects lov_tgts to remain stationary must take a ref.
  */
-static void lov_getref(struct obd_device *obd)
+void lov_tgts_getref(struct obd_device *obd)
 {
 	struct lov_obd *lov = &obd->u.lov;
 
@@ -74,7 +74,7 @@ static void lov_getref(struct obd_device *obd)
 
 static void __lov_del_obd(struct obd_device *obd, struct lov_tgt_desc *tgt);
 
-static void lov_putref(struct obd_device *obd)
+void lov_tgts_putref(struct obd_device *obd)
 {
 	struct lov_obd *lov = &obd->u.lov;
 
@@ -231,7 +231,7 @@ static int lov_connect(const struct lu_env *env,
 	if (data)
 		lov->lov_ocd = *data;
 
-	obd_getref(obd);
+	lov_tgts_getref(obd);
 
 	lov->lov_tgts_kobj = kobject_create_and_add("target_obds",
 						    &obd->obd_kset.kobj);
@@ -258,7 +258,7 @@ static int lov_connect(const struct lu_env *env,
 			       obd->obd_name, rc);
 		}
 	}
-	obd_putref(obd);
+	lov_tgts_putref(obd);
 
 	return 0;
 }
@@ -326,7 +326,7 @@ static int lov_disconnect(struct obd_export *exp)
 	/* Let's hold another reference so lov_del_obd doesn't spin through
 	 * putref every time
 	 */
-	obd_getref(obd);
+	lov_tgts_getref(obd);
 
 	for (i = 0; i < lov->desc.ld_tgt_count; i++) {
 		if (lov->lov_tgts[i] && lov->lov_tgts[i]->ltd_exp) {
@@ -335,7 +335,7 @@ static int lov_disconnect(struct obd_export *exp)
 		}
 	}
 
-	obd_putref(obd);
+	lov_tgts_putref(obd);
 
 out:
 	rc = class_disconnect(exp); /* bz 9811 */
@@ -359,7 +359,7 @@ static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 	CDEBUG(D_INFO, "Searching in lov %p for uuid %s event(%d)\n",
 	       lov, uuid->uuid, ev);
 
-	obd_getref(obd);
+	lov_tgts_getref(obd);
 	for (index = 0; index < lov->desc.ld_tgt_count; index++) {
 		tgt = lov->lov_tgts[index];
 		if (!tgt)
@@ -426,7 +426,7 @@ static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 	}
 
  out:
-	obd_putref(obd);
+	lov_tgts_putref(obd);
 	return index;
 }
 
@@ -574,7 +574,7 @@ static int lov_add_target(struct obd_device *obd, struct obd_uuid *uuidp,
 		return 0;
 	}
 
-	obd_getref(obd);
+	lov_tgts_getref(obd);
 
 	rc = lov_connect_obd(obd, index, active, &lov->lov_ocd);
 	if (rc)
@@ -604,7 +604,7 @@ out:
 		       obd_uuid2str(&tgt->ltd_uuid));
 		lov_del_target(obd, index, NULL, 0);
 	}
-	obd_putref(obd);
+	lov_tgts_putref(obd);
 	return rc;
 }
 
@@ -624,7 +624,7 @@ int lov_del_target(struct obd_device *obd, __u32 index,
 
 	/* to make sure there's no ongoing lov_notify() now */
 	down_write(&lov->lov_notify_lock);
-	obd_getref(obd);
+	lov_tgts_getref(obd);
 
 	if (!lov->lov_tgts[index]) {
 		CERROR("LOV target at index %d is not setup.\n", index);
@@ -647,9 +647,9 @@ int lov_del_target(struct obd_device *obd, __u32 index,
 
 	lov->lov_tgts[index]->ltd_reap = 1;
 	lov->lov_death_row++;
-	/* we really delete it from obd_putref */
+	/* we really delete it from lov_tgts_putref */
 out:
-	obd_putref(obd);
+	lov_tgts_putref(obd);
 	up_write(&lov->lov_notify_lock);
 
 	return rc;
@@ -812,7 +812,7 @@ static int lov_cleanup(struct obd_device *obd)
 	if (lov->lov_tgts) {
 		int i;
 
-		obd_getref(obd);
+		lov_tgts_getref(obd);
 		for (i = 0; i < lov->desc.ld_tgt_count; i++) {
 			if (!lov->lov_tgts[i])
 				continue;
@@ -829,7 +829,7 @@ static int lov_cleanup(struct obd_device *obd)
 				       atomic_read(&lov->lov_refcount));
 			lov_del_target(obd, i, NULL, 0);
 		}
-		obd_putref(obd);
+		lov_tgts_putref(obd);
 		kfree(lov->lov_tgts);
 		lov->lov_tgt_size = 0;
 	}
@@ -1182,7 +1182,7 @@ static int lov_get_info(const struct lu_env *env, struct obd_export *exp,
 	if (!vallen || !val)
 		return -EFAULT;
 
-	obd_getref(obddev);
+	lov_tgts_getref(obddev);
 
 	if (KEY_IS(KEY_MAX_EASIZE)) {
 		u32 max_stripe_count = min_t(u32, ld->ld_active_tgt_count,
@@ -1200,7 +1200,7 @@ static int lov_get_info(const struct lu_env *env, struct obd_export *exp,
 		rc = -EINVAL;
 	}
 
-	obd_putref(obddev);
+	lov_tgts_putref(obddev);
 	return rc;
 }
 
@@ -1222,7 +1222,7 @@ static int lov_set_info_async(const struct lu_env *env, struct obd_export *exp,
 			return -ENOMEM;
 	}
 
-	obd_getref(obddev);
+	lov_tgts_getref(obddev);
 	count = lov->desc.ld_tgt_count;
 
 	if (KEY_IS(KEY_CHECKSUM)) {
@@ -1251,7 +1251,7 @@ static int lov_set_info_async(const struct lu_env *env, struct obd_export *exp,
 			rc = err;
 	}
 
-	obd_putref(obddev);
+	lov_tgts_putref(obddev);
 	if (no_set) {
 		err = ptlrpc_set_wait(set);
 		if (!rc)
@@ -1294,7 +1294,7 @@ static int lov_quotactl(struct obd_device *obd, struct obd_export *exp,
 	}
 
 	/* for lov tgt */
-	obd_getref(obd);
+	lov_tgts_getref(obd);
 	for (i = 0; i < lov->desc.ld_tgt_count; i++) {
 		int err;
 
@@ -1326,7 +1326,7 @@ static int lov_quotactl(struct obd_device *obd, struct obd_export *exp,
 			bhardlimit += oqctl->qc_dqblk.dqb_bhardlimit;
 		}
 	}
-	obd_putref(obd);
+	lov_tgts_putref(obd);
 
 	if (oqctl->qc_cmd == Q_GETOQUOTA) {
 		oqctl->qc_dqblk.dqb_curspace = curspace;
@@ -1352,8 +1352,6 @@ static struct obd_ops lov_obd_ops = {
 	.pool_rem       = lov_pool_remove,
 	.pool_add       = lov_pool_add,
 	.pool_del       = lov_pool_del,
-	.getref         = lov_getref,
-	.putref         = lov_putref,
 	.quotactl       = lov_quotactl,
 };
 

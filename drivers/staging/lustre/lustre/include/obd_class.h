@@ -927,22 +927,6 @@ static inline int obd_pool_rem(struct obd_device *obd,
 	return rc;
 }
 
-static inline void obd_getref(struct obd_device *obd)
-{
-	if (obd->obd_type && OBP(obd, getref)) {
-		OBD_COUNTER_INCREMENT(obd, getref);
-		OBP(obd, getref)(obd);
-	}
-}
-
-static inline void obd_putref(struct obd_device *obd)
-{
-	if (obd->obd_type && OBP(obd, putref)) {
-		OBD_COUNTER_INCREMENT(obd, putref);
-		OBP(obd, putref)(obd);
-	}
-}
-
 static inline int obd_init_export(struct obd_export *exp)
 {
 	int rc = 0;
