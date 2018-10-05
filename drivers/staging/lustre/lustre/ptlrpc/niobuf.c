@@ -570,15 +570,8 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 		mpflag = memalloc_noreclaim_save();
 
 	rc = sptlrpc_cli_wrap_request(request);
-	if (rc) {
-		/*
-		 * set rq_sent so that this request is treated
-		 * as a delayed send in the upper layers
-		 */
-		if (rc == -ENOMEM)
-			request->rq_sent = ktime_get_seconds();
+	if (rc)
 		goto out;
-	}
 
 	/* bulk register should be done after wrap_request() */
 	if (request->rq_bulk) {
@@ -723,9 +716,18 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 	 * the chance to have long unlink to sluggish net is smaller here.
 	 */
 	ptlrpc_unregister_bulk(request, 0);
- out:
+out:
+	if (rc == -ENOMEM) {
+		/*
+		 * set rq_sent so that this request is treated
+		 * as a delayed send in the upper layers
+		 */
+		request->rq_sent = ktime_get_seconds();
+	}
+
 	if (request->rq_memalloc)
 		memalloc_noreclaim_restore(mpflag);
+
 	return rc;
 }
 EXPORT_SYMBOL(ptl_send_rpc);
