@@ -402,7 +402,7 @@ static int ldlm_namespace_debugfs_register(struct ldlm_namespace *ns)
 
 #undef MAX_STRING_SIZE
 
-static struct ldlm_resource *ldlm_resource_getref(struct ldlm_resource *res)
+struct ldlm_resource *ldlm_resource_getref(struct ldlm_resource *res)
 {
 	LASSERT(res);
 	LASSERT(res != LP_POISON);

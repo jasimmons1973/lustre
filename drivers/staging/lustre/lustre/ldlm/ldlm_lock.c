@@ -1981,10 +1981,16 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 		      struct libcfs_debug_msg_data *msgdata,
 		      const char *fmt, ...)
 {
-	va_list args;
 	struct obd_export *exp = lock->l_export;
-	struct ldlm_resource *resource = lock->l_resource;
+	struct ldlm_resource *resource = NULL;
 	char *nid = "local";
+	va_list args;
+
+	if (spin_trylock(&lock->l_lock)) {
+		if (lock->l_resource)
+			resource = ldlm_resource_getref(lock->l_resource);
+		spin_unlock(&lock->l_lock);
+	}
 
 	va_start(args, fmt);
 
@@ -2099,5 +2105,6 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 		break;
 	}
 	va_end(args);
+	ldlm_resource_putref(resource);
 }
 EXPORT_SYMBOL(_ldlm_lock_debug);
