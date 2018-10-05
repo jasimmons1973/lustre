@@ -534,6 +534,7 @@ struct lnet_peer_table {
  */
 #define lnet_peer_aliveness_enabled(lp)				\
 	(the_lnet.ln_routing &&					\
+	 (lp)->lpni_net &&					\
 	 (lp)->lpni_net->net_tunables.lct_peer_timeout > 0)
 
 struct lnet_route {
