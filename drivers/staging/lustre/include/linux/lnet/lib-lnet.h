@@ -313,8 +313,8 @@ lnet_handle2me(struct lnet_handle_me *handle)
 static inline void
 lnet_peer_addref_locked(struct lnet_peer_ni *lp)
 {
-	LASSERT(lp->lpni_refcount > 0);
-	lp->lpni_refcount++;
+	LASSERT(atomic_read(&lp->lpni_refcount) > 0);
+	atomic_inc(&lp->lpni_refcount);
 }
 
 void lnet_destroy_peer_locked(struct lnet_peer_ni *lp);
@@ -322,9 +322,9 @@ void lnet_destroy_peer_locked(struct lnet_peer_ni *lp);
 static inline void
 lnet_peer_decref_locked(struct lnet_peer_ni *lp)
 {
-	LASSERT(lp->lpni_refcount > 0);
-	lp->lpni_refcount--;
-	if (!lp->lpni_refcount)
+	LASSERT(atomic_read(&lp->lpni_refcount) > 0);
+	atomic_dec(&lp->lpni_refcount);
+	if (atomic_read(&lp->lpni_refcount) == 0)
 		lnet_destroy_peer_locked(lp);
 }
 

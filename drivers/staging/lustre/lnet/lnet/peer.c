@@ -221,7 +221,7 @@ lnet_destroy_peer_locked(struct lnet_peer_ni *lp)
 {
 	struct lnet_peer_table *ptable;
 
-	LASSERT(!lp->lpni_refcount);
+	LASSERT(atomic_read(&lp->lpni_refcount) == 0);
 	LASSERT(!lp->lpni_rtr_refcount);
 	LASSERT(list_empty(&lp->lpni_txq));
 	LASSERT(list_empty(&lp->lpni_hashlist));
@@ -320,7 +320,7 @@ lnet_nid2peer_locked(struct lnet_peer_ni **lpp, lnet_nid_t nid, int cpt)
 	lp->lpni_ping_feats = LNET_PING_FEAT_INVAL;
 	lp->lpni_nid = nid;
 	lp->lpni_cpt = cpt2;
-	lp->lpni_refcount = 2;	/* 1 for caller; 1 for hash */
+	atomic_set(&lp->lpni_refcount, 2);	/* 1 for caller; 1 for hash */
 	lp->lpni_rtr_refcount = 0;
 
 	lnet_net_lock(cpt);
@@ -378,7 +378,7 @@ lnet_debug_peer(lnet_nid_t nid)
 		aliveness = lp->lpni_alive ? "up" : "down";
 
 	CDEBUG(D_WARNING, "%-24s %4d %5s %5d %5d %5d %5d %5d %ld\n",
-	       libcfs_nid2str(lp->lpni_nid), lp->lpni_refcount,
+	       libcfs_nid2str(lp->lpni_nid), atomic_read(&lp->lpni_refcount),
 	       aliveness, lp->lpni_net->net_tunables.lct_peer_tx_credits,
 	       lp->lpni_rtrcredits, lp->lpni_minrtrcredits,
 	       lp->lpni_txcredits, lp->lpni_mintxcredits, lp->lpni_txqnob);
@@ -433,7 +433,7 @@ lnet_get_peer_info(__u32 peer_index, __u64 *nid,
 					 lp->lpni_alive ? "up" : "down");
 
 			*nid = lp->lpni_nid;
-			*refcount = lp->lpni_refcount;
+			*refcount = atomic_read(&lp->lpni_refcount);
 			*ni_peer_tx_credits =
 				lp->lpni_net->net_tunables.lct_peer_tx_credits;
 			*peer_tx_credits = lp->lpni_txcredits;
