@@ -701,7 +701,12 @@ unsigned long osc_ldlm_weigh_ast(struct ldlm_lock *dlmlock)
 		return 1;
 
 	LASSERT(dlmlock->l_resource->lr_type == LDLM_EXTENT);
+	lock_res_and_lock(dlmlock);
 	obj = dlmlock->l_ast_data;
+	if (obj)
+		cl_object_get(osc2cl(obj));
+	unlock_res_and_lock(dlmlock);
+
 	if (!obj) {
 		weight = 1;
 		goto out;
@@ -725,6 +730,9 @@ unsigned long osc_ldlm_weigh_ast(struct ldlm_lock *dlmlock)
 	weight = osc_lock_weight(env, obj, &dlmlock->l_policy_data.l_extent);
 
 out:
+	if (obj)
+		cl_object_put(env, osc2cl(obj));
+
 	cl_env_put(env, &refcheck);
 	return weight;
 }
