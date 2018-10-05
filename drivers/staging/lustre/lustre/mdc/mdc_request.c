@@ -904,7 +904,7 @@ restart_bulk:
 				    MDS_BULK_PORTAL,
 				    &ptlrpc_bulk_kiov_pin_ops);
 	if (!desc) {
-		ptlrpc_request_free(req);
+		ptlrpc_req_finished(req);
 		return -ENOMEM;
 	}
 
