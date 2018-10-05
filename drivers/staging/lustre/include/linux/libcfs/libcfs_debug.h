@@ -58,6 +58,7 @@ extern char libcfs_debug_file_path_arr[PATH_MAX];
 
 int libcfs_debug_mask2str(char *str, int size, int mask, int is_subsys);
 int libcfs_debug_str2mask(int *mask, const char *str, int is_subsys);
+void libcfs_debug_dumpstack(struct task_struct *tsk);
 
 /* Has there been an LBUG? */
 extern unsigned int libcfs_catastrophe;

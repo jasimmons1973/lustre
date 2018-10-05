@@ -42,6 +42,8 @@
 #include <linux/ctype.h>
 #include <linux/libcfs/libcfs_string.h>
 #include <linux/kthread.h>
+#include <linux/stacktrace.h>
+#include <linux/utsname.h>
 #include "tracefile.h"
 
 static char debug_file_name[1024];
@@ -435,16 +437,54 @@ void __noreturn lbug_with_loc(struct libcfs_debug_msg_data *msgdata)
 		/* not reached */
 	}
 
-	dump_stack();
-	if (!libcfs_panic_on_lbug)
-		libcfs_debug_dumplog();
+	libcfs_debug_dumpstack(NULL);
 	if (libcfs_panic_on_lbug)
 		panic("LBUG");
+	else
+		libcfs_debug_dumplog();
 	set_current_state(TASK_UNINTERRUPTIBLE);
 	while (1)
 		schedule();
 }
 EXPORT_SYMBOL(lbug_with_loc);
+
+#ifdef CONFIG_STACKTRACE
+#define MAX_ST_ENTRIES 100
+static DEFINE_SPINLOCK(st_lock);
+
+static void libcfs_call_trace(struct task_struct *tsk)
+{
+	static unsigned long entries[MAX_ST_ENTRIES];
+	struct stack_trace trace;
+
+	trace.nr_entries = 0;
+	trace.max_entries = MAX_ST_ENTRIES;
+	trace.entries = entries;
+	trace.skip = 0;
+
+	spin_lock(&st_lock);
+	pr_info("Pid: %d, comm: %.20s %s %s\n", tsk->pid, tsk->comm,
+		init_utsname()->release, init_utsname()->version);
+	pr_info("Call Trace:\n");
+	save_stack_trace_tsk(tsk, &trace);
+	print_stack_trace(&trace, 0);
+	spin_unlock(&st_lock);
+}
+#else /* !CONFIG_STACKTRACE */
+static void libcfs_call_trace(struct task_struct *tsk)
+{
+	if (tsk == current)
+		dump_stack();
+	else
+		CWARN("can't show stack: kernel doesn't export show_task\n");
+}
+#endif /* !CONFIG_STACKTRACE */
+
+void libcfs_debug_dumpstack(struct task_struct *tsk)
+{
+	libcfs_call_trace(tsk ?: current);
+}
+EXPORT_SYMBOL(libcfs_debug_dumpstack);
 
 static int panic_notifier(struct notifier_block *self, unsigned long unused1,
 			  void *unused2)

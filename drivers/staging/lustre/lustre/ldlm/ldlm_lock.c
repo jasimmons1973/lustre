@@ -1503,7 +1503,7 @@ int ldlm_fill_lvb(struct ldlm_lock *lock, struct req_capsule *pill,
 		break;
 	default:
 		LDLM_ERROR(lock, "Unknown LVB type: %d", lock->l_lvb_type);
-		dump_stack();
+		libcfs_debug_dumpstack(NULL);
 		return -EINVAL;
 	}
 

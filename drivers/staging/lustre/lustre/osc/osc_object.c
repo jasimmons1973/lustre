@@ -399,7 +399,7 @@ static void osc_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 				osc_export(cl2osc(obj))->exp_obd->obd_namespace,
 				NULL, resname, LDLM_EXTENT, 0);
 			ldlm_resource_dump(D_ERROR, res);
-
+			libcfs_debug_dumpstack(NULL);
 			LBUG();
 		}
 
