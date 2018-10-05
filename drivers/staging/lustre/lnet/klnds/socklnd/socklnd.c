@@ -38,6 +38,7 @@
  * Author: Eric Barton <eric@bartonsoftware.com>
  */
 
+#include <linux/pci.h>
 #include "socklnd.h"
 #include <linux/inetdevice.h>
 
@@ -2726,6 +2727,8 @@ ksocknal_startup(struct lnet_ni *ni)
 	struct ksock_net *net;
 	int rc;
 	int i;
+	struct net_device *net_dev;
+	int node_id;
 
 	LASSERT(ni->ni_net->net_lnd == &the_ksocklnd);
 
@@ -2771,6 +2774,16 @@ ksocknal_startup(struct lnet_ni *ni)
 				goto fail_1;
 			net->ksnn_ninterfaces += rc;
 		}
+	}
+
+	net_dev = dev_get_by_name(&init_net,
+				  net->ksnn_interfaces[0].ksni_name);
+	if (net_dev) {
+		node_id = dev_to_node(&net_dev->dev);
+		ni->dev_cpt = cfs_cpt_of_node(lnet_cpt_table(), node_id);
+		dev_put(net_dev);
+	} else {
+		ni->dev_cpt = CFS_CPT_ANY;
 	}
 
 	/* call it before add it to ksocknal_data.ksnd_nets */

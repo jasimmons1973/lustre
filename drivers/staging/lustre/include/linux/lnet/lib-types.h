@@ -346,6 +346,9 @@ struct lnet_ni {
 	/* lnd tunables set explicitly */
 	bool ni_lnd_tunables_set;
 
+	/* physical device CPT */
+	int			dev_cpt;
+
 	/* sequence number used to round robin over nis within a net */
 	u32			ni_seq;
 
