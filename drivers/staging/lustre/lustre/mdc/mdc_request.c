@@ -573,8 +573,15 @@ void mdc_replay_open(struct ptlrpc_request *req)
 
 	body = req_capsule_server_get(&req->rq_pill, &RMF_MDT_BODY);
 
+	spin_lock(&req->rq_lock);
 	och = mod->mod_och;
-	if (och) {
+	if (och && och->och_fh.cookie)
+		req->rq_early_free_repbuf = 1;
+	else
+		req->rq_early_free_repbuf = 0;
+	spin_unlock(&req->rq_lock);
+
+	if (req->rq_early_free_repbuf) {
 		struct lustre_handle *file_fh;
 
 		LASSERT(och->och_magic == OBD_CLIENT_HANDLE_MAGIC);
@@ -585,6 +592,7 @@ void mdc_replay_open(struct ptlrpc_request *req)
 		old = *file_fh;
 		*file_fh = body->mbo_handle;
 	}
+
 	close_req = mod->mod_close_req;
 	if (close_req) {
 		__u32 opc = lustre_msg_get_opc(close_req->rq_reqmsg);
@@ -595,8 +603,9 @@ void mdc_replay_open(struct ptlrpc_request *req)
 					       &RMF_MDT_EPOCH);
 		LASSERT(epoch);
 
-		if (och)
+		if (req->rq_early_free_repbuf)
 			LASSERT(!memcmp(&old, &epoch->mio_handle, sizeof(old)));
+
 		DEBUG_REQ(D_HA, close_req, "updating close body with new fh");
 		epoch->mio_handle = body->mbo_handle;
 	}
@@ -677,6 +686,7 @@ int mdc_set_open_replay_data(struct obd_export *exp,
 		mod->mod_open_req = open_req;
 		open_req->rq_cb_data = mod;
 		open_req->rq_commit_cb = mdc_commit_open;
+		open_req->rq_early_free_repbuf = 1;
 		spin_unlock(&open_req->rq_lock);
 	}
 
@@ -731,6 +741,12 @@ static int mdc_clear_open_replay_data(struct obd_export *exp,
 
 	LASSERT(mod != LP_POISON);
 	LASSERT(mod->mod_open_req);
+
+	spin_lock(&mod->mod_open_req->rq_lock);
+	if (mod->mod_och)
+		mod->mod_och->och_fh.cookie = 0;
+	mod->mod_open_req->rq_early_free_repbuf = 0;
+	spin_unlock(&mod->mod_open_req->rq_lock);
 	mdc_free_open(mod);
 
 	mod->mod_och = NULL;

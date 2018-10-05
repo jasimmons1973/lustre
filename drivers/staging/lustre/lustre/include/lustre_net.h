@@ -738,7 +738,8 @@ struct ptlrpc_request {
 	/** Lock to protect request flags and some other important bits, like
 	 * rq_list
 	 */
-	spinlock_t rq_lock;
+	spinlock_t			 rq_lock;
+	spinlock_t			 rq_early_free_lock;
 	/** client-side flags are serialized by rq_lock @{ */
 	unsigned int rq_intr:1, rq_replied:1, rq_err:1,
 		rq_timedout:1, rq_resend:1, rq_restart:1,
@@ -770,7 +771,8 @@ struct ptlrpc_request {
 		 */
 		rq_allow_replay:1,
 		/* bulk request, sent to server, but uncommitted */
-		rq_unstable:1;
+		rq_unstable:1,
+		rq_early_free_repbuf:1; /* free reply buffer in advance */
 	/** @} */
 
 	/** server-side flags @{ */
