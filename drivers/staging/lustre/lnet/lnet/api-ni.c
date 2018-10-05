@@ -1866,17 +1866,6 @@ LNetNIFini(void)
 }
 EXPORT_SYMBOL(LNetNIFini);
 
-static int lnet_handle_dbg_task(struct lnet_ioctl_dbg *dbg,
-				struct lnet_dbg_task_info *dbg_info)
-{
-	switch (dbg->dbg_task) {
-	case LNET_DBG_INCR_DLC_SEQ:
-		lnet_incr_dlc_seq();
-	}
-
-	return 0;
-}
-
 /**
  * Grabs the ni data from the ni structure and fills the out
  * parameters
@@ -2843,19 +2832,6 @@ LNetCtl(unsigned int cmd, void *arg)
 			return rc;
 		data->ioc_count = rc;
 		return 0;
-	}
-
-	case IOC_LIBCFS_DBG: {
-		struct lnet_ioctl_dbg *dbg = arg;
-		struct lnet_dbg_task_info *dbg_info;
-		size_t total = sizeof(*dbg) + sizeof(*dbg_info);
-
-		if (dbg->dbg_hdr.ioc_len < total)
-			return -EINVAL;
-
-		dbg_info = (struct lnet_dbg_task_info *)dbg->dbg_bulk;
-
-		return lnet_handle_dbg_task(dbg, dbg_info);
 	}
 
 	default:
