@@ -652,8 +652,19 @@ ksocknal_choose_scheduler_locked(unsigned int cpt)
 	struct ksock_sched *sched;
 	int i;
 
-	LASSERT(info->ksi_nthreads > 0);
+	if (info->ksi_nthreads == 0) {
+		cfs_percpt_for_each(info, i, ksocknal_data.ksnd_sched_info) {
+			if (info->ksi_nthreads > 0) {
+				CDEBUG(D_NET,
+				       "scheduler[%d] has no threads. selected scheduler[%d]\n",
+				       cpt, info->ksi_cpt);
+				goto select_sched;
+			}
+		}
+		return NULL;
+	}
 
+select_sched:
 	sched = &info->ksi_scheds[0];
 	/*
 	 * NB: it's safe so far, but info->ksi_nthreads could be changed
@@ -1255,6 +1266,15 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	peer_ni->ksnp_error = 0;
 
 	sched = ksocknal_choose_scheduler_locked(cpt);
+	if (!sched) {
+		CERROR("no schedulers available. node is unhealthy\n");
+		goto failed_2;
+	}
+	/*
+	 * The cpt might have changed if we ended up selecting a non cpt
+	 * native scheduler. So use the scheduler's cpt instead.
+	 */
+	cpt = sched->kss_info->ksi_cpt;
 	sched->kss_nconns++;
 	conn->ksnc_scheduler = sched;
 
@@ -2401,6 +2421,9 @@ ksocknal_base_startup(void)
 
 		info->ksi_nthreads_max = nthrs;
 		info->ksi_cpt = i;
+
+		if (nthrs == 0)
+			continue;
 
 		info->ksi_scheds = kzalloc_cpt(info->ksi_nthreads_max * sizeof(*sched),
 					       GFP_NOFS, i);
