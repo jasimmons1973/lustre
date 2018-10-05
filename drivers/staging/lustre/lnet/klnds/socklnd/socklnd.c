@@ -1653,8 +1653,7 @@ ksocknal_destroy_conn(struct ksock_conn *conn)
 		       &conn->ksnc_ipaddr, conn->ksnc_port,
 		       iov_iter_count(&conn->ksnc_rx_to), conn->ksnc_rx_nob_left,
 		       ktime_get_seconds() - last_rcv);
-		lnet_finalize(conn->ksnc_peer->ksnp_ni,
-			      conn->ksnc_cookie, -EIO);
+		lnet_finalize(conn->ksnc_cookie, -EIO);
 		break;
 	case SOCKNAL_RX_LNET_HEADER:
 		if (conn->ksnc_rx_started)

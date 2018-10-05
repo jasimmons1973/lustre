@@ -343,7 +343,7 @@ ksocknal_tx_done(struct lnet_ni *ni, struct ksock_tx *tx)
 
 	ksocknal_free_tx(tx);
 	if (lnetmsg) /* KSOCK_MSG_NOOP go without lnetmsg */
-		lnet_finalize(ni, lnetmsg, rc);
+		lnet_finalize(lnetmsg, rc);
 }
 
 void
@@ -1226,7 +1226,7 @@ ksocknal_process_receive(struct ksock_conn *conn)
 					le64_to_cpu(lhdr->src_nid) != id->nid);
 		}
 
-		lnet_finalize(conn->ksnc_peer->ksnp_ni, conn->ksnc_cookie, rc);
+		lnet_finalize(conn->ksnc_cookie, rc);
 
 		if (rc) {
 			ksocknal_new_packet(conn, 0);
