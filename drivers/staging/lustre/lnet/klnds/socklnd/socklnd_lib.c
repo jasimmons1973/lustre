@@ -44,7 +44,7 @@ ksocknal_lib_get_conn_addrs(struct ksock_conn *conn)
 	LASSERT(!conn->ksnc_closing);
 
 	if (rc) {
-		CERROR("Error %d getting sock peer IP\n", rc);
+		CERROR("Error %d getting sock peer_ni IP\n", rc);
 		return rc;
 	}
 
@@ -157,7 +157,7 @@ ksocknal_lib_eager_ack(struct ksock_conn *conn)
 	 * Remind the socket to ACK eagerly.  If I don't, the socket might
 	 * think I'm about to send something it could piggy-back the ACK
 	 * on, introducing delay in completing zero-copy sends in my
-	 * peer.
+	 * peer_ni.
 	 */
 	kernel_setsockopt(sock, SOL_TCP, TCP_QUICKACK, (char *)&opt,
 			  sizeof(opt));

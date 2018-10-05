@@ -258,7 +258,7 @@ int kiblnd_unpack_msg(struct kib_msg *msg, int nob)
 	msg->ibm_cksum = msg_cksum;
 
 	if (flip) {
-		/* leave magic unflipped as a clue to peer endianness */
+		/* leave magic unflipped as a clue to peer_ni endianness */
 		msg->ibm_version = version;
 		BUILD_BUG_ON(sizeof(msg->ibm_type) != 1);
 		BUILD_BUG_ON(sizeof(msg->ibm_credits) != 1);
@@ -315,10 +315,10 @@ int kiblnd_unpack_msg(struct kib_msg *msg, int nob)
 	return 0;
 }
 
-int kiblnd_create_peer(struct lnet_ni *ni, struct kib_peer **peerp,
+int kiblnd_create_peer(struct lnet_ni *ni, struct kib_peer_ni **peerp,
 		       lnet_nid_t nid)
 {
-	struct kib_peer *peer;
+	struct kib_peer_ni *peer_ni;
 	struct kib_net *net = ni->ni_data;
 	int cpt = lnet_cpt_of_nid(nid, ni);
 	unsigned long flags;
@@ -326,23 +326,23 @@ int kiblnd_create_peer(struct lnet_ni *ni, struct kib_peer **peerp,
 	LASSERT(net);
 	LASSERT(nid != LNET_NID_ANY);
 
-	peer = kzalloc_cpt(sizeof(*peer), GFP_NOFS, cpt);
-	if (!peer) {
-		CERROR("Cannot allocate peer\n");
+	peer_ni = kzalloc_cpt(sizeof(*peer_ni), GFP_NOFS, cpt);
+	if (!peer_ni) {
+		CERROR("Cannot allocate peer_ni\n");
 		return -ENOMEM;
 	}
 
-	peer->ibp_ni = ni;
-	peer->ibp_nid = nid;
-	peer->ibp_error = 0;
-	peer->ibp_last_alive = 0;
-	peer->ibp_max_frags = kiblnd_cfg_rdma_frags(peer->ibp_ni);
-	peer->ibp_queue_depth = ni->ni_net->net_tunables.lct_peer_tx_credits;
-	atomic_set(&peer->ibp_refcount, 1);  /* 1 ref for caller */
+	peer_ni->ibp_ni = ni;
+	peer_ni->ibp_nid = nid;
+	peer_ni->ibp_error = 0;
+	peer_ni->ibp_last_alive = 0;
+	peer_ni->ibp_max_frags = kiblnd_cfg_rdma_frags(peer_ni->ibp_ni);
+	peer_ni->ibp_queue_depth = ni->ni_net->net_tunables.lct_peer_tx_credits;
+	atomic_set(&peer_ni->ibp_refcount, 1);  /* 1 ref for caller */
 
-	INIT_LIST_HEAD(&peer->ibp_list);     /* not in the peer table yet */
-	INIT_LIST_HEAD(&peer->ibp_conns);
-	INIT_LIST_HEAD(&peer->ibp_tx_queue);
+	INIT_LIST_HEAD(&peer_ni->ibp_list);
+	INIT_LIST_HEAD(&peer_ni->ibp_conns);
+	INIT_LIST_HEAD(&peer_ni->ibp_tx_queue);
 
 	write_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 
@@ -354,93 +354,94 @@ int kiblnd_create_peer(struct lnet_ni *ni, struct kib_peer **peerp,
 
 	write_unlock_irqrestore(&kiblnd_data.kib_global_lock, flags);
 
-	*peerp = peer;
+	*peerp = peer_ni;
 	return 0;
 }
 
-void kiblnd_destroy_peer(struct kib_peer *peer)
+void kiblnd_destroy_peer(struct kib_peer_ni *peer_ni)
 {
-	struct kib_net *net = peer->ibp_ni->ni_data;
+	struct kib_net *net = peer_ni->ibp_ni->ni_data;
 
 	LASSERT(net);
-	LASSERT(!atomic_read(&peer->ibp_refcount));
-	LASSERT(!kiblnd_peer_active(peer));
-	LASSERT(kiblnd_peer_idle(peer));
-	LASSERT(list_empty(&peer->ibp_tx_queue));
+	LASSERT(!atomic_read(&peer_ni->ibp_refcount));
+	LASSERT(!kiblnd_peer_active(peer_ni));
+	LASSERT(kiblnd_peer_idle(peer_ni));
+	LASSERT(list_empty(&peer_ni->ibp_tx_queue));
 
-	kfree(peer);
+	kfree(peer_ni);
 
 	/*
-	 * NB a peer's connections keep a reference on their peer until
+	 * NB a peer_ni's connections keep a reference on their peer_ni until
 	 * they are destroyed, so we can be assured that _all_ state to do
-	 * with this peer has been cleaned up when its refcount drops to
+	 * with this peer_ni has been cleaned up when its refcount drops to
 	 * zero.
 	 */
 	atomic_dec(&net->ibn_npeers);
 }
 
-struct kib_peer *kiblnd_find_peer_locked(struct lnet_ni *ni, lnet_nid_t nid)
+struct kib_peer_ni *kiblnd_find_peer_locked(struct lnet_ni *ni, lnet_nid_t nid)
 {
 	/*
 	 * the caller is responsible for accounting the additional reference
 	 * that this creates
 	 */
 	struct list_head *peer_list = kiblnd_nid2peerlist(nid);
-	struct kib_peer *peer;
+	struct kib_peer_ni *peer_ni;
 
-	list_for_each_entry(peer, peer_list, ibp_list) {
-		LASSERT(!kiblnd_peer_idle(peer));
+	list_for_each_entry(peer_ni, peer_list, ibp_list) {
+		LASSERT(!kiblnd_peer_idle(peer_ni));
 
 		/*
-		 * Match a peer if its NID and the NID of the local NI it
+		 * Match a peer_ni if its NID and the NID of the local NI it
 		 * communicates over are the same. Otherwise don't match
-		 * the peer, which will result in a new lnd peer being
+		 * the peer_ni, which will result in a new lnd peer_ni being
 		 * created.
 		 */
-		if (peer->ibp_nid != nid ||
-		    peer->ibp_ni->ni_nid != ni->ni_nid)
+		if (peer_ni->ibp_nid != nid ||
+		    peer_ni->ibp_ni->ni_nid != ni->ni_nid)
 			continue;
 
-		CDEBUG(D_NET, "got peer [%p] -> %s (%d) version: %x\n",
-		       peer, libcfs_nid2str(nid),
-		       atomic_read(&peer->ibp_refcount),
-		       peer->ibp_version);
-		return peer;
+		CDEBUG(D_NET, "got peer_ni [%p] -> %s (%d) version: %x\n",
+		       peer_ni, libcfs_nid2str(nid),
+		       atomic_read(&peer_ni->ibp_refcount),
+		       peer_ni->ibp_version);
+		return peer_ni;
 	}
 	return NULL;
 }
 
-void kiblnd_unlink_peer_locked(struct kib_peer *peer)
+void kiblnd_unlink_peer_locked(struct kib_peer_ni *peer_ni)
 {
-	LASSERT(list_empty(&peer->ibp_conns));
+	LASSERT(list_empty(&peer_ni->ibp_conns));
 
-	LASSERT(kiblnd_peer_active(peer));
-	list_del_init(&peer->ibp_list);
+	LASSERT(kiblnd_peer_active(peer_ni));
+	list_del_init(&peer_ni->ibp_list);
 	/* lose peerlist's ref */
-	kiblnd_peer_decref(peer);
+	kiblnd_peer_decref(peer_ni);
 }
 
 static int kiblnd_get_peer_info(struct lnet_ni *ni, int index,
 				lnet_nid_t *nidp, int *count)
 {
-	struct kib_peer *peer;
+	struct kib_peer_ni *peer_ni;
 	int i;
 	unsigned long flags;
 
 	read_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 
 	for (i = 0; i < kiblnd_data.kib_peer_hash_size; i++) {
-		list_for_each_entry(peer, &kiblnd_data.kib_peers[i], ibp_list) {
-			LASSERT(!kiblnd_peer_idle(peer));
+		list_for_each_entry(peer_ni, &kiblnd_data.kib_peers[i],
+				    ibp_list) {
+			LASSERT(!kiblnd_peer_idle(peer_ni));
 
-			if (peer->ibp_ni != ni)
+			if (peer_ni->ibp_ni != ni)
 				continue;
 
 			if (index-- > 0)
 				continue;
 
-			*nidp = peer->ibp_nid;
-			*count = atomic_read(&peer->ibp_refcount);
+			*nidp = peer_ni->ibp_nid;
+			*count = atomic_read(&peer_ni->ibp_refcount);
 
 			read_unlock_irqrestore(&kiblnd_data.kib_global_lock,
 					       flags);
@@ -452,34 +453,33 @@ static int kiblnd_get_peer_info(struct lnet_ni *ni, int index,
 	return -ENOENT;
 }
 
-static void kiblnd_del_peer_locked(struct kib_peer *peer)
+static void kiblnd_del_peer_locked(struct kib_peer_ni *peer_ni)
 {
 	struct list_head *ctmp;
 	struct list_head *cnxt;
 	struct kib_conn *conn;
 
-	if (list_empty(&peer->ibp_conns)) {
-		kiblnd_unlink_peer_locked(peer);
+	if (list_empty(&peer_ni->ibp_conns)) {
+		kiblnd_unlink_peer_locked(peer_ni);
 	} else {
-		list_for_each_safe(ctmp, cnxt, &peer->ibp_conns) {
+		list_for_each_safe(ctmp, cnxt, &peer_ni->ibp_conns) {
 			conn = list_entry(ctmp, struct kib_conn, ibc_list);
 
 			kiblnd_close_conn_locked(conn, 0);
 		}
-		/* NB closing peer's last conn unlinked it. */
+		/* NB closing peer_ni's last conn unlinked it. */
 	}
 	/*
-	 * NB peer now unlinked; might even be freed if the peer table had the
-	 * last ref on it.
+	 * NB peer_ni now unlinked; might even be freed if the peer_ni
+	 * table had the last ref on it.
 	 */
 }
 
 static int kiblnd_del_peer(struct lnet_ni *ni, lnet_nid_t nid)
 {
 	LIST_HEAD(zombies);
-	struct list_head *ptmp;
-	struct list_head *pnxt;
-	struct kib_peer *peer;
+	struct kib_peer_ni *pnxt;
+	struct kib_peer_ni *peer_ni;
 	int lo;
 	int hi;
 	int i;
@@ -497,24 +497,24 @@ static int kiblnd_del_peer(struct lnet_ni *ni, lnet_nid_t nid)
 	}
 
 	for (i = lo; i <= hi; i++) {
-		list_for_each_safe(ptmp, pnxt, &kiblnd_data.kib_peers[i]) {
-			peer = list_entry(ptmp, struct kib_peer, ibp_list);
-			LASSERT(!kiblnd_peer_idle(peer));
+		list_for_each_entry_safe(peer_ni, pnxt,
+					 &kiblnd_data.kib_peers[i], ibp_list) {
+			LASSERT(!kiblnd_peer_idle(peer_ni));
 
-			if (peer->ibp_ni != ni)
+			if (peer_ni->ibp_ni != ni)
 				continue;
 
-			if (!(nid == LNET_NID_ANY || peer->ibp_nid == nid))
+			if (!(nid == LNET_NID_ANY || peer_ni->ibp_nid == nid))
 				continue;
 
-			if (!list_empty(&peer->ibp_tx_queue)) {
-				LASSERT(list_empty(&peer->ibp_conns));
+			if (!list_empty(&peer_ni->ibp_tx_queue)) {
+				LASSERT(list_empty(&peer_ni->ibp_conns));
 
-				list_splice_init(&peer->ibp_tx_queue,
+				list_splice_init(&peer_ni->ibp_tx_queue,
 						 &zombies);
 			}
 
-			kiblnd_del_peer_locked(peer);
+			kiblnd_del_peer_locked(peer_ni);
 			rc = 0;	 /* matched something */
 		}
 	}
@@ -528,7 +528,7 @@ static int kiblnd_del_peer(struct lnet_ni *ni, lnet_nid_t nid)
 
 static struct kib_conn *kiblnd_get_conn_by_idx(struct lnet_ni *ni, int index)
 {
-	struct kib_peer *peer;
+	struct kib_peer_ni *peer_ni;
 	struct kib_conn *conn;
 	int i;
 	unsigned long flags;
@@ -536,13 +536,15 @@ static struct kib_conn *kiblnd_get_conn_by_idx(struct lnet_ni *ni, int index)
 	read_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 
 	for (i = 0; i < kiblnd_data.kib_peer_hash_size; i++) {
-		list_for_each_entry(peer, &kiblnd_data.kib_peers[i], ibp_list) {
-			LASSERT(!kiblnd_peer_idle(peer));
+		list_for_each_entry(peer_ni, &kiblnd_data.kib_peers[i],
+				    ibp_list) {
+			LASSERT(!kiblnd_peer_idle(peer_ni));
 
-			if (peer->ibp_ni != ni)
+			if (peer_ni->ibp_ni != ni)
 				continue;
 
-			list_for_each_entry(conn, &peer->ibp_conns, ibc_list) {
+			list_for_each_entry(conn, &peer_ni->ibp_conns,
+					    ibc_list) {
 				if (index-- > 0)
 					continue;
 
@@ -620,20 +622,23 @@ static int kiblnd_get_completion_vector(struct kib_conn *conn, int cpt)
 	return 1;
 }
 
-struct kib_conn *kiblnd_create_conn(struct kib_peer *peer, struct rdma_cm_id *cmid,
+struct kib_conn *kiblnd_create_conn(struct kib_peer_ni *peer_ni,
+				    struct rdma_cm_id *cmid,
 				    int state, int version)
 {
 	/*
 	 * CAVEAT EMPTOR:
-	 * If the new conn is created successfully it takes over the caller's
-	 * ref on 'peer'.  It also "owns" 'cmid' and destroys it when it itself
-	 * is destroyed.  On failure, the caller's ref on 'peer' remains and
-	 * she must dispose of 'cmid'.  (Actually I'd block forever if I tried
-	 * to destroy 'cmid' here since I'm called from the CM which still has
+	 *
+	 * If the new conn is created successfully it takes over the
+	 * caller's ref on 'peer_ni'.  It also "owns" 'cmid' and
+	 * destroys it when it itself is destroyed.  On failure, the
+	 * caller's ref on 'peer_ni' remains and she must dispose of
+	 * 'cmid'.  (Actually I'd block forever if I tried to destroy
+	 * 'cmid' here since I'm called from the CM which still has
 	 * its ref on 'cmid').
 	 */
 	rwlock_t *glock = &kiblnd_data.kib_global_lock;
-	struct kib_net *net = peer->ibp_ni->ni_data;
+	struct kib_net *net = peer_ni->ibp_ni->ni_data;
 	struct kib_dev *dev;
 	struct ib_qp_init_attr *init_qp_attr;
 	struct kib_sched_info *sched;
@@ -650,7 +655,7 @@ struct kib_conn *kiblnd_create_conn(struct kib_peer *peer, struct rdma_cm_id *cm
 
 	dev = net->ibn_dev;
 
-	cpt = lnet_cpt_of_nid(peer->ibp_nid, peer->ibp_ni);
+	cpt = lnet_cpt_of_nid(peer_ni->ibp_nid, peer_ni->ibp_ni);
 	sched = kiblnd_data.kib_scheds[cpt];
 
 	LASSERT(sched->ibs_nthreads > 0);
@@ -658,24 +663,24 @@ struct kib_conn *kiblnd_create_conn(struct kib_peer *peer, struct rdma_cm_id *cm
 	init_qp_attr = kzalloc_cpt(sizeof(*init_qp_attr), GFP_NOFS, cpt);
 	if (!init_qp_attr) {
 		CERROR("Can't allocate qp_attr for %s\n",
-		       libcfs_nid2str(peer->ibp_nid));
+		       libcfs_nid2str(peer_ni->ibp_nid));
 		goto failed_0;
 	}
 
 	conn = kzalloc_cpt(sizeof(*conn), GFP_NOFS, cpt);
 	if (!conn) {
 		CERROR("Can't allocate connection for %s\n",
-		       libcfs_nid2str(peer->ibp_nid));
+		       libcfs_nid2str(peer_ni->ibp_nid));
 		goto failed_1;
 	}
 
 	conn->ibc_state = IBLND_CONN_INIT;
 	conn->ibc_version = version;
-	conn->ibc_peer = peer;		  /* I take the caller's ref */
+	conn->ibc_peer = peer_ni;		  /* I take the caller's ref */
 	cmid->context = conn;		   /* for future CM callbacks */
 	conn->ibc_cmid = cmid;
-	conn->ibc_max_frags = peer->ibp_max_frags;
-	conn->ibc_queue_depth = peer->ibp_queue_depth;
+	conn->ibc_max_frags = peer_ni->ibp_max_frags;
+	conn->ibc_queue_depth = peer_ni->ibp_queue_depth;
 
 	INIT_LIST_HEAD(&conn->ibc_early_rxs);
 	INIT_LIST_HEAD(&conn->ibc_tx_noops);
@@ -834,7 +839,7 @@ struct kib_conn *kiblnd_create_conn(struct kib_peer *peer, struct rdma_cm_id *cm
 void kiblnd_destroy_conn(struct kib_conn *conn)
 {
 	struct rdma_cm_id *cmid = conn->ibc_cmid;
-	struct kib_peer *peer = conn->ibc_peer;
+	struct kib_peer_ni *peer_ni = conn->ibc_peer;
 	int rc;
 
 	LASSERT(!in_interrupt());
@@ -883,26 +888,26 @@ void kiblnd_destroy_conn(struct kib_conn *conn)
 
 	/* See CAVEAT EMPTOR above in kiblnd_create_conn */
 	if (conn->ibc_state != IBLND_CONN_INIT) {
-		struct kib_net *net = peer->ibp_ni->ni_data;
+		struct kib_net *net = peer_ni->ibp_ni->ni_data;
 
-		kiblnd_peer_decref(peer);
+		kiblnd_peer_decref(peer_ni);
 		rdma_destroy_id(cmid);
 		atomic_dec(&net->ibn_nconns);
 	}
 }
 
-int kiblnd_close_peer_conns_locked(struct kib_peer *peer, int why)
+int kiblnd_close_peer_conns_locked(struct kib_peer_ni *peer_ni, int why)
 {
 	struct kib_conn *conn;
 	struct list_head *ctmp;
 	struct list_head *cnxt;
 	int count = 0;
 
-	list_for_each_safe(ctmp, cnxt, &peer->ibp_conns) {
+	list_for_each_safe(ctmp, cnxt, &peer_ni->ibp_conns) {
 		conn = list_entry(ctmp, struct kib_conn, ibc_list);
 
 		CDEBUG(D_NET, "Closing conn -> %s, version: %x, reason: %d\n",
-		       libcfs_nid2str(peer->ibp_nid),
+		       libcfs_nid2str(peer_ni->ibp_nid),
 		       conn->ibc_version, why);
 
 		kiblnd_close_conn_locked(conn, why);
@@ -912,7 +917,7 @@ int kiblnd_close_peer_conns_locked(struct kib_peer *peer, int why)
 	return count;
 }
 
-int kiblnd_close_stale_conns_locked(struct kib_peer *peer,
+int kiblnd_close_stale_conns_locked(struct kib_peer_ni *peer_ni,
 				    int version, __u64 incarnation)
 {
 	struct kib_conn *conn;
@@ -920,7 +925,7 @@ int kiblnd_close_stale_conns_locked(struct kib_peer *peer,
 	struct list_head *cnxt;
 	int count = 0;
 
-	list_for_each_safe(ctmp, cnxt, &peer->ibp_conns) {
+	list_for_each_safe(ctmp, cnxt, &peer_ni->ibp_conns) {
 		conn = list_entry(ctmp, struct kib_conn, ibc_list);
 
 		if (conn->ibc_version     == version &&
@@ -929,7 +934,7 @@ int kiblnd_close_stale_conns_locked(struct kib_peer *peer,
 
 		CDEBUG(D_NET,
 		       "Closing stale conn -> %s version: %x, incarnation:%#llx(%x, %#llx)\n",
-		       libcfs_nid2str(peer->ibp_nid),
+		       libcfs_nid2str(peer_ni->ibp_nid),
 		       conn->ibc_version, conn->ibc_incarnation,
 		       version, incarnation);
 
@@ -942,9 +947,8 @@ int kiblnd_close_stale_conns_locked(struct kib_peer *peer,
 
 static int kiblnd_close_matching_conns(struct lnet_ni *ni, lnet_nid_t nid)
 {
-	struct kib_peer *peer;
-	struct list_head *ptmp;
-	struct list_head *pnxt;
+	struct kib_peer_ni *peer_ni;
+	struct kib_peer_ni *pnxt;
 	int lo;
 	int hi;
 	int i;
@@ -962,17 +966,17 @@ static int kiblnd_close_matching_conns(struct lnet_ni *ni, lnet_nid_t nid)
 	}
 
 	for (i = lo; i <= hi; i++) {
-		list_for_each_safe(ptmp, pnxt, &kiblnd_data.kib_peers[i]) {
-			peer = list_entry(ptmp, struct kib_peer, ibp_list);
-			LASSERT(!kiblnd_peer_idle(peer));
+		list_for_each_entry_safe(peer_ni, pnxt,
+					 &kiblnd_data.kib_peers[i], ibp_list) {
+			LASSERT(!kiblnd_peer_idle(peer_ni));
 
-			if (peer->ibp_ni != ni)
+			if (peer_ni->ibp_ni != ni)
 				continue;
 
-			if (!(nid == LNET_NID_ANY || nid == peer->ibp_nid))
+			if (!(nid == LNET_NID_ANY || nid == peer_ni->ibp_nid))
 				continue;
 
-			count += kiblnd_close_peer_conns_locked(peer, 0);
+			count += kiblnd_close_peer_conns_locked(peer_ni, 0);
 		}
 	}
 
@@ -1043,14 +1047,14 @@ static void kiblnd_query(struct lnet_ni *ni, lnet_nid_t nid, time64_t *when)
 	time64_t last_alive = 0;
 	time64_t now = ktime_get_seconds();
 	rwlock_t *glock = &kiblnd_data.kib_global_lock;
-	struct kib_peer *peer;
+	struct kib_peer_ni *peer_ni;
 	unsigned long flags;
 
 	read_lock_irqsave(glock, flags);
 
-	peer = kiblnd_find_peer_locked(ni, nid);
-	if (peer)
-		last_alive = peer->ibp_last_alive;
+	peer_ni = kiblnd_find_peer_locked(ni, nid);
+	if (peer_ni)
+		last_alive = peer_ni->ibp_last_alive;
 
 	read_unlock_irqrestore(glock, flags);
 
@@ -1058,14 +1062,14 @@ static void kiblnd_query(struct lnet_ni *ni, lnet_nid_t nid, time64_t *when)
 		*when = last_alive;
 
 	/*
-	 * peer is not persistent in hash, trigger peer creation
+	 * peer_ni is not persistent in hash, trigger peer_ni creation
 	 * and connection establishment with a NULL tx
 	 */
-	if (!peer)
+	if (!peer_ni)
 		kiblnd_launch_tx(ni, NULL, nid);
 
-	CDEBUG(D_NET, "Peer %s %p, alive %lld secs ago\n",
-	       libcfs_nid2str(nid), peer,
+	CDEBUG(D_NET, "peer_ni %s %p, alive %lld secs ago\n",
+	       libcfs_nid2str(nid), peer_ni,
 	       last_alive ? now - last_alive : -1);
 }
 
@@ -2601,7 +2605,7 @@ static void kiblnd_shutdown(struct lnet_ni *ni)
 		/* nuke all existing peers within this net */
 		kiblnd_del_peer(ni, LNET_NID_ANY);
 
-		/* Wait for all peer state to clean up */
+		/* Wait for all peer_ni state to clean up */
 		i = 2;
 		while (atomic_read(&net->ibn_npeers)) {
 			i++;

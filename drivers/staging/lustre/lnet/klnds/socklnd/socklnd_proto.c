@@ -367,14 +367,14 @@ ksocknal_match_tx_v3(struct ksock_conn *conn, struct ksock_tx *tx, int nonblk)
 static int
 ksocknal_handle_zcreq(struct ksock_conn *c, __u64 cookie, int remote)
 {
-	struct ksock_peer *peer = c->ksnc_peer;
+	struct ksock_peer *peer_ni = c->ksnc_peer;
 	struct ksock_conn *conn;
 	struct ksock_tx *tx;
 	int rc;
 
 	read_lock(&ksocknal_data.ksnd_global_lock);
 
-	conn = ksocknal_find_conn_locked(peer, NULL, !!remote);
+	conn = ksocknal_find_conn_locked(peer_ni, NULL, !!remote);
 	if (conn) {
 		struct ksock_sched *sched = conn->ksnc_scheduler;
 
@@ -399,7 +399,7 @@ ksocknal_handle_zcreq(struct ksock_conn *c, __u64 cookie, int remote)
 	if (!tx)
 		return -ENOMEM;
 
-	rc = ksocknal_launch_packet(peer->ksnp_ni, tx, peer->ksnp_id);
+	rc = ksocknal_launch_packet(peer_ni->ksnp_ni, tx, peer_ni->ksnp_id);
 	if (!rc)
 		return 0;
 
@@ -411,7 +411,7 @@ ksocknal_handle_zcreq(struct ksock_conn *c, __u64 cookie, int remote)
 static int
 ksocknal_handle_zcack(struct ksock_conn *conn, __u64 cookie1, __u64 cookie2)
 {
-	struct ksock_peer *peer = conn->ksnc_peer;
+	struct ksock_peer *peer_ni = conn->ksnc_peer;
 	struct ksock_tx *tx;
 	struct ksock_tx *tmp;
 	LIST_HEAD(zlist);
@@ -428,9 +428,9 @@ ksocknal_handle_zcack(struct ksock_conn *conn, __u64 cookie1, __u64 cookie2)
 		return count == 1 ? 0 : -EPROTO;
 	}
 
-	spin_lock(&peer->ksnp_lock);
+	spin_lock(&peer_ni->ksnp_lock);
 
-	list_for_each_entry_safe(tx, tmp, &peer->ksnp_zc_req_list,
+	list_for_each_entry_safe(tx, tmp, &peer_ni->ksnp_zc_req_list,
 				 tx_zc_list) {
 		__u64 c = tx->tx_msg.ksm_zc_cookies[0];
 
@@ -445,7 +445,7 @@ ksocknal_handle_zcack(struct ksock_conn *conn, __u64 cookie1, __u64 cookie2)
 		}
 	}
 
-	spin_unlock(&peer->ksnp_lock);
+	spin_unlock(&peer_ni->ksnp_lock);
 
 	while (!list_empty(&zlist)) {
 		tx = list_entry(zlist.next, struct ksock_tx, tx_zc_list);
