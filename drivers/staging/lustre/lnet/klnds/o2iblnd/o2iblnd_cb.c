@@ -538,6 +538,7 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 {
 	struct kib_hca_dev *hdev;
 	struct kib_fmr_poolset *fps;
+	bool is_fastreg = 0;
 	int cpt;
 	int rc;
 
@@ -548,7 +549,7 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 	cpt = tx->tx_pool->tpo_pool.po_owner->ps_cpt;
 
 	fps = net->ibn_fmr_ps[cpt];
-	rc = kiblnd_fmr_pool_map(fps, tx, rd, nob, 0, &tx->fmr);
+	rc = kiblnd_fmr_pool_map(fps, tx, rd, nob, 0, &tx->fmr, &is_fastreg);
 	if (rc) {
 		CERROR("Can't map %u bytes: %d\n", nob, rc);
 		return rc;
@@ -559,7 +560,8 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 	 * who will need the rkey
 	 */
 	rd->rd_key = tx->fmr.fmr_key;
-	rd->rd_frags[0].rf_addr &= ~hdev->ibh_page_mask;
+	if (!is_fastreg)
+		rd->rd_frags[0].rf_addr &= ~hdev->ibh_page_mask;
 	rd->rd_frags[0].rf_nob = nob;
 	rd->rd_nfrags = 1;
 
