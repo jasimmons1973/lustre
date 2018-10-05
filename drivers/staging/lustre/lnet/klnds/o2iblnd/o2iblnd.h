@@ -89,6 +89,7 @@ struct kib_tunables {
 	int *kib_require_priv_port;      /* accept only privileged ports */
 	int *kib_use_priv_port; /* use privileged port for active connect */
 	int *kib_nscheds;                /* # threads on each CPT */
+	int *kib_wrq_sge;		 /* # sg elements per wrq */
 };
 
 extern struct kib_tunables  kiblnd_tunables;
@@ -495,7 +496,11 @@ struct kib_tx {					/* transmit message */
 	struct kib_msg	      *tx_msg;        /* message buffer (host vaddr) */
 	__u64                 tx_msgaddr;     /* message buffer (I/O addr) */
 	DECLARE_PCI_UNMAP_ADDR(tx_msgunmap);  /* for dma_unmap_single() */
+	/** sge for tx_msgaddr */
+	struct ib_sge		tx_msgsge;
 	int                   tx_nwrq;        /* # send work items */
+	/* # used scatter/gather elements */
+	int			tx_nsge;
 	struct ib_rdma_wr     *tx_wrq;        /* send work items... */
 	struct ib_sge         *tx_sge;        /* ...and their memory */
 	struct kib_rdma_desc  *tx_rd;         /* rdma descriptor */

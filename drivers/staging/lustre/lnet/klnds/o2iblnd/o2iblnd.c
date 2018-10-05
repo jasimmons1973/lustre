@@ -761,7 +761,7 @@ struct kib_conn *kiblnd_create_conn(struct kib_peer_ni *peer_ni,
 	init_qp_attr->qp_context = conn;
 	init_qp_attr->cap.max_send_wr = IBLND_SEND_WRS(conn);
 	init_qp_attr->cap.max_recv_wr = IBLND_RECV_WRS(conn);
-	init_qp_attr->cap.max_send_sge = 1;
+	init_qp_attr->cap.max_send_sge = *kiblnd_tunables.kib_wrq_sge;
 	init_qp_attr->cap.max_recv_sge = 1;
 	init_qp_attr->sq_sig_type = IB_SIGNAL_REQ_WR;
 	init_qp_attr->qp_type = IB_QPT_RC;
@@ -772,9 +772,11 @@ struct kib_conn *kiblnd_create_conn(struct kib_peer_ni *peer_ni,
 
 	rc = rdma_create_qp(cmid, conn->ibc_hdev->ibh_pd, init_qp_attr);
 	if (rc) {
-		CERROR("Can't create QP: %d, send_wr: %d, recv_wr: %d\n",
+		CERROR("Can't create QP: %d, send_wr: %d, recv_wr: %d, send_sge: %d, recv_sge: %d\n",
 		       rc, init_qp_attr->cap.max_send_wr,
-		       init_qp_attr->cap.max_recv_wr);
+		       init_qp_attr->cap.max_recv_wr,
+		       init_qp_attr->cap.max_send_sge,
+		       init_qp_attr->cap.max_recv_sge);
 		goto failed_2;
 	}
 
@@ -2039,6 +2041,7 @@ static int kiblnd_create_tx_pool(struct kib_poolset *ps, int size,
 
 	for (i = 0; i < size; i++) {
 		struct kib_tx *tx = &tpo->tpo_tx_descs[i];
+		int wrq_sge = *kiblnd_tunables.kib_wrq_sge;
 
 		tx->tx_pool = tpo;
 		if (ps->ps_net->ibn_fmr_ps) {
@@ -2063,8 +2066,8 @@ static int kiblnd_create_tx_pool(struct kib_poolset *ps, int size,
 			break;
 
 		tx->tx_sge = kzalloc_cpt((1 + IBLND_MAX_RDMA_FRAGS) *
-					 sizeof(*tx->tx_sge),
-					 GFP_NOFS, ps->ps_cpt);
+					 wrq_sge * sizeof(*tx->tx_sge),
+					 GFP_KERNEL, ps->ps_cpt);
 		if (!tx->tx_sge)
 			break;
 
