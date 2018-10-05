@@ -53,7 +53,7 @@ static char *ldlm_cpts;
 module_param(ldlm_cpts, charp, 0444);
 MODULE_PARM_DESC(ldlm_cpts, "CPU partitions ldlm threads should run on");
 
-static struct mutex	ldlm_ref_mutex;
+static DEFINE_MUTEX(ldlm_ref_mutex);
 static int ldlm_refcount;
 
 static struct kobject *ldlm_kobj;
@@ -68,10 +68,6 @@ struct ldlm_cb_async_args {
 /* LDLM state */
 
 static struct ldlm_state *ldlm_state;
-
-#define ELT_STOPPED   0
-#define ELT_READY     1
-#define ELT_TERMINATE 2
 
 struct ldlm_bl_pool {
 	spinlock_t		blp_lock;

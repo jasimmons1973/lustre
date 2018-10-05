@@ -49,10 +49,10 @@ struct kmem_cache *ldlm_interval_tree_slab;
 int ldlm_srv_namespace_nr;
 int ldlm_cli_namespace_nr;
 
-struct mutex ldlm_srv_namespace_lock;
+DEFINE_MUTEX(ldlm_srv_namespace_lock);
 LIST_HEAD(ldlm_srv_namespace_list);
 
-struct mutex ldlm_cli_namespace_lock;
+DEFINE_MUTEX(ldlm_cli_namespace_lock);
 /* Client Namespaces that have active resources in them.
  * Once all resources go away, ldlm_poold moves such namespaces to the
  * inactive list
