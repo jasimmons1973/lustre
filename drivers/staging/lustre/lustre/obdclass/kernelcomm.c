@@ -37,7 +37,6 @@
  */
 
 #define DEBUG_SUBSYSTEM S_CLASS
-#define D_KUC D_OTHER
 
 #include <linux/file.h>
 #include <linux/libcfs/libcfs.h>
@@ -77,7 +76,7 @@ int libcfs_kkuc_msg_put(struct file *filp, void *payload)
 	if (rc < 0)
 		CWARN("message send failed (%d)\n", rc);
 	else
-		CDEBUG(D_KUC, "Sent message rc=%d, fp=%p\n", rc, filp);
+		CDEBUG(D_HSM, "Sent message rc=%d, fp=%p\n", rc, filp);
 
 	return rc;
 }
@@ -146,7 +145,7 @@ int libcfs_kkuc_group_add(struct file *filp, int uid, unsigned int group,
 	list_add(&reg->kr_chain, &kkuc_groups[group]);
 	up_write(&kg_sem);
 
-	CDEBUG(D_KUC, "Added uid=%d fp=%p to group %d\n", uid, filp, group);
+	CDEBUG(D_HSM, "Added uid=%d fp=%p to group %d\n", uid, filp, group);
 
 	return 0;
 }
@@ -176,7 +175,7 @@ int libcfs_kkuc_group_rem(int uid, unsigned int group)
 	list_for_each_entry_safe(reg, next, &kkuc_groups[group], kr_chain) {
 		if (!uid || (uid == reg->kr_uid)) {
 			list_del(&reg->kr_chain);
-			CDEBUG(D_KUC, "Removed uid=%d fp=%p from group %d\n",
+			CDEBUG(D_HSM, "Removed uid=%d fp=%p from group %d\n",
 			       reg->kr_uid, reg->kr_fp, group);
 			if (reg->kr_fp)
 				fput(reg->kr_fp);

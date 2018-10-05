@@ -572,8 +572,13 @@ struct cl_env {
 	void	     *ce_debug;
 };
 
-#define CL_ENV_INC(counter)
-#define CL_ENV_DEC(counter)
+static void cl_env_inc(enum cache_stats_item item)
+{
+}
+
+static void cl_env_dec(enum cache_stats_item item)
+{
+}
 
 static void cl_env_init0(struct cl_env *cle, void *debug)
 {
@@ -583,7 +588,7 @@ static void cl_env_init0(struct cl_env *cle, void *debug)
 
 	cle->ce_ref = 1;
 	cle->ce_debug = debug;
-	CL_ENV_INC(busy);
+	cl_env_inc(CS_busy);
 }
 
 static struct lu_env *cl_env_new(__u32 ctx_tags, __u32 ses_tags, void *debug)
@@ -614,8 +619,8 @@ static struct lu_env *cl_env_new(__u32 ctx_tags, __u32 ses_tags, void *debug)
 			kmem_cache_free(cl_env_kmem, cle);
 			env = ERR_PTR(rc);
 		} else {
-			CL_ENV_INC(create);
-			CL_ENV_INC(total);
+			cl_env_inc(CS_create);
+			cl_env_inc(CS_total);
 		}
 	} else {
 		env = ERR_PTR(-ENOMEM);
@@ -625,7 +630,7 @@ static struct lu_env *cl_env_new(__u32 ctx_tags, __u32 ses_tags, void *debug)
 
 static void cl_env_fini(struct cl_env *cle)
 {
-	CL_ENV_DEC(total);
+	cl_env_dec(CS_total);
 	lu_context_fini(&cle->ce_lu.le_ctx);
 	lu_context_fini(&cle->ce_ses);
 	kmem_cache_free(cl_env_kmem, cle);
@@ -781,7 +786,7 @@ void cl_env_put(struct lu_env *env, u16 *refcheck)
 	if (--cle->ce_ref == 0) {
 		int cpu = get_cpu();
 
-		CL_ENV_DEC(busy);
+		cl_env_dec(CS_busy);
 		cle->ce_debug = NULL;
 		cl_env_exit(cle);
 		/*
@@ -902,7 +907,7 @@ void cl_env_percpu_put(struct lu_env *env)
 	cle->ce_ref--;
 	LASSERT(cle->ce_ref == 0);
 
-	CL_ENV_DEC(busy);
+	cl_env_dec(CS_busy);
 	cle->ce_debug = NULL;
 
 	put_cpu();

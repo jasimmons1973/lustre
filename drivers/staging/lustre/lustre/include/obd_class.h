@@ -497,9 +497,9 @@ static inline int obd_set_info_async(const struct lu_env *env,
 
 static inline int obd_setup(struct obd_device *obd, struct lustre_cfg *cfg)
 {
-	int rc;
 	struct lu_device_type *ldt;
 	struct lu_device *d;
+	int rc;
 
 	ldt = obd->obd_type->typ_lu;
 	if (ldt) {
@@ -536,15 +536,10 @@ static inline int obd_setup(struct obd_device *obd, struct lustre_cfg *cfg)
 
 static inline int obd_precleanup(struct obd_device *obd)
 {
+	struct lu_device_type *ldt = obd->obd_type->typ_lu;
+	struct lu_device *d = obd->obd_lu_dev;
 	int rc;
-	struct lu_device_type *ldt;
-	struct lu_device *d;
 
-	rc = obd_check_dev(obd);
-	if (rc)
-		return rc;
-	ldt = obd->obd_type->typ_lu;
-	d = obd->obd_lu_dev;
 	if (ldt && d) {
 		struct lu_env env;
 
@@ -563,16 +558,10 @@ static inline int obd_precleanup(struct obd_device *obd)
 
 static inline int obd_cleanup(struct obd_device *obd)
 {
+	struct lu_device_type *ldt = obd->obd_type->typ_lu;
+	struct lu_device *d = obd->obd_lu_dev;
 	int rc;
-	struct lu_device_type *ldt;
-	struct lu_device *d;
 
-	rc = obd_check_dev(obd);
-	if (rc)
-		return rc;
-
-	ldt = obd->obd_type->typ_lu;
-	d = obd->obd_lu_dev;
 	if (ldt && d) {
 		struct lu_env env;
 
@@ -613,17 +602,11 @@ static inline void obd_cleanup_client_import(struct obd_device *obd)
 static inline int
 obd_process_config(struct obd_device *obd, int datalen, void *data)
 {
+	struct lu_device_type *ldt = obd->obd_type->typ_lu;
+	struct lu_device *d = obd->obd_lu_dev;
 	int rc;
-	struct lu_device_type *ldt;
-	struct lu_device *d;
-
-	rc = obd_check_dev(obd);
-	if (rc)
-		return rc;
 
 	obd->obd_process_conf = 1;
-	ldt = obd->obd_type->typ_lu;
-	d = obd->obd_lu_dev;
 	if (ldt && d) {
 		struct lu_env env;
 
@@ -1554,9 +1537,12 @@ extern int (*ptlrpc_put_connection_superhack)(struct ptlrpc_connection *c);
 /* obd_mount.c */
 int lustre_check_exclusion(struct super_block *sb, char *svname);
 
-/* uuid.c  */
-typedef __u8 class_uuid_t[16];
-void class_uuid_unparse(class_uuid_t in, struct obd_uuid *out);
+typedef u8 class_uuid_t[16];
+
+static inline void class_uuid_unparse(class_uuid_t uu, struct obd_uuid *out)
+{
+	sprintf(out->uuid, "%pU", uu);
+}
 
 /* lustre_peer.c    */
 int lustre_uuid_to_peer(const char *uuid, lnet_nid_t *peer_nid, int index);

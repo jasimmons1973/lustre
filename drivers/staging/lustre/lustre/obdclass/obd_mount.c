@@ -336,7 +336,7 @@ int lustre_start_mgc(struct super_block *sb)
 	}
 
 	ll_generate_random_uuid(uuidc);
-	class_uuid_unparse(uuidc, uuid);
+	sprintf(uuid->uuid, "%pU", uuidc);
 
 	/* Start the MGC */
 	rc = lustre_start_simple(mgcname, LUSTRE_MGC_NAME,

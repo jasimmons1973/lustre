@@ -585,7 +585,6 @@ static struct miscdevice obd_psdev = {
 	.fops	= &obd_psdev_fops,
 };
 
-#define OBD_INIT_CHECK
 static int obd_init_checks(void)
 {
 	__u64 u64val, div64val;

@@ -98,7 +98,8 @@ static struct ll_sb_info *ll_init_sbi(void)
 					   SBI_DEFAULT_READAHEAD_WHOLE_MAX;
 
 	ll_generate_random_uuid(uuid);
-	class_uuid_unparse(uuid, &sbi->ll_sb_uuid);
+	sprintf(sbi->ll_sb_uuid.uuid, "%pU", uuid);
+
 	CDEBUG(D_CONFIG, "generated uuid: %s\n", sbi->ll_sb_uuid.uuid);
 
 	sbi->ll_flags |= LL_SBI_VERBOSE;
