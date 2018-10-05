@@ -42,6 +42,7 @@
 #include <obd_class.h>
 #include <uapi/linux/lnet/lnetctl.h>
 #include <lustre_debug.h>
+#include <lustre_kernelcomm.h>
 #include <lprocfs_status.h>
 #include <linux/list.h>
 #include <cl_object.h>
@@ -663,6 +664,8 @@ static int __init obdclass_init(void)
 	err = libcfs_setup();
 	if (err)
 		return err;
+
+	libcfs_kkuc_init();
 
 	err = obd_zombie_impexp_init();
 	if (err)
