@@ -1482,7 +1482,7 @@ srpc_lnet_ev_handler(struct lnet_event *ev)
 			sv->sv_shuttingdown);
 
 		buffer = container_of(ev->md.start, struct srpc_buffer, buf_msg);
-		buffer->buf_peer = ev->initiator;
+		buffer->buf_peer = ev->source;
 		buffer->buf_self = ev->target.nid;
 
 		LASSERT(scd->scd_buf_nposted > 0);
