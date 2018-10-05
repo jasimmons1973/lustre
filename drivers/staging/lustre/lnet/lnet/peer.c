@@ -216,6 +216,37 @@ lnet_peer_tables_cleanup(struct lnet_ni *ni)
 	}
 }
 
+static struct lnet_peer_ni *
+lnet_get_peer_ni_locked(struct lnet_peer_table *ptable, lnet_nid_t nid)
+{
+	struct list_head	*peers;
+	struct lnet_peer_ni	*lp;
+
+	LASSERT(!the_lnet.ln_shutdown);
+
+	peers = &ptable->pt_hash[lnet_nid2peerhash(nid)];
+	list_for_each_entry(lp, peers, lpni_hashlist) {
+		if (lp->lpni_nid == nid) {
+			lnet_peer_ni_addref_locked(lp);
+			return lp;
+		}
+	}
+
+	return NULL;
+}
+
+struct lnet_peer_ni *
+lnet_find_peer_ni_locked(lnet_nid_t nid, int cpt)
+{
+	struct lnet_peer_ni *lpni;
+	struct lnet_peer_table *ptable;
+
+	ptable = the_lnet.ln_peer_tables[cpt];
+	lpni = lnet_get_peer_ni_locked(ptable, nid);
+
+	return lpni;
+}
+
 void
 lnet_destroy_peer_ni_locked(struct lnet_peer_ni *lp)
 {
