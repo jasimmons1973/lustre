@@ -2611,6 +2611,10 @@ kiblnd_check_reconnect(struct kib_conn *conn, int version,
 	case IBLND_REJECT_CONN_UNCOMPAT:
 		reason = "version negotiation";
 		break;
+
+	case IBLND_REJECT_INVALID_SRV_ID:
+		reason = "invalid service id";
+		break;
 	}
 
 	conn->ibc_reconnect = 1;
@@ -2648,6 +2652,8 @@ kiblnd_rejected(struct kib_conn *conn, int reason, void *priv, int priv_nob)
 		break;
 
 	case IB_CM_REJ_INVALID_SERVICE_ID:
+		kiblnd_check_reconnect(conn, IBLND_MSG_VERSION, 0,
+				       IBLND_REJECT_INVALID_SRV_ID, NULL);
 		CNETERR("%s rejected: no listener at %d\n",
 			libcfs_nid2str(peer_ni->ibp_nid),
 			*kiblnd_tunables.kib_service);
