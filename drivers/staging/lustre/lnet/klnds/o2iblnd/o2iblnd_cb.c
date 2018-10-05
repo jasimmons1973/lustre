@@ -531,29 +531,6 @@ kiblnd_rx_complete(struct kib_rx *rx, int status, int nob)
 	kiblnd_drop_rx(rx);		     /* Don't re-post rx. */
 }
 
-static struct page *
-kiblnd_kvaddr_to_page(unsigned long vaddr)
-{
-	struct page *page;
-
-	if (is_vmalloc_addr((void *)vaddr)) {
-		page = vmalloc_to_page((void *)vaddr);
-		LASSERT(page);
-		return page;
-	}
-#ifdef CONFIG_HIGHMEM
-	if (vaddr >= PKMAP_BASE &&
-	    vaddr < (PKMAP_BASE + LAST_PKMAP * PAGE_SIZE)) {
-		/* No highmem pages only used for bulk (kiov) I/O */
-		CERROR("find page for address in highmem\n");
-		LBUG();
-	}
-#endif
-	page = virt_to_page(vaddr);
-	LASSERT(page);
-	return page;
-}
-
 static int
 kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *rd, __u32 nob)
 {
@@ -660,7 +637,7 @@ kiblnd_setup_rd_iov(struct lnet_ni *ni, struct kib_tx *tx,
 
 		vaddr = ((unsigned long)iov->iov_base) + offset;
 		page_offset = vaddr & (PAGE_SIZE - 1);
-		page = kiblnd_kvaddr_to_page(vaddr);
+		page = lnet_kvaddr_to_page(vaddr);
 		if (!page) {
 			CERROR("Can't find page\n");
 			return -EFAULT;
