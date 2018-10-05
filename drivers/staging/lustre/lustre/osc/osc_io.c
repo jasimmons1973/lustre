@@ -212,7 +212,7 @@ static int osc_io_submit(const struct lu_env *env,
 		result = osc_queue_sync_pages(env, osc, &list, cmd, brw_flags);
 
 	/* Update c/mtime for sync write. LU-7310 */
-	if (qout->pl_nr > 0 && !result) {
+	if (crt == CRT_WRITE && qout->pl_nr > 0 && !result) {
 		struct cl_attr *attr = &osc_env_info(env)->oti_attr;
 		struct cl_object *obj = ios->cis_obj;
 
