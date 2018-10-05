@@ -93,8 +93,8 @@ int __llog_ctxt_put(const struct lu_env *env, struct llog_ctxt *ctxt)
 		 !!obd->obd_stopping, !!obd->obd_set_up);
 
 	/* cleanup the llog ctxt here */
-	if (CTXTP(ctxt, cleanup))
-		rc = CTXTP(ctxt, cleanup)(env, ctxt);
+	if (ctxt->loc_logops->lop_cleanup)
+		rc = ctxt->loc_logops->lop_cleanup(env, ctxt);
 
 	llog_ctxt_destroy(ctxt);
 	wake_up(&olg->olg_waitq);
