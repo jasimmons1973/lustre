@@ -388,6 +388,8 @@ struct lnet_rc_data {
 
 struct lnet_peer_ni {
 	struct list_head	lpni_on_peer_net_list;
+	/* chain on remote peer list */
+	struct list_head	lpni_on_remote_peer_ni_list;
 	/* chain on peer hash */
 	struct list_head	 lpni_hashlist;
 	/* messages blocking for tx credits */
@@ -732,6 +734,8 @@ struct lnet {
 	struct lnet_peer_table		**ln_peer_tables;
 	/* list of configured or discovered peers */
 	struct list_head		ln_peers;
+	/* list of peer nis not on a local network */
+	struct list_head		ln_remote_peer_ni_list;
 	/* failure simulation */
 	struct list_head		  ln_test_peers;
 	struct list_head		  ln_drop_rules;

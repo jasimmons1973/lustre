@@ -1734,7 +1734,7 @@ lnet_notify(struct lnet_ni *ni, lnet_nid_t nid, int alive, time64_t when)
 		return -ESHUTDOWN;
 	}
 
-	lp = lnet_find_peer_ni_locked(nid, cpt);
+	lp = lnet_find_peer_ni_locked(nid);
 	if (!lp) {
 		/* nid not found */
 		lnet_net_unlock(cpt);
