@@ -47,7 +47,7 @@
 #include "llite_internal.h"
 
 static int ll_create_it(struct inode *dir, struct dentry *dentry,
-			struct lookup_intent *it);
+			struct lookup_intent *it, void *secctx, u32 secctxlen);
 
 /* called from iget5_locked->find_inode() under inode_hash_lock spinlock */
 static int ll_test_inode(struct inode *inode, void *opaque)
@@ -527,7 +527,8 @@ out:
 }
 
 static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
-				   struct lookup_intent *it)
+				   struct lookup_intent *it, void **secctx,
+				   u32 *secctxlen)
 {
 	struct lookup_intent lookup_it = { .it_op = IT_LOOKUP };
 	struct dentry *save = dentry, *retval;
@@ -590,6 +591,10 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 			retval = ERR_PTR(rc);
 			goto out;
 		}
+		if (secctx)
+			*secctx = op_data->op_file_secctx;
+		if (secctxlen)
+			*secctxlen = op_data->op_file_secctx_size;
 	}
 
 	rc = md_intent_lock(ll_i2mdexp(parent), op_data, it, &req,
@@ -649,8 +654,16 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 	else
 		retval = dentry;
 out:
-	if (op_data && !IS_ERR(op_data))
+	if (op_data && !IS_ERR(op_data)) {
+		if (secctx && secctxlen) {
+			/* caller needs sec ctx info, so reset it in op_data to
+			 * prevent it from being freed
+			 */
+			op_data->op_file_secctx = NULL;
+			op_data->op_file_secctx_size = 0;
+		}
 		ll_finish_md_op_data(op_data);
+	}
 
 	ptlrpc_req_finished(req);
 	return retval;
@@ -677,7 +690,7 @@ static struct dentry *ll_lookup_nd(struct inode *parent, struct dentry *dentry,
 		itp = NULL;
 	else
 		itp = &it;
-	de = ll_lookup_it(parent, dentry, itp);
+	de = ll_lookup_it(parent, dentry, itp, NULL, NULL);
 
 	if (itp)
 		ll_intent_release(itp);
@@ -694,6 +707,8 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 			  umode_t mode)
 {
 	struct lookup_intent *it;
+	void *secctx = NULL;
+	u32 secctxlen = 0;
 	struct dentry *de;
 	int rc = 0;
 
@@ -730,7 +745,7 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 	it->it_flags &= ~MDS_OPEN_FL_INTERNAL;
 
 	/* Dentry added to dcache tree in ll_lookup_it */
-	de = ll_lookup_it(dir, dentry, it);
+	de = ll_lookup_it(dir, dentry, it, &secctx, &secctxlen);
 	if (IS_ERR(de))
 		rc = PTR_ERR(de);
 	else if (de)
@@ -739,7 +754,8 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 	if (!rc) {
 		if (it_disposition(it, DISP_OPEN_CREATE)) {
 			/* Dentry instantiated in ll_create_it. */
-			rc = ll_create_it(dir, dentry, it);
+			rc = ll_create_it(dir, dentry, it, secctx, secctxlen);
+			security_release_secctx(secctx, secctxlen);
 			if (rc) {
 				/* We dget in ll_splice_alias. */
 				if (de)
@@ -828,7 +844,7 @@ static struct inode *ll_create_node(struct inode *dir, struct lookup_intent *it)
  * with d_instantiate().
  */
 static int ll_create_it(struct inode *dir, struct dentry *dentry,
-			struct lookup_intent *it)
+			struct lookup_intent *it, void *secctx, u32 secctxlen)
 {
 	struct inode *inode;
 	int rc = 0;
@@ -843,6 +859,18 @@ static int ll_create_it(struct inode *dir, struct dentry *dentry,
 	inode = ll_create_node(dir, it);
 	if (IS_ERR(inode))
 		return PTR_ERR(inode);
+
+	if ((ll_i2sbi(inode)->ll_flags & LL_SBI_FILE_SECCTX) && secctx) {
+		inode_lock(inode);
+		/* must be done before d_instantiate, because it calls
+		 * security_d_instantiate, which means a getxattr if security
+		 * context is not set yet
+		 */
+		rc = security_inode_notifysecctx(inode, secctx, secctxlen);
+		inode_unlock(inode);
+		if (rc)
+			return rc;
+	}
 
 	d_instantiate(dentry, inode);
 
@@ -906,8 +934,6 @@ again:
 			from_kuid(&init_user_ns, current_fsuid()),
 			from_kgid(&init_user_ns, current_fsgid()),
 			current_cap(), rdev, &request);
-	ll_finish_md_op_data(op_data);
-	op_data = NULL;
 	if (err < 0 && err != -EREMOTE)
 		goto err_exit;
 
@@ -944,6 +970,7 @@ again:
 
 		ptlrpc_req_finished(request);
 		request = NULL;
+		ll_finish_md_op_data(op_data);
 		goto again;
 	}
 
@@ -952,6 +979,20 @@ again:
 	err = ll_prep_inode(&inode, request, dir->i_sb, NULL);
 	if (err)
 		goto err_exit;
+
+	if (sbi->ll_flags & LL_SBI_FILE_SECCTX) {
+		inode_lock(inode);
+		/* must be done before d_instantiate, because it calls
+		 * security_d_instantiate, which means a getxattr if security
+		 * context is not set yet
+		 */
+		err = security_inode_notifysecctx(inode,
+						  op_data->op_file_secctx,
+						  op_data->op_file_secctx_size);
+		inode_unlock(inode);
+		if (err)
+			goto err_exit;
+	}
 
 	d_instantiate(dentry, inode);
 

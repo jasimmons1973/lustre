@@ -42,6 +42,7 @@
 #include <linux/buffer_head.h>   /* for wait_on_buffer */
 #include <linux/pagevec.h>
 #include <linux/prefetch.h>
+#include <linux/security.h>
 
 #define DEBUG_SUBSYSTEM S_LLITE
 
@@ -470,8 +471,15 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 
 	dentry.d_inode = inode;
 
-	if (!(sbi->ll_flags & LL_SBI_FILE_SECCTX))
+	if (sbi->ll_flags & LL_SBI_FILE_SECCTX) {
+		inode_lock(inode);
+		err = security_inode_notifysecctx(inode,
+						  op_data->op_file_secctx,
+						  op_data->op_file_secctx_size);
+		inode_unlock(inode);
+	} else {
 		err = ll_inode_init_security(&dentry, inode, parent);
+	}
 
 out_inode:
 	iput(inode);
