@@ -1344,7 +1344,6 @@ void lustre_assert_wire_constants(void)
 	BUILD_BUG_ON(OBD_FL_MMAP != 0x00040000);
 	BUILD_BUG_ON(OBD_FL_RECOV_RESEND != 0x00080000);
 	BUILD_BUG_ON(OBD_FL_NOSPC_BLK != 0x00100000);
-	BUILD_BUG_ON(OBD_FL_LOCAL_MASK != 0xf0000000);
 
 	/* Checks for struct lov_ost_data_v1 */
 	LASSERTF((int)sizeof(struct lov_ost_data_v1) == 24, "found %lld\n",

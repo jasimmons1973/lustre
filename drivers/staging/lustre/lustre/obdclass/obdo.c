@@ -134,7 +134,6 @@ void lustre_set_wire_obdo(const struct obd_connect_data *ocd,
 			  struct obdo *wobdo, const struct obdo *lobdo)
 {
 	*wobdo = *lobdo;
-	wobdo->o_flags &= ~OBD_FL_LOCAL_MASK;
 	if (!ocd)
 		return;
 
@@ -156,17 +155,7 @@ EXPORT_SYMBOL(lustre_set_wire_obdo);
 void lustre_get_wire_obdo(const struct obd_connect_data *ocd,
 			  struct obdo *lobdo, const struct obdo *wobdo)
 {
-	u32 local_flags = 0;
-
-	if (lobdo->o_valid & OBD_MD_FLFLAGS)
-		local_flags = lobdo->o_flags & OBD_FL_LOCAL_MASK;
-
 	*lobdo = *wobdo;
-	if (local_flags) {
-		lobdo->o_valid |= OBD_MD_FLFLAGS;
-		lobdo->o_flags &= ~OBD_FL_LOCAL_MASK;
-		lobdo->o_flags |= local_flags;
-	}
 	if (!ocd)
 		return;
 
