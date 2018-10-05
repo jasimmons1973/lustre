@@ -563,10 +563,12 @@ struct lnet_event {
 	struct lnet_process_id	target;
 	/** The identifier (nid, pid) of the initiator. */
 	struct lnet_process_id	initiator;
+	/** The source NID on the initiator. */
+	struct lnet_process_id	source;
 	/**
 	 * The NID of the immediate sender. If the request has been forwarded
 	 * by routers, this is the NID of the last hop; otherwise it's the
-	 * same as the initiator.
+	 * same as the source.
 	 */
 	lnet_nid_t		sender;
 	/** Indicates the type of the event. */

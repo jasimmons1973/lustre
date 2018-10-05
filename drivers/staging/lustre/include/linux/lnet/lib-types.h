@@ -61,6 +61,8 @@ struct lnet_msg {
 	struct list_head	msg_list;	   /* Q for credits/MD */
 
 	struct lnet_process_id	msg_target;
+	/* Primary NID of the source. */
+	lnet_nid_t		msg_initiator;
 	/* where is it from, it's only for building event */
 	lnet_nid_t		msg_from;
 	__u32			msg_type;
