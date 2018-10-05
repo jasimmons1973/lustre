@@ -157,7 +157,7 @@ lnet_sock_create(struct socket **sockp, int *fatal, __u32 local_ip,
 	/* All errors are fatal except bind failure if the port is in use */
 	*fatal = 1;
 
-	rc = sock_create(PF_INET, SOCK_STREAM, 0, &sock);
+	rc = sock_create_kern(&init_net, PF_INET, SOCK_STREAM, 0, &sock);
 	*sockp = sock;
 	if (rc) {
 		CERROR("Can't create socket: %d\n", rc);
