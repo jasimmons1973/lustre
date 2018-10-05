@@ -53,7 +53,7 @@ ksocknal_ip2iface(struct lnet_ni *ni, __u32 ip)
 	struct ksock_interface *iface;
 
 	for (i = 0; i < net->ksnn_ninterfaces; i++) {
-		LASSERT(i < LNET_MAX_INTERFACES);
+		LASSERT(i < LNET_NUM_INTERFACES);
 		iface = &net->ksnn_interfaces[i];
 
 		if (iface->ksni_ipaddr == ip)
@@ -221,7 +221,7 @@ ksocknal_unlink_peer_locked(struct ksock_peer *peer_ni)
 	struct ksock_interface *iface;
 
 	for (i = 0; i < peer_ni->ksnp_n_passive_ips; i++) {
-		LASSERT(i < LNET_MAX_INTERFACES);
+		LASSERT(i < LNET_NUM_INTERFACES);
 		ip = peer_ni->ksnp_passive_ips[i];
 
 		iface = ksocknal_ip2iface(peer_ni->ksnp_ni, ip);
@@ -678,7 +678,7 @@ ksocknal_local_ipvec(struct lnet_ni *ni, __u32 *ipaddrs)
 	read_lock(&ksocknal_data.ksnd_global_lock);
 
 	nip = net->ksnn_ninterfaces;
-	LASSERT(nip <= LNET_MAX_INTERFACES);
+	LASSERT(nip <= LNET_NUM_INTERFACES);
 
 	/*
 	 * Only offer interfaces for additional connections if I have
@@ -759,8 +759,8 @@ ksocknal_select_ips(struct ksock_peer *peer_ni, __u32 *peerips, int n_peerips)
 	 */
 	write_lock_bh(global_lock);
 
-	LASSERT(n_peerips <= LNET_MAX_INTERFACES);
-	LASSERT(net->ksnn_ninterfaces <= LNET_MAX_INTERFACES);
+	LASSERT(n_peerips <= LNET_NUM_INTERFACES);
+	LASSERT(net->ksnn_ninterfaces <= LNET_NUM_INTERFACES);
 
 	/*
 	 * Only match interfaces for additional connections
@@ -879,7 +879,7 @@ ksocknal_create_routes(struct ksock_peer *peer_ni, int port,
 		return;
 	}
 
-	LASSERT(npeer_ipaddrs <= LNET_MAX_INTERFACES);
+	LASSERT(npeer_ipaddrs <= LNET_NUM_INTERFACES);
 
 	for (i = 0; i < npeer_ipaddrs; i++) {
 		if (newroute) {
@@ -908,7 +908,7 @@ ksocknal_create_routes(struct ksock_peer *peer_ni, int port,
 		best_nroutes = 0;
 		best_netmatch = 0;
 
-		LASSERT(net->ksnn_ninterfaces <= LNET_MAX_INTERFACES);
+		LASSERT(net->ksnn_ninterfaces <= LNET_NUM_INTERFACES);
 
 		/* Select interface to connect from */
 		for (j = 0; j < net->ksnn_ninterfaces; j++) {
@@ -1048,7 +1048,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	atomic_set(&conn->ksnc_tx_nob, 0);
 
 	hello = kvzalloc(offsetof(struct ksock_hello_msg,
-				  kshm_ips[LNET_MAX_INTERFACES]),
+				  kshm_ips[LNET_NUM_INTERFACES]),
 			 GFP_KERNEL);
 	if (!hello) {
 		rc = -ENOMEM;
@@ -1956,7 +1956,7 @@ ksocknal_add_interface(struct lnet_ni *ni, __u32 ipaddress, __u32 netmask)
 	if (iface) {
 		/* silently ignore dups */
 		rc = 0;
-	} else if (net->ksnn_ninterfaces == LNET_MAX_INTERFACES) {
+	} else if (net->ksnn_ninterfaces == LNET_NUM_INTERFACES) {
 		rc = -ENOSPC;
 	} else {
 		iface = &net->ksnn_interfaces[net->ksnn_ninterfaces++];
@@ -2594,7 +2594,7 @@ ksocknal_enumerate_interfaces(struct ksock_net *net, char *iname)
 			continue;
 		}
 
-		if (j == LNET_MAX_INTERFACES) {
+		if (j == LNET_NUM_INTERFACES) {
 			CWARN("Ignoring interface %s (too many interfaces)\n",
 			      name);
 			continue;
@@ -2782,7 +2782,7 @@ ksocknal_startup(struct lnet_ni *ni)
 
 		net->ksnn_ninterfaces = rc;
 	} else {
-		for (i = 0; i < LNET_MAX_INTERFACES; i++) {
+		for (i = 0; i < LNET_NUM_INTERFACES; i++) {
 			if (!ni->ni_interfaces[i])
 				break;
 			rc = ksocknal_enumerate_interfaces(net, ni->ni_interfaces[i]);

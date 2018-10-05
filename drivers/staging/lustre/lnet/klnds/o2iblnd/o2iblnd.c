@@ -2870,7 +2870,7 @@ static int kiblnd_startup(struct lnet_ni *ni)
 	if (ni->ni_interfaces[0]) {
 		/* Use the IPoIB interface specified in 'networks=' */
 
-		BUILD_BUG_ON(LNET_MAX_INTERFACES <= 1);
+		BUILD_BUG_ON(LNET_NUM_INTERFACES <= 1);
 		if (ni->ni_interfaces[1]) {
 			CERROR("Multiple interfaces not supported\n");
 			goto failed;
