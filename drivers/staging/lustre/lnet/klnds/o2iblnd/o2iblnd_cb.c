@@ -541,6 +541,7 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 	bool is_fastreg = 0;
 	int cpt;
 	int rc;
+	int i;
 
 	LASSERT(tx->tx_pool);
 	LASSERT(tx->tx_pool->tpo_pool.po_owner);
@@ -560,10 +561,15 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 	 * who will need the rkey
 	 */
 	rd->rd_key = tx->fmr.fmr_key;
-	if (!is_fastreg)
-		rd->rd_frags[0].rf_addr &= ~hdev->ibh_page_mask;
-	rd->rd_frags[0].rf_nob = nob;
-	rd->rd_nfrags = 1;
+	if (!is_fastreg) {
+		for (i = 0; i < rd->rd_nfrags; i++) {
+			rd->rd_frags[i].rf_addr &= ~hdev->ibh_page_mask;
+			rd->rd_frags[i].rf_addr += i << hdev->ibh_page_shift;
+		}
+	} else {
+		rd->rd_frags[0].rf_nob = nob;
+		rd->rd_nfrags = 1;
+	}
 
 	return 0;
 }
