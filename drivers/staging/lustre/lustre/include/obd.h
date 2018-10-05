@@ -717,11 +717,11 @@ struct md_op_data {
 	struct lu_fid	   op_fid3; /* 2 extra fids to find conflicting */
 	struct lu_fid	   op_fid4; /* to the operation locks. */
 	u32			op_mds;  /* what mds server open will go to */
+	u32			op_mode;
 	struct lustre_handle    op_handle;
 	s64			op_mod_time;
 	const char	     *op_name;
 	size_t			op_namelen;
-	__u32		   op_mode;
 	struct lmv_stripe_md   *op_mea1;
 	struct lmv_stripe_md   *op_mea2;
 	__u32		   op_suppgids[2];
@@ -745,9 +745,6 @@ struct md_op_data {
 
 	/* Used by readdir */
 	__u64		   op_offset;
-
-	/* Used by readdir */
-	__u32			op_max_pages;
 
 	/* used to transfer info between the stacks of MD client
 	 * see enum op_cli_flags

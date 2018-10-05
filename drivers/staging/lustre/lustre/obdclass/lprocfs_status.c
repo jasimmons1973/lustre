@@ -1785,3 +1785,57 @@ const struct sysfs_ops lustre_sysfs_ops = {
 	.store = lustre_attr_store,
 };
 EXPORT_SYMBOL_GPL(lustre_sysfs_ops);
+
+ssize_t max_pages_per_rpc_show(struct kobject *kobj, struct attribute *attr,
+			       char *buf)
+{
+	struct obd_device *dev = container_of(kobj, struct obd_device,
+					      obd_kset.kobj);
+	struct client_obd *cli = &dev->u.cli;
+
+	return sprintf(buf, "%d\n", cli->cl_max_pages_per_rpc);
+}
+EXPORT_SYMBOL(max_pages_per_rpc_show);
+
+ssize_t max_pages_per_rpc_store(struct kobject *kobj, struct attribute *attr,
+				const char *buffer, size_t count)
+{
+	struct obd_device *dev = container_of(kobj, struct obd_device,
+					      obd_kset.kobj);
+	struct client_obd *cli = &dev->u.cli;
+	struct obd_connect_data *ocd;
+	unsigned long long val;
+	int chunk_mask;
+	int rc;
+
+	rc = kstrtoull(buffer, 10, &val);
+	if (rc)
+		return rc;
+
+	/* if the max_pages is specified in bytes, convert to pages */
+	if (val >= ONE_MB_BRW_SIZE)
+		val >>= PAGE_SHIFT;
+
+	rc = lprocfs_climp_check(dev);
+	if (rc)
+		return rc;
+
+	ocd = &cli->cl_import->imp_connect_data;
+	chunk_mask = ~((1 << (cli->cl_chunkbits - PAGE_SHIFT)) - 1);
+	/* max_pages_per_rpc must be chunk aligned */
+	val = (val + ~chunk_mask) & chunk_mask;
+	if (!val || (ocd->ocd_brw_size &&
+		     val > ocd->ocd_brw_size >> PAGE_SHIFT)) {
+		up_read(&dev->u.cli.cl_sem);
+		return -ERANGE;
+	}
+
+	spin_lock(&cli->cl_loi_list_lock);
+	cli->cl_max_pages_per_rpc = val;
+	client_adjust_max_dirty(cli);
+	spin_unlock(&cli->cl_loi_list_lock);
+
+	up_read(&dev->u.cli.cl_sem);
+	return count;
+}
+EXPORT_SYMBOL(max_pages_per_rpc_store);

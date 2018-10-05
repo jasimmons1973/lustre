@@ -279,15 +279,10 @@ __u64 cl_fid_build_ino(const struct lu_fid *fid, int api32)
  * build inode generation from passed @fid.  If our FID overflows the 32-bit
  * inode number then return a non-zero generation to distinguish them.
  */
-__u32 cl_fid_build_gen(const struct lu_fid *fid)
+u32 cl_fid_build_gen(const struct lu_fid *fid)
 {
-	__u32 gen;
+	if (fid_is_igif(fid))
+		return lu_igif_gen(fid);
 
-	if (fid_is_igif(fid)) {
-		gen = lu_igif_gen(fid);
-		return gen;
-	}
-
-	gen = fid_flatten(fid) >> 32;
-	return gen;
+	return fid_flatten(fid) >> 32;
 }

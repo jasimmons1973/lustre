@@ -584,6 +584,11 @@ ssize_t lustre_attr_store(struct kobject *kobj, struct attribute *attr,
 
 extern const struct sysfs_ops lustre_sysfs_ops;
 
+ssize_t max_pages_per_rpc_show(struct kobject *kobj, struct attribute *attr,
+			       char *buf);
+ssize_t max_pages_per_rpc_store(struct kobject *kobj, struct attribute *attr,
+				const char *buffer, size_t count);
+
 struct root_squash_info;
 int lprocfs_wr_root_squash(const char __user *buffer, unsigned long count,
 			   struct root_squash_info *squash, char *name);

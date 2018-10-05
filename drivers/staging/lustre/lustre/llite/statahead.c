@@ -961,8 +961,6 @@ static int ll_statahead_thread(void *arg)
 		goto out;
 	}
 
-	op_data->op_max_pages = ll_i2sbi(dir)->ll_md_brw_pages;
-
 	while (pos != MDS_DIR_END_OFF && sai->sai_task) {
 		struct lu_dirpage *dp;
 		struct lu_dirent  *ent;
@@ -1215,8 +1213,6 @@ static int is_first_dirent(struct inode *dir, struct dentry *dentry)
 	/**
 	 * FIXME choose the start offset of the readdir
 	 */
-	op_data->op_max_pages = ll_i2sbi(dir)->ll_md_brw_pages;
-
 	page = ll_get_dir_page(dir, op_data, pos);
 
 	while (1) {

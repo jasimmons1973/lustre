@@ -1166,17 +1166,17 @@ static int mdc_read_page_remote(void *data, struct page *page0)
 	struct page **page_pool;
 	struct page *page;
 	struct lu_dirpage *dp;
-	int rd_pgs = 0; /* number of pages read actually */
-	int npages;
 	struct md_op_data *op_data = rp->rp_mod;
 	struct ptlrpc_request *req;
-	int max_pages = op_data->op_max_pages;
 	struct inode *inode;
 	struct lu_fid *fid;
-	int i;
+	int rd_pgs = 0; /* number of pages read actually */
+	int max_pages;
+	int npages;
 	int rc;
+	int i;
 
-	LASSERT(max_pages > 0 && max_pages <= PTLRPC_MAX_BRW_PAGES);
+	max_pages = rp->rp_exp->exp_obd->u.cli.cl_max_pages_per_rpc;
 	inode = op_data->op_data;
 	fid = &op_data->op_fid1;
 	LASSERT(inode);
@@ -1200,8 +1200,7 @@ static int mdc_read_page_remote(void *data, struct page *page0)
 	if (!rc) {
 		int lu_pgs = req->rq_bulk->bd_nob_transferred;
 
-		rd_pgs = (req->rq_bulk->bd_nob_transferred +
-			  PAGE_SIZE - 1) >> PAGE_SHIFT;
+		rd_pgs = (lu_pgs + PAGE_SIZE - 1) >> PAGE_SHIFT;
 		lu_pgs >>= LU_PAGE_SHIFT;
 		LASSERT(!(req->rq_bulk->bd_nob_transferred & ~LU_PAGE_MASK));
 

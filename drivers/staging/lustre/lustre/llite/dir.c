@@ -232,17 +232,12 @@ int ll_dir_read(struct inode *inode, __u64 *ppos, struct md_op_data *op_data,
 
 			hash = le64_to_cpu(ent->lde_hash);
 			if (hash < pos)
-				/*
-				 * Skip until we find target hash
-				 * value.
-				 */
+				/* Skip until we find target hash */
 				continue;
 
 			namelen = le16_to_cpu(ent->lde_namelen);
 			if (namelen == 0)
-				/*
-				 * Skip dummy record.
-				 */
+				/* Skip dummy record. */
 				continue;
 
 			if (is_api32 && is_hash64)
@@ -351,7 +346,6 @@ static int ll_readdir(struct file *filp, struct dir_context *ctx)
 			}
 		}
 	}
-	op_data->op_max_pages = sbi->ll_md_brw_pages;
 	ctx->pos = pos;
 	rc = ll_dir_read(inode, &pos, op_data, ctx);
 	pos = ctx->pos;

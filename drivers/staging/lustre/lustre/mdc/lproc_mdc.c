@@ -134,6 +134,8 @@ static ssize_t max_mod_rpcs_in_flight_store(struct kobject *kobj,
 }
 LUSTRE_RW_ATTR(max_mod_rpcs_in_flight);
 
+LUSTRE_RW_ATTR(max_pages_per_rpc);
+
 #define mdc_conn_uuid_show conn_uuid_show
 LUSTRE_RO_ATTR(mdc_conn_uuid);
 
@@ -164,24 +166,6 @@ LPROC_SEQ_FOPS_RO_TYPE(mdc, connect_flags);
 LPROC_SEQ_FOPS_RO_TYPE(mdc, server_uuid);
 LPROC_SEQ_FOPS_RO_TYPE(mdc, timeouts);
 LPROC_SEQ_FOPS_RO_TYPE(mdc, state);
-
-/*
- * Note: below sysfs entry is provided, but not currently in use, instead
- * sbi->sb_md_brw_size is used, the per obd variable should be used
- * when DNE is enabled, and dir pages are managed in MDC layer.
- * Don't forget to enable sysfs store function then.
- */
-static ssize_t max_pages_per_rpc_show(struct kobject *kobj,
-				      struct attribute *attr,
-				      char *buf)
-{
-	struct obd_device *dev = container_of(kobj, struct obd_device,
-					      obd_kset.kobj);
-	struct client_obd *cli = &dev->u.cli;
-
-	return sprintf(buf, "%d\n", cli->cl_max_pages_per_rpc);
-}
-LUSTRE_RO_ATTR(max_pages_per_rpc);
 
 LPROC_SEQ_FOPS_RW_TYPE(mdc, import);
 LPROC_SEQ_FOPS_RW_TYPE(mdc, pinger_recov);
