@@ -48,7 +48,8 @@
 static int ptl_send_buf(struct lnet_handle_md *mdh, void *base, int len,
 			enum lnet_ack_req ack, struct ptlrpc_cb_id *cbid,
 			lnet_nid_t self, struct lnet_process_id peer_id,
-			int portal, __u64 xid, unsigned int offset)
+			int portal, __u64 xid, unsigned int offset,
+			struct lnet_handle_md *bulk_cookie)
 {
 	int rc;
 	struct lnet_md md;
@@ -61,13 +62,17 @@ static int ptl_send_buf(struct lnet_handle_md *mdh, void *base, int len,
 	md.options = PTLRPC_MD_OPTIONS;
 	md.user_ptr = cbid;
 	md.eq_handle = ptlrpc_eq_h;
+	md.bulk_handle.cookie = LNET_WIRE_HANDLE_COOKIE_NONE;
+
+	if (bulk_cookie) {
+		md.bulk_handle = *bulk_cookie;
+		md.options |= LNET_MD_BULK_HANDLE;
+	}
 
 	if (unlikely(ack == LNET_ACK_REQ &&
-		     OBD_FAIL_CHECK_ORSET(OBD_FAIL_PTLRPC_ACK,
-					  OBD_FAIL_ONCE))) {
+		     OBD_FAIL_CHECK_ORSET(OBD_FAIL_PTLRPC_ACK, OBD_FAIL_ONCE)))
 		/* don't ask for the ack to simulate failing client */
 		ack = LNET_NOACK_REQ;
-	}
 
 	rc = LNetMDBind(md, LNET_UNLINK, mdh);
 	if (unlikely(rc != 0)) {
@@ -417,7 +422,7 @@ int ptlrpc_send_reply(struct ptlrpc_request *req, int flags)
 			  LNET_ACK_REQ : LNET_NOACK_REQ,
 			  &rs->rs_cb_id, req->rq_self, req->rq_source,
 			  ptlrpc_req2svc(req)->srv_rep_portal,
-			  req->rq_xid, req->rq_reply_off);
+			  req->rq_xid, req->rq_reply_off, NULL);
 out:
 	if (unlikely(rc != 0))
 		ptlrpc_req_drop_rs(req);
@@ -474,11 +479,14 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 	int rc;
 	int rc2;
 	unsigned int mpflag = 0;
+	struct lnet_handle_md bulk_cookie;
 	struct ptlrpc_connection *connection;
 	struct lnet_handle_me reply_me_h;
 	struct lnet_md reply_md;
 	struct obd_import *imp = request->rq_import;
 	struct obd_device *obd = imp->imp_obd;
+
+	bulk_cookie.cookie = LNET_WIRE_HANDLE_COOKIE_NONE;
 
 	if (OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_DROP_RPC))
 		return 0;
@@ -577,6 +585,12 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 		rc = ptlrpc_register_bulk(request);
 		if (rc != 0)
 			goto out;
+		/*
+		 * All the mds in the request will have the same cpt
+		 * encoded in the cookie. So we can just get the first
+		 * one.
+		 */
+		bulk_cookie = request->rq_bulk->bd_mds[0];
 	}
 
 	if (!noreply) {
@@ -685,7 +699,7 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 			  LNET_NOACK_REQ, &request->rq_req_cbid,
 			  LNET_NID_ANY, connection->c_peer,
 			  request->rq_request_portal,
-			  request->rq_xid, 0);
+			  request->rq_xid, 0, &bulk_cookie);
 	if (likely(rc == 0))
 		goto out;
 

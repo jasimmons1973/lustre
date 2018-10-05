@@ -161,6 +161,7 @@ struct lnet_libmd {
 	void			*md_user_ptr;
 	struct lnet_eq		*md_eq;
 	unsigned int		 md_niov;	/* # frags */
+	struct lnet_handle_md	 md_bulk_handle;
 	union {
 		struct kvec	iov[LNET_MAX_IOV];
 		struct bio_vec	kiov[LNET_MAX_IOV];

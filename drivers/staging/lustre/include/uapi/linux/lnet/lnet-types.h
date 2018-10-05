@@ -444,6 +444,7 @@ struct lnet_md {
 	 * - LNET_MD_IOVEC: The start and length fields specify an array of
 	 *   struct iovec.
 	 * - LNET_MD_MAX_SIZE: The max_size field is valid.
+	 * - LNET_MD_BULK_HANDLE: The bulk_handle field is valid.
 	 *
 	 * Note:
 	 * - LNET_MD_KIOV or LNET_MD_IOVEC allows for a scatter/gather
@@ -467,6 +468,15 @@ struct lnet_md {
 	 * descriptor are not logged.
 	 */
 	struct lnet_handle_eq eq_handle;
+	/**
+	 * The bulk MD handle which was registered to describe the buffers
+	 * either to be used to transfer data to the peer or receive data
+	 * from the peer. This allows LNet to properly determine the NUMA
+	 * node on which the memory was allocated and use that to select the
+	 * nearest local network interface. This value is only used
+	 * if the LNET_MD_BULK_HANDLE option is set.
+	 */
+	struct lnet_handle_md bulk_handle;
 };
 
 /*
@@ -499,6 +509,8 @@ struct lnet_md {
 #define LNET_MD_MAX_SIZE	(1 << 7)
 /** See lnet_md::options. */
 #define LNET_MD_KIOV		(1 << 8)
+/** See lnet_md::options. */
+#define LNET_MD_BULK_HANDLE	(1 << 9)
 
 /* For compatibility with Cray Portals */
 #define LNET_MD_PHYS		0
