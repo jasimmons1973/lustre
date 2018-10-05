@@ -1350,8 +1350,8 @@ static inline int md_setattr(struct obd_export *exp, struct md_op_data *op_data,
 	return MDP(exp->exp_obd, setattr)(exp, op_data, ea, ealen, request);
 }
 
-static inline int md_sync(struct obd_export *exp, const struct lu_fid *fid,
-			  struct ptlrpc_request **request)
+static inline int md_fsync(struct obd_export *exp, const struct lu_fid *fid,
+			   struct ptlrpc_request **request)
 {
 	int rc;
 
@@ -1362,7 +1362,7 @@ static inline int md_sync(struct obd_export *exp, const struct lu_fid *fid,
 	lprocfs_counter_incr(exp->exp_obd->obd_md_stats,
 			     LPROC_MD_FSYNC);
 
-	return MDP(exp->exp_obd, sync)(exp, fid, request);
+	return MDP(exp->exp_obd, fsync)(exp, fid, request);
 }
 
 static inline int md_read_page(struct obd_export *exp,

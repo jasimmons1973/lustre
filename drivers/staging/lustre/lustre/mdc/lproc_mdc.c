@@ -210,8 +210,15 @@ int mdc_tunables_init(struct obd_device *obd)
 	if (rc)
 		return rc;
 
+	rc = ldebugfs_alloc_md_stats(obd, 0);
+	if (rc) {
+		lprocfs_obd_cleanup(obd);
+		return rc;
+	}
+
 	rc = sptlrpc_lprocfs_cliobd_attach(obd);
 	if (rc) {
+		ldebugfs_free_md_stats(obd);
 		lprocfs_obd_cleanup(obd);
 		return rc;
 	}

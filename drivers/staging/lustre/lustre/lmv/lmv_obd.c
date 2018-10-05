@@ -1989,8 +1989,8 @@ static int lmv_setattr(struct obd_export *exp, struct md_op_data *op_data,
 	return md_setattr(tgt->ltd_exp, op_data, ea, ealen, request);
 }
 
-static int lmv_sync(struct obd_export *exp, const struct lu_fid *fid,
-		    struct ptlrpc_request **request)
+static int lmv_fsync(struct obd_export *exp, const struct lu_fid *fid,
+		     struct ptlrpc_request **request)
 {
 	struct obd_device	 *obd = exp->exp_obd;
 	struct lmv_obd	    *lmv = &obd->u.lmv;
@@ -2000,7 +2000,7 @@ static int lmv_sync(struct obd_export *exp, const struct lu_fid *fid,
 	if (IS_ERR(tgt))
 		return PTR_ERR(tgt);
 
-	return md_sync(tgt->ltd_exp, fid, request);
+	return md_fsync(tgt->ltd_exp, fid, request);
 }
 
 /**
@@ -2502,6 +2502,7 @@ static int lmv_precleanup(struct obd_device *obd)
 {
 	fld_client_debugfs_fini(&obd->u.lmv.lmv_fld);
 	lprocfs_obd_cleanup(obd);
+	ldebugfs_free_md_stats(obd);
 	return 0;
 }
 
@@ -3079,7 +3080,7 @@ static struct md_ops lmv_md_ops = {
 	.rename			= lmv_rename,
 	.setattr		= lmv_setattr,
 	.setxattr		= lmv_setxattr,
-	.sync			= lmv_sync,
+	.fsync			= lmv_fsync,
 	.read_page		= lmv_read_page,
 	.unlink			= lmv_unlink,
 	.init_ea_size		= lmv_init_ea_size,

@@ -2656,7 +2656,7 @@ int ll_fsync(struct file *file, loff_t start, loff_t end, int datasync)
 		}
 	}
 
-	err = md_sync(ll_i2sbi(inode)->ll_md_exp, ll_inode2fid(inode), &req);
+	err = md_fsync(ll_i2sbi(inode)->ll_md_exp, ll_inode2fid(inode), &req);
 	if (!rc)
 		rc = err;
 	if (!err)

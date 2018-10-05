@@ -168,6 +168,12 @@ int lmv_tunables_init(struct obd_device *obd)
 	if (rc)
 		return rc;
 
+	rc = ldebugfs_alloc_md_stats(obd, 0);
+	if (rc) {
+		lprocfs_obd_cleanup(obd);
+		return rc;
+	}
+
 	debugfs_create_file("target_obd", 0444, obd->obd_debugfs_entry, obd,
 			    &lmv_debugfs_target_fops);
 

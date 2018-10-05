@@ -942,8 +942,8 @@ struct md_ops {
 		      struct ptlrpc_request **);
 	int (*setattr)(struct obd_export *, struct md_op_data *, void *,
 		       size_t, struct ptlrpc_request **);
-	int (*sync)(struct obd_export *, const struct lu_fid *,
-		    struct ptlrpc_request **);
+	int (*fsync)(struct obd_export *, const struct lu_fid *,
+		     struct ptlrpc_request **);
 	int (*read_page)(struct obd_export *, struct md_op_data *,
 			 struct md_callback *cb_op, __u64 hash_offset,
 			 struct page **ppage);
