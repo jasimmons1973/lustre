@@ -281,9 +281,9 @@ struct lnet_net {
 	/* chain on the ln_nets */
 	struct list_head	net_list;
 
-	/* net ID, which is compoed of
+	/* net ID, which is composed of
 	 * (net_type << 16) | net_num.
-	 * net_type can be one of the enumarated types defined in
+	 * net_type can be one of the enumerated types defined in
 	 * lnet/include/lnet/nidstr.h */
 	__u32			net_id;
 
@@ -513,11 +513,13 @@ struct lnet_peer_table {
 	/* /proc validity stamp */
 	int			 pt_version;
 	/* # peers extant */
-	int			 pt_number;
+	atomic_t		 pt_number;
 	/* # zombies to go to deathrow (and not there yet) */
 	int			 pt_zombies;
 	/* zombie peers */
-	struct list_head	 pt_deathrow;
+	struct list_head	 pt_zombie_list;
+	/* protect list and count */
+	spinlock_t		 pt_zombie_lock;
 	/* NID->peer hash */
 	struct list_head	*pt_hash;
 };

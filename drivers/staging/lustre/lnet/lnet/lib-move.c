@@ -1156,10 +1156,10 @@ again:
 	lpni = NULL;
 	seq = lnet_get_dlc_seq_locked();
 
-	rc = lnet_find_or_create_peer_locked(dst_nid, cpt, &peer);
-	if (rc != 0) {
+	peer = lnet_find_or_create_peer_locked(dst_nid, cpt);
+	if (IS_ERR(peer)) {
 		lnet_net_unlock(cpt);
-		return rc;
+		return PTR_ERR(peer);
 	}
 
 	/* If peer is not healthy then can not send anything to it */
@@ -1365,13 +1365,6 @@ set_ni:
 		}
 	}
 	/*
-	 * Now that we selected the NI to use increment its sequence
-	 * number so the Round Robin algorithm will detect that it has
-	 * been used and pick the next NI.
-	 */
-	best_ni->ni_seq++;
-
-	/*
 	 * if the peer is not MR capable, then we should always send to it
 	 * using the first NI in the NET we determined.
 	 */
@@ -1384,6 +1377,13 @@ set_ni:
 			      libcfs_nid2str(dst_nid));
 		return -EINVAL;
 	}
+
+	/*
+	 * Now that we selected the NI to use increment its sequence
+	 * number so the Round Robin algorithm will detect that it has
+	 * been used and pick the next NI.
+	 */
+	best_ni->ni_seq++;
 
 	if (routing)
 		goto send;
@@ -1452,7 +1452,7 @@ pick_peer:
 		}
 
 		CDEBUG(D_NET, "Best route to %s via %s for %s %d\n",
-			libcfs_nid2str(lpni->lpni_nid),
+			libcfs_nid2str(dst_nid),
 			libcfs_nid2str(best_gw->lpni_nid),
 			lnet_msgtyp2str(msg->msg_type), msg->msg_len);
 
@@ -2065,6 +2065,7 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr, lnet_nid_t from_nid,
 	lnet_pid_t dest_pid;
 	lnet_nid_t dest_nid;
 	lnet_nid_t src_nid;
+	struct lnet_peer_ni *lpni;
 	__u32 payload_length;
 	__u32 type;
 
@@ -2226,18 +2227,19 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr, lnet_nid_t from_nid,
 	msg->msg_initiator = lnet_peer_primary_nid(src_nid);
 
 	lnet_net_lock(cpt);
-	rc = lnet_nid2peerni_locked(&msg->msg_rxpeer, from_nid, cpt);
-	if (rc) {
+	lpni = lnet_nid2peerni_locked(from_nid, cpt);
+	if (IS_ERR(lpni)) {
 		lnet_net_unlock(cpt);
-		CERROR("%s, src %s: Dropping %s (error %d looking up sender)\n",
+		CERROR("%s, src %s: Dropping %s (error %ld looking up sender)\n",
 		       libcfs_nid2str(from_nid), libcfs_nid2str(src_nid),
-		       lnet_msgtyp2str(type), rc);
+		       lnet_msgtyp2str(type), PTR_ERR(lpni));
 		kfree(msg);
 		if (rc == -ESHUTDOWN)
 			/* We are shutting down. Don't do anything more */
 			return 0;
 		goto drop;
 	}
+	msg->msg_rxpeer = lpni;
 	msg->msg_rxni = ni;
 	lnet_ni_addref_locked(ni, cpt);
 
