@@ -1382,6 +1382,9 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_lnd_tunables *tun)
 	seed = LNET_NIDADDR(ni->ni_nid);
 	add_device_randomness(&seed, sizeof(seed));
 
+	atomic_set(&ni->ni_tx_credits,
+		   lnet_ni_tq_credits(ni) * ni->ni_ncpts);
+
 	CDEBUG(D_LNI, "Added LNI %s [%d/%d/%d/%d]\n",
 	       libcfs_nid2str(ni->ni_nid),
 		ni->ni_net->net_tunables.lct_peer_tx_credits,
