@@ -215,6 +215,10 @@ lnet_msg_decommit_tx(struct lnet_msg *msg, int status)
 	}
 
 	counters->send_count++;
+	if (msg->msg_txpeer)
+		atomic_inc(&msg->msg_txpeer->lpni_stats.send_count);
+	if (msg->msg_txni)
+		atomic_inc(&msg->msg_txni->ni_stats.send_count);
  out:
 	lnet_return_tx_credits_locked(msg);
 	msg->msg_tx_committed = 0;
@@ -270,6 +274,10 @@ lnet_msg_decommit_rx(struct lnet_msg *msg, int status)
 	}
 
 	counters->recv_count++;
+	if (msg->msg_rxpeer)
+		atomic_inc(&msg->msg_rxpeer->lpni_stats.recv_count);
+	if (msg->msg_rxni)
+		atomic_inc(&msg->msg_rxni->ni_stats.recv_count);
 	if (ev->type == LNET_EVENT_PUT || ev->type == LNET_EVENT_REPLY)
 		counters->recv_length += msg->msg_wanted;
 

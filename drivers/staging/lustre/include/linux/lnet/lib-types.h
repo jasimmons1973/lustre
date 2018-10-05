@@ -271,6 +271,12 @@ enum lnet_ni_state {
 	LNET_NI_STATE_DELETING
 };
 
+struct lnet_element_stats {
+	atomic_t	send_count;
+	atomic_t	recv_count;
+	atomic_t	drop_count;
+};
+
 struct lnet_net {
 	/* chain on the ln_nets */
 	struct list_head	net_list;
@@ -348,6 +354,9 @@ struct lnet_ni {
 	/* lnd tunables set explicitly */
 	bool ni_lnd_tunables_set;
 
+	/* NI statistics */
+	struct lnet_element_stats ni_stats;
+
 	/* physical device CPT */
 	int			dev_cpt;
 
@@ -403,6 +412,8 @@ struct lnet_peer_ni {
 	struct list_head	 lpni_rtrq;
 	/* chain on router list */
 	struct list_head	 lpni_rtr_list;
+	/* statistics kept on each peer NI */
+	struct lnet_element_stats lpni_stats;
 	/* # tx credits available */
 	int			 lpni_txcredits;
 	struct lnet_peer_net	*lpni_peer_net;
