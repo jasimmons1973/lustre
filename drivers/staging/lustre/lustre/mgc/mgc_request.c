@@ -131,6 +131,9 @@ static int config_log_get(struct config_llog_data *cld)
  */
 static void config_log_put(struct config_llog_data *cld)
 {
+	if (!cld)
+		return;
+
 	CDEBUG(D_INFO, "log %s refs %d\n", cld->cld_logname,
 	       atomic_read(&cld->cld_refcount));
 	LASSERT(atomic_read(&cld->cld_refcount) > 0);
@@ -142,12 +145,9 @@ static void config_log_put(struct config_llog_data *cld)
 
 		CDEBUG(D_MGC, "dropping config log %s\n", cld->cld_logname);
 
-		if (cld->cld_recover)
-			config_log_put(cld->cld_recover);
-		if (cld->cld_params)
-			config_log_put(cld->cld_params);
-		if (cld->cld_sptlrpc)
-			config_log_put(cld->cld_sptlrpc);
+		config_log_put(cld->cld_recover);
+		config_log_put(cld->cld_params);
+		config_log_put(cld->cld_sptlrpc);
 		if (cld_is_sptlrpc(cld))
 			sptlrpc_conf_log_stop(cld->cld_logname);
 
@@ -387,6 +387,9 @@ static DEFINE_MUTEX(llog_process_lock);
 
 static inline void config_mark_cld_stop(struct config_llog_data *cld)
 {
+	if (!cld)
+		return;
+
 	mutex_lock(&cld->cld_lock);
 	spin_lock(&config_list_lock);
 	cld->cld_stopping = 1;
@@ -436,18 +439,13 @@ static int config_log_end(char *logname, struct config_llog_instance *cfg)
 	cld->cld_sptlrpc = NULL;
 	mutex_unlock(&cld->cld_lock);
 
-	if (cld_recover) {
-		config_mark_cld_stop(cld_recover);
-		config_log_put(cld_recover);
-	}
+	config_mark_cld_stop(cld_recover);
+	config_log_put(cld_recover);
 
-	if (cld_params) {
-		config_mark_cld_stop(cld_params);
-		config_log_put(cld_params);
-	}
+	config_mark_cld_stop(cld_params);
+	config_log_put(cld_params);
 
-	if (cld_sptlrpc)
-		config_log_put(cld_sptlrpc);
+	config_log_put(cld_sptlrpc);
 
 	/* drop the ref from the find */
 	config_log_put(cld);
@@ -593,8 +591,7 @@ static int mgc_requeue_thread(void *data)
 			cld->cld_lostlock = 0;
 			spin_unlock(&config_list_lock);
 
-			if (cld_prev)
-				config_log_put(cld_prev);
+			config_log_put(cld_prev);
 			cld_prev = cld;
 
 			if (likely(!(rq_state & RQ_STOP))) {
@@ -606,8 +603,7 @@ static int mgc_requeue_thread(void *data)
 			}
 		}
 		spin_unlock(&config_list_lock);
-		if (cld_prev)
-			config_log_put(cld_prev);
+		config_log_put(cld_prev);
 
 		/* Wait a bit to see if anyone else needs a requeue */
 		wait_event_idle(rq_waitq, rq_state & (RQ_NOW | RQ_STOP));
