@@ -185,9 +185,9 @@ lnet_peer_tables_cleanup(struct lnet_ni *ni)
 	 * peers are gateways for.
 	 */
 	cfs_percpt_for_each(ptable, i, the_lnet.ln_peer_tables) {
-		lnet_net_lock(i);
+		lnet_net_lock(LNET_LOCK_EX);
 		lnet_peer_table_del_rtrs_locked(ni, ptable, i);
-		lnet_net_unlock(i);
+		lnet_net_unlock(LNET_LOCK_EX);
 	}
 
 	/*
@@ -195,17 +195,17 @@ lnet_peer_tables_cleanup(struct lnet_ni *ni)
 	 * deathrow.
 	 */
 	cfs_percpt_for_each(ptable, i, the_lnet.ln_peer_tables) {
-		lnet_net_lock(i);
+		lnet_net_lock(LNET_LOCK_EX);
 		lnet_peer_table_cleanup_locked(ni, ptable);
-		lnet_net_unlock(i);
+		lnet_net_unlock(LNET_LOCK_EX);
 	}
 
 	/* Cleanup all entries on deathrow. */
 	cfs_percpt_for_each(ptable, i, the_lnet.ln_peer_tables) {
-		lnet_net_lock(i);
+		lnet_net_lock(LNET_LOCK_EX);
 		lnet_peer_table_deathrow_wait_locked(ptable, i);
 		list_splice_init(&ptable->pt_deathrow, &deathrow);
-		lnet_net_unlock(i);
+		lnet_net_unlock(LNET_LOCK_EX);
 	}
 
 	while (!list_empty(&deathrow)) {
