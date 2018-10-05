@@ -722,14 +722,18 @@ struct lnet_msg_container {
 };
 
 /* Router Checker states */
-#define LNET_RC_STATE_SHUTDOWN		0	/* not started */
-#define LNET_RC_STATE_RUNNING		1	/* started up OK */
-#define LNET_RC_STATE_STOPPING		2	/* telling thread to stop */
+enum lnet_rc_state {
+	LNET_RC_STATE_SHUTDOWN,	/* not started */
+	LNET_RC_STATE_RUNNING,	/* started up OK */
+	LNET_RC_STATE_STOPPING,	/* telling thread to stop */
+};
 
 /* LNet states */
-#define LNET_STATE_SHUTDOWN		0	/* not started */
-#define LNET_STATE_RUNNING		1	/* started up OK */
-#define LNET_STATE_STOPPING		2	/* telling thread to stop */
+enum lnet_state {
+	LNET_STATE_SHUTDOWN,	/* not started */
+	LNET_STATE_RUNNING,	/* started up OK */
+	LNET_STATE_STOPPING,	/* telling thread to stop */
+};
 
 struct lnet {
 	/* CPU partition table of LNet */
@@ -793,7 +797,7 @@ struct lnet {
 	struct lnet_ping_info		 *ln_ping_info;
 
 	/* router checker startup/shutdown state */
-	int				  ln_rc_state;
+	enum lnet_rc_state		  ln_rc_state;
 	/* router checker's event queue */
 	struct lnet_handle_eq		  ln_rc_eqh;
 	/* rcd still pending on net */
@@ -811,7 +815,7 @@ struct lnet {
 	/* LNetNIInit/LNetNIFini counter */
 	int				  ln_refcount;
 	/* SHUTDOWN/RUNNING/STOPPING */
-	int				  ln_state;
+	enum lnet_state			  ln_state;
 
 	int				  ln_routing;	/* am I a router? */
 	lnet_pid_t			  ln_pid;	/* requested pid */
