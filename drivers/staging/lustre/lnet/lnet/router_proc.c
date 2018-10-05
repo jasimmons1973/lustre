@@ -393,7 +393,7 @@ static int proc_lnet_peers(struct ctl_table *table, int write,
 {
 	const int tmpsiz  = 256;
 	struct lnet_peer_table *ptable;
-	char *tmpstr;
+	char *tmpstr = NULL;
 	char *s;
 	int cpt  = LNET_PROC_CPT_GET(*ppos);
 	int ver  = LNET_PROC_VER_GET(*ppos);
@@ -402,11 +402,36 @@ static int proc_lnet_peers(struct ctl_table *table, int write,
 	int rc = 0;
 	int len;
 
-	BUILD_BUG_ON(LNET_PROC_HASH_BITS < LNET_PEER_HASH_BITS);
-	LASSERT(!write);
+	if (write) {
+		struct lnet_peer_ni *peer;
+		int i;
+
+		lnet_net_lock(0);
+		cfs_percpt_for_each(ptable, i, the_lnet.ln_peer_tables) {
+			if (i)
+				lnet_net_lock(i);
+			for (hash = 0; hash < LNET_PEER_HASH_SIZE; hash++) {
+				list_for_each_entry(peer,
+						    &ptable->pt_hash[hash],
+						    lpni_hashlist) {
+					peer->lpni_mintxcredits =
+						peer->lpni_txcredits;
+					peer->lpni_minrtrcredits =
+						peer->lpni_rtrcredits;
+				}
+			}
+			if (i)
+				lnet_net_unlock(i);
+		}
+		*ppos += *lenp;
+		lnet_net_unlock(0);
+		return 0;
+	}
 
 	if (!*lenp)
 		return 0;
+
+	BUILD_BUG_ON(LNET_PROC_HASH_BITS < LNET_PEER_HASH_BITS);
 
 	if (cpt >= LNET_CPT_NUMBER) {
 		*lenp = 0;
@@ -627,10 +652,44 @@ static int proc_lnet_nis(struct ctl_table *table, int write,
 	char *s;
 	int len;
 
-	LASSERT(!write);
-
 	if (!*lenp)
 		return 0;
+
+	if (write) {
+		/* Just reset the min stat. */
+		struct lnet_net *net;
+		struct lnet_ni *ni;
+
+		lnet_net_lock(0);
+
+		list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
+			list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
+				struct lnet_tx_queue *tq;
+				int i;
+				int j;
+
+				cfs_percpt_for_each(tq, i, ni->ni_tx_queues) {
+					for (j = 0; ni->ni_cpts &&
+					     j < ni->ni_ncpts; j++) {
+						if (i == ni->ni_cpts[j])
+							break;
+					}
+
+					if (j == ni->ni_ncpts)
+						continue;
+
+					if (i != 0)
+						lnet_net_lock(i);
+					tq->tq_credits_min = tq->tq_credits;
+					if (i != 0)
+						lnet_net_unlock(i);
+				}
+			}
+		}
+		lnet_net_unlock(0);
+		*ppos += *lenp;
+		return 0;
+	}
 
 	tmpstr = kvmalloc(tmpsiz, GFP_KERNEL);
 	if (!tmpstr)
@@ -847,7 +906,7 @@ static struct ctl_table lnet_table[] = {
 	},
 	{
 		.procname     = "peers",
-		.mode         = 0444,
+		.mode         = 0644,
 		.proc_handler = &proc_lnet_peers,
 	},
 	{
@@ -857,7 +916,7 @@ static struct ctl_table lnet_table[] = {
 	},
 	{
 		.procname     = "nis",
-		.mode         = 0444,
+		.mode         = 0644,
 		.proc_handler = &proc_lnet_nis,
 	},
 	{
