@@ -36,7 +36,9 @@
 #define DEBUG_SUBSYSTEM S_RPC
 
 #include <linux/libcfs/libcfs_cpu.h>
+#include <linux/delay.h>
 #include <linux/random.h>
+
 #include <obd_support.h>
 #include <obd_class.h>
 #include <lustre_lib.h>
@@ -763,7 +765,7 @@ int ptlrpc_request_bufs_pack(struct ptlrpc_request *request,
 			/* The RPC is infected, let the test change the
 			 * fail_loc
 			 */
-			schedule_timeout_uninterruptible(2 * HZ);
+			msleep(4 * MSEC_PER_SEC);
 		}
 	}
 
