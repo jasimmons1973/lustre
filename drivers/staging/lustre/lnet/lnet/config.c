@@ -87,6 +87,9 @@ lnet_net_unique(__u32 net_id, struct list_head *netlist,
 {
 	struct lnet_net *net_l;
 
+	if (!netlist)
+		return true;
+
 	list_for_each_entry(net_l, netlist, net_list) {
 		if (net_l->net_id == net_id) {
 			if (net)
@@ -172,6 +175,7 @@ lnet_net_append_cpts(__u32 *cpts, __u32 ncpts, struct lnet_net *net)
 		if (!net->net_cpts)
 			return -ENOMEM;
 		memcpy(net->net_cpts, cpts, ncpts * sizeof(*net->net_cpts));
+		net->net_ncpts = ncpts;
 		return 0;
 	}
 
@@ -298,8 +302,7 @@ lnet_ni_free(struct lnet_ni *ni)
 	if (ni->ni_tx_queues)
 		cfs_percpt_free(ni->ni_tx_queues);
 
-	if (ni->ni_cpts)
-		cfs_expr_list_values_free(ni->ni_cpts, ni->ni_ncpts);
+	kfree(ni->ni_cpts);
 
 	for (i = 0; i < LNET_MAX_INTERFACES && ni->ni_interfaces[i]; i++)
 		kfree(ni->ni_interfaces[i]);
@@ -371,7 +374,8 @@ lnet_net_alloc(__u32 net_id, struct list_head *net_list)
 	net->net_tunables.lct_peer_tx_credits = -1;
 	net->net_tunables.lct_peer_rtr_credits = -1;
 
-	list_add_tail(&net->net_list, net_list);
+	if (net_list)
+		list_add_tail(&net->net_list, net_list);
 
 	return net;
 }
@@ -414,13 +418,11 @@ lnet_ni_add_interface(struct lnet_ni *ni, char *iface)
 	return 0;
 }
 
-/* allocate and add to the provided network */
-struct lnet_ni *
-lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el, char *iface)
+static struct lnet_ni *
+lnet_ni_alloc_common(struct lnet_net *net, char *iface)
 {
 	struct lnet_tx_queue *tq;
 	struct lnet_ni *ni;
-	int rc;
 	int i;
 
 	if (iface)
@@ -452,6 +454,45 @@ lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el, char *iface)
 	cfs_percpt_for_each(tq, i, ni->ni_tx_queues)
 		INIT_LIST_HEAD(&tq->tq_delayed);
 
+	ni->ni_net = net;
+	/* LND will fill in the address part of the NID */
+	ni->ni_nid = LNET_MKNID(net->net_id, 0);
+
+	/* Store net namespace in which current ni is being created */
+	if (current->nsproxy->net_ns)
+		ni->ni_net_ns = get_net(current->nsproxy->net_ns);
+	else
+		ni->ni_net_ns = NULL;
+
+	ni->ni_last_alive = ktime_get_real_seconds();
+	ni->ni_state = LNET_NI_STATE_INIT;
+	list_add_tail(&ni->ni_netlist, &net->net_ni_added);
+
+	/*
+	 * if an interface name is provided then make sure to add in that
+	 * interface name in NI
+	 */
+	if (iface)
+		if (lnet_ni_add_interface(ni, iface) != 0)
+			goto failed;
+
+	return ni;
+failed:
+	lnet_ni_free(ni);
+	return NULL;
+}
+
+/* allocate and add to the provided network */
+struct lnet_ni *
+lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el, char *iface)
+{
+	struct lnet_ni *ni;
+	int rc;
+
+	ni = lnet_ni_alloc_common(net, iface);
+	if (!ni)
+		return NULL;
+
 	if (!el) {
 		ni->ni_cpts  = NULL;
 		ni->ni_ncpts = LNET_CPT_NUMBER;
@@ -466,35 +507,51 @@ lnet_ni_alloc(struct lnet_net *net, struct cfs_expr_list *el, char *iface)
 
 		LASSERT(rc <= LNET_CPT_NUMBER);
 		if (rc == LNET_CPT_NUMBER) {
-			cfs_expr_list_values_free(ni->ni_cpts, LNET_CPT_NUMBER);
+			kfree(ni->ni_cpts);
 			ni->ni_cpts = NULL;
 		}
 
 		ni->ni_ncpts = rc;
 	}
 
-	ni->ni_net = net;
-	/* LND will fill in the address part of the NID */
-	ni->ni_nid = LNET_MKNID(net->net_id, 0);
-
-	/* Store net namespace in which current ni is being created */
-	if (current->nsproxy->net_ns)
-		ni->ni_net_ns = get_net(current->nsproxy->net_ns);
-	else
-		ni->ni_net_ns = NULL;
-
-	ni->ni_last_alive = ktime_get_real_seconds();
-	ni->ni_state = LNET_NI_STATE_INIT;
 	rc = lnet_net_append_cpts(ni->ni_cpts, ni->ni_ncpts, net);
 	if (rc != 0)
 		goto failed;
-	list_add_tail(&ni->ni_netlist, &net->net_ni_added);
 
-	/* if an interface name is provided then make sure to add in that
-	 * interface name in NI */
-	if (iface)
-		if (lnet_ni_add_interface(ni, iface) != 0)
+	return ni;
+failed:
+	lnet_ni_free(ni);
+	return NULL;
+}
+
+struct lnet_ni *
+lnet_ni_alloc_w_cpt_array(struct lnet_net *net, __u32 *cpts, __u32 ncpts,
+			  char *iface)
+{
+	struct lnet_ni *ni;
+	int rc;
+
+	ni = lnet_ni_alloc_common(net, iface);
+	if (!ni)
+		return NULL;
+
+	if (ncpts == 0) {
+		ni->ni_cpts  = NULL;
+		ni->ni_ncpts = LNET_CPT_NUMBER;
+	} else {
+		size_t array_size = ncpts * sizeof(ni->ni_cpts[0]);
+
+		ni->ni_cpts = kmalloc_array(ncpts, sizeof(ni->ni_cpts[0]),
+					    GFP_KERNEL);
+		if (!ni->ni_cpts)
 			goto failed;
+		memcpy(ni->ni_cpts, cpts, array_size);
+		ni->ni_ncpts = ncpts;
+	}
+
+	rc = lnet_net_append_cpts(ni->ni_cpts, ni->ni_ncpts, net);
+	if (rc != 0)
+		goto failed;
 
 	return ni;
  failed:

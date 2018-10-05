@@ -726,7 +726,7 @@ static int ptlrpcd_init(void)
 			ptlrpcds_cpt_idx[cpt] = i;
 		}
 
-		cfs_expr_list_values_free(cpts, rc);
+		kfree(cpts);
 		ncpts = rc;
 	}
 	ptlrpcds_num = ncpts;

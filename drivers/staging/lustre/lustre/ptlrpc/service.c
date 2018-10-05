@@ -2780,9 +2780,7 @@ ptlrpc_service_free(struct ptlrpc_service *svc)
 	ptlrpc_service_for_each_part(svcpt, i, svc)
 		kfree(svcpt);
 
-	if (svc->srv_cpts)
-		cfs_expr_list_values_free(svc->srv_cpts, svc->srv_ncpts);
-
+	kfree(svc->srv_cpts);
 	kfree(svc);
 }
 
