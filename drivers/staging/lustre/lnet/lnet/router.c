@@ -1358,7 +1358,8 @@ lnet_rtrpool_free_bufs(struct lnet_rtrbufpool *rbp, int cpt)
 	INIT_LIST_HEAD(&tmp);
 
 	lnet_net_lock(cpt);
-	lnet_drop_routed_msgs_locked(&rbp->rbp_msgs, cpt);
+	list_splice_init(&rbp->rbp_msgs, &tmp);
+	lnet_drop_routed_msgs_locked(&tmp, cpt);
 	list_splice_init(&rbp->rbp_bufs, &tmp);
 	rbp->rbp_req_nbuffers = 0;
 	rbp->rbp_nbuffers = 0;
