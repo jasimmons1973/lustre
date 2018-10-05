@@ -1403,11 +1403,73 @@ void lprocfs_counter_init(struct lprocfs_stats *stats, int index,
 }
 EXPORT_SYMBOL(lprocfs_counter_init);
 
-int lprocfs_exp_cleanup(struct obd_export *exp)
+static const char * const mps_stats[] = {
+	[LPROC_MD_CLOSE]		= "close",
+	[LPROC_MD_CREATE]		= "create",
+	[LPROC_MD_ENQUEUE]		= "enqueue",
+	[LPROC_MD_GETATTR]		= "getattr",
+	[LPROC_MD_INTENT_LOCK]		= "intent_lock",
+	[LPROC_MD_LINK]			= "link",
+	[LPROC_MD_RENAME]		= "rename",
+	[LPROC_MD_SETATTR]		= "setattr",
+	[LPROC_MD_FSYNC]		= "fsync",
+	[LPROC_MD_READ_PAGE]		= "read_page",
+	[LPROC_MD_UNLINK]		= "unlink",
+	[LPROC_MD_SETXATTR]		= "setxattr",
+	[LPROC_MD_GETXATTR]		= "getxattr",
+	[LPROC_MD_INTENT_GETATTR_ASYNC]	= "intent_getattr_async",
+	[LPROC_MD_REVALIDATE_LOCK]	= "revalidate_lock",
+};
+
+int ldebugfs_alloc_md_stats(struct obd_device *obd,
+			    unsigned int num_private_stats)
 {
+	struct lprocfs_stats *stats;
+	unsigned int num_stats;
+	int i;
+
+	/* No obd device debugfs tree to attach too */
+	if (!obd->obd_debugfs_entry) {
+		CWARN("%s: missing debugfs tree for registering md_stats.\n",
+		      obd->obd_name);
+		return 0;
+	}
+
+	if (obd->obd_md_stats)
+		return -EINVAL;
+
+	num_stats = ARRAY_SIZE(mps_stats) + num_private_stats;
+	stats = lprocfs_alloc_stats(num_stats, 0);
+	if (!stats)
+		return -ENOMEM;
+
+	for (i = 0; i < ARRAY_SIZE(mps_stats); i++) {
+		lprocfs_counter_init(stats, i, 0, mps_stats[i], "reqs");
+		if (!stats->ls_cnt_header[i].lc_name) {
+			CERROR("Missing md_stat initializer md_op operation at offset %d. Aborting.\n",
+			       i);
+			LBUG();
+		}
+	}
+	obd->obd_md_stats = stats;
+
+	debugfs_create_file("md_stats", 0644, obd->obd_debugfs_entry,
+			    obd->obd_md_stats, &lprocfs_stats_seq_fops);
 	return 0;
 }
-EXPORT_SYMBOL(lprocfs_exp_cleanup);
+EXPORT_SYMBOL(ldebugfs_alloc_md_stats);
+
+void ldebugfs_free_md_stats(struct obd_device *obd)
+{
+	struct lprocfs_stats *stats = obd->obd_md_stats;
+
+	if (!stats)
+		return;
+
+	obd->obd_md_stats = NULL;
+	lprocfs_free_stats(&stats);
+}
+EXPORT_SYMBOL(ldebugfs_free_md_stats);
 
 __s64 lprocfs_read_helper(struct lprocfs_counter *lc,
 			  struct lprocfs_counter_header *header,

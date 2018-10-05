@@ -712,9 +712,6 @@ void class_export_put(struct obd_export *exp)
 		CDEBUG(D_IOCTL, "final put %p/%s\n",
 		       exp, exp->exp_client_uuid.uuid);
 
-		/* release nid stat refererence */
-		lprocfs_exp_cleanup(exp);
-
 		obd_zombie_export_add(exp);
 	}
 }

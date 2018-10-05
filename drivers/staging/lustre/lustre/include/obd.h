@@ -599,8 +599,7 @@ struct obd_device {
 	/* Fields used by LProcFS */
 	struct lprocfs_stats	*obd_stats;
 
-	struct lprocfs_stats	*md_stats;
-	unsigned int		 md_cntr_base;
+	struct lprocfs_stats	*obd_md_stats;
 
 	struct dentry		*obd_debugfs_entry;
 	struct dentry		*obd_svc_debugfs_entry;
@@ -1000,11 +999,6 @@ struct md_ops {
 
 	int (*unpackmd)(struct obd_export *exp, struct lmv_stripe_md **plsm,
 			const union lmv_mds_md *lmv, size_t lmv_size);
-	/*
-	 * NOTE: If adding ops, add another LPROCFS_MD_OP_INIT() line to
-	 * lprocfs_alloc_md_stats() in obdclass/lprocfs_status.c. Also, add a
-	 * wrapper function in include/linux/obd_class.h.
-	 */
 };
 
 static inline struct md_open_data *obd_mod_alloc(void)
