@@ -637,8 +637,6 @@ bool lnet_net_unique(__u32 net_id, struct list_head *nilist,
 bool lnet_ni_unique_net(struct list_head *nilist, char *iface);
 
 int lnet_nid2peerni_locked(struct lnet_peer_ni **lpp, lnet_nid_t nid, int cpt);
-struct lnet_peer_ni *lnet_find_peer_locked(struct lnet_peer_table *ptable,
-					   lnet_nid_t nid);
 struct lnet_peer_ni *lnet_find_peer_ni_locked(lnet_nid_t nid, int cpt);
 void lnet_peer_tables_cleanup(struct lnet_ni *ni);
 void lnet_peer_tables_destroy(void);

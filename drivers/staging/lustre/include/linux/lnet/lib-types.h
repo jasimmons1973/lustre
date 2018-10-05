@@ -384,6 +384,7 @@ struct lnet_rc_data {
 };
 
 struct lnet_peer_ni {
+	struct list_head	lpni_on_peer_net_list;
 	/* chain on peer hash */
 	struct list_head	 lpni_hashlist;
 	/* messages blocking for tx credits */
@@ -394,6 +395,7 @@ struct lnet_peer_ni {
 	struct list_head	 lpni_rtr_list;
 	/* # tx credits available */
 	int			 lpni_txcredits;
+	struct lnet_peer_net	*lpni_peer_net;
 	/* low water mark */
 	int			 lpni_mintxcredits;
 	/* # router credits */
@@ -440,6 +442,31 @@ struct lnet_peer_ni {
 	struct list_head	 lpni_routes;
 	/* router checker state */
 	struct lnet_rc_data	*lpni_rcd;
+};
+
+struct lnet_peer {
+	/* chain on global peer list */
+	struct list_head	lp_on_lnet_peer_list;
+
+	/* list of peer nets */
+	struct list_head	lp_peer_nets;
+
+	/* primary NID of the peer */
+	lnet_nid_t		lp_primary_nid;
+};
+
+struct lnet_peer_net {
+	/* chain on peer block */
+	struct list_head	lpn_on_peer_list;
+
+	/* list of peer_nis on this network */
+	struct list_head	lpn_peer_nis;
+
+	/* pointer to the peer I'm part of */
+	struct lnet_peer	*lpn_peer;
+
+	/* Net ID */
+	__u32			lpn_net_id;
 };
 
 /* peer hash size */
@@ -686,6 +713,8 @@ struct lnet {
 	struct lnet_msg_container	**ln_msg_containers;
 	struct lnet_counters		**ln_counters;
 	struct lnet_peer_table		**ln_peer_tables;
+	/* list of configured or discovered peers */
+	struct list_head		ln_peers;
 	/* failure simulation */
 	struct list_head		  ln_test_peers;
 	struct list_head		  ln_drop_rules;
