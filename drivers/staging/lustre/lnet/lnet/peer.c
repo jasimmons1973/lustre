@@ -225,10 +225,17 @@ lnet_try_destroy_peer_hierarchy_locked(struct lnet_peer_ni *lpni)
 }
 
 /* called with lnet_net_lock LNET_LOCK_EX held */
-static void
+static int
 lnet_peer_ni_del_locked(struct lnet_peer_ni *lpni)
 {
 	struct lnet_peer_table *ptable = NULL;
+
+	/* don't remove a peer_ni if it's also a gateway */
+	if (lpni->lpni_rtr_refcount > 0) {
+		CERROR("Peer NI %s is a gateway. Can not delete it\n",
+		       libcfs_nid2str(lpni->lpni_nid));
+		return -EBUSY;
+	}
 
 	lnet_peer_remove_from_remote_list(lpni);
 
@@ -260,6 +267,8 @@ lnet_peer_ni_del_locked(struct lnet_peer_ni *lpni)
 
 	/* decrement reference on peer */
 	lnet_peer_ni_decref_locked(lpni);
+
+	return 0;
 }
 
 void lnet_peer_uninit(void)
@@ -313,17 +322,22 @@ lnet_peer_tables_create(void)
 	return 0;
 }
 
-static void
+static int
 lnet_peer_del_locked(struct lnet_peer *peer)
 {
 	struct lnet_peer_ni *lpni = NULL, *lpni2;
+	int rc = 0, rc2 = 0;
 
 	lpni = lnet_get_next_peer_ni_locked(peer, NULL, lpni);
 	while (lpni) {
 		lpni2 = lnet_get_next_peer_ni_locked(peer, NULL, lpni);
-		lnet_peer_ni_del_locked(lpni);
+		rc = lnet_peer_ni_del_locked(lpni);
+		if (rc != 0)
+			rc2 = rc;
 		lpni = lpni2;
 	}
+
+	return rc2;
 }
 
 static void
@@ -899,6 +913,7 @@ lnet_del_peer_ni_from_peer(lnet_nid_t key_nid, lnet_nid_t nid)
 	lnet_nid_t local_nid;
 	struct lnet_peer *peer;
 	struct lnet_peer_ni *lpni;
+	int rc;
 
 	if (key_nid == LNET_NID_ANY)
 		return -EINVAL;
@@ -919,17 +934,17 @@ lnet_del_peer_ni_from_peer(lnet_nid_t key_nid, lnet_nid_t nid)
 		 * entire peer
 		 */
 		lnet_net_lock(LNET_LOCK_EX);
-		lnet_peer_del_locked(peer);
+		rc = lnet_peer_del_locked(peer);
 		lnet_net_unlock(LNET_LOCK_EX);
 
-		return 0;
+		return rc;
 	}
 
 	lnet_net_lock(LNET_LOCK_EX);
-	lnet_peer_ni_del_locked(lpni);
+	rc = lnet_peer_ni_del_locked(lpni);
 	lnet_net_unlock(LNET_LOCK_EX);
 
-	return 0;
+	return rc;
 }
 
 void
