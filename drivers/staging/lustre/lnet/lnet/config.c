@@ -171,7 +171,7 @@ lnet_net_append_cpts(__u32 *cpts, __u32 ncpts, struct lnet_net *net)
 					      GFP_KERNEL);
 		if (!net->net_cpts)
 			return -ENOMEM;
-		memcpy(net->net_cpts, cpts, ncpts);
+		memcpy(net->net_cpts, cpts, ncpts * sizeof(*net->net_cpts));
 		return 0;
 	}
 
