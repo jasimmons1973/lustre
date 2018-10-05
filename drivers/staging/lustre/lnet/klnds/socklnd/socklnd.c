@@ -2588,7 +2588,7 @@ ksocknal_enumerate_interfaces(struct ksock_net *net, char *iname)
 		}
 		for_primary_ifa(in_dev)
 			if (strcmp(ifa->ifa_label, name) == 0) {
-				ksi->ksni_ipaddr = ifa->ifa_local;
+				ksi->ksni_ipaddr = ntohl(ifa->ifa_local);
 				ksi->ksni_netmask = ifa->ifa_mask;
 				strlcpy(ksi->ksni_name,
 					name, sizeof(ksi->ksni_name));
