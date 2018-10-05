@@ -802,11 +802,21 @@ static void ptlrpc_server_drop_request(struct ptlrpc_request *req)
 			spin_lock(&svcpt->scp_lock);
 			/*
 			 * now all reqs including the embedded req has been
-			 * disposed, schedule request buffer for re-use.
+			 * disposed, schedule request buffer for re-use
+			 * or free it to drain some in excess.
 			 */
 			LASSERT(atomic_read(&rqbd->rqbd_req.rq_refcount) ==
 				0);
-			list_add_tail(&rqbd->rqbd_list, &svcpt->scp_rqbd_idle);
+			if (svcpt->scp_nrqbds_posted >= svc->srv_nbuf_per_group &&
+			    !test_req_buffer_pressure) {
+				/* like in ptlrpc_free_rqbd() */
+				svcpt->scp_nrqbds_total--;
+				kvfree(rqbd->rqbd_buffer);
+				kfree(rqbd);
+			} else {
+				list_add_tail(&rqbd->rqbd_list,
+					      &svcpt->scp_rqbd_idle);
+			}
 		}
 
 		spin_unlock(&svcpt->scp_lock);
