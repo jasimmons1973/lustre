@@ -104,6 +104,17 @@ struct lnet_ioctl_pool_cfg {
 	__u32 pl_routing;
 };
 
+struct lnet_ioctl_ping_data {
+	struct libcfs_ioctl_hdr ping_hdr;
+
+	__u32 op_param;
+	__u32 ping_count;
+	__u32 ping_flags;
+	bool mr_info;
+	struct lnet_process_id ping_id;
+	struct lnet_process_id __user *ping_buf;
+};
+
 struct lnet_ioctl_config_data {
 	struct libcfs_ioctl_hdr cfg_hdr;
 
@@ -138,10 +149,26 @@ struct lnet_ioctl_config_data {
 	char cfg_bulk[0];
 };
 
+struct lnet_ioctl_comm_count {
+	__u32 ico_get_count;
+	__u32 ico_put_count;
+	__u32 ico_reply_count;
+	__u32 ico_ack_count;
+	__u32 ico_hello_count;
+};
+
 struct lnet_ioctl_element_stats {
-	u32	send_count;
-	u32	recv_count;
-	u32	drop_count;
+	__u32 iel_send_count;
+	__u32 iel_recv_count;
+	__u32 iel_drop_count;
+};
+
+struct lnet_ioctl_element_msg_stats {
+	struct libcfs_ioctl_hdr im_hdr;
+	__u32 im_idx;
+	struct lnet_ioctl_comm_count im_send_stats;
+	struct lnet_ioctl_comm_count im_recv_stats;
+	struct lnet_ioctl_comm_count im_drop_stats;
 };
 
 /*
@@ -196,9 +223,11 @@ struct lnet_ioctl_peer_cfg {
 	struct libcfs_ioctl_hdr prcfg_hdr;
 	lnet_nid_t prcfg_prim_nid;
 	lnet_nid_t prcfg_cfg_nid;
-	__u32 prcfg_idx;
+	__u32 prcfg_count;
 	bool prcfg_mr;
-	char prcfg_bulk[0];
+	__u32 prcfg_state;
+	__u32 prcfg_size;
+	void __user *prcfg_bulk;
 };
 
 struct lnet_ioctl_numa_range {
