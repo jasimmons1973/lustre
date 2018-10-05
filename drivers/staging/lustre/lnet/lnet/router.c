@@ -252,7 +252,7 @@ lnet_find_rnet_locked(__u32 net)
 	struct lnet_remotenet *rnet;
 	struct list_head *rn_list;
 
-	LASSERT(!the_lnet.ln_shutdown);
+	LASSERT(the_lnet.ln_state == LNET_STATE_RUNNING);
 
 	rn_list = lnet_net2rnethash(net);
 	list_for_each_entry(rnet, rn_list, lrn_list) {
@@ -374,7 +374,7 @@ lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway,
 		return rc;
 	}
 	route->lr_gateway = lpni;
-	LASSERT(!the_lnet.ln_shutdown);
+	LASSERT(the_lnet.ln_state == LNET_STATE_RUNNING);
 
 	rnet2 = lnet_find_rnet_locked(net);
 	if (!rnet2) {
@@ -1775,7 +1775,7 @@ lnet_notify(struct lnet_ni *ni, lnet_nid_t nid, int alive, time64_t when)
 
 	lnet_net_lock(cpt);
 
-	if (the_lnet.ln_shutdown) {
+	if (the_lnet.ln_state != LNET_STATE_RUNNING) {
 		lnet_net_unlock(cpt);
 		return -ESHUTDOWN;
 	}
