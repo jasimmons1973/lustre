@@ -693,7 +693,7 @@ lnet_get_net_locked(__u32 net_id)
 	return NULL;
 }
 
-static unsigned int
+unsigned int
 lnet_nid_cpt_hash(lnet_nid_t nid, unsigned int number)
 {
 	__u64 key = nid;
