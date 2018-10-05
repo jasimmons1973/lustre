@@ -1235,6 +1235,8 @@ again:
 	 * b. Iterate through each of the peer_nets/nis to decide
 	 * the best peer/local_ni pair to use
 	 */
+	shortest_distance = UINT_MAX;
+	best_credits = INT_MIN;
 	list_for_each_entry(peer_net, &peer->lp_peer_nets, lpn_on_peer_list) {
 		if (!lnet_is_peer_net_healthy_locked(peer_net))
 			continue;
@@ -1295,8 +1297,6 @@ again:
 		 *	2. NI available credits
 		 *	3. Round Robin
 		 */
-		shortest_distance = UINT_MAX;
-		best_credits = INT_MIN;
 		ni = NULL;
 		while ((ni = lnet_get_next_ni_locked(local_net, ni))) {
 			int ni_credits;
