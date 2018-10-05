@@ -346,6 +346,9 @@ struct lnet_ni {
 	/* lnd tunables set explicitly */
 	bool ni_lnd_tunables_set;
 
+	/* sequence number used to round robin over nis within a net */
+	u32			ni_seq;
+
 	/*
 	 * equivalent interfaces to use
 	 * This is an array because socklnd bonding can still be configured
@@ -436,10 +439,18 @@ struct lnet_peer_ni {
 	int			 lpni_cpt;
 	/* # refs from lnet_route::lr_gateway */
 	int			 lpni_rtr_refcount;
+	/* sequence number used to round robin over peer nis within a net */
+	u32			lpni_seq;
+	/* health flag */
+	bool			lpni_healthy;
 	/* returned RC ping features */
 	unsigned int		 lpni_ping_feats;
 	/* routers on this peer */
 	struct list_head	 lpni_routes;
+	/* array of preferred local nids */
+	lnet_nid_t		*lpni_pref_nids;
+	/* number of preferred NIDs in lnpi_pref_nids */
+	u32			lpni_pref_nnids;
 	/* router checker state */
 	struct lnet_rc_data	*lpni_rcd;
 };
@@ -453,6 +464,9 @@ struct lnet_peer {
 
 	/* primary NID of the peer */
 	lnet_nid_t		lp_primary_nid;
+
+	/* peer is Multi-Rail enabled peer */
+	bool			lp_multi_rail;
 };
 
 struct lnet_peer_net {
@@ -467,6 +481,9 @@ struct lnet_peer_net {
 
 	/* Net ID */
 	__u32			lpn_net_id;
+
+	/* health flag */
+	bool			lpn_healthy;
 };
 
 /* peer hash size */
