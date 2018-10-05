@@ -598,7 +598,6 @@ struct obd_device {
 
 	/* Fields used by LProcFS */
 	struct lprocfs_stats	*obd_stats;
-	unsigned int		 obd_cntr_base;
 
 	struct lprocfs_stats	*md_stats;
 	unsigned int		 md_cntr_base;
