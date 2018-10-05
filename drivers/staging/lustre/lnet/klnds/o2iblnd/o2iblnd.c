@@ -379,7 +379,7 @@ void kiblnd_destroy_peer(struct kib_peer *peer)
 	atomic_dec(&net->ibn_npeers);
 }
 
-struct kib_peer *kiblnd_find_peer_locked(lnet_nid_t nid)
+struct kib_peer *kiblnd_find_peer_locked(struct lnet_ni *ni, lnet_nid_t nid)
 {
 	/*
 	 * the caller is responsible for accounting the additional reference
@@ -391,7 +391,14 @@ struct kib_peer *kiblnd_find_peer_locked(lnet_nid_t nid)
 	list_for_each_entry(peer, peer_list, ibp_list) {
 		LASSERT(!kiblnd_peer_idle(peer));
 
-		if (peer->ibp_nid != nid)
+		/*
+		 * Match a peer if its NID and the NID of the local NI it
+		 * communicates over are the same. Otherwise don't match
+		 * the peer, which will result in a new lnd peer being
+		 * created.
+		 */
+		if (peer->ibp_nid != nid ||
+		    peer->ibp_ni->ni_nid != ni->ni_nid)
 			continue;
 
 		CDEBUG(D_NET, "got peer [%p] -> %s (%d) version: %x\n",
@@ -1041,7 +1048,7 @@ static void kiblnd_query(struct lnet_ni *ni, lnet_nid_t nid, time64_t *when)
 
 	read_lock_irqsave(glock, flags);
 
-	peer = kiblnd_find_peer_locked(nid);
+	peer = kiblnd_find_peer_locked(ni, nid);
 	if (peer)
 		last_alive = peer->ibp_last_alive;
 

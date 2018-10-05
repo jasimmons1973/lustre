@@ -1019,7 +1019,7 @@ void kiblnd_destroy_peer(struct kib_peer *peer);
 bool kiblnd_reconnect_peer(struct kib_peer *peer);
 void kiblnd_destroy_dev(struct kib_dev *dev);
 void kiblnd_unlink_peer_locked(struct kib_peer *peer);
-struct kib_peer *kiblnd_find_peer_locked(lnet_nid_t nid);
+struct kib_peer *kiblnd_find_peer_locked(struct lnet_ni *ni, lnet_nid_t nid);
 int  kiblnd_close_stale_conns_locked(struct kib_peer *peer,
 				     int version, __u64 incarnation);
 int  kiblnd_close_peer_conns_locked(struct kib_peer *peer, int why);
