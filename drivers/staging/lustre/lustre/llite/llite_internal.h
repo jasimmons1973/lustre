@@ -523,7 +523,11 @@ struct ll_sb_info {
 	struct root_squash_info	  ll_squash;
 	struct path		 ll_mnt;
 
-	__kernel_fsid_t		  ll_fsid;
+	/* st_blksize returned by stat(2), when non-zero */
+	unsigned int		 ll_stat_blksize;
+
+	__kernel_fsid_t		 ll_fsid;
+
 	struct kset		ll_kset;	/* sysfs object */
 	struct completion	 ll_kobj_unregister;
 };

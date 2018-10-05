@@ -128,6 +128,38 @@ static ssize_t blocksize_show(struct kobject *kobj, struct attribute *attr,
 }
 LUSTRE_RO_ATTR(blocksize);
 
+static ssize_t stat_blocksize_show(struct kobject *kobj, struct attribute *attr,
+				   char *buf)
+{
+	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
+					      ll_kset.kobj);
+
+	return sprintf(buf, "%u\n", sbi->ll_stat_blksize);
+}
+
+static ssize_t stat_blocksize_store(struct kobject *kobj,
+				    struct attribute *attr,
+				    const char *buffer,
+				    size_t count)
+{
+	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
+					      ll_kset.kobj);
+	unsigned int val;
+	int rc;
+
+	rc = kstrtouint(buffer, 10, &val);
+	if (rc)
+		return rc;
+
+	if (val != 0 && (val < PAGE_SIZE || (val & (val - 1))) != 0)
+		return -ERANGE;
+
+	sbi->ll_stat_blksize = val;
+
+	return count;
+}
+LUSTRE_RW_ATTR(stat_blocksize);
+
 static ssize_t kbytestotal_show(struct kobject *kobj, struct attribute *attr,
 				char *buf)
 {
@@ -1123,6 +1155,7 @@ static struct lprocfs_vars lprocfs_llite_obd_vars[] = {
 
 static struct attribute *llite_attrs[] = {
 	&lustre_attr_blocksize.attr,
+	&lustre_attr_stat_blocksize.attr,
 	&lustre_attr_kbytestotal.attr,
 	&lustre_attr_kbytesfree.attr,
 	&lustre_attr_kbytesavail.attr,

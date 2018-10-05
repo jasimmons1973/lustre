@@ -3267,7 +3267,7 @@ int ll_getattr(const struct path *path, struct kstat *stat,
 	stat->atime = inode->i_atime;
 	stat->mtime = inode->i_mtime;
 	stat->ctime = inode->i_ctime;
-	stat->blksize = 1 << inode->i_blkbits;
+	stat->blksize = sbi->ll_stat_blksize ?: (1 << inode->i_blkbits);
 
 	stat->nlink = inode->i_nlink;
 	stat->size = i_size_read(inode);
