@@ -579,8 +579,9 @@ int ldlm_prep_elc_req(struct obd_export *exp, struct ptlrpc_request *req,
 		req_capsule_filled_sizes(pill, RCL_CLIENT);
 		avail = ldlm_capsule_handles_avail(pill, RCL_CLIENT, canceloff);
 
-		flags = ns_connect_lru_resize(ns) ?
-			LDLM_LRU_FLAG_LRUR_NO_WAIT : LDLM_LRU_FLAG_AGED;
+		flags = LDLM_LRU_FLAG_NO_WAIT |
+			(ns_connect_lru_resize(ns) ?
+			 LDLM_LRU_FLAG_LRUR : LDLM_LRU_FLAG_AGED);
 		to_free = !ns_connect_lru_resize(ns) &&
 			  opc == LDLM_ENQUEUE ? 1 : 0;
 
@@ -1254,6 +1255,20 @@ ldlm_cancel_lrur_no_wait_policy(struct ldlm_namespace *ns,
 	return ldlm_cancel_no_wait_policy(ns, lock, unused, added, count);
 }
 
+static enum ldlm_policy_res
+ldlm_cancel_aged_no_wait_policy(struct ldlm_namespace *ns,
+				struct ldlm_lock *lock,
+				int unused, int added, int count)
+{
+	enum ldlm_policy_res result;
+
+	result = ldlm_cancel_aged_policy(ns, lock, unused, added, count);
+	if (result == LDLM_POLICY_KEEP_LOCK)
+		return result;
+
+	return ldlm_cancel_no_wait_policy(ns, lock, unused, added, count);
+}
+
 /**
  * Callback function for default policy. Makes decision whether to keep \a lock
  * in LRU for current LRU size \a unused, added in current scan \a added and
@@ -1280,25 +1295,31 @@ typedef enum ldlm_policy_res (*ldlm_cancel_lru_policy_t)(
 						      int, int);
 
 static ldlm_cancel_lru_policy_t
-ldlm_cancel_lru_policy(struct ldlm_namespace *ns, int flags)
+ldlm_cancel_lru_policy(struct ldlm_namespace *ns, int lru_flags)
 {
-	if (flags & LDLM_LRU_FLAG_NO_WAIT)
-		return ldlm_cancel_no_wait_policy;
-
 	if (ns_connect_lru_resize(ns)) {
-		if (flags & LDLM_LRU_FLAG_SHRINK)
+		if (lru_flags & LDLM_LRU_FLAG_SHRINK) {
 			/* We kill passed number of old locks. */
 			return ldlm_cancel_passed_policy;
-		else if (flags & LDLM_LRU_FLAG_LRUR)
-			return ldlm_cancel_lrur_policy;
-		else if (flags & LDLM_LRU_FLAG_PASSED)
+		} else if (lru_flags & LDLM_LRU_FLAG_LRUR) {
+			if (lru_flags & LDLM_LRU_FLAG_NO_WAIT)
+				return ldlm_cancel_lrur_no_wait_policy;
+			else
+				return ldlm_cancel_lrur_policy;
+		} else if (lru_flags & LDLM_LRU_FLAG_PASSED) {
 			return ldlm_cancel_passed_policy;
-		else if (flags & LDLM_LRU_FLAG_LRUR_NO_WAIT)
-			return ldlm_cancel_lrur_no_wait_policy;
+		}
 	} else {
-		if (flags & LDLM_LRU_FLAG_AGED)
-			return ldlm_cancel_aged_policy;
+		if (lru_flags & LDLM_LRU_FLAG_AGED) {
+			if (lru_flags & LDLM_LRU_FLAG_NO_WAIT)
+				return ldlm_cancel_aged_no_wait_policy;
+			else
+				return ldlm_cancel_aged_policy;
+		}
 	}
+
+	if (lru_flags & LDLM_LRU_FLAG_NO_WAIT)
+		return ldlm_cancel_no_wait_policy;
 
 	return ldlm_cancel_default_policy;
 }
@@ -1344,8 +1365,7 @@ static int ldlm_prepare_lru_list(struct ldlm_namespace *ns,
 	ldlm_cancel_lru_policy_t pf;
 	struct ldlm_lock *lock, *next;
 	int added = 0, unused, remained;
-	int no_wait = flags &
-		(LDLM_LRU_FLAG_NO_WAIT | LDLM_LRU_FLAG_LRUR_NO_WAIT);
+	int no_wait = flags & LDLM_LRU_FLAG_NO_WAIT;
 
 	spin_lock(&ns->ns_lock);
 	unused = ns->ns_nr_unused;
