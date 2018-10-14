@@ -599,7 +599,7 @@ static int server_name2fsname(const char *svname, char *fsname,
 {
 	const char *dash;
 
-	dash = svname + strnlen(svname, 8); /* max fsname length is 8 */
+	dash = svname + strnlen(svname, LUSTRE_MAXFSNAME);
 	for (; dash > svname && *dash != '-' && *dash != ':'; dash--)
 		;
 	if (dash == svname)
