@@ -331,6 +331,7 @@ mdc_intent_getxattr_pack(struct obd_export *exp,
 			 struct lookup_intent *it,
 			 struct md_op_data *op_data)
 {
+	u32 ea_vals_buf_size = GA_DEFAULT_EA_VAL_LEN * GA_DEFAULT_EA_NUM;
 	struct ptlrpc_request	*req;
 	struct ldlm_intent	*lit;
 	int rc, count = 0;
@@ -353,13 +354,13 @@ mdc_intent_getxattr_pack(struct obd_export *exp,
 
 	/* pack the intended request */
 	mdc_pack_body(req, &op_data->op_fid1, op_data->op_valid,
-		      GA_DEFAULT_EA_NAME_LEN * GA_DEFAULT_EA_NUM, -1, 0);
+		      ea_vals_buf_size, -1, 0);
 
 	req_capsule_set_size(&req->rq_pill, &RMF_EADATA, RCL_SERVER,
 			     GA_DEFAULT_EA_NAME_LEN * GA_DEFAULT_EA_NUM);
 
 	req_capsule_set_size(&req->rq_pill, &RMF_EAVALS, RCL_SERVER,
-			     GA_DEFAULT_EA_NAME_LEN * GA_DEFAULT_EA_NUM);
+			     ea_vals_buf_size);
 
 	req_capsule_set_size(&req->rq_pill, &RMF_EAVALS_LENS, RCL_SERVER,
 			     sizeof(u32) * GA_DEFAULT_EA_NUM);
