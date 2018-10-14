@@ -2211,6 +2211,8 @@ ptlrpc_client_recv_or_unlink(struct ptlrpc_request *req)
 static inline void
 ptlrpc_client_wake_req(struct ptlrpc_request *req)
 {
+	/* ensure ptlrpc_register_bulk see rq_resend as set. */
+	smp_mb();
 	if (!req->rq_set)
 		wake_up(&req->rq_reply_waitq);
 	else
