@@ -1475,15 +1475,26 @@ static int start_statahead_thread(struct inode *dir, struct dentry *dentry)
 	struct ll_statahead_info *sai = NULL;
 	struct task_struct *task;
 	struct dentry *parent = dentry->d_parent;
-	int rc;
+	struct ll_sb_info *sbi = ll_i2sbi(parent->d_inode);
+	int first = LS_FIRST_DE;
+	int rc = 0;
 
 	/* I am the "lli_opendir_pid" owner, only me can set "lli_sai". */
-	rc = is_first_dirent(dir, dentry);
-	if (rc == LS_NOT_FIRST_DE) {
+	first = is_first_dirent(dir, dentry);
+	if (first == LS_NOT_FIRST_DE) {
 		/* It is not "ls -{a}l" operation, no need statahead for it. */
 		rc = -EFAULT;
 		goto out;
 	}
+
+	if (unlikely(atomic_inc_return(&sbi->ll_sa_running) >
+				       sbi->ll_sa_running_max)) {
+		CDEBUG(D_READA,
+		       "Too many concurrent statahead instances, avoid new statahead instance temporarily.\n");
+		rc = -EMFILE;
+		goto out;
+	}
+
 
 	sai = ll_sai_alloc(parent);
 	if (!sai) {
@@ -1491,7 +1502,7 @@ static int start_statahead_thread(struct inode *dir, struct dentry *dentry)
 		goto out;
 	}
 
-	sai->sai_ls_all = (rc == LS_FIRST_DOT_DE);
+	sai->sai_ls_all = (first == LS_FIRST_DOT_DE);
 	/*
 	 * if current lli_opendir_key was deauthorized, or dir re-opened by
 	 * another process, don't start statahead, otherwise the newly spawned
@@ -1506,8 +1517,6 @@ static int start_statahead_thread(struct inode *dir, struct dentry *dentry)
 	}
 	lli->lli_sai = sai;
 	spin_unlock(&lli->lli_sa_lock);
-
-	atomic_inc(&ll_i2sbi(parent->d_inode)->ll_sa_running);
 
 	CDEBUG(D_READA, "start statahead thread: [pid %d] [parent %pd]\n",
 	       current->pid, parent);
@@ -1548,6 +1557,9 @@ out:
 	spin_unlock(&lli->lli_sa_lock);
 	if (sai)
 		ll_sai_free(sai);
+	if (first != LS_NOT_FIRST_DE)
+		atomic_dec(&sbi->ll_sa_running);
+
 	return rc;
 }
 

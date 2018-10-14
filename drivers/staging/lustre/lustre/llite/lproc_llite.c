@@ -714,6 +714,42 @@ static ssize_t stats_track_gid_store(struct kobject *kobj,
 }
 LUSTRE_RW_ATTR(stats_track_gid);
 
+static ssize_t statahead_running_max_show(struct kobject *kobj,
+					  struct attribute *attr,
+					  char *buf)
+{
+	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
+					      ll_kset.kobj);
+
+	return snprintf(buf, 16, "%u\n", sbi->ll_sa_running_max);
+}
+
+static ssize_t statahead_running_max_store(struct kobject *kobj,
+					   struct attribute *attr,
+					   const char *buffer,
+					   size_t count)
+{
+	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
+					      ll_kset.kobj);
+	unsigned long val;
+	int rc;
+
+	rc = kstrtoul(buffer, 0, &val);
+	if (rc)
+		return rc;
+
+	if (val <= LL_SA_RUNNING_MAX) {
+		sbi->ll_sa_running_max = val;
+		return count;
+	}
+
+	CERROR("Bad statahead_running_max value %lu. Valid values are in the range [0, %d]\n",
+	       val, LL_SA_RUNNING_MAX);
+
+	return -ERANGE;
+}
+LUSTRE_RW_ATTR(statahead_running_max);
+
 static ssize_t statahead_max_show(struct kobject *kobj,
 				  struct attribute *attr,
 				  char *buf)
@@ -1171,6 +1207,7 @@ static struct attribute *llite_attrs[] = {
 	&lustre_attr_stats_track_pid.attr,
 	&lustre_attr_stats_track_ppid.attr,
 	&lustre_attr_stats_track_gid.attr,
+	&lustre_attr_statahead_running_max.attr,
 	&lustre_attr_statahead_max.attr,
 	&lustre_attr_statahead_agl.attr,
 	&lustre_attr_lazystatfs.attr,
