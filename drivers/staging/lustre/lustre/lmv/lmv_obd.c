@@ -784,9 +784,23 @@ static int lmv_hsm_ct_register(struct lmv_obd *lmv, unsigned int cmd, int len,
 {
 	struct file *filp;
 	__u32 i, j;
-	int err, rc = 0;
+	int err;
 	bool any_set = false;
-	struct kkuc_ct_data kcd = { 0 };
+	struct kkuc_ct_data kcd = {
+		.kcd_magic	= KKUC_CT_DATA_MAGIC,
+		.kcd_uuid	= lmv->cluuid,
+		.kcd_archive	= lk->lk_data
+	};
+	int rc = 0;
+
+	filp = fget(lk->lk_wfd);
+	if (!filp)
+		return -EBADF;
+
+	rc = libcfs_kkuc_group_add(filp, lk->lk_uid, lk->lk_group,
+				   &kcd, sizeof(kcd));
+	if (rc)
+		goto err_fput;
 
 	/* All or nothing: try to register to all MDS.
 	 * In case of failure, unregister from previous MDS,
@@ -815,7 +829,7 @@ static int lmv_hsm_ct_register(struct lmv_obd *lmv, unsigned int cmd, int len,
 					obd_iocontrol(cmd, tgt->ltd_exp, len,
 						      lk, uarg);
 				}
-				return rc;
+				goto err_kkuc_rem;
 			}
 			/* else: transient error.
 			 * kuc will register to the missing MDT when it is back
@@ -825,24 +839,18 @@ static int lmv_hsm_ct_register(struct lmv_obd *lmv, unsigned int cmd, int len,
 		}
 	}
 
-	if (!any_set)
+	if (!any_set) {
 		/* no registration done: return error */
-		return -ENOTCONN;
+		rc = -ENOTCONN;
+		goto err_kkuc_rem;
+	}
 
-	/* at least one registration done, with no failure */
-	filp = fget(lk->lk_wfd);
-	if (!filp)
-		return -EBADF;
+	return 0;
 
-	kcd.kcd_magic = KKUC_CT_DATA_MAGIC;
-	kcd.kcd_uuid = lmv->cluuid;
-	kcd.kcd_archive = lk->lk_data;
-
-	rc = libcfs_kkuc_group_add(filp, lk->lk_uid, lk->lk_group,
-				   &kcd, sizeof(kcd));
-	if (rc)
-		fput(filp);
-
+err_kkuc_rem:
+	libcfs_kkuc_group_rem(lk->lk_uid, lk->lk_group);
+err_fput:
+	fput(filp);
 	return rc;
 }
 
