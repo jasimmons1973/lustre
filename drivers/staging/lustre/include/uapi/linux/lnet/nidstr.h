@@ -28,6 +28,7 @@
 #ifndef _LNET_NIDSTRINGS_H
 #define _LNET_NIDSTRINGS_H
 
+#include <linux/types.h>
 #include <uapi/linux/lnet/lnet-types.h>
 
 /**
