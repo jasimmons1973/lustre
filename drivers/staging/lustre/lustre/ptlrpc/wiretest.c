@@ -1228,9 +1228,13 @@ void lustre_assert_wire_constants(void)
 		 (long long)(int)offsetof(struct obdo, o_data_version));
 	LASSERTF((int)sizeof(((struct obdo *)0)->o_data_version) == 8, "found %lld\n",
 		 (long long)(int)sizeof(((struct obdo *)0)->o_data_version));
-	LASSERTF((int)offsetof(struct obdo, o_padding_4) == 184, "found %lld\n",
+	LASSERTF((int)offsetof(struct obdo, o_projid) == 184, "found %lld\n",
+		 (long long)(int)offsetof(struct obdo, o_projid));
+	LASSERTF((int)sizeof(((struct obdo *)0)->o_projid) == 4, "found %lld\n",
+		 (long long)(int)sizeof(((struct obdo *)0)->o_projid));
+	LASSERTF((int)offsetof(struct obdo, o_padding_4) == 188, "found %lld\n",
 		 (long long)(int)offsetof(struct obdo, o_padding_4));
-	LASSERTF((int)sizeof(((struct obdo *)0)->o_padding_4) == 8, "found %lld\n",
+	LASSERTF((int)sizeof(((struct obdo *)0)->o_padding_4) == 4, "found %lld\n",
 		 (long long)(int)sizeof(((struct obdo *)0)->o_padding_4));
 	LASSERTF((int)offsetof(struct obdo, o_padding_5) == 192, "found %lld\n",
 		 (long long)(int)offsetof(struct obdo, o_padding_5));
@@ -1324,6 +1328,9 @@ void lustre_assert_wire_constants(void)
 		 OBD_MD_FLGETATTRLOCK);
 	LASSERTF(OBD_MD_FLDATAVERSION == (0x0010000000000000ULL), "found 0x%.16llxULL\n",
 		 OBD_MD_FLDATAVERSION);
+	LASSERTF(OBD_MD_FLPROJID == (0x0100000000000000ULL), "found 0x%.16llxULL\n",
+		 OBD_MD_FLPROJID);
+
 	BUILD_BUG_ON(OBD_FL_INLINEDATA != 0x00000001);
 	BUILD_BUG_ON(OBD_FL_OBDMDEXISTS != 0x00000002);
 	BUILD_BUG_ON(OBD_FL_DELORPHAN != 0x00000004);
@@ -1869,10 +1876,10 @@ void lustre_assert_wire_constants(void)
 		 (long long)(int)offsetof(struct mdt_body, mbo_gid_h));
 	LASSERTF((int)sizeof(((struct mdt_body *)0)->mbo_gid_h) == 4, "found %lld\n",
 		 (long long)(int)sizeof(((struct mdt_body *)0)->mbo_gid_h));
-	LASSERTF((int)offsetof(struct mdt_body, mbo_padding_5) == 172, "found %lld\n",
-		 (long long)(int)offsetof(struct mdt_body, mbo_padding_5));
-	LASSERTF((int)sizeof(((struct mdt_body *)0)->mbo_padding_5) == 4, "found %lld\n",
-		 (long long)(int)sizeof(((struct mdt_body *)0)->mbo_padding_5));
+	LASSERTF((int)offsetof(struct mdt_body, mbo_projid) == 172, "found %lld\n",
+		 (long long)(int)offsetof(struct mdt_body, mbo_projid));
+	LASSERTF((int)sizeof(((struct mdt_body *)0)->mbo_projid) == 4, "found %lld\n",
+		 (long long)(int)sizeof(((struct mdt_body *)0)->mbo_projid));
 	LASSERTF((int)offsetof(struct mdt_body, mbo_padding_6) == 176, "found %lld\n",
 		 (long long)(int)offsetof(struct mdt_body, mbo_padding_6));
 	LASSERTF((int)sizeof(((struct mdt_body *)0)->mbo_padding_6) == 8, "found %lld\n",

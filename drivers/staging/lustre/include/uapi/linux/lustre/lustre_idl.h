@@ -1133,6 +1133,7 @@ lov_mds_md_max_stripe_count(size_t buf_size, __u32 lmm_magic)
 							    */
 
 #define OBD_MD_DEFAULT_MEA	(0x0040000000000000ULL) /* default MEA */
+#define OBD_MD_FLPROJID		(0x0100000000000000ULL) /* project ID */
 
 #define OBD_MD_FLALLQUOTA (OBD_MD_FLUSRQUOTA | \
 			   OBD_MD_FLGRPQUOTA | \
@@ -1142,7 +1143,8 @@ lov_mds_md_max_stripe_count(size_t buf_size, __u32 lmm_magic)
 			  OBD_MD_FLCTIME | OBD_MD_FLSIZE  | OBD_MD_FLBLKSZ | \
 			  OBD_MD_FLMODE  | OBD_MD_FLTYPE  | OBD_MD_FLUID   | \
 			  OBD_MD_FLGID   | OBD_MD_FLFLAGS | OBD_MD_FLNLINK | \
-			  OBD_MD_FLGENER | OBD_MD_FLRDEV  | OBD_MD_FLGROUP)
+			  OBD_MD_FLGENER | OBD_MD_FLRDEV  | OBD_MD_FLGROUP | \
+			  OBD_MD_FLPROJID)
 
 #define OBD_MD_FLXATTRALL (OBD_MD_FLXATTR | OBD_MD_FLXATTRLS)
 
@@ -1515,7 +1517,7 @@ struct mdt_body {
 	__u32	mbo_unused3;	/* was max_cookiesize until 2.8 */
 	__u32	mbo_uid_h;	/* high 32-bits of uid, for FUID */
 	__u32	mbo_gid_h;	/* high 32-bits of gid, for FUID */
-	__u32	mbo_padding_5;	/* also fix lustre_swab_mdt_body */
+	__u32	mbo_projid;	/* also fix lustre_swab_mdt_body */
 	__u64	mbo_padding_6;
 	__u64	mbo_padding_7;
 	__u64	mbo_padding_8;
@@ -2615,7 +2617,8 @@ struct obdo {
 					 * brw: grant space consumed on
 					 * the client for the write
 					 */
-	__u64		o_padding_4;
+	__u32		o_projid;
+	__u32		o_padding_4;	/* also fix lustre_swab_obdo() */
 	__u64		o_padding_5;
 	__u64		o_padding_6;
 };
