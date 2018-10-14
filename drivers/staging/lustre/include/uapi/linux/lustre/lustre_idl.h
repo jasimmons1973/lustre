@@ -1131,6 +1131,8 @@ lov_mds_md_max_stripe_count(size_t buf_size, __u32 lmm_magic)
 
 #define OBD_MD_DEFAULT_MEA	(0x0040000000000000ULL) /* default MEA */
 
+#define OBD_MD_FLALLQUOTA (OBD_MD_FLUSRQUOTA | OBD_MD_FLGRPQUOTA)
+
 #define OBD_MD_FLGETATTR (OBD_MD_FLID    | OBD_MD_FLATIME | OBD_MD_FLMTIME | \
 			  OBD_MD_FLCTIME | OBD_MD_FLSIZE  | OBD_MD_FLBLKSZ | \
 			  OBD_MD_FLMODE  | OBD_MD_FLTYPE  | OBD_MD_FLUID   | \

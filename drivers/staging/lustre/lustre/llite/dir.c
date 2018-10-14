@@ -902,6 +902,21 @@ static int copy_and_ioctl(int cmd, struct obd_export *exp,
 	return rc;
 }
 
+static inline int check_owner(int type, int id)
+{
+	switch (type) {
+	case USRQUOTA:
+		if (!uid_eq(current_euid(), make_kuid(&init_user_ns, id)))
+			return -EPERM;
+		break;
+	case GRPQUOTA:
+		if (!in_egroup_p(make_kgid(&init_user_ns, id)))
+			return -EPERM;
+		break;
+	}
+	return 0;
+}
+
 static int quotactl_ioctl(struct ll_sb_info *sbi, struct if_quotactl *qctl)
 {
 	int cmd = qctl->qc_cmd;
@@ -917,11 +932,7 @@ static int quotactl_ioctl(struct ll_sb_info *sbi, struct if_quotactl *qctl)
 			return -EPERM;
 		break;
 	case Q_GETQUOTA:
-		if (((type == USRQUOTA &&
-		      !uid_eq(current_euid(), make_kuid(&init_user_ns, id))) ||
-		     (type == GRPQUOTA &&
-		      !in_egroup_p(make_kgid(&init_user_ns, id)))) &&
-		      !capable(CAP_SYS_ADMIN))
+		if (check_owner(type, id) && !capable(CAP_SYS_ADMIN))
 			return -EPERM;
 		break;
 	case Q_GETINFO:
