@@ -243,8 +243,9 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	if (sbi->ll_flags & LL_SBI_ALWAYS_PING)
 		data->ocd_connect_flags &= ~OBD_CONNECT_PINGLESS;
 
+#ifdef CONFIG_SECURITY
 	data->ocd_connect_flags2 |= OBD_CONNECT2_FILE_SECCTX;
-
+#endif
 	data->ocd_brw_size = MD_MAX_BRW_SIZE;
 
 	err = obd_connect(NULL, &sbi->ll_md_exp, sbi->ll_md_obd,
