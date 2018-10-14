@@ -171,8 +171,21 @@ static int llog_client_next_block(const struct lu_env *env,
 	req_capsule_set_size(&req->rq_pill, &RMF_EADATA, RCL_SERVER, len);
 	ptlrpc_request_set_replen(req);
 	rc = ptlrpc_queue_wait(req);
-	if (rc)
+	/* -EIO has a special meaning here. If llog_osd_next_block()
+	 * reaches the end of the log without finding the desired
+	 * record then it updates *cur_offset and *cur_idx and returns
+	 * -EIO. In llog_process_thread() we use this to detect
+	 * EOF. But we must be careful to distinguish between -EIO
+	 * coming from llog_osd_next_block() and -EIO coming from
+	 * ptlrpc or below.
+	 */
+	if (rc == -EIO) {
+		if (!req->rq_repmsg ||
+		    lustre_msg_get_status(req->rq_repmsg) != -EIO)
+			goto out;
+	} else if (rc < 0) {
 		goto out;
+	}
 
 	body = req_capsule_server_get(&req->rq_pill, &RMF_LLOGD_BODY);
 	if (!body) {
@@ -180,15 +193,18 @@ static int llog_client_next_block(const struct lu_env *env,
 		goto out;
 	}
 
+	*cur_idx = body->lgd_saved_index;
+	*cur_offset = body->lgd_cur_offset;
+
+	if (rc < 0)
+		goto out;
+
 	/* The log records are swabbed as they are processed */
 	ptr = req_capsule_server_get(&req->rq_pill, &RMF_EADATA);
 	if (!ptr) {
 		rc = -EFAULT;
 		goto out;
 	}
-
-	*cur_idx = body->lgd_saved_index;
-	*cur_offset = body->lgd_cur_offset;
 
 	memcpy(buf, ptr, len);
 out:
