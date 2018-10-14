@@ -391,11 +391,11 @@ struct vvp_pgcache_id {
 	struct lu_object_header *vpi_obj;
 };
 
-struct seq_private {
-	struct ll_sb_info	*sbi;
-	struct lu_env		*env;
-	u16			refcheck;
-	struct cl_object	*clob;
+struct vvp_seq_private {
+	struct ll_sb_info	*vsp_sbi;
+	struct lu_env		*vsp_env;
+	u16			vsp_refcheck;
+	struct cl_object	*vsp_clob;
 };
 
 static void vvp_pgcache_id_unpack(loff_t pos, struct vvp_pgcache_id *id)
@@ -542,52 +542,54 @@ static void vvp_pgcache_page_show(const struct lu_env *env,
 
 static int vvp_pgcache_show(struct seq_file *f, void *v)
 {
-	struct seq_private	*priv = f->private;
+	struct vvp_seq_private *priv = f->private;
 	struct page		*vmpage = v;
 	struct cl_page		*page;
 
 	seq_printf(f, "%8lx@" DFID ": ", vmpage->index,
-		   PFID(lu_object_fid(&priv->clob->co_lu)));
+		   PFID(lu_object_fid(&priv->vsp_clob->co_lu)));
 	lock_page(vmpage);
-	page = cl_vmpage_page(vmpage, priv->clob);
+	page = cl_vmpage_page(vmpage, priv->vsp_clob);
 	unlock_page(vmpage);
 	put_page(vmpage);
 
 	if (page) {
-		vvp_pgcache_page_show(priv->env, f, page);
-		cl_page_put(priv->env, page);
+		vvp_pgcache_page_show(priv->vsp_env, f, page);
+		cl_page_put(priv->vsp_env, page);
 	} else {
 		seq_puts(f, "missing\n");
 	}
-	lu_object_ref_del(&priv->clob->co_lu, "dump", current);
-	cl_object_put(priv->env, priv->clob);
+	lu_object_ref_del(&priv->vsp_clob->co_lu, "dump", current);
+	cl_object_put(priv->vsp_env, priv->vsp_clob);
 
 	return 0;
 }
 
 static void *vvp_pgcache_start(struct seq_file *f, loff_t *pos)
 {
-	struct seq_private	*priv = f->private;
+	struct vvp_seq_private *priv = f->private;
 	struct page *ret;
 
-	if (priv->sbi->ll_site->ls_obj_hash->hs_cur_bits >
+	if (priv->vsp_sbi->ll_site->ls_obj_hash->hs_cur_bits >
 	    64 - PGC_OBJ_SHIFT)
 		ret = ERR_PTR(-EFBIG);
 	else
-		ret = vvp_pgcache_find(priv->env, &priv->sbi->ll_cl->cd_lu_dev,
-				       &priv->clob, pos);
+		ret = vvp_pgcache_find(priv->vsp_env,
+				       &priv->vsp_sbi->ll_cl->cd_lu_dev,
+				       &priv->vsp_clob, pos);
 
 	return ret;
 }
 
 static void *vvp_pgcache_next(struct seq_file *f, void *v, loff_t *pos)
 {
-	struct seq_private *priv = f->private;
+	struct vvp_seq_private *priv = f->private;
 	struct page *ret;
 
 	*pos += 1;
-	ret = vvp_pgcache_find(priv->env, &priv->sbi->ll_cl->cd_lu_dev,
-			       &priv->clob, pos);
+	ret = vvp_pgcache_find(priv->vsp_env,
+			       &priv->vsp_sbi->ll_cl->cd_lu_dev,
+			       &priv->vsp_clob, pos);
 	return ret;
 }
 
@@ -605,16 +607,16 @@ static const struct seq_operations vvp_pgcache_ops = {
 
 static int vvp_dump_pgcache_seq_open(struct inode *inode, struct file *filp)
 {
-	struct seq_private *priv;
+	struct vvp_seq_private *priv;
 
 	priv = __seq_open_private(filp, &vvp_pgcache_ops, sizeof(*priv));
 	if (!priv)
 		return -ENOMEM;
 
-	priv->sbi = inode->i_private;
-	priv->env = cl_env_get(&priv->refcheck);
-	if (IS_ERR(priv->env)) {
-		int err = PTR_ERR(priv->env);
+	priv->vsp_sbi = inode->i_private;
+	priv->vsp_env = cl_env_get(&priv->vsp_refcheck);
+	if (IS_ERR(priv->vsp_env)) {
+		int err = PTR_ERR(priv->vsp_env);
 
 		seq_release_private(inode, filp);
 		return err;
@@ -625,9 +627,9 @@ static int vvp_dump_pgcache_seq_open(struct inode *inode, struct file *filp)
 static int vvp_dump_pgcache_seq_release(struct inode *inode, struct file *file)
 {
 	struct seq_file *seq = file->private_data;
-	struct seq_private *priv = seq->private;
+	struct vvp_seq_private *priv = seq->private;
 
-	cl_env_put(priv->env, &priv->refcheck);
+	cl_env_put(priv->vsp_env, &priv->vsp_refcheck);
 	return seq_release_private(inode, file);
 }
 
