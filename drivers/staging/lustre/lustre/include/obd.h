@@ -345,6 +345,8 @@ struct client_obd {
 	void			*cl_lru_work;
 	/* hash tables for osc_quota_info */
 	struct rhashtable	cl_quota_hash[MAXQUOTAS];
+	/* Links to the global list of registered changelog devices */
+	struct list_head	cl_chg_dev_linkage;
 };
 
 #define obd2cli_tgt(obd) ((char *)(obd)->u.cli.cl_target_uuid.uuid)

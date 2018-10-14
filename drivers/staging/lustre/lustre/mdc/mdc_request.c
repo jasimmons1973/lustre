@@ -35,7 +35,6 @@
 
 # include <linux/module.h>
 # include <linux/pagemap.h>
-# include <linux/miscdevice.h>
 # include <linux/init.h>
 # include <linux/utsname.h>
 # include <linux/file.h>
@@ -1810,174 +1809,6 @@ out:
 	return rc;
 }
 
-static struct kuc_hdr *changelog_kuc_hdr(char *buf, size_t len, u32 flags)
-{
-	struct kuc_hdr *lh = (struct kuc_hdr *)buf;
-
-	LASSERT(len <= KUC_CHANGELOG_MSG_MAXSIZE);
-
-	lh->kuc_magic = KUC_MAGIC;
-	lh->kuc_transport = KUC_TRANSPORT_CHANGELOG;
-	lh->kuc_flags = flags;
-	lh->kuc_msgtype = CL_RECORD;
-	lh->kuc_msglen = len;
-	return lh;
-}
-
-struct changelog_show {
-	__u64		cs_startrec;
-	enum changelog_send_flag	cs_flags;
-	struct file	*cs_fp;
-	char		*cs_buf;
-	struct obd_device *cs_obd;
-};
-
-static inline char *cs_obd_name(struct changelog_show *cs)
-{
-	return cs->cs_obd->obd_name;
-}
-
-static int changelog_kkuc_cb(const struct lu_env *env, struct llog_handle *llh,
-			     struct llog_rec_hdr *hdr, void *data)
-{
-	struct changelog_show *cs = data;
-	struct llog_changelog_rec *rec = (struct llog_changelog_rec *)hdr;
-	struct kuc_hdr *lh;
-	size_t len;
-	int rc;
-
-	if (rec->cr_hdr.lrh_type != CHANGELOG_REC) {
-		rc = -EINVAL;
-		CERROR("%s: not a changelog rec %x/%d: rc = %d\n",
-		       cs_obd_name(cs), rec->cr_hdr.lrh_type,
-		       rec->cr.cr_type, rc);
-		return rc;
-	}
-
-	if (rec->cr.cr_index < cs->cs_startrec) {
-		/* Skip entries earlier than what we are interested in */
-		CDEBUG(D_HSM, "rec=%llu start=%llu\n",
-		       rec->cr.cr_index, cs->cs_startrec);
-		return 0;
-	}
-
-	CDEBUG(D_HSM, "%llu %02d%-5s %llu 0x%x t=" DFID " p=" DFID
-		" %.*s\n", rec->cr.cr_index, rec->cr.cr_type,
-		changelog_type2str(rec->cr.cr_type), rec->cr.cr_time,
-		rec->cr.cr_flags & CLF_FLAGMASK,
-		PFID(&rec->cr.cr_tfid), PFID(&rec->cr.cr_pfid),
-		rec->cr.cr_namelen, changelog_rec_name(&rec->cr));
-
-	len = sizeof(*lh) + changelog_rec_size(&rec->cr) + rec->cr.cr_namelen;
-
-	/* Set up the message */
-	lh = changelog_kuc_hdr(cs->cs_buf, len, cs->cs_flags);
-	memcpy(lh + 1, &rec->cr, len - sizeof(*lh));
-
-	rc = libcfs_kkuc_msg_put(cs->cs_fp, lh);
-	CDEBUG(D_HSM, "kucmsg fp %p len %zu rc %d\n", cs->cs_fp, len, rc);
-
-	return rc;
-}
-
-static int mdc_changelog_send_thread(void *csdata)
-{
-	enum llog_flag flags = LLOG_F_IS_CAT;
-	struct changelog_show *cs = csdata;
-	struct llog_ctxt *ctxt = NULL;
-	struct llog_handle *llh = NULL;
-	struct kuc_hdr *kuch;
-	int rc;
-
-	CDEBUG(D_HSM, "changelog to fp=%p start %llu\n",
-	       cs->cs_fp, cs->cs_startrec);
-
-	cs->cs_buf = kzalloc(KUC_CHANGELOG_MSG_MAXSIZE, GFP_NOFS);
-	if (!cs->cs_buf) {
-		rc = -ENOMEM;
-		goto out;
-	}
-
-	/* Set up the remote catalog handle */
-	ctxt = llog_get_context(cs->cs_obd, LLOG_CHANGELOG_REPL_CTXT);
-	if (!ctxt) {
-		rc = -ENOENT;
-		goto out;
-	}
-	rc = llog_open(NULL, ctxt, &llh, NULL, CHANGELOG_CATALOG,
-		       LLOG_OPEN_EXISTS);
-	if (rc) {
-		CERROR("%s: fail to open changelog catalog: rc = %d\n",
-		       cs_obd_name(cs), rc);
-		goto out;
-	}
-
-	if (cs->cs_flags & CHANGELOG_FLAG_JOBID)
-		flags |= LLOG_F_EXT_JOBID;
-
-	rc = llog_init_handle(NULL, llh, flags, NULL);
-	if (rc) {
-		CERROR("llog_init_handle failed %d\n", rc);
-		goto out;
-	}
-
-	rc = llog_cat_process(NULL, llh, changelog_kkuc_cb, cs, 0, 0);
-
-	/* Send EOF no matter what our result */
-	kuch = changelog_kuc_hdr(cs->cs_buf, sizeof(*kuch), cs->cs_flags);
-	kuch->kuc_msgtype = CL_EOF;
-	libcfs_kkuc_msg_put(cs->cs_fp, kuch);
-
-out:
-	fput(cs->cs_fp);
-	if (llh)
-		llog_cat_close(NULL, llh);
-	if (ctxt)
-		llog_ctxt_put(ctxt);
-	kfree(cs->cs_buf);
-	kfree(cs);
-	return rc;
-}
-
-static int mdc_ioc_changelog_send(struct obd_device *obd,
-				  struct ioc_changelog *icc)
-{
-	struct changelog_show *cs;
-	struct task_struct *task;
-	int rc;
-
-	/* Freed in mdc_changelog_send_thread */
-	cs = kzalloc(sizeof(*cs), GFP_NOFS);
-	if (!cs)
-		return -ENOMEM;
-
-	cs->cs_obd = obd;
-	cs->cs_startrec = icc->icc_recno;
-	/* matching fput in mdc_changelog_send_thread */
-	cs->cs_fp = fget(icc->icc_id);
-	cs->cs_flags = icc->icc_flags;
-
-	/*
-	 * New thread because we should return to user app before
-	 * writing into our pipe
-	 */
-	task = kthread_run(mdc_changelog_send_thread, cs,
-			   "mdc_clg_send_thread");
-	if (IS_ERR(task)) {
-		rc = PTR_ERR(task);
-		CERROR("%s: can't start changelog thread: rc = %d\n",
-		       cs_obd_name(cs), rc);
-		kfree(cs);
-	} else {
-		rc = 0;
-		CDEBUG(D_HSM, "%s: started changelog thread\n",
-		       cs_obd_name(cs));
-	}
-
-	CERROR("Failed to start changelog thread: %d\n", rc);
-	return rc;
-}
-
 static int mdc_ioc_hsm_ct_start(struct obd_export *exp,
 				struct lustre_kernelcomm *lk);
 
@@ -2087,21 +1918,6 @@ static int mdc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 		return -EINVAL;
 	}
 	switch (cmd) {
-	case OBD_IOC_CHANGELOG_SEND:
-		rc = mdc_ioc_changelog_send(obd, karg);
-		goto out;
-	case OBD_IOC_CHANGELOG_CLEAR: {
-		struct ioc_changelog *icc = karg;
-		struct changelog_setinfo cs = {
-			.cs_recno = icc->icc_recno,
-			.cs_id = icc->icc_id
-		};
-
-		rc = obd_set_info_async(NULL, exp, strlen(KEY_CHANGELOG_CLEAR),
-					KEY_CHANGELOG_CLEAR, sizeof(cs), &cs,
-					NULL);
-		goto out;
-	}
 	case OBD_IOC_FID2PATH:
 		rc = mdc_ioc_fid2path(exp, karg);
 		goto out;
@@ -2670,12 +2486,22 @@ static int mdc_setup(struct obd_device *obd, struct lustre_cfg *cfg)
 
 	rc = mdc_llog_init(obd);
 	if (rc) {
-		CERROR("failed to setup llogging subsystems\n");
+		CERROR("%s: failed to setup llogging subsystems: rc = %d\n",
+		       obd->obd_name, rc);
 		goto err_llog_cleanup;
+	}
+
+	rc = mdc_changelog_cdev_init(obd);
+	if (rc) {
+		CERROR("%s: failed to setup changelog char device: rc = %d\n",
+		       obd->obd_name, rc);
+		goto err_changelog_cleanup;
 	}
 
 	return 0;
 
+err_changelog_cleanup:
+	mdc_llog_finish(obd);
 err_llog_cleanup:
 	ldebugfs_free_md_stats(obd);
 	ptlrpc_lprocfs_unregister_obd(obd);
@@ -2713,6 +2539,8 @@ static int mdc_precleanup(struct obd_device *obd)
 	/* Failsafe, ok if racy */
 	if (obd->obd_type->typ_refcnt <= 1)
 		libcfs_kkuc_group_rem(0, KUC_GRP_HSM);
+
+	mdc_changelog_cdev_finish(obd);
 
 	obd_cleanup_client_import(obd);
 	ptlrpc_lprocfs_unregister_obd(obd);

@@ -951,19 +951,6 @@ static int lmv_iocontrol(unsigned int cmd, struct obd_export *exp,
 		kfree(oqctl);
 		break;
 	}
-	case OBD_IOC_CHANGELOG_SEND:
-	case OBD_IOC_CHANGELOG_CLEAR: {
-		struct ioc_changelog *icc = karg;
-
-		if (icc->icc_mdtindex >= count)
-			return -ENODEV;
-
-		tgt = lmv->tgts[icc->icc_mdtindex];
-		if (!tgt || !tgt->ltd_exp || !tgt->ltd_active)
-			return -ENODEV;
-		rc = obd_iocontrol(cmd, tgt->ltd_exp, sizeof(*icc), icc, NULL);
-		break;
-	}
 	case LL_IOC_GET_CONNECT_FLAGS: {
 		tgt = lmv->tgts[0];
 
