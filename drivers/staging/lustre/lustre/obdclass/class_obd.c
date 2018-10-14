@@ -364,7 +364,14 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 		goto out;
 	}
 
-	case OBD_GET_VERSION:
+	case OBD_GET_VERSION: {
+
+		/* This was the method to pass to user land the lustre version.
+		 * Today that information is in the sysfs tree so we can in the
+		 * future remove this.
+		 */
+		BUILD_BUG_ON(OBD_OCD_VERSION(3, 0, 53, 0) <= LUSTRE_VERSION_CODE);
+
 		if (!data->ioc_inlbuf1) {
 			CERROR("No buffer passed in ioctl\n");
 			err = -EINVAL;
@@ -377,13 +384,16 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 			goto out;
 		}
 
+		WARN_ONCE(1,
+			  "ioctl(OBD_GET_VERSION) is deprecated, use llapi_get_version_string() and/or relink\n");
+
 		memcpy(data->ioc_bulk, LUSTRE_VERSION_STRING,
 		       strlen(LUSTRE_VERSION_STRING) + 1);
 
 		if (copy_to_user((void __user *)arg, data, len))
 			err = -EFAULT;
 		goto out;
-
+	}
 	case OBD_IOC_NAME2DEV: {
 		/* Resolve a device name.  This does not change the
 		 * currently selected device.
