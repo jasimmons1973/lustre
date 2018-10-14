@@ -99,6 +99,8 @@ static void ll_prepare_close(struct inode *inode, struct md_op_data *op_data,
 	op_data->op_xvalid |= OP_XVALID_CTIME_SET;
 	op_data->op_attr_blocks = inode->i_blocks;
 	op_data->op_attr_flags = ll_inode_to_ext_flags(inode->i_flags);
+	if (test_bit(LLIF_PROJECT_INHERIT, &lli->lli_flags))
+		op_data->op_attr_flags |= LUSTRE_PROJINHERIT_FL;
 	op_data->op_handle = och->och_fh;
 
 	/*
@@ -2151,6 +2153,7 @@ static int ll_ladvise(struct inode *inode, struct file *file, __u64 flags,
 int ll_ioctl_fsgetxattr(struct inode *inode, unsigned int cmd,
 			unsigned long arg)
 {
+	struct ll_inode_info *lli = ll_i2info(inode);
 	struct fsxattr fsxattr;
 
 	if (copy_from_user(&fsxattr,
@@ -2158,6 +2161,9 @@ int ll_ioctl_fsgetxattr(struct inode *inode, unsigned int cmd,
 			   sizeof(fsxattr)))
 		return -EFAULT;
 
+	fsxattr.fsx_xflags = ll_inode_flags_to_xflags(inode->i_flags);
+	if (test_bit(LLIF_PROJECT_INHERIT, &lli->lli_flags))
+		fsxattr.fsx_xflags |= FS_XFLAG_PROJINHERIT;
 	fsxattr.fsx_projid = ll_i2info(inode)->lli_projid;
 	if (copy_to_user((struct fsxattr __user *)arg,
 			  &fsxattr, sizeof(fsxattr)))
@@ -2173,6 +2179,7 @@ int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
 	struct md_op_data *op_data;
 	struct fsxattr fsxattr;
 	int rc = 0;
+	int flags;
 
 	/* only root could change project ID */
 	if (!capable(CAP_SYS_ADMIN))
@@ -2190,11 +2197,16 @@ int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
 		goto out_fsxattr;
 	}
 
+	flags = ll_xflags_to_inode_flags(fsxattr.fsx_xflags);
+	op_data->op_attr_flags = ll_inode_to_ext_flags(flags);
+	if (fsxattr.fsx_xflags & FS_XFLAG_PROJINHERIT)
+		op_data->op_attr_flags |= LUSTRE_PROJINHERIT_FL;
 	op_data->op_projid = fsxattr.fsx_projid;
 	op_data->op_xvalid |= OP_XVALID_PROJID;
 	rc = md_setattr(ll_i2sbi(inode)->ll_md_exp, op_data, NULL,
 			0, &req);
 	ptlrpc_req_finished(req);
+	ll_update_inode_flags(inode, op_data->op_attr_flags);
 
 out_fsxattr:
 	ll_finish_md_op_data(op_data);

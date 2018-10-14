@@ -1454,6 +1454,7 @@ enum {
 #define LUSTRE_TOPDIR_FL	0x00020000 /* Top of directory hierarchies*/
 #define LUSTRE_DIRECTIO_FL	0x00100000 /* Use direct i/o */
 #define LUSTRE_INLINE_DATA_FL	0x10000000 /* Inode has inline data. */
+#define LUSTRE_PROJINHERIT_FL	0x20000000 /* Create with parents projid */
 
 /* Convert wire LUSTRE_*_FL to corresponding client local VFS S_* values
  * for the client inode i_flags.  The LUSTRE_*_FL are the Lustre wire
@@ -1478,6 +1479,22 @@ static inline int ll_inode_to_ext_flags(int iflags)
 		((iflags & S_APPEND)    ? LUSTRE_APPEND_FL    : 0) |
 		((iflags & S_DIRSYNC)   ? LUSTRE_DIRSYNC_FL   : 0) |
 		((iflags & S_IMMUTABLE) ? LUSTRE_IMMUTABLE_FL : 0));
+}
+
+static inline int ll_xflags_to_inode_flags(int xflags)
+{
+	return ((xflags & FS_XFLAG_SYNC) ? S_SYNC : 0) |
+	       ((xflags & FS_XFLAG_NOATIME) ? S_NOATIME : 0) |
+	       ((xflags & FS_XFLAG_APPEND) ? S_APPEND : 0) |
+	       ((xflags & FS_XFLAG_IMMUTABLE) ? S_IMMUTABLE : 0);
+}
+
+static inline int ll_inode_flags_to_xflags(int flags)
+{
+	return ((flags & S_SYNC) ? FS_XFLAG_SYNC : 0) |
+	       ((flags & S_NOATIME) ? FS_XFLAG_NOATIME : 0) |
+	       ((flags & S_APPEND) ? FS_XFLAG_APPEND : 0) |
+	       ((flags & S_IMMUTABLE) ? FS_XFLAG_IMMUTABLE : 0);
 }
 
 /* 64 possible states */

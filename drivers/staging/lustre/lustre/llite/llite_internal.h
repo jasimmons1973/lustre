@@ -108,6 +108,8 @@ enum ll_file_flags {
 	 * local inode atime.
 	 */
 	LLIF_UPDATE_ATIME,
+	/* Project inherit */
+	LLIF_PROJECT_INHERIT	= 3,
 };
 
 struct ll_inode_info {
@@ -857,6 +859,7 @@ int ll_statfs(struct dentry *de, struct kstatfs *sfs);
 int ll_statfs_internal(struct ll_sb_info *sbi, struct obd_statfs *osfs,
 		       u64 max_age, u32 flags);
 int ll_update_inode(struct inode *inode, struct lustre_md *md);
+void ll_update_inode_flags(struct inode *inode, int ext_flags);
 int ll_read_inode2(struct inode *inode, void *opaque);
 void ll_delete_inode(struct inode *inode);
 int ll_iocontrol(struct inode *inode, struct file *file,
