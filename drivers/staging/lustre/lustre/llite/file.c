@@ -2618,6 +2618,8 @@ out_ladvise:
 		return ll_ioctl_fsgetxattr(inode, cmd, arg);
 	case FS_IOC_FSSETXATTR:
 		return ll_ioctl_fssetxattr(inode, cmd, arg);
+	case BLKSSZGET:
+		return put_user(PAGE_SIZE, (int __user *)arg);
 	default: {
 		int err;
 
