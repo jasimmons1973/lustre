@@ -266,7 +266,7 @@ void mdc_open_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 	set_mrc_cr_flags(rec, cr_flags);
 }
 
-static inline __u64 attr_pack(unsigned int ia_valid, unsigned int ia_xvalid)
+static inline u64 attr_pack(unsigned int ia_valid, enum op_xvalid ia_xvalid)
 {
 	__u64 sa_valid = 0;
 
@@ -290,19 +290,19 @@ static inline __u64 attr_pack(unsigned int ia_valid, unsigned int ia_xvalid)
 		sa_valid |= MDS_ATTR_MTIME_SET;
 	if (ia_valid & ATTR_FORCE)
 		sa_valid |= MDS_ATTR_FORCE;
-	if (ia_xvalid & OP_ATTR_FLAGS)
+	if (ia_xvalid & OP_XVALID_FLAGS)
 		sa_valid |= MDS_ATTR_ATTR_FLAG;
 	if (ia_valid & ATTR_KILL_SUID)
 		sa_valid |=  MDS_ATTR_KILL_SUID;
 	if (ia_valid & ATTR_KILL_SGID)
 		sa_valid |= MDS_ATTR_KILL_SGID;
-	if (ia_xvalid & OP_ATTR_CTIME_SET)
+	if (ia_xvalid & OP_XVALID_CTIME_SET)
 		sa_valid |= MDS_ATTR_CTIME_SET;
 	if (ia_valid & ATTR_OPEN)
 		sa_valid |= MDS_ATTR_FROM_OPEN;
-	if (ia_xvalid & OP_ATTR_BLOCKS)
+	if (ia_xvalid & OP_XVALID_BLOCKS)
 		sa_valid |= MDS_ATTR_BLOCKS;
-	if (ia_xvalid & OP_ATTR_OWNEROVERRIDE)
+	if (ia_xvalid & OP_XVALID_OWNEROVERRIDE)
 		/* NFSD hack (see bug 5781) */
 		sa_valid |= MDS_OPEN_OWNEROVERRIDE;
 	return sa_valid;

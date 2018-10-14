@@ -500,7 +500,7 @@ static int osc_io_setattr_start(const struct lu_env *env,
 	struct osc_async_cbargs *cbargs = &oio->oi_cbarg;
 	__u64 size = io->u.ci_setattr.sa_attr.lvb_size;
 	unsigned int ia_avalid = io->u.ci_setattr.sa_avalid;
-	unsigned int ia_xvalid = io->u.ci_setattr.sa_xvalid;
+	enum op_xvalid ia_xvalid = io->u.ci_setattr.sa_xvalid;
 	int result = 0;
 
 	/* truncate cache dirty pages first */
@@ -528,7 +528,7 @@ static int osc_io_setattr_start(const struct lu_env *env,
 				attr->cat_atime = lvb->lvb_atime;
 				cl_valid |= CAT_ATIME;
 			}
-			if (ia_xvalid & OP_ATTR_CTIME_SET) {
+			if (ia_xvalid & OP_XVALID_CTIME_SET) {
 				attr->cat_ctime = lvb->lvb_ctime;
 				cl_valid |= CAT_CTIME;
 			}
@@ -567,7 +567,7 @@ static int osc_io_setattr_start(const struct lu_env *env,
 		} else {
 			LASSERT(oio->oi_lockless == 0);
 		}
-		if (ia_xvalid & OP_ATTR_FLAGS) {
+		if (ia_xvalid & OP_XVALID_FLAGS) {
 			oa->o_flags = io->u.ci_setattr.sa_attr_flags;
 			oa->o_valid |= OBD_MD_FLFLAGS;
 		}

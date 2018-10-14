@@ -843,7 +843,7 @@ struct inode *ll_inode_from_resource_lock(struct ldlm_lock *lock);
 void ll_dir_clear_lsm_md(struct inode *inode);
 void ll_clear_inode(struct inode *inode);
 int ll_setattr_raw(struct dentry *dentry, struct iattr *attr,
-		   unsigned int xvalid, bool hsm_import);
+		   enum op_xvalid xvalid, bool hsm_import);
 int ll_setattr(struct dentry *de, struct iattr *attr);
 int ll_statfs(struct dentry *de, struct kstatfs *sfs);
 int ll_statfs_internal(struct ll_sb_info *sbi, struct obd_statfs *osfs,
@@ -1357,7 +1357,7 @@ int ll_getparent(struct file *file, struct getparent __user *arg);
 
 /* lcommon_cl.c */
 int cl_setattr_ost(struct cl_object *obj, const struct iattr *attr,
-		   unsigned int xvalid, unsigned int attr_flags);
+		   enum op_xvalid xvalid, unsigned int attr_flags);
 
 extern struct lu_env *cl_inode_fini_env;
 extern u16 cl_inode_fini_refcheck;

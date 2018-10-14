@@ -664,6 +664,14 @@ void obd_uuid_del(struct obd_device *obd, struct obd_export *export);
 #define KEY_CACHE_SET		"cache_set"
 #define KEY_CACHE_LRU_SHRINK	"cache_lru_shrink"
 
+/* Flags for op_xvalid */
+enum op_xvalid {
+	OP_XVALID_CTIME_SET	= BIT(0),	/* 0x0001 */
+	OP_XVALID_BLOCKS	= BIT(1),	/* 0x0002 */
+	OP_XVALID_OWNEROVERRIDE	= BIT(2),	/* 0x0004 */
+	OP_XVALID_FLAGS		= BIT(3),	/* 0x0008 */
+};
+
 struct lu_context;
 
 static inline int it_to_lock_mode(struct lookup_intent *it)
@@ -733,7 +741,7 @@ struct md_op_data {
 
 	/* iattr fields and blocks. */
 	struct iattr	    op_attr;
-	unsigned int		op_xvalid; /* eXtra validity flags */
+	enum op_xvalid		op_xvalid;	/* eXtra validity flags */
 	unsigned int	    op_attr_flags;
 	__u64		   op_valid;
 	loff_t		  op_attr_blocks;
@@ -763,12 +771,6 @@ struct md_op_data {
 	/* default stripe offset */
 	__u32			op_default_stripe_offset;
 };
-
-/* Flags for op_xvalid */
-#define OP_ATTR_CTIME_SET	(1 << 0)
-#define OP_ATTR_BLOCKS		(1 << 1)
-#define OP_ATTR_OWNEROVERRIDE	(1 << 2)
-#define OP_ATTR_FLAGS		(1 << 3)
 
 struct md_callback {
 	int (*md_blocking_ast)(struct ldlm_lock *lock,

@@ -1778,7 +1778,7 @@ struct cl_io {
 			struct ost_lvb   sa_attr;
 			unsigned int		 sa_attr_flags;
 			unsigned int     sa_avalid;
-			unsigned int     sa_xvalid;
+			unsigned int		sa_xvalid; /* OP_XVALID */
 			int		sa_stripe_index;
 			const struct lu_fid	*sa_parent_fid;
 		} ci_setattr;

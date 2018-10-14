@@ -80,7 +80,7 @@ u16 cl_inode_fini_refcheck;
 static DEFINE_MUTEX(cl_inode_fini_guard);
 
 int cl_setattr_ost(struct cl_object *obj, const struct iattr *attr,
-		   unsigned int xvalid, unsigned int attr_flags)
+		   enum op_xvalid xvalid, unsigned int attr_flags)
 {
 	struct lu_env *env;
 	struct cl_io  *io;
