@@ -902,7 +902,7 @@ static int copy_and_ioctl(int cmd, struct obd_export *exp,
 	return rc;
 }
 
-static inline int check_owner(int type, int id)
+static int check_owner(int type, int id)
 {
 	switch (type) {
 	case USRQUOTA:
@@ -912,6 +912,8 @@ static inline int check_owner(int type, int id)
 	case GRPQUOTA:
 		if (!in_egroup_p(make_kgid(&init_user_ns, id)))
 			return -EPERM;
+		break;
+	case PRJQUOTA:
 		break;
 	}
 	return 0;

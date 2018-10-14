@@ -913,6 +913,9 @@ enum obdo_flags {
 	OBD_FL_IDONLY       = 0x00000010, /* set in o_flags only adjust obj id*/
 	OBD_FL_RECREATE_OBJS = 0x00000020, /* recreate missing obj */
 	OBD_FL_DEBUG_CHECK  = 0x00000040, /* echo client/server debug check */
+	OBD_FL_NO_PRJQUOTA  = 0x00000080, /* the object's project is over
+					   * quota
+					   */
 	OBD_FL_NO_USRQUOTA  = 0x00000100, /* the object's owner is over quota */
 	OBD_FL_NO_GRPQUOTA  = 0x00000200, /* the object's group is over quota */
 	OBD_FL_CREATE_CROW  = 0x00000400, /* object should be create on write */
@@ -1086,7 +1089,7 @@ lov_mds_md_max_stripe_count(size_t buf_size, __u32 lmm_magic)
 #define OBD_MD_FLHANDLE		(0x00080000ULL) /* file/lock handle */
 #define OBD_MD_FLCKSUM		(0x00100000ULL) /* bulk data checksum */
 #define OBD_MD_FLQOS		(0x00200000ULL) /* quality of service stats */
-/*#define OBD_MD_FLOSCOPQ	(0x00400000ULL) osc opaque data, never used */
+#define OBD_MD_FLPRJQUOTA	(0x00400000ULL)	/* over quota flags sent from ost */
 /*	OBD_MD_FLCOOKIE		(0x00800000ULL) obsolete in 2.8 */
 #define OBD_MD_FLGROUP		(0x01000000ULL) /* group */
 #define OBD_MD_FLFID		(0x02000000ULL) /* ->ost write inline fid */
@@ -1131,7 +1134,9 @@ lov_mds_md_max_stripe_count(size_t buf_size, __u32 lmm_magic)
 
 #define OBD_MD_DEFAULT_MEA	(0x0040000000000000ULL) /* default MEA */
 
-#define OBD_MD_FLALLQUOTA (OBD_MD_FLUSRQUOTA | OBD_MD_FLGRPQUOTA)
+#define OBD_MD_FLALLQUOTA (OBD_MD_FLUSRQUOTA | \
+			   OBD_MD_FLGRPQUOTA | \
+			   OBD_MD_FLPRJQUOTA)
 
 #define OBD_MD_FLGETATTR (OBD_MD_FLID    | OBD_MD_FLATIME | OBD_MD_FLMTIME | \
 			  OBD_MD_FLCTIME | OBD_MD_FLSIZE  | OBD_MD_FLBLKSZ | \
