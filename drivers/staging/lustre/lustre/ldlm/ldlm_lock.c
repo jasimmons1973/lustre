@@ -1832,19 +1832,6 @@ out:
 	return rc;
 }
 
-static bool is_bl_done(struct ldlm_lock *lock)
-{
-	bool bl_done = true;
-
-	if (!ldlm_is_bl_done(lock)) {
-		lock_res_and_lock(lock);
-		bl_done = ldlm_is_bl_done(lock);
-		unlock_res_and_lock(lock);
-	}
-
-	return bl_done;
-}
-
 /**
  * Helper function to call blocking AST for LDLM lock \a lock in a
  * "cancelling" mode.

@@ -1027,8 +1027,12 @@ int ldlm_cli_cancel(const struct lustre_handle *lockh,
 
 	lock_res_and_lock(lock);
 	/* Lock is being canceled and the caller doesn't want to wait */
-	if (ldlm_is_canceling(lock) && (cancel_flags & LCF_ASYNC)) {
+	if (ldlm_is_canceling(lock)) {
 		unlock_res_and_lock(lock);
+
+		if (!(cancel_flags & LCF_ASYNC))
+			wait_event_idle(lock->l_waitq, is_bl_done(lock));
+
 		LDLM_LOCK_RELEASE(lock);
 		return 0;
 	}
