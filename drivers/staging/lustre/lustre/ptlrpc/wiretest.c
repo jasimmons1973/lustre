@@ -253,6 +253,9 @@ void lustre_assert_wire_constants(void)
 		 (long long)MDS_ATTR_FROM_OPEN);
 	LASSERTF(MDS_ATTR_BLOCKS == 0x0000000000008000ULL, "found 0x%.16llxULL\n",
 		 (long long)MDS_ATTR_BLOCKS);
+	LASSERTF(MDS_ATTR_PROJID == 0x0000000000010000ULL, "found 0x%.16llxULL\n",
+		 (long long)MDS_ATTR_PROJID);
+
 	LASSERTF(FLD_QUERY == 900, "found %lld\n",
 		 (long long)FLD_QUERY);
 	LASSERTF(FLD_FIRST_OPC == 900, "found %lld\n",
@@ -2080,10 +2083,10 @@ void lustre_assert_wire_constants(void)
 		 (long long)(int)offsetof(struct mdt_rec_setattr, sa_bias));
 	LASSERTF((int)sizeof(((struct mdt_rec_setattr *)0)->sa_bias) == 4, "found %lld\n",
 		 (long long)(int)sizeof(((struct mdt_rec_setattr *)0)->sa_bias));
-	LASSERTF((int)offsetof(struct mdt_rec_setattr, sa_padding_3) == 124, "found %lld\n",
-		 (long long)(int)offsetof(struct mdt_rec_setattr, sa_padding_3));
-	LASSERTF((int)sizeof(((struct mdt_rec_setattr *)0)->sa_padding_3) == 4, "found %lld\n",
-		 (long long)(int)sizeof(((struct mdt_rec_setattr *)0)->sa_padding_3));
+	LASSERTF((int)offsetof(struct mdt_rec_setattr, sa_projid) == 124, "found %lld\n",
+		 (long long)(int)offsetof(struct mdt_rec_setattr, sa_projid));
+	LASSERTF((int)sizeof(((struct mdt_rec_setattr *)0)->sa_projid) == 4, "found %lld\n",
+		 (long long)(int)sizeof(((struct mdt_rec_setattr *)0)->sa_projid));
 	LASSERTF((int)offsetof(struct mdt_rec_setattr, sa_padding_4) == 128, "found %lld\n",
 		 (long long)(int)offsetof(struct mdt_rec_setattr, sa_padding_4));
 	LASSERTF((int)sizeof(((struct mdt_rec_setattr *)0)->sa_padding_4) == 4, "found %lld\n",

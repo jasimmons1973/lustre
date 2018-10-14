@@ -2148,6 +2148,59 @@ static int ll_ladvise(struct inode *inode, struct file *file, __u64 flags,
 	return rc;
 }
 
+int ll_ioctl_fsgetxattr(struct inode *inode, unsigned int cmd,
+			unsigned long arg)
+{
+	struct fsxattr fsxattr;
+
+	if (copy_from_user(&fsxattr,
+			   (const struct fsxattr __user *)arg,
+			   sizeof(fsxattr)))
+		return -EFAULT;
+
+	fsxattr.fsx_projid = ll_i2info(inode)->lli_projid;
+	if (copy_to_user((struct fsxattr __user *)arg,
+			  &fsxattr, sizeof(fsxattr)))
+		return -EFAULT;
+
+	return 0;
+}
+
+int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
+			unsigned long arg)
+{
+	struct ptlrpc_request *req = NULL;
+	struct md_op_data *op_data;
+	struct fsxattr fsxattr;
+	int rc = 0;
+
+	/* only root could change project ID */
+	if (!capable(CAP_SYS_ADMIN))
+		return -EPERM;
+
+	op_data = ll_prep_md_op_data(NULL, inode, NULL, NULL, 0, 0,
+				     LUSTRE_OPC_ANY, NULL);
+	if (IS_ERR(op_data))
+		return PTR_ERR(op_data);
+
+	if (copy_from_user(&fsxattr,
+			   (const struct fsxattr __user *)arg,
+			   sizeof(fsxattr))) {
+		rc = -EFAULT;
+		goto out_fsxattr;
+	}
+
+	op_data->op_projid = fsxattr.fsx_projid;
+	op_data->op_xvalid |= OP_XVALID_PROJID;
+	rc = md_setattr(ll_i2sbi(inode)->ll_md_exp, op_data, NULL,
+			0, &req);
+	ptlrpc_req_finished(req);
+
+out_fsxattr:
+	ll_finish_md_op_data(op_data);
+	return rc;
+}
+
 static long
 ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -2532,6 +2585,10 @@ out_ladvise:
 		kfree(ladvise_hdr);
 		return rc;
 	}
+	case FS_IOC_FSGETXATTR:
+		return ll_ioctl_fsgetxattr(inode, cmd, arg);
+	case FS_IOC_FSSETXATTR:
+		return ll_ioctl_fssetxattr(inode, cmd, arg);
 	default: {
 		int err;
 

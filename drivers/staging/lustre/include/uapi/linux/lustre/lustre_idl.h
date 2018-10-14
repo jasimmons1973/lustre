@@ -1562,7 +1562,7 @@ struct mdt_rec_setattr {
 	__u32		sa_attr_flags;
 	__u32		sa_mode;
 	__u32		sa_bias;      /* some operation flags */
-	__u32		sa_padding_3;
+	__u32		sa_projid;
 	__u32		sa_padding_4;
 	__u32		sa_padding_5;
 };
@@ -1590,7 +1590,8 @@ struct mdt_rec_setattr {
 #define MDS_ATTR_FROM_OPEN	0x4000ULL /* = 16384, called from open path,
 					   * ie O_TRUNC
 					   */
-#define MDS_ATTR_BLOCKS		0x8000ULL /* = 32768 */
+#define MDS_ATTR_BLOCKS		0x8000ULL  /* = 32768 */
+#define MDS_ATTR_PROJID		0x10000ULL /* = 65536 */
 
 #define MDS_FMODE_CLOSED	00000000
 #define MDS_FMODE_EXEC		00000004

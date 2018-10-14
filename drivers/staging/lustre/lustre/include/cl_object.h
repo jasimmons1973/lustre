@@ -165,6 +165,9 @@ struct cl_attr {
 
 	/* nlink of the directory */
 	__u64  cat_nlink;
+
+	/* Project identifier for quota purpose. */
+	u32	cat_projid;
 };
 
 /**
@@ -178,7 +181,8 @@ enum cl_attr_valid {
 	CAT_CTIME  = 1 << 5,
 	CAT_BLOCKS = 1 << 6,
 	CAT_UID    = 1 << 7,
-	CAT_GID    = 1 << 8
+	CAT_GID		= BIT(8),
+	CAT_PROJID	= BIT(9),
 };
 
 /**

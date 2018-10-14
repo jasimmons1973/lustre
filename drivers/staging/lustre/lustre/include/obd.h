@@ -670,6 +670,7 @@ enum op_xvalid {
 	OP_XVALID_BLOCKS	= BIT(1),	/* 0x0002 */
 	OP_XVALID_OWNEROVERRIDE	= BIT(2),	/* 0x0004 */
 	OP_XVALID_FLAGS		= BIT(3),	/* 0x0008 */
+	OP_XVALID_PROJID	= BIT(4),	/* 0x0010 */
 };
 
 struct lu_context;
@@ -770,6 +771,8 @@ struct md_op_data {
 
 	/* default stripe offset */
 	__u32			op_default_stripe_offset;
+
+	u32			op_projid;
 };
 
 struct md_callback {

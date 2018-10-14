@@ -1667,7 +1667,10 @@ migrate_free:
 
 		return rc;
 	}
-
+	case FS_IOC_FSGETXATTR:
+		return ll_ioctl_fsgetxattr(inode, cmd, arg);
+	case FS_IOC_FSSETXATTR:
+		return ll_ioctl_fssetxattr(inode, cmd, arg);
 	default:
 		return obd_iocontrol(cmd, sbi->ll_dt_exp, 0, NULL,
 				     (void __user *)arg);
