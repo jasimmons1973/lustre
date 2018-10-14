@@ -2178,6 +2178,8 @@ int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
 	struct ptlrpc_request *req = NULL;
 	struct md_op_data *op_data;
 	struct fsxattr fsxattr;
+	struct cl_object *obj;
+	struct iattr *attr;
 	int rc = 0;
 	int flags;
 
@@ -2206,8 +2208,23 @@ int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
 	rc = md_setattr(ll_i2sbi(inode)->ll_md_exp, op_data, NULL,
 			0, &req);
 	ptlrpc_req_finished(req);
-	ll_update_inode_flags(inode, op_data->op_attr_flags);
+	if (rc)
+		goto out_fsxattr;
 
+	ll_update_inode_flags(inode, op_data->op_attr_flags);
+	obj = ll_i2info(inode)->lli_clob;
+	if (!obj)
+		goto out_fsxattr;
+
+	attr = kzalloc(sizeof(*attr), GFP_KERNEL);
+	if (!attr) {
+		rc = -ENOMEM;
+		goto out_fsxattr;
+	}
+
+	rc = cl_setattr_ost(obj, attr, OP_XVALID_FLAGS,
+			    fsxattr.fsx_xflags);
+	kfree(attr);
 out_fsxattr:
 	ll_finish_md_op_data(op_data);
 	return rc;
