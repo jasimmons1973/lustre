@@ -1073,6 +1073,7 @@ static int ll_unlink(struct inode *dir, struct dentry *dchild)
 {
 	struct ptlrpc_request *request = NULL;
 	struct md_op_data *op_data;
+	struct mdt_body *body;
 	int rc;
 
 	CDEBUG(D_VFSTRACE, "VFS Op:name=%pd,dir=%lu/%u(%p)\n",
@@ -1085,14 +1086,21 @@ static int ll_unlink(struct inode *dir, struct dentry *dchild)
 	if (IS_ERR(op_data))
 		return PTR_ERR(op_data);
 
-	if (dchild->d_inode)
-		op_data->op_fid3 = *ll_inode2fid(dchild->d_inode);
+	op_data->op_fid3 = *ll_inode2fid(dchild->d_inode);
 
 	op_data->op_fid2 = op_data->op_fid3;
 	rc = md_unlink(ll_i2sbi(dir)->ll_md_exp, op_data, &request);
 	ll_finish_md_op_data(op_data);
 	if (rc)
 		goto out;
+
+	/*
+	 * The server puts attributes in on the last unlink, use them to update
+	 * the link count so the inode can be freed immediately.
+	 */
+	body = req_capsule_server_get(&request->rq_pill, &RMF_MDT_BODY);
+	if (body->mbo_valid & OBD_MD_FLNLINK)
+		set_nlink(dchild->d_inode, body->mbo_nlink);
 
 	ll_update_times(request, dir);
 	ll_stats_ops_tally(ll_i2sbi(dir), LPROC_LL_UNLINK, 1);
