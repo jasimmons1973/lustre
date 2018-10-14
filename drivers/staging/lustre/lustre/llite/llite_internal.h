@@ -651,15 +651,27 @@ static inline struct inode *ll_info2i(struct ll_inode_info *lli)
 __u32 ll_i2suppgid(struct inode *i);
 void ll_i2gids(__u32 *suppgids, struct inode *i1, struct inode *i2);
 
-static inline int ll_need_32bit_api(struct ll_sb_info *sbi)
+static inline bool ll_need_32bit_api(struct ll_sb_info *sbi)
 {
 #if BITS_PER_LONG == 32
-	return 1;
-#elif defined(CONFIG_COMPAT)
-	return unlikely(in_compat_syscall() ||
-			(sbi->ll_flags & LL_SBI_32BIT_API));
+	return true;
 #else
-	return unlikely(sbi->ll_flags & LL_SBI_32BIT_API);
+	if (unlikely(sbi->ll_flags & LL_SBI_32BIT_API))
+		return true;
+
+#if defined(CONFIG_COMPAT)
+	/* in_compat_syscall() is only meaningful inside a syscall.
+	 * As this can be called from a kthread (e.g. nfsd), we
+	 * need to catch that case first.  kthreads never need the
+	 * 32bit api.
+	 */
+	if (current->flags & PF_KTHREAD)
+		return false;
+
+	return unlikely(in_compat_syscall());
+#else
+	return false;
+#endif
 #endif
 }
 
@@ -1353,7 +1365,7 @@ extern u16 cl_inode_fini_refcheck;
 int cl_file_inode_init(struct inode *inode, struct lustre_md *md);
 void cl_inode_fini(struct inode *inode);
 
-__u64 cl_fid_build_ino(const struct lu_fid *fid, int api32);
+u64 cl_fid_build_ino(const struct lu_fid *fid, bool api32);
 __u32 cl_fid_build_gen(const struct lu_fid *fid);
 
 #endif /* LLITE_INTERNAL_H */

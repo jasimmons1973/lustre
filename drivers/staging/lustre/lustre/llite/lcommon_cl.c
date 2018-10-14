@@ -267,7 +267,7 @@ void cl_inode_fini(struct inode *inode)
 /**
  * build inode number from passed @fid
  */
-__u64 cl_fid_build_ino(const struct lu_fid *fid, int api32)
+u64 cl_fid_build_ino(const struct lu_fid *fid, bool api32)
 {
 	if (BITS_PER_LONG == 32 || api32)
 		return fid_flatten32(fid);
