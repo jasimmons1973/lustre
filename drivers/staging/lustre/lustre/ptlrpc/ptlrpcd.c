@@ -371,7 +371,7 @@ static int ptlrpcd_check(struct lu_env *env, struct ptlrpcd_ctl *pc)
 		}
 	}
 
-	return rc;
+	return rc || test_bit(LIOD_STOP, &pc->pc_flags);
 }
 
 /**
@@ -439,9 +439,11 @@ static int ptlrpcd(void *arg)
 
 		lu_context_enter(&env.le_ctx);
 		lu_context_enter(env.le_ses);
-		if (wait_event_idle_timeout(set->set_waitq,
-					    ptlrpcd_check(&env, pc),
-					    (timeout ? timeout : 1) * HZ) == 0)
+		/* If timeout==0, wait indefinitely */
+		if (wait_event_idle_timeout(
+			    set->set_waitq,
+			    ptlrpcd_check(&env, pc),
+			    timeout ? (timeout * HZ) : MAX_SCHEDULE_TIMEOUT) == 0)
 			ptlrpc_expired_set(set);
 
 		lu_context_exit(&env.le_ctx);
