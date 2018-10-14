@@ -96,6 +96,12 @@ enum {
 	LDLM_LRU_FLAG_NO_WAIT	= BIT(4), /* Cancel locks w/o blocking (neither
 					   * sending nor waiting for any rpcs)
 					   */
+	LDLM_LRU_FLAG_CLEANUP	= BIT(5), /* Used when clearing lru, tells
+					   * prepare_lru_list to set discard
+					   * flag on PR extent locks so we
+					   * don't waste time saving pages
+					   * that will be discarded momentarily
+					   */
 };
 
 int ldlm_cancel_lru(struct ldlm_namespace *ns, int nr,

@@ -380,7 +380,7 @@ out:
 }
 
 static int osc_lock_flush(struct osc_object *obj, pgoff_t start, pgoff_t end,
-			  enum cl_lock_mode mode, int discard)
+			  enum cl_lock_mode mode, bool discard)
 {
 	struct lu_env *env;
 	u16 refcheck;
@@ -401,7 +401,7 @@ static int osc_lock_flush(struct osc_object *obj, pgoff_t start, pgoff_t end,
 			rc = 0;
 	}
 
-	rc2 = osc_lock_discard_pages(env, obj, start, end, mode);
+	rc2 = osc_lock_discard_pages(env, obj, start, end, discard);
 	if (rc == 0 && rc2 < 0)
 		rc = rc2;
 
@@ -417,10 +417,10 @@ static int osc_dlm_blocking_ast0(const struct lu_env *env,
 				 struct ldlm_lock *dlmlock,
 				 void *data, int flag)
 {
+	enum cl_lock_mode mode = CLM_READ;
 	struct cl_object *obj = NULL;
 	int result = 0;
-	int discard;
-	enum cl_lock_mode mode = CLM_READ;
+	bool discard;
 
 	LASSERT(flag == LDLM_CB_CANCELING);
 
@@ -1098,7 +1098,7 @@ static void osc_lock_lockless_cancel(const struct lu_env *env,
 
 	LASSERT(!ols->ols_dlmlock);
 	result = osc_lock_flush(osc, descr->cld_start, descr->cld_end,
-				descr->cld_mode, 0);
+				descr->cld_mode, false);
 	if (result)
 		CERROR("Pages for lockless lock %p were not purged(%d)\n",
 		       ols, result);
