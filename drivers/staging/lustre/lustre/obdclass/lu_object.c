@@ -1655,16 +1655,19 @@ void lu_context_exit(struct lu_context *ctx)
 
 	LINVRNT(ctx->lc_state == LCS_ENTERED);
 	/*
+	 * Disable preempt to ensure we get a warning if
+	 * any lct_exit ever tries to sleep.  That would hurt
+	 * lu_context_key_quiesce() which spins waiting for us.
+	 * This also ensure we aren't preempted while the state
+	 * is LCS_LEAVING, as that too would cause problems for
+	 * lu_context_key_quiesce().
+	 */
+	preempt_disable();
+	/*
 	 * Ensure lu_context_key_quiesce() sees LCS_LEAVING
 	 * or we see LCT_QUIESCENT
 	 */
 	smp_store_mb(ctx->lc_state, LCS_LEAVING);
-	/*
-	 * Disable preempt to ensure we get a warning if
-	 * any lct_exit ever tries to sleep.  That would hurt
-	 * lu_context_key_quiesce() which spins waiting for us.
-	 */
-	preempt_disable();
 	if (ctx->lc_tags & LCT_HAS_EXIT && ctx->lc_value) {
 		for (i = 0; i < ARRAY_SIZE(lu_keys); ++i) {
 			struct lu_context_key *key;
@@ -1677,8 +1680,8 @@ void lu_context_exit(struct lu_context *ctx)
 		}
 	}
 
-	preempt_enable();
 	smp_store_release(&ctx->lc_state, LCS_LEFT);
+	preempt_enable();
 }
 EXPORT_SYMBOL(lu_context_exit);
 
