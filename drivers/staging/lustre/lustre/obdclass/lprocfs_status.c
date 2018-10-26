@@ -1868,11 +1868,12 @@ ssize_t max_pages_per_rpc_store(struct kobject *kobj, struct attribute *attr,
 	struct obd_connect_data *ocd;
 	unsigned long long val;
 	int chunk_mask;
+	char *endp;
 	int rc;
 
-	rc = kstrtoull(buffer, 10, &val);
-	if (rc)
-		return rc;
+	val = memparse(buffer, &endp);
+	if (*endp)
+		return -EINVAL;
 
 	/* if the max_pages is specified in bytes, convert to pages */
 	if (val >= ONE_MB_BRW_SIZE)
