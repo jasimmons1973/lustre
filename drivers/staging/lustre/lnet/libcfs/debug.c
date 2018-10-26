@@ -224,7 +224,7 @@ char libcfs_debug_file_path_arr[PATH_MAX] = LIBCFS_DEBUG_FILE_PATH_DEFAULT;
 EXPORT_SYMBOL(libcfs_debug_file_path_arr);
 
 /* We need to pass a pointer here, but elsewhere this must be a const */
-static char *libcfs_debug_file_path;
+static char *libcfs_debug_file_path = LIBCFS_DEBUG_FILE_PATH_DEFAULT;
 module_param(libcfs_debug_file_path, charp, 0644);
 MODULE_PARM_DESC(libcfs_debug_file_path,
 		 "Path for dumping debug logs, set 'NONE' to prevent log dumping");
