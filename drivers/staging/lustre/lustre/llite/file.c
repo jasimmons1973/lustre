@@ -615,7 +615,7 @@ restart:
 
 			goto restart;
 		}
-		*och_p = kzalloc(sizeof(**och_p), GFP_KERNEL);
+		*och_p = kzalloc(sizeof(**och_p), GFP_NOFS);
 		if (!*och_p) {
 			rc = -ENOMEM;
 			goto out_och_free;
