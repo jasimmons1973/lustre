@@ -812,7 +812,14 @@ struct kib_conn *kiblnd_create_conn(struct kib_peer_ni *peer_ni,
 
 	conn->ibc_sched = sched;
 
-	rc = rdma_create_qp(cmid, conn->ibc_hdev->ibh_pd, init_qp_attr);
+	do {
+		rc = rdma_create_qp(cmid, conn->ibc_hdev->ibh_pd, init_qp_attr);
+		if (!rc || init_qp_attr->cap.max_send_wr < 16)
+			break;
+
+		init_qp_attr->cap.max_send_wr -= init_qp_attr->cap.max_send_wr / 4;
+	} while (rc);
+
 	if (rc) {
 		CERROR("Can't create QP: %d, send_wr: %d, recv_wr: %d, send_sge: %d, recv_sge: %d\n",
 		       rc, init_qp_attr->cap.max_send_wr,
@@ -821,6 +828,10 @@ struct kib_conn *kiblnd_create_conn(struct kib_peer_ni *peer_ni,
 		       init_qp_attr->cap.max_recv_sge);
 		goto failed_2;
 	}
+
+	if (init_qp_attr->cap.max_send_wr != IBLND_SEND_WRS(conn))
+		CDEBUG(D_NET, "original send wr %d, created with %d\n",
+		       IBLND_SEND_WRS(conn), init_qp_attr->cap.max_send_wr);
 
 	kfree(init_qp_attr);
 
