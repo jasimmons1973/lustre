@@ -130,7 +130,6 @@ static int kiblnd_msgtype2size(int type)
 static int kiblnd_unpack_rd(struct kib_msg *msg, int flip)
 {
 	struct kib_rdma_desc *rd;
-	int msg_size;
 	int nob;
 	int n;
 	int i;
@@ -149,19 +148,18 @@ static int kiblnd_unpack_rd(struct kib_msg *msg, int flip)
 
 	n = rd->rd_nfrags;
 
+	if (n <= 0 || n > IBLND_MAX_RDMA_FRAGS) {
+		CERROR("Bad nfrags: %d, should be 0 < n <= %d\n",
+		       n, IBLND_MAX_RDMA_FRAGS);
+		return 1;
+	}
+
 	nob = offsetof(struct kib_msg, ibm_u) +
 	      kiblnd_rd_msg_size(rd, msg->ibm_type, n);
 
 	if (msg->ibm_nob < nob) {
 		CERROR("Short %s: %d(%d)\n",
 		       kiblnd_msgtype2str(msg->ibm_type), msg->ibm_nob, nob);
-		return 1;
-	}
-
-	msg_size = kiblnd_rd_size(rd);
-	if (msg_size <= 0 || msg_size > LNET_MAX_PAYLOAD) {
-		CERROR("Bad msg_size: %d, should be 0 < n <= %d\n",
-		       msg_size, LNET_MAX_PAYLOAD);
 		return 1;
 	}
 
@@ -336,7 +334,7 @@ int kiblnd_create_peer(struct lnet_ni *ni, struct kib_peer_ni **peerp,
 	peer_ni->ibp_nid = nid;
 	peer_ni->ibp_error = 0;
 	peer_ni->ibp_last_alive = 0;
-	peer_ni->ibp_max_frags = kiblnd_cfg_rdma_frags(peer_ni->ibp_ni);
+	peer_ni->ibp_max_frags = IBLND_MAX_RDMA_FRAGS;
 	peer_ni->ibp_queue_depth = ni->ni_net->net_tunables.lct_peer_tx_credits;
 	atomic_set(&peer_ni->ibp_refcount, 1);  /* 1 ref for caller */
 
@@ -782,6 +780,12 @@ struct kib_conn *kiblnd_create_conn(struct kib_peer_ni *peer_ni,
 			  kiblnd_cq_completion, kiblnd_cq_event, conn,
 			  &cq_attr);
 	if (IS_ERR(cq)) {
+		/*
+		 * on MLX-5 (possibly MLX-4 as well) this error could be
+		 * hit if the concurrent_sends and/or peer_tx_credits is set
+		 * too high. Or due to an MLX-5 bug which tries to
+		 * allocate 256kb via kmalloc for WR cookie array
+		 */
 		CERROR("Failed to create CQ with %d CQEs: %ld\n",
 		       IBLND_CQ_ENTRIES(conn), PTR_ERR(cq));
 		goto failed_2;
@@ -1654,7 +1658,7 @@ void kiblnd_fmr_pool_unmap(struct kib_fmr *fmr, int status)
 
 int kiblnd_fmr_pool_map(struct kib_fmr_poolset *fps, struct kib_tx *tx,
 			struct kib_rdma_desc *rd, __u32 nob, __u64 iov,
-			struct kib_fmr *fmr, bool *is_fastreg)
+			struct kib_fmr *fmr)
 {
 	__u64 *pages = tx->tx_pages;
 	bool is_rx = (rd != tx->tx_rd);
@@ -1674,7 +1678,6 @@ int kiblnd_fmr_pool_map(struct kib_fmr_poolset *fps, struct kib_tx *tx,
 		if (fpo->fpo_is_fmr) {
 			struct ib_pool_fmr *pfmr;
 
-			*is_fastreg = 0;
 			spin_unlock(&fps->fps_lock);
 
 			if (!tx_pages_mapped) {
@@ -1694,7 +1697,6 @@ int kiblnd_fmr_pool_map(struct kib_fmr_poolset *fps, struct kib_tx *tx,
 			}
 			rc = PTR_ERR(pfmr);
 		} else {
-			*is_fastreg = 1;
 			if (!list_empty(&fpo->fast_reg.fpo_pool_list)) {
 				struct kib_fast_reg_descriptor *frd;
 				struct ib_reg_wr *wr;

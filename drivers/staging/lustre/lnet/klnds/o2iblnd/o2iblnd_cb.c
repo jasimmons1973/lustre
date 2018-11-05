@@ -133,6 +133,8 @@ kiblnd_get_idle_tx(struct lnet_ni *ni, lnet_nid_t target)
 	LASSERT(!tx->tx_lntmsg[1]);
 	LASSERT(!tx->tx_nfrags);
 
+	tx->tx_gaps = false;
+
 	return tx;
 }
 
@@ -538,7 +540,7 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 {
 	struct kib_hca_dev *hdev;
 	struct kib_fmr_poolset *fps;
-	bool is_fastreg = 0;
+	struct kib_dev *dev;
 	int cpt;
 	int rc;
 	int i;
@@ -546,11 +548,42 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 	LASSERT(tx->tx_pool);
 	LASSERT(tx->tx_pool->tpo_pool.po_owner);
 
+	dev = net->ibn_dev;
 	hdev = tx->tx_pool->tpo_hdev;
 	cpt = tx->tx_pool->tpo_pool.po_owner->ps_cpt;
 
+	/*
+	 * If we're dealing with FastReg, but the device doesn't
+	 * support GAPS and the tx has GAPS, then there is no real point
+	 * in trying to map the memory, because it'll just fail. So
+	 * preemptively fail with an appropriate message
+	 */
+	if ((dev->ibd_dev_caps & IBLND_DEV_CAPS_FASTREG_ENABLED) &&
+	    !(dev->ibd_dev_caps & IBLND_DEV_CAPS_FASTREG_GAPS_SUPPORT) &&
+	    tx->tx_gaps) {
+		CERROR("Using FastReg with no GAPS support, but tx has gaps\n");
+		return -EPROTONOSUPPORT;
+	}
+
+	/*
+	 * FMR does not support gaps but the tx has gaps then
+	 * we should make sure that the number of fragments we'll be sending
+	 * over fits within the number of fragments negotiated on the
+	 * connection, otherwise, we won't be able to RDMA the data.
+	 * We need to maintain the number of fragments negotiation on the
+	 * connection for backwards compatibility.
+	 */
+	if (tx->tx_gaps && (dev->ibd_dev_caps & IBLND_DEV_CAPS_FMR_ENABLED)) {
+		if (tx->tx_conn &&
+		    tx->tx_conn->ibc_max_frags <= rd->rd_nfrags) {
+			CERROR("TX number of frags (%d) is <= than connection number of frags (%d). Consider setting peer's map_on_demand to 256\n",
+			       tx->tx_nfrags, tx->tx_conn->ibc_max_frags);
+			return -EFBIG;
+		}
+	}
+
 	fps = net->ibn_fmr_ps[cpt];
-	rc = kiblnd_fmr_pool_map(fps, tx, rd, nob, 0, &tx->fmr, &is_fastreg);
+	rc = kiblnd_fmr_pool_map(fps, tx, rd, nob, 0, &tx->tx_fmr);
 	if (rc) {
 		CERROR("Can't map %u bytes: %d\n", nob, rc);
 		return rc;
@@ -560,15 +593,28 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 	 * If rd is not tx_rd, it's going to get sent to a peer_ni,
 	 * who will need the rkey
 	 */
-	rd->rd_key = tx->fmr.fmr_key;
-	if (!is_fastreg) {
+	rd->rd_key = tx->tx_fmr.fmr_key;
+	/*
+	 * for FastReg or FMR with no gaps we can accumulate all
+	 * the fragments in one FastReg or FMR fragment.
+	 */
+	if (((dev->ibd_dev_caps & IBLND_DEV_CAPS_FMR_ENABLED) && !tx->tx_gaps) ||
+	    (dev->ibd_dev_caps & IBLND_DEV_CAPS_FASTREG_ENABLED)) {
+		/* FMR requires zero based address */
+		if (dev->ibd_dev_caps & IBLND_DEV_CAPS_FMR_ENABLED)
+			rd->rd_frags[0].rf_addr &= ~hdev->ibh_page_mask;
+		rd->rd_frags[0].rf_nob = nob;
+		rd->rd_nfrags = 1;
+	} else {
+		/*
+		 * We're transmitting with gaps using FMR.
+		 * We'll need to use multiple fragments and identify the
+		 * zero based address of each fragment.
+		 */
 		for (i = 0; i < rd->rd_nfrags; i++) {
 			rd->rd_frags[i].rf_addr &= ~hdev->ibh_page_mask;
 			rd->rd_frags[i].rf_addr += i << hdev->ibh_page_shift;
 		}
-	} else {
-		rd->rd_frags[0].rf_nob = nob;
-		rd->rd_nfrags = 1;
 	}
 
 	return 0;
@@ -576,8 +622,8 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 
 static void kiblnd_unmap_tx(struct kib_tx *tx)
 {
-	if (tx->fmr.fmr_pfmr || tx->fmr.fmr_frd)
-		kiblnd_fmr_pool_unmap(&tx->fmr, tx->tx_status);
+	if (tx->tx_fmr.fmr_pfmr || tx->tx_fmr.fmr_frd)
+		kiblnd_fmr_pool_unmap(&tx->tx_fmr, tx->tx_status);
 
 	if (tx->tx_nfrags) {
 		kiblnd_dma_unmap_sg(tx->tx_pool->tpo_hdev->ibh_ibdev,
@@ -656,6 +702,13 @@ kiblnd_setup_rd_iov(struct lnet_ni *ni, struct kib_tx *tx,
 		fragnob = min((int)(iov->iov_len - offset), nob);
 		fragnob = min(fragnob, (int)PAGE_SIZE - page_offset);
 
+		if ((fragnob < (int)PAGE_SIZE - page_offset) && (niov > 1)) {
+			CDEBUG(D_NET,
+			       "fragnob %d < available page %d: with remaining %d iovs\n",
+			       fragnob, (int)PAGE_SIZE - page_offset, niov);
+			tx->tx_gaps = true;
+		}
+
 		sg_set_page(sg, page, fragnob, page_offset);
 		sg = sg_next(sg);
 		if (!sg) {
@@ -704,6 +757,13 @@ kiblnd_setup_rd_kiov(struct lnet_ni *ni, struct kib_tx *tx,
 
 		fragnob = min((int)(kiov->bv_len - offset), nob);
 
+		if ((fragnob < (int)(kiov->bv_len - offset)) && nkiov > 1) {
+			CDEBUG(D_NET,
+			       "fragnob %d < available page %d: with remaining %d kiovs\n",
+			       fragnob, (int)(kiov->bv_len - offset), nkiov);
+			tx->tx_gaps = true;
+		}
+
 		sg_set_page(sg, kiov->bv_page, fragnob,
 			    kiov->bv_offset + offset);
 		sg = sg_next(sg);
@@ -735,6 +795,7 @@ kiblnd_post_tx_locked(struct kib_conn *conn, struct kib_tx *tx, int credit)
 	LASSERT(tx->tx_queued);
 	/* We rely on this for QP sizing */
 	LASSERT(tx->tx_nwrq > 0 && tx->tx_nsge >= 0);
+	LASSERT(tx->tx_nwrq <= 1 + conn->ibc_max_frags);
 
 	LASSERT(!credit || credit == 1);
 	LASSERT(conn->ibc_outstanding_credits >= 0);
@@ -814,7 +875,7 @@ kiblnd_post_tx_locked(struct kib_conn *conn, struct kib_tx *tx, int credit)
 		/* close_conn will launch failover */
 		rc = -ENETDOWN;
 	} else {
-		struct kib_fast_reg_descriptor *frd = tx->fmr.fmr_frd;
+		struct kib_fast_reg_descriptor *frd = tx->tx_fmr.fmr_frd;
 		const struct ib_send_wr *bad = &tx->tx_wrq[tx->tx_nwrq - 1].wr;
 		struct ib_send_wr *wrq = &tx->tx_wrq[0].wr;
 
@@ -1042,15 +1103,6 @@ kiblnd_init_rdma(struct kib_conn *conn, struct kib_tx *tx, int type,
 	LASSERT(!tx->tx_nwrq && !tx->tx_nsge);
 	LASSERT(type == IBLND_MSG_GET_DONE || type == IBLND_MSG_PUT_DONE);
 
-	if (kiblnd_rd_size(srcrd) > conn->ibc_max_frags << PAGE_SHIFT) {
-		CERROR("RDMA is too large for peer_ni %s (%d), src size: %d dst size: %d\n",
-		       libcfs_nid2str(conn->ibc_peer->ibp_nid),
-		       conn->ibc_max_frags << PAGE_SHIFT,
-		       kiblnd_rd_size(srcrd), kiblnd_rd_size(dstrd));
-		rc = -EMSGSIZE;
-		goto too_big;
-	}
-
 	for (srcidx = dstidx = wrq_sge = sge_nob = 0;
 	     resid > 0; resid -= sge_nob) {
 		int prev = dstidx;
@@ -1067,10 +1119,10 @@ kiblnd_init_rdma(struct kib_conn *conn, struct kib_tx *tx, int type,
 			break;
 		}
 
-		if (tx->tx_nwrq >= IBLND_MAX_RDMA_FRAGS) {
+		if (tx->tx_nwrq >= conn->ibc_max_frags) {
 			CERROR("RDMA has too many fragments for peer_ni %s (%d), src idx/frags: %d/%d dst idx/frags: %d/%d\n",
 			       libcfs_nid2str(conn->ibc_peer->ibp_nid),
-			       IBLND_MAX_RDMA_FRAGS,
+			       conn->ibc_max_frags,
 			       srcidx, srcrd->rd_nfrags,
 			       dstidx, dstrd->rd_nfrags);
 			rc = -EMSGSIZE;
@@ -1110,7 +1162,7 @@ kiblnd_init_rdma(struct kib_conn *conn, struct kib_tx *tx, int type,
 		}
 		tx->tx_nsge++;
 	}
-too_big:
+
 	if (rc < 0) { /* no RDMA if completing with failure */
 		tx->tx_nsge = 0;
 		tx->tx_nwrq = 0;
@@ -2335,21 +2387,20 @@ kiblnd_passive_connect(struct rdma_cm_id *cmid, void *priv, int priv_nob)
 		goto failed;
 	}
 
-	max_frags = reqmsg->ibm_u.connparams.ibcp_max_frags >> IBLND_FRAG_SHIFT;
-	if (max_frags > kiblnd_rdma_frags(version, ni)) {
+	max_frags = reqmsg->ibm_u.connparams.ibcp_max_frags;
+	if (max_frags > IBLND_MAX_RDMA_FRAGS) {
 		CWARN("Can't accept conn from %s (version %x): max message size %d is too large (%d wanted)\n",
 		      libcfs_nid2str(nid), version, max_frags,
-		      kiblnd_rdma_frags(version, ni));
+		      IBLND_MAX_RDMA_FRAGS);
 
 		if (version >= IBLND_MSG_VERSION)
 			rej.ibr_why = IBLND_REJECT_RDMA_FRAGS;
 
 		goto failed;
-	} else if (max_frags < kiblnd_rdma_frags(version, ni) &&
-		   !net->ibn_fmr_ps) {
+	} else if (max_frags < IBLND_MAX_RDMA_FRAGS && !net->ibn_fmr_ps) {
 		CWARN("Can't accept conn from %s (version %x): max message size %d incompatible without FMR pool (%d wanted)\n",
 		      libcfs_nid2str(nid), version, max_frags,
-		      kiblnd_rdma_frags(version, ni));
+		      IBLND_MAX_RDMA_FRAGS);
 
 		if (version == IBLND_MSG_VERSION)
 			rej.ibr_why = IBLND_REJECT_RDMA_FRAGS;
@@ -2495,7 +2546,7 @@ kiblnd_passive_connect(struct rdma_cm_id *cmid, void *priv, int priv_nob)
 	kiblnd_init_msg(ackmsg, IBLND_MSG_CONNACK,
 			sizeof(ackmsg->ibm_u.connparams));
 	ackmsg->ibm_u.connparams.ibcp_queue_depth = conn->ibc_queue_depth;
-	ackmsg->ibm_u.connparams.ibcp_max_frags = conn->ibc_max_frags << IBLND_FRAG_SHIFT;
+	ackmsg->ibm_u.connparams.ibcp_max_frags = conn->ibc_max_frags;
 	ackmsg->ibm_u.connparams.ibcp_max_msg_size = IBLND_MSG_SIZE;
 
 	kiblnd_pack_msg(ni, ackmsg, version, 0, nid, reqmsg->ibm_srcstamp);
@@ -2528,7 +2579,7 @@ kiblnd_passive_connect(struct rdma_cm_id *cmid, void *priv, int priv_nob)
  failed:
 	if (ni) {
 		rej.ibr_cp.ibcp_queue_depth = kiblnd_msg_queue_size(version, ni);
-		rej.ibr_cp.ibcp_max_frags = kiblnd_rdma_frags(version, ni);
+		rej.ibr_cp.ibcp_max_frags = IBLND_MAX_RDMA_FRAGS;
 		lnet_ni_decref(ni);
 	}
 
@@ -2556,7 +2607,7 @@ kiblnd_check_reconnect(struct kib_conn *conn, int version,
 
 	if (cp) {
 		msg_size = cp->ibcp_max_msg_size;
-		frag_num	= cp->ibcp_max_frags << IBLND_FRAG_SHIFT;
+		frag_num = cp->ibcp_max_frags;
 		queue_dep = cp->ibcp_queue_depth;
 	}
 
@@ -2590,6 +2641,10 @@ kiblnd_check_reconnect(struct kib_conn *conn, int version,
 			goto out;
 		}
 		tunables = &peer_ni->ibp_ni->ni_lnd_tunables.lnd_tun_u.lnd_o2ib;
+		/*
+		 * This check only makes sense if the kernel supports global
+		 * memory registration. Otherwise, map_on_demand will never == 0
+		 */
 		if (!tunables->lnd_map_on_demand) {
 			reason = "map_on_demand must be enabled";
 			goto out;
@@ -2829,11 +2884,11 @@ kiblnd_check_connreply(struct kib_conn *conn, void *priv, int priv_nob)
 		goto failed;
 	}
 
-	if ((msg->ibm_u.connparams.ibcp_max_frags >> IBLND_FRAG_SHIFT) >
+	if ((msg->ibm_u.connparams.ibcp_max_frags) >
 	    conn->ibc_max_frags) {
 		CERROR("%s has incompatible max_frags %d (<=%d wanted)\n",
 		       libcfs_nid2str(peer_ni->ibp_nid),
-		       msg->ibm_u.connparams.ibcp_max_frags >> IBLND_FRAG_SHIFT,
+		       msg->ibm_u.connparams.ibcp_max_frags,
 		       conn->ibc_max_frags);
 		rc = -EPROTO;
 		goto failed;
@@ -2867,7 +2922,7 @@ kiblnd_check_connreply(struct kib_conn *conn, void *priv, int priv_nob)
 	conn->ibc_credits = msg->ibm_u.connparams.ibcp_queue_depth;
 	conn->ibc_reserved_credits = msg->ibm_u.connparams.ibcp_queue_depth;
 	conn->ibc_queue_depth = msg->ibm_u.connparams.ibcp_queue_depth;
-	conn->ibc_max_frags = msg->ibm_u.connparams.ibcp_max_frags >> IBLND_FRAG_SHIFT;
+	conn->ibc_max_frags = msg->ibm_u.connparams.ibcp_max_frags;
 	LASSERT(conn->ibc_credits + conn->ibc_reserved_credits +
 		IBLND_OOB_MSGS(ver) <= IBLND_RX_MSGS(conn));
 
@@ -2924,7 +2979,7 @@ kiblnd_active_connect(struct rdma_cm_id *cmid)
 	memset(msg, 0, sizeof(*msg));
 	kiblnd_init_msg(msg, IBLND_MSG_CONNREQ, sizeof(msg->ibm_u.connparams));
 	msg->ibm_u.connparams.ibcp_queue_depth = conn->ibc_queue_depth;
-	msg->ibm_u.connparams.ibcp_max_frags = conn->ibc_max_frags << IBLND_FRAG_SHIFT;
+	msg->ibm_u.connparams.ibcp_max_frags = conn->ibc_max_frags;
 	msg->ibm_u.connparams.ibcp_max_msg_size = IBLND_MSG_SIZE;
 
 	kiblnd_pack_msg(peer_ni->ibp_ni, msg, version,
