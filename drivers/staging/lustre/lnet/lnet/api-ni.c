@@ -313,6 +313,44 @@ static void lnet_assert_wire_constants(void)
 	BUILD_BUG_ON((int)sizeof(((struct lnet_hdr *)0)->msg.hello.incarnation) != 8);
 	BUILD_BUG_ON((int)offsetof(struct lnet_hdr, msg.hello.type) != 40);
 	BUILD_BUG_ON((int)sizeof(((struct lnet_hdr *)0)->msg.hello.type) != 4);
+
+	/* Checks for struct lnet_ni_status and related constants */
+	BUILD_BUG_ON(LNET_NI_STATUS_INVALID != 0x00000000);
+	BUILD_BUG_ON(LNET_NI_STATUS_UP != 0x15aac0de);
+	BUILD_BUG_ON(LNET_NI_STATUS_DOWN != 0xdeadface);
+
+	/* Checks for struct lnet_ni_status */
+	BUILD_BUG_ON((int)sizeof(struct lnet_ni_status) != 16);
+	BUILD_BUG_ON((int)offsetof(struct lnet_ni_status, ns_nid) != 0);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_ni_status *)0)->ns_nid) != 8);
+	BUILD_BUG_ON((int)offsetof(struct lnet_ni_status, ns_status) != 8);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_ni_status *)0)->ns_status) != 4);
+	BUILD_BUG_ON((int)offsetof(struct lnet_ni_status, ns_unused) != 12);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_ni_status *)0)->ns_unused) != 4);
+
+	/* Checks for struct lnet_ping_info and related constants */
+	BUILD_BUG_ON(LNET_PROTO_PING_MAGIC != 0x70696E67);
+	BUILD_BUG_ON(LNET_PING_FEAT_INVAL != 0);
+	BUILD_BUG_ON(LNET_PING_FEAT_BASE != 1);
+	BUILD_BUG_ON(LNET_PING_FEAT_NI_STATUS != 2);
+	BUILD_BUG_ON(LNET_PING_FEAT_RTE_DISABLED != 4);
+	BUILD_BUG_ON(LNET_PING_FEAT_MULTI_RAIL != 8);
+	BUILD_BUG_ON(LNET_PING_FEAT_DISCOVERY != 16);
+	BUILD_BUG_ON(LNET_PING_FEAT_BITS != 31);
+
+	/* Checks for struct lnet_ping_info */
+	BUILD_BUG_ON((int)sizeof(struct lnet_ping_info) != 16);
+	BUILD_BUG_ON((int)offsetof(struct lnet_ping_info, pi_magic) != 0);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_ping_info *)0)->pi_magic) != 4);
+	BUILD_BUG_ON((int)offsetof(struct lnet_ping_info, pi_features) != 4);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_ping_info *)0)->pi_features)
+		     != 4);
+	BUILD_BUG_ON((int)offsetof(struct lnet_ping_info, pi_pid) != 8);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_ping_info *)0)->pi_pid) != 4);
+	BUILD_BUG_ON((int)offsetof(struct lnet_ping_info, pi_nnis) != 12);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_ping_info *)0)->pi_nnis) != 4);
+	BUILD_BUG_ON((int)offsetof(struct lnet_ping_info, pi_ni) != 16);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_ping_info *)0)->pi_ni) != 0);
 }
 
 static struct lnet_lnd *

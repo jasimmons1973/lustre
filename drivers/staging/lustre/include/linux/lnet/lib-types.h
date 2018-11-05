@@ -379,36 +379,6 @@ struct lnet_ni {
 #define LNET_PROTO_PING_MATCHBITS	0x8000000000000000LL
 
 /*
- * NB: value of these features equal to LNET_PROTO_PING_VERSION_x
- * of old LNet, so there shouldn't be any compatibility issue
- */
-#define LNET_PING_FEAT_INVAL		(0)		/* no feature */
-#define LNET_PING_FEAT_BASE		BIT(0)	/* just a ping */
-#define LNET_PING_FEAT_NI_STATUS	BIT(1)	/* return NI status */
-#define LNET_PING_FEAT_RTE_DISABLED	BIT(2)	/* Routing enabled */
-#define LNET_PING_FEAT_MULTI_RAIL	BIT(3)	/* Multi-Rail aware */
-#define LNET_PING_FEAT_DISCOVERY	BIT(4)	/* Supports Discovery */
-
-/*
- * All ping feature bits fit to hit the wire.
- * In lnet_assert_wire_constants() this is compared against its open-coded
- * value, and in lnet_ping_target_update() it is used to verify that no
- * unknown bits have been set.
- * New feature bits can be added, just be aware that this does change the
- * over-the-wire protocol.
- */
-#define LNET_PING_FEAT_BITS		(LNET_PING_FEAT_BASE | \
-					 LNET_PING_FEAT_NI_STATUS | \
-					 LNET_PING_FEAT_RTE_DISABLED | \
-					 LNET_PING_FEAT_MULTI_RAIL | \
-					 LNET_PING_FEAT_DISCOVERY)
-
-#define LNET_PING_INFO_SIZE(NNIDS) \
-	offsetof(struct lnet_ping_info, pi_ni[NNIDS])
-#define LNET_PING_INFO_LONI(PINFO)	((PINFO)->pi_ni[0].ns_nid)
-#define LNET_PING_INFO_SEQNO(PINFO)	((PINFO)->pi_ni[0].ns_status)
-
-/*
  * Descriptor of a ping info buffer: keep a separate indicator of the
  * size and a reference count. The type is used both as a source and
  * sink of data, so we need to keep some information outside of the
