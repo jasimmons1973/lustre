@@ -3301,6 +3301,7 @@ int lnet_get_peer_info(lnet_nid_t *primary_nid, lnet_nid_t *nidp,
 		       void __user *bulk)
 {
 	struct lnet_ioctl_element_stats *lpni_stats;
+	struct lnet_ioctl_element_msg_stats *lpni_msg_stats;
 	struct lnet_peer_ni_credit_info *lpni_info;
 	struct lnet_peer_ni *lpni;
 	struct lnet_peer *lp;
@@ -3315,7 +3316,8 @@ int lnet_get_peer_info(lnet_nid_t *primary_nid, lnet_nid_t *nidp,
 		goto out;
 	}
 
-	size = sizeof(nid) + sizeof(*lpni_info) + sizeof(*lpni_stats);
+	size = sizeof(nid) + sizeof(*lpni_info) + sizeof(*lpni_stats)
+		+ sizeof(*lpni_msg_stats);
 	size *= lp->lp_nnis;
 	if (size > *sizep) {
 		*sizep = size;
@@ -3337,13 +3339,17 @@ int lnet_get_peer_info(lnet_nid_t *primary_nid, lnet_nid_t *nidp,
 	lpni_stats = kzalloc(sizeof(*lpni_stats), GFP_KERNEL);
 	if (!lpni_stats)
 		goto out_free_info;
+	lpni_msg_stats = kzalloc(sizeof(*lpni_msg_stats), GFP_KERNEL);
+	if (!lpni_msg_stats)
+		goto out_free_stats;
+
 
 	lpni = NULL;
 	rc = -EFAULT;
 	while ((lpni = lnet_get_next_peer_ni_locked(lp, NULL, lpni)) != NULL) {
 		nid = lpni->lpni_nid;
 		if (copy_to_user(bulk, &nid, sizeof(nid)))
-			goto out_free_stats;
+			goto out_free_msg_stats;
 		bulk += sizeof(nid);
 
 		memset(lpni_info, 0, sizeof(*lpni_info));
@@ -3362,22 +3368,28 @@ int lnet_get_peer_info(lnet_nid_t *primary_nid, lnet_nid_t *nidp,
 		lpni_info->cr_peer_min_tx_credits = lpni->lpni_mintxcredits;
 		lpni_info->cr_peer_tx_qnob = lpni->lpni_txqnob;
 		if (copy_to_user(bulk, lpni_info, sizeof(*lpni_info)))
-			goto out_free_stats;
+			goto out_free_msg_stats;
 		bulk += sizeof(*lpni_info);
 
 		memset(lpni_stats, 0, sizeof(*lpni_stats));
 		lpni_stats->iel_send_count =
-			atomic_read(&lpni->lpni_stats.send_count);
+			lnet_sum_stats(&lpni->lpni_stats, LNET_STATS_TYPE_SEND);
 		lpni_stats->iel_recv_count =
-			atomic_read(&lpni->lpni_stats.recv_count);
+			lnet_sum_stats(&lpni->lpni_stats, LNET_STATS_TYPE_RECV);
 		lpni_stats->iel_drop_count =
-			atomic_read(&lpni->lpni_stats.drop_count);
+			lnet_sum_stats(&lpni->lpni_stats, LNET_STATS_TYPE_DROP);
 		if (copy_to_user(bulk, lpni_stats, sizeof(*lpni_stats)))
-			goto out_free_stats;
+			goto out_free_msg_stats;
 		bulk += sizeof(*lpni_stats);
+		lnet_usr_translate_stats(lpni_msg_stats, &lpni->lpni_stats);
+		if (copy_to_user(bulk, lpni_msg_stats, sizeof(*lpni_msg_stats)))
+			goto out_free_msg_stats;
+		bulk += sizeof(*lpni_msg_stats);
 	}
 	rc = 0;
 
+out_free_msg_stats:
+	kfree(lpni_msg_stats);
 out_free_stats:
 	kfree(lpni_stats);
 out_free_info:
