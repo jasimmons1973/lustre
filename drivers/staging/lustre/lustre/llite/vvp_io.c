@@ -388,7 +388,10 @@ static int vvp_mmap_locks(const struct lu_env *env,
 	if (!mm)
 		return 0;
 
-	iov_for_each(iov, i, *vio->vui_iter) {
+	for (i = *vio->vui_iter;
+	     i.count;
+	     iov_iter_advance(&i, iov.iov_len)) {
+		iov = iov_iter_iovec(&i);
 		addr = (unsigned long)iov.iov_base;
 		count = iov.iov_len;
 		if (count == 0)

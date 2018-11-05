@@ -478,7 +478,7 @@ struct kib_rx {					/* receive message */
 	enum ib_wc_status      rx_status;     /* completion status */
 	struct kib_msg		*rx_msg;	/* message buffer (host vaddr) */
 	__u64                  rx_msgaddr;    /* message buffer (I/O addr) */
-	DECLARE_PCI_UNMAP_ADDR(rx_msgunmap);  /* for dma_unmap_single() */
+	DEFINE_DMA_UNMAP_ADDR(rx_msgunmap);  /* for dma_unmap_single() */
 	struct ib_recv_wr      rx_wrq;        /* receive work item... */
 	struct ib_sge          rx_sge;        /* ...and its memory */
 };
@@ -501,7 +501,7 @@ struct kib_tx {					/* transmit message */
 	struct lnet_msg		*tx_lntmsg[2];	/* lnet msgs to finalize on completion */
 	struct kib_msg	      *tx_msg;        /* message buffer (host vaddr) */
 	__u64                 tx_msgaddr;     /* message buffer (I/O addr) */
-	DECLARE_PCI_UNMAP_ADDR(tx_msgunmap);  /* for dma_unmap_single() */
+	DEFINE_DMA_UNMAP_ADDR(tx_msgunmap);  /* for dma_unmap_single() */
 	/** sge for tx_msgaddr */
 	struct ib_sge		tx_msgsge;
 	int                   tx_nwrq;        /* # send work items */
