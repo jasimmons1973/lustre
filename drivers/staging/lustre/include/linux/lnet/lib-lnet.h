@@ -76,8 +76,8 @@ extern struct lnet the_lnet;	/* THE network */
 #define LNET_ACCEPTOR_MIN_RESERVED_PORT    512
 #define LNET_ACCEPTOR_MAX_RESERVED_PORT    1023
 
-/* Discovery timeout - same as default peer_timeout */
-#define DISCOVERY_TIMEOUT	180
+/* default timeout */
+#define DEFAULT_PEER_TIMEOUT    180
 
 static inline int lnet_is_route_alive(struct lnet_route *route)
 {
@@ -716,6 +716,7 @@ struct lnet_peer_ni *lnet_nid2peerni_locked(lnet_nid_t nid, lnet_nid_t pref,
 					    int cpt);
 struct lnet_peer_ni *lnet_nid2peerni_ex(lnet_nid_t nid, int cpt);
 struct lnet_peer_ni *lnet_find_peer_ni_locked(lnet_nid_t nid);
+struct lnet_peer *lnet_find_peer(lnet_nid_t nid);
 void lnet_peer_net_added(struct lnet_net *net);
 lnet_nid_t lnet_peer_primary_nid_locked(lnet_nid_t nid);
 int lnet_discover_peer_locked(struct lnet_peer_ni *lpni, int cpt, bool block);
