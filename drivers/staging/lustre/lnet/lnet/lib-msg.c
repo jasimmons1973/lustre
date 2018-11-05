@@ -63,6 +63,7 @@ lnet_build_msg_event(struct lnet_msg *msg, enum lnet_event_kind ev_type)
 	LASSERT(!msg->msg_routing);
 
 	ev->type = ev_type;
+	ev->msg_type = msg->msg_type;
 
 	if (ev_type == LNET_EVENT_SEND) {
 		/* event for active message */
