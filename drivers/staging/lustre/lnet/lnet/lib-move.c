@@ -444,6 +444,8 @@ lnet_prep_send(struct lnet_msg *msg, int type, struct lnet_process_id target,
 
 	memset(&msg->msg_hdr, 0, sizeof(msg->msg_hdr));
 	msg->msg_hdr.type	   = cpu_to_le32(type);
+	/* dest_nid will be overwritten by lnet_select_pathway() */
+	msg->msg_hdr.dest_nid       = cpu_to_le64(target.nid);
 	msg->msg_hdr.dest_pid       = cpu_to_le32(target.pid);
 	/* src_nid will be set later */
 	msg->msg_hdr.src_pid	= cpu_to_le32(the_lnet.ln_pid);
@@ -1292,7 +1294,7 @@ again:
 	 */
 	peer = lpni->lpni_peer_net->lpn_peer;
 	if (lnet_msg_discovery(msg) && !lnet_peer_is_uptodate(peer)) {
-		rc = lnet_discover_peer_locked(lpni, cpt);
+		rc = lnet_discover_peer_locked(lpni, cpt, false);
 		if (rc) {
 			lnet_peer_ni_decref_locked(lpni);
 			lnet_net_unlock(cpt);
@@ -1300,6 +1302,18 @@ again:
 		}
 		/* The peer may have changed. */
 		peer = lpni->lpni_peer_net->lpn_peer;
+		/* queue message and return */
+		msg->msg_src_nid_param = src_nid;
+		msg->msg_rtr_nid_param = rtr_nid;
+		msg->msg_sending = 0;
+		list_add_tail(&msg->msg_list, &peer->lp_dc_pendq);
+		lnet_peer_ni_decref_locked(lpni);
+		lnet_net_unlock(cpt);
+
+		CDEBUG(D_NET, "%s pending discovery\n",
+		       libcfs_nid2str(peer->lp_primary_nid));
+
+		return LNET_DC_WAIT;
 	}
 	lnet_peer_ni_decref_locked(lpni);
 
@@ -1840,7 +1854,7 @@ lnet_send(lnet_nid_t src_nid, struct lnet_msg *msg, lnet_nid_t rtr_nid)
 	if (rc == LNET_CREDIT_OK)
 		lnet_ni_send(msg->msg_txni, msg);
 
-	/* rc == LNET_CREDIT_OK or LNET_CREDIT_WAIT */
+	/* rc == LNET_CREDIT_OK or LNET_CREDIT_WAIT or LNET_DC_WAIT */
 	return 0;
 }
 

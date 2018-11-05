@@ -41,7 +41,14 @@
 
 #define D_LNI D_CONSOLE
 
-struct lnet the_lnet;		/* THE state of the network */
+/*
+ * initialize ln_api_mutex statically, since it needs to be used in
+ * discovery_set callback. That module parameter callback can be called
+ * before module init completes. The mutex needs to be ready for use then.
+ */
+struct lnet the_lnet = {
+	.ln_api_mutex = __MUTEX_INITIALIZER(the_lnet.ln_api_mutex),
+};		/* THE state of the network */
 EXPORT_SYMBOL(the_lnet);
 
 static char *ip2nets = "";
@@ -101,7 +108,9 @@ static int
 discovery_set(const char *val, const struct kernel_param *kp)
 {
 	int rc;
+	unsigned int *discovery = (unsigned int *)kp->arg;
 	unsigned long value;
+	struct lnet_ping_buffer *pbuf;
 
 	rc = kstrtoul(val, 0, &value);
 	if (rc) {
@@ -109,7 +118,38 @@ discovery_set(const char *val, const struct kernel_param *kp)
 		return rc;
 	}
 
-	*(unsigned int *)kp->arg = !!value;
+	value = !!value;
+
+	/*
+	 * The purpose of locking the api_mutex here is to ensure that
+	 * the correct value ends up stored properly.
+	 */
+	mutex_lock(&the_lnet.ln_api_mutex);
+
+	if (value == *discovery) {
+		mutex_unlock(&the_lnet.ln_api_mutex);
+		return 0;
+	}
+
+	*discovery = value;
+
+	if (the_lnet.ln_state == LNET_STATE_SHUTDOWN) {
+		mutex_unlock(&the_lnet.ln_api_mutex);
+		return 0;
+	}
+
+	/* tell peers that discovery setting has changed */
+	lnet_net_lock(LNET_LOCK_EX);
+	pbuf = the_lnet.ln_ping_target;
+	if (value)
+		pbuf->pb_info.pi_features &= ~LNET_PING_FEAT_DISCOVERY;
+	else
+		pbuf->pb_info.pi_features |= LNET_PING_FEAT_DISCOVERY;
+	lnet_net_unlock(LNET_LOCK_EX);
+
+	lnet_push_update_to_peers(1);
+
+	mutex_unlock(&the_lnet.ln_api_mutex);
 
 	return 0;
 }
@@ -171,7 +211,6 @@ lnet_init_locks(void)
 	init_waitqueue_head(&the_lnet.ln_eq_waitq);
 	init_waitqueue_head(&the_lnet.ln_rc_waitq);
 	mutex_init(&the_lnet.ln_lnd_mutex);
-	mutex_init(&the_lnet.ln_api_mutex);
 }
 
 static int
@@ -654,6 +693,10 @@ lnet_prepare(lnet_pid_t requested_pid)
 	INIT_LIST_HEAD(&the_lnet.ln_routers);
 	INIT_LIST_HEAD(&the_lnet.ln_drop_rules);
 	INIT_LIST_HEAD(&the_lnet.ln_delay_rules);
+	INIT_LIST_HEAD(&the_lnet.ln_dc_request);
+	INIT_LIST_HEAD(&the_lnet.ln_dc_working);
+	INIT_LIST_HEAD(&the_lnet.ln_dc_expired);
+	init_waitqueue_head(&the_lnet.ln_dc_waitq);
 
 	rc = lnet_create_remote_nets_table();
 	if (rc)
@@ -998,7 +1041,8 @@ lnet_ping_target_create(int nnis)
 	pbuf->pb_info.pi_nnis = nnis;
 	pbuf->pb_info.pi_pid = the_lnet.ln_pid;
 	pbuf->pb_info.pi_magic = LNET_PROTO_PING_MAGIC;
-	pbuf->pb_info.pi_features = LNET_PING_FEAT_NI_STATUS;
+	pbuf->pb_info.pi_features =
+		LNET_PING_FEAT_NI_STATUS | LNET_PING_FEAT_MULTI_RAIL;
 
 	return pbuf;
 }
@@ -1231,6 +1275,8 @@ lnet_ping_target_update(struct lnet_ping_buffer *pbuf,
 
 	if (!the_lnet.ln_routing)
 		pbuf->pb_info.pi_features |= LNET_PING_FEAT_RTE_DISABLED;
+	if (!lnet_peer_discovery_disabled)
+		pbuf->pb_info.pi_features |= LNET_PING_FEAT_DISCOVERY;
 
 	/* Ensure only known feature bits have been set. */
 	LASSERT(pbuf->pb_info.pi_features & LNET_PING_FEAT_BITS);
@@ -1252,6 +1298,8 @@ lnet_ping_target_update(struct lnet_ping_buffer *pbuf,
 		lnet_ping_md_unlink(old_pbuf, &old_ping_md);
 		lnet_ping_buffer_decref(old_pbuf);
 	}
+
+	lnet_push_update_to_peers(0);
 }
 
 static void
@@ -1353,6 +1401,7 @@ static void lnet_push_target_event_handler(struct lnet_event *ev)
 	if (pbuf->pb_info.pi_magic == __swab32(LNET_PROTO_PING_MAGIC))
 		lnet_swap_pinginfo(pbuf);
 
+	lnet_peer_push_event(ev);
 	if (ev->unlinked)
 		lnet_ping_buffer_decref(pbuf);
 }
@@ -1909,8 +1958,6 @@ int lnet_lib_init(void)
 	int rc;
 
 	lnet_assert_wire_constants();
-
-	memset(&the_lnet, 0, sizeof(the_lnet));
 
 	/* refer to global cfs_cpt_tab for now */
 	the_lnet.ln_cpt_table	= cfs_cpt_tab;
