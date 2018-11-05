@@ -78,6 +78,13 @@ module_param_call(lnet_interfaces_max, intf_max_set, param_get_int,
 MODULE_PARM_DESC(lnet_interfaces_max,
 		 "Maximum number of interfaces in a node.");
 
+unsigned int lnet_peer_discovery_disabled;
+static int discovery_set(const char *val, const struct kernel_param *kp);
+module_param_call(lnet_peer_discovery_disabled, discovery_set, param_get_int,
+		  &lnet_peer_discovery_disabled, 0644);
+MODULE_PARM_DESC(lnet_peer_discovery_disabled,
+		 "Set to 1 to disable peer discovery on this node.");
+
 /*
  * This sequence number keeps track of how many times DLC was used to
  * update the local NIs. It is incremented when a NI is added or
@@ -89,6 +96,23 @@ static atomic_t lnet_dlc_seq_no = ATOMIC_INIT(0);
 
 static int lnet_ping(struct lnet_process_id id, signed long timeout,
 		     struct lnet_process_id __user *ids, int n_ids);
+
+static int
+discovery_set(const char *val, const struct kernel_param *kp)
+{
+	int rc;
+	unsigned long value;
+
+	rc = kstrtoul(val, 0, &value);
+	if (rc) {
+		CERROR("Invalid module parameter value for 'lnet_peer_discovery_disabled'\n");
+		return rc;
+	}
+
+	*(unsigned int *)kp->arg = !!value;
+
+	return 0;
+}
 
 static int
 intf_max_set(const char *val, const struct kernel_param *kp)
@@ -1921,6 +1945,10 @@ LNetNIInit(lnet_pid_t requested_pid)
 	if (rc)
 		goto err_stop_ping;
 
+	rc = lnet_peer_discovery_start();
+	if (rc != 0)
+		goto err_stop_router_checker;
+
 	lnet_fault_init();
 	lnet_router_debugfs_init();
 
@@ -1928,6 +1956,8 @@ LNetNIInit(lnet_pid_t requested_pid)
 
 	return 0;
 
+err_stop_router_checker:
+	lnet_router_checker_stop();
 err_stop_ping:
 	lnet_ping_target_fini();
 err_acceptor_stop:
@@ -1976,6 +2006,7 @@ LNetNIFini(void)
 
 		lnet_fault_fini();
 		lnet_router_debugfs_fini();
+		lnet_peer_discovery_stop();
 		lnet_router_checker_stop();
 		lnet_ping_target_fini();
 
