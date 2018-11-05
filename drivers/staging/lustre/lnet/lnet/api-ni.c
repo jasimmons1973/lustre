@@ -34,6 +34,7 @@
 #define DEBUG_SUBSYSTEM S_LNET
 #include <linux/log2.h>
 #include <linux/ktime.h>
+#include <linux/moduleparam.h>
 
 #include <linux/lnet/lib-lnet.h>
 #include <uapi/linux/lnet/lnet-dlc.h>
@@ -70,6 +71,13 @@ module_param(lnet_numa_range, uint, 0444);
 MODULE_PARM_DESC(lnet_numa_range,
 		 "NUMA range to consider during Multi-Rail selection");
 
+static int lnet_interfaces_max = LNET_INTERFACES_MAX_DEFAULT;
+static int intf_max_set(const char *val, const struct kernel_param *kp);
+module_param_call(lnet_interfaces_max, intf_max_set, param_get_int,
+		  &lnet_interfaces_max, 0644);
+MODULE_PARM_DESC(lnet_interfaces_max,
+		 "Maximum number of interfaces in a node.");
+
 /*
  * This sequence number keeps track of how many times DLC was used to
  * update the local NIs. It is incremented when a NI is added or
@@ -81,6 +89,28 @@ static atomic_t lnet_dlc_seq_no = ATOMIC_INIT(0);
 
 static int lnet_ping(struct lnet_process_id id, signed long timeout,
 		     struct lnet_process_id __user *ids, int n_ids);
+
+static int
+intf_max_set(const char *val, const struct kernel_param *kp)
+{
+	int value, rc;
+
+	rc = kstrtoint(val, 0, &value);
+	if (rc) {
+		CERROR("Invalid module parameter value for 'lnet_interfaces_max'\n");
+		return rc;
+	}
+
+	if (value < LNET_INTERFACES_MIN) {
+		CWARN("max interfaces provided are too small, setting to %d\n",
+		      LNET_INTERFACES_MIN);
+		value = LNET_INTERFACES_MIN;
+	}
+
+	*(int *)kp->arg = value;
+
+	return 0;
+}
 
 static char *
 lnet_get_routes(void)
@@ -2924,7 +2954,7 @@ static int lnet_ping(struct lnet_process_id id, signed long timeout,
 	infosz = offsetof(struct lnet_ping_info, pi_ni[n_ids]);
 
 	/* n_ids limit is arbitrary */
-	if (n_ids <= 0 || n_ids > 20 || id.nid == LNET_NID_ANY)
+	if (n_ids <= 0 || n_ids > lnet_interfaces_max || id.nid == LNET_NID_ANY)
 		return -EINVAL;
 
 	if (id.pid == LNET_PID_ANY)

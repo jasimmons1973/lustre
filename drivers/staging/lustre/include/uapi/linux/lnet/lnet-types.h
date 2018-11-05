@@ -264,7 +264,12 @@ struct lnet_counters {
 #define LNET_NI_STATUS_DOWN    0xdeadface
 #define LNET_NI_STATUS_INVALID 0x00000000
 
-#define LNET_NUM_INTERFACES    16
+#define LNET_INTERFACES_NUM		16
+
+/* The minimum number of interfaces per node supported by LNet. */
+#define LNET_INTERFACES_MIN		16
+/* The default - arbitrary - value of the lnet_max_interfaces tunable. */
+#define LNET_INTERFACES_MAX_DEFAULT	200
 
 /**
  * Objects maintained by the LNet are accessed through handles. Handle types

@@ -173,7 +173,7 @@ struct ksock_net {
 	int		  ksnn_npeers;		/* # peers */
 	int		  ksnn_shutdown;	/* shutting down? */
 	int		  ksnn_ninterfaces;	/* IP interfaces */
-	struct ksock_interface ksnn_interfaces[LNET_NUM_INTERFACES];
+	struct ksock_interface ksnn_interfaces[LNET_INTERFACES_NUM];
 };
 
 /** connd timeout */
@@ -441,7 +441,7 @@ struct ksock_peer {
 	int                ksnp_n_passive_ips;  /* # of... */
 
 	/* preferred local interfaces */
-	u32		   ksnp_passive_ips[LNET_NUM_INTERFACES];
+	u32              ksnp_passive_ips[LNET_INTERFACES_NUM];
 };
 
 struct ksock_connreq {

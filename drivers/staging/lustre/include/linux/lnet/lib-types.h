@@ -371,7 +371,7 @@ struct lnet_ni {
 	 * equivalent interfaces to use
 	 * This is an array because socklnd bonding can still be configured
 	 */
-	char			 *ni_interfaces[LNET_NUM_INTERFACES];
+	char			 *ni_interfaces[LNET_INTERFACES_NUM];
 	/* original net namespace */
 	struct net		 *ni_net_ns;
 };

@@ -123,10 +123,10 @@ lnet_ni_unique_net(struct list_head *nilist, char *iface)
 /* check that the NI is unique to the interfaces with in the same NI.
  * This is only a consideration if use_tcp_bonding is set */
 static bool
-lnet_ni_unique_ni(char *iface_list[LNET_NUM_INTERFACES], char *iface)
+lnet_ni_unique_ni(char *iface_list[LNET_INTERFACES_NUM], char *iface)
 {
 	int i;
-	for (i = 0; i < LNET_NUM_INTERFACES; i++) {
+	for (i = 0; i < LNET_INTERFACES_NUM; i++) {
 		if (iface_list[i] &&
 		    strncmp(iface_list[i], iface, strlen(iface)) == 0)
 			return false;
@@ -304,7 +304,7 @@ lnet_ni_free(struct lnet_ni *ni)
 
 	kfree(ni->ni_cpts);
 
-	for (i = 0; i < LNET_NUM_INTERFACES && ni->ni_interfaces[i]; i++)
+	for (i = 0; i < LNET_INTERFACES_NUM && ni->ni_interfaces[i]; i++)
 		kfree(ni->ni_interfaces[i]);
 
 	/* release reference to net namespace */
@@ -397,11 +397,11 @@ lnet_ni_add_interface(struct lnet_ni *ni, char *iface)
 	 * can free the tokens at the end of the function.
 	 * The newly allocated ni_interfaces[] can be
 	 * freed when freeing the NI */
-	while (niface < LNET_NUM_INTERFACES &&
+	while (niface < LNET_INTERFACES_NUM &&
 	       ni->ni_interfaces[niface])
 		niface++;
 
-	if (niface >= LNET_NUM_INTERFACES) {
+	if (niface >= LNET_INTERFACES_NUM) {
 		LCONSOLE_ERROR_MSG(0x115, "Too many interfaces "
 				   "for net %s\n",
 				   libcfs_net2str(LNET_NIDNET(ni->ni_nid)));
