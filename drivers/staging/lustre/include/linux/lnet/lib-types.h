@@ -387,12 +387,32 @@ struct lnet_ni {
 #define LNET_PING_FEAT_NI_STATUS	BIT(1)	/* return NI status */
 #define LNET_PING_FEAT_RTE_DISABLED	BIT(2)	/* Routing enabled */
 
-#define LNET_PING_FEAT_MASK		(LNET_PING_FEAT_BASE | \
-					 LNET_PING_FEAT_NI_STATUS)
+#define LNET_PING_INFO_SIZE(NNIDS) \
+	offsetof(struct lnet_ping_info, pi_ni[NNIDS])
+#define LNET_PING_INFO_LONI(PINFO)	((PINFO)->pi_ni[0].ns_nid)
+#define LNET_PING_INFO_SEQNO(PINFO)	((PINFO)->pi_ni[0].ns_status)
+
+/*
+ * Descriptor of a ping info buffer: keep a separate indicator of the
+ * size and a reference count. The type is used both as a source and
+ * sink of data, so we need to keep some information outside of the
+ * area that may be overwritten by network data.
+ */
+struct lnet_ping_buffer {
+	int			pb_nnis;
+	atomic_t		pb_refcnt;
+	struct lnet_ping_info	pb_info;
+};
+
+#define LNET_PING_BUFFER_SIZE(NNIDS) \
+	offsetof(struct lnet_ping_buffer, pb_info.pi_ni[NNIDS])
+#define LNET_PING_BUFFER_LONI(PBUF)	((PBUF)->pb_info.pi_ni[0].ns_nid)
+#define LNET_PING_BUFFER_SEQNO(PBUF)	((PBUF)->pb_info.pi_ni[0].ns_status)
+
 
 /* router checker data, per router */
-#define LNET_MAX_RTR_NIS   16
-#define LNET_PINGINFO_SIZE offsetof(struct lnet_ping_info, pi_ni[LNET_MAX_RTR_NIS])
+#define LNET_MAX_RTR_NIS   LNET_INTERFACES_MIN
+#define LNET_RTR_PINGINFO_SIZE	LNET_PING_INFO_SIZE(LNET_MAX_RTR_NIS)
 struct lnet_rc_data {
 	/* chain on the_lnet.ln_zombie_rcd or ln_deathrow_rcd */
 	struct list_head	rcd_list;
@@ -401,7 +421,7 @@ struct lnet_rc_data {
 	/* reference to gateway */
 	struct lnet_peer_ni	*rcd_gateway;
 	/* ping buffer */
-	struct lnet_ping_info	*rcd_pinginfo;
+	struct lnet_ping_buffer	*rcd_pingbuffer;
 };
 
 struct lnet_peer_ni {
@@ -792,9 +812,17 @@ struct lnet {
 	/* percpt router buffer pools */
 	struct lnet_rtrbufpool		**ln_rtrpools;
 
+	/*
+	 * Ping target / Push source
+	 *
+	 * The ping target and push source share a single buffer. The
+	 * ln_ping_target is protected against concurrent updates by
+	 * ln_api_mutex.
+	 */
 	struct lnet_handle_md		  ln_ping_target_md;
 	struct lnet_handle_eq		  ln_ping_target_eq;
-	struct lnet_ping_info		 *ln_ping_info;
+	struct lnet_ping_buffer		 *ln_ping_target;
+	atomic_t			ln_ping_target_seqno;
 
 	/* router checker startup/shutdown state */
 	enum lnet_rc_state		  ln_rc_state;
