@@ -142,7 +142,9 @@ extern struct kib_tunables  kiblnd_tunables;
 #define IBLND_SEND_WRS(c)	\
 	((c->ibc_max_frags + 1) * kiblnd_concurrent_sends(c->ibc_version, \
 							  c->ibc_peer->ibp_ni))
-#define IBLND_CQ_ENTRIES(c)	(IBLND_RECV_WRS(c) + IBLND_SEND_WRS(c))
+#define IBLND_CQ_ENTRIES(c)	\
+	(IBLND_RECV_WRS(c) + 2 * kiblnd_concurrent_sends(c->ibc_version, \
+							 c->ibc_peer->ibp_ni))
 
 struct kib_hca_dev;
 
