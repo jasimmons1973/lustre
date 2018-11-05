@@ -92,7 +92,7 @@ ksocknal_lib_send_iov(struct ksock_conn *conn, struct ksock_tx *tx)
 	    nob < tx->tx_resid)
 		msg.msg_flags |= MSG_MORE;
 
-	iov_iter_kvec(&msg.msg_iter, WRITE | ITER_KVEC,
+	iov_iter_kvec(&msg.msg_iter, WRITE,
 		      tx->tx_iov, tx->tx_niov, nob);
 	return sock_sendmsg(sock, &msg);
 }
@@ -140,7 +140,7 @@ ksocknal_lib_send_kiov(struct ksock_conn *conn, struct ksock_tx *tx)
 		    nob < tx->tx_resid)
 			msg.msg_flags |= MSG_MORE;
 
-		iov_iter_bvec(&msg.msg_iter, WRITE | ITER_BVEC,
+		iov_iter_bvec(&msg.msg_iter, WRITE,
 			      kiov, tx->tx_nkiov, nob);
 		rc = sock_sendmsg(sock, &msg);
 	}

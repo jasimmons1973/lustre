@@ -498,10 +498,10 @@ lnet_ni_recv(struct lnet_ni *ni, void *private, struct lnet_msg *msg,
 	}
 
 	if (iov) {
-		iov_iter_kvec(&to, ITER_KVEC | READ, iov, niov, mlen + offset);
+		iov_iter_kvec(&to, READ, iov, niov, mlen + offset);
 		iov_iter_advance(&to, offset);
 	} else {
-		iov_iter_bvec(&to, ITER_BVEC | READ, kiov, niov, mlen + offset);
+		iov_iter_bvec(&to, READ, kiov, niov, mlen + offset);
 		iov_iter_advance(&to, offset);
 	}
 	rc = ni->ni_net->net_lnd->lnd_recv(ni, private, msg, delayed, &to, rlen);

@@ -58,7 +58,7 @@ lnet_sock_write(struct socket *sock, void *buffer, int nob, int timeout)
 	 * Caller may pass a zero timeout if she thinks the socket buffer is
 	 * empty enough to take the whole message immediately
 	 */
-	iov_iter_kvec(&msg.msg_iter, WRITE | ITER_KVEC, &iov, 1, nob);
+	iov_iter_kvec(&msg.msg_iter, WRITE, &iov, 1, nob);
 	for (;;) {
 		msg.msg_flags = !timeout ? MSG_DONTWAIT : 0;
 		if (timeout) {
@@ -113,7 +113,7 @@ lnet_sock_read(struct socket *sock, void *buffer, int nob, int timeout)
 	LASSERT(nob > 0);
 	LASSERT(jiffies_left > 0);
 
-	iov_iter_kvec(&msg.msg_iter, READ | ITER_KVEC, &iov, 1, nob);
+	iov_iter_kvec(&msg.msg_iter, READ, &iov, 1, nob);
 
 	for (;;) {
 		/* Set receive timeout to remaining time */

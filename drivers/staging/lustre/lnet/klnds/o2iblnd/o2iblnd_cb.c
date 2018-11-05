@@ -1548,11 +1548,11 @@ kiblnd_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 	LASSERT(!(payload_kiov && payload_iov));
 
 	if (payload_kiov)
-		iov_iter_bvec(&from, ITER_BVEC | WRITE,
+		iov_iter_bvec(&from, WRITE,
 			      payload_kiov, payload_niov,
 			      payload_nob + payload_offset);
 	else
-		iov_iter_kvec(&from, ITER_KVEC | WRITE,
+		iov_iter_kvec(&from, WRITE,
 			      payload_iov, payload_niov,
 			      payload_nob + payload_offset);
 

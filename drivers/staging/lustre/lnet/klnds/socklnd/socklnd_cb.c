@@ -1001,7 +1001,7 @@ ksocknal_new_packet(struct ksock_conn *conn, int nob_to_skip)
 			kvec->iov_base = &conn->ksnc_msg;
 			kvec->iov_len = offsetof(struct ksock_msg, ksm_u);
 			conn->ksnc_rx_nob_left = offsetof(struct ksock_msg, ksm_u);
-			iov_iter_kvec(&conn->ksnc_rx_to, READ|ITER_KVEC, kvec,
+			iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec,
 					1, offsetof(struct ksock_msg, ksm_u));
 			break;
 
@@ -1011,7 +1011,7 @@ ksocknal_new_packet(struct ksock_conn *conn, int nob_to_skip)
 			kvec->iov_base = &conn->ksnc_msg.ksm_u.lnetmsg;
 			kvec->iov_len = sizeof(struct lnet_hdr);
 			conn->ksnc_rx_nob_left = sizeof(struct lnet_hdr);
-			iov_iter_kvec(&conn->ksnc_rx_to, READ|ITER_KVEC, kvec,
+			iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec,
 					1, sizeof(struct lnet_hdr));
 			break;
 
@@ -1043,7 +1043,7 @@ ksocknal_new_packet(struct ksock_conn *conn, int nob_to_skip)
 	} while (nob_to_skip &&    /* mustn't overflow conn's rx iov */
 		 niov < sizeof(conn->ksnc_rx_iov_space) / sizeof(struct iovec));
 
-	iov_iter_kvec(&conn->ksnc_rx_to, READ|ITER_KVEC, kvec, niov, skipped);
+	iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec, niov, skipped);
 	return 0;
 }
 
@@ -1157,7 +1157,7 @@ ksocknal_process_receive(struct ksock_conn *conn)
 		kvec->iov_base = &conn->ksnc_msg.ksm_u.lnetmsg;
 		kvec->iov_len = sizeof(struct ksock_lnet_msg);
 
-		iov_iter_kvec(&conn->ksnc_rx_to, READ|ITER_KVEC, kvec,
+		iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec,
 				1, sizeof(struct ksock_lnet_msg));
 
 		goto again;     /* read lnet header now */
