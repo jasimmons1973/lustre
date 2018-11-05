@@ -411,7 +411,8 @@ struct lnet_rc_data {
 };
 
 struct lnet_peer_ni {
-	struct list_head	lpni_on_peer_net_list;
+	/* chain on lpn_peer_nis */
+	struct list_head	lpni_peer_nis;
 	/* chain on remote peer list */
 	struct list_head	lpni_on_remote_peer_ni_list;
 	/* chain on peer hash */
@@ -496,14 +497,23 @@ struct lnet_peer_ni {
 #define LNET_PEER_NI_NON_MR_PREF	BIT(0)
 
 struct lnet_peer {
-	/* chain on global peer list */
-	struct list_head	lp_on_lnet_peer_list;
+	/* chain on pt_peer_list */
+	struct list_head	lp_peer_list;
 
 	/* list of peer nets */
 	struct list_head	lp_peer_nets;
 
 	/* primary NID of the peer */
 	lnet_nid_t		lp_primary_nid;
+
+	/* CPT of peer_table */
+	int			lp_cpt;
+
+	/* number of NIDs on this peer */
+	int			lp_nnis;
+
+	/* reference count */
+	atomic_t		lp_refcount;
 
 	/* lock protecting peer state flags */
 	spinlock_t		lp_lock;
@@ -516,8 +526,8 @@ struct lnet_peer {
 #define LNET_PEER_CONFIGURED	BIT(1)
 
 struct lnet_peer_net {
-	/* chain on peer block */
-	struct list_head	lpn_on_peer_list;
+	/* chain on lp_peer_nets */
+	struct list_head	lpn_peer_nets;
 
 	/* list of peer_nis on this network */
 	struct list_head	lpn_peer_nis;
@@ -527,21 +537,45 @@ struct lnet_peer_net {
 
 	/* Net ID */
 	__u32			lpn_net_id;
+
+	/* reference count */
+	atomic_t		lpn_refcount;
 };
 
 /* peer hash size */
 #define LNET_PEER_HASH_BITS	9
 #define LNET_PEER_HASH_SIZE	(1 << LNET_PEER_HASH_BITS)
 
-/* peer hash table */
+/*
+ * peer hash table - one per CPT
+ *
+ * protected by lnet_net_lock/EX for update
+ *    pt_version
+ *    pt_number
+ *    pt_hash[...]
+ *    pt_peer_list
+ *    pt_peers
+ *    pt_peer_nnids
+ * protected by pt_zombie_lock:
+ *    pt_zombie_list
+ *    pt_zombies
+ *
+ * pt_zombie lock nests inside lnet_net_lock
+ */
 struct lnet_peer_table {
 	/* /proc validity stamp */
 	int			 pt_version;
 	/* # peers extant */
 	atomic_t		 pt_number;
+	/* peers */
+	struct list_head	pt_peer_list;
+	/* # peers */
+	int			pt_peers;
+	/* # NIDS on listed peers */
+	int			pt_peer_nnids;
 	/* # zombies to go to deathrow (and not there yet) */
 	int			 pt_zombies;
-	/* zombie peers */
+	/* zombie peers_ni */
 	struct list_head	 pt_zombie_list;
 	/* protect list and count */
 	spinlock_t		 pt_zombie_lock;
@@ -785,8 +819,6 @@ struct lnet {
 	struct lnet_msg_container	**ln_msg_containers;
 	struct lnet_counters		**ln_counters;
 	struct lnet_peer_table		**ln_peer_tables;
-	/* list of configured or discovered peers */
-	struct list_head		ln_peers;
 	/* list of peer nis not on a local network */
 	struct list_head		ln_remote_peer_ni_list;
 	/* failure simulation */
