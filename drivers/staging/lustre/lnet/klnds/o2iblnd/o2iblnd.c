@@ -1415,7 +1415,7 @@ kiblnd_fmr_flush_trigger(struct lnet_ioctl_config_o2iblnd_tunables *tunables,
 static int kiblnd_alloc_fmr_pool(struct kib_fmr_poolset *fps, struct kib_fmr_pool *fpo)
 {
 	struct ib_fmr_pool_param param = {
-		.max_pages_per_fmr = LNET_MAX_PAYLOAD / PAGE_SIZE,
+		.max_pages_per_fmr = LNET_MAX_IOV,
 		.page_shift        = PAGE_SHIFT,
 		.access            = (IB_ACCESS_LOCAL_WRITE |
 				      IB_ACCESS_REMOTE_WRITE),
@@ -1475,7 +1475,7 @@ static int kiblnd_alloc_freg_pool(struct kib_fmr_poolset *fps,
 		frd->frd_mr = ib_alloc_mr(fpo->fpo_hdev->ibh_pd,
 					  fastreg_gaps ? IB_MR_TYPE_SG_GAPS :
 							 IB_MR_TYPE_MEM_REG,
-					  LNET_MAX_PAYLOAD / PAGE_SIZE);
+					  LNET_MAX_IOV);
 		if (IS_ERR(frd->frd_mr)) {
 			rc = PTR_ERR(frd->frd_mr);
 			CERROR("Failed to allocate ib_alloc_mr: %d\n", rc);

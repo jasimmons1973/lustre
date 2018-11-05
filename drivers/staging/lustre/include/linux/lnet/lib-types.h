@@ -37,6 +37,7 @@
 #define __LNET_LIB_TYPES_H__
 
 #include <linux/kthread.h>
+#include <linux/net.h>
 #include <linux/uio.h>
 #include <linux/types.h>
 #include <linux/completion.h>
@@ -46,12 +47,9 @@
 #include <uapi/linux/lnet/lnet-dlc.h>
 
 /* Max payload size */
-#define LNET_MAX_PAYLOAD      CONFIG_LNET_MAX_PAYLOAD
-#if (LNET_MAX_PAYLOAD < LNET_MTU)
-# error "LNET_MAX_PAYLOAD too small - error in configure --with-max-payload-mb"
-#elif (LNET_MAX_PAYLOAD > (PAGE_SIZE * LNET_MAX_IOV))
-# error "LNET_MAX_PAYLOAD too large - error in configure --with-max-payload-mb"
-#endif
+#define LNET_MAX_PAYLOAD	LNET_MTU
+
+#define LNET_MAX_IOV		(LNET_MAX_PAYLOAD >> PAGE_SHIFT)
 
 /* forward refs */
 struct lnet_libmd;
