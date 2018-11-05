@@ -656,7 +656,12 @@ static unsigned int kiblnd_send_wrs(struct kib_conn *conn)
 	 * One WR for the LNet message
 	 * And ibc_max_frags for the transfer WRs
 	 */
+	u32 dev_caps = conn->ibc_hdev->ibh_dev->ibd_dev_caps;
 	unsigned int ret = 1 + conn->ibc_max_frags;
+
+	/* FastReg needs two extra WRs for map and invalidate */
+	if (dev_caps & IBLND_DEV_CAPS_FASTREG_ENABLED)
+		ret += 2;
 
 	/* account for a maximum of ibc_queue_depth in-flight transfers */
 	ret *= conn->ibc_queue_depth;
