@@ -82,8 +82,6 @@ source "drivers/staging/mt29f_spinand/Kconfig"
 
 source "drivers/staging/lustre/Kconfig"
 
-source "drivers/staging/dgnc/Kconfig"
-
 source "drivers/staging/gs_fpgaboot/Kconfig"
 
 source "drivers/staging/unisys/Kconfig"
