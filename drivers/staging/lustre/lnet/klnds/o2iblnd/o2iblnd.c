@@ -1399,6 +1399,7 @@ static int kiblnd_alloc_fmr_pool(struct kib_fmr_poolset *fps, struct kib_fmr_poo
 		else
 			CERROR("FMRs are not supported\n");
 	}
+	fpo->fpo_is_fmr = true;
 
 	return rc;
 }
@@ -1407,6 +1408,8 @@ static int kiblnd_alloc_freg_pool(struct kib_fmr_poolset *fps, struct kib_fmr_po
 {
 	struct kib_fast_reg_descriptor *frd;
 	int i, rc;
+
+	fpo->fpo_is_fmr = false;
 
 	INIT_LIST_HEAD(&fpo->fast_reg.fpo_pool_list);
 	fpo->fast_reg.fpo_pool_size = 0;
@@ -1469,23 +1472,7 @@ static int kiblnd_create_fmr_pool(struct kib_fmr_poolset *fps,
 	fpo->fpo_hdev = kiblnd_current_hdev(dev);
 	dev_attr = &fpo->fpo_hdev->ibh_ibdev->attrs;
 
-	/* Check for FMR or FastReg support */
-	fpo->fpo_is_fmr = 0;
-	if (fpo->fpo_hdev->ibh_ibdev->alloc_fmr &&
-	    fpo->fpo_hdev->ibh_ibdev->dealloc_fmr &&
-	    fpo->fpo_hdev->ibh_ibdev->map_phys_fmr &&
-	    fpo->fpo_hdev->ibh_ibdev->unmap_fmr) {
-		LCONSOLE_INFO("Using FMR for registration\n");
-		fpo->fpo_is_fmr = 1;
-	} else if (dev_attr->device_cap_flags & IB_DEVICE_MEM_MGT_EXTENSIONS) {
-		LCONSOLE_INFO("Using FastReg for registration\n");
-	} else {
-		rc = -ENOSYS;
-		LCONSOLE_ERROR_MSG(rc, "IB device does not support FMRs nor FastRegs, can't register memory\n");
-		goto out_fpo;
-	}
-
-	if (fpo->fpo_is_fmr)
+	if (dev->ibd_dev_caps & IBLND_DEV_CAPS_FMR_ENABLED)
 		rc = kiblnd_alloc_fmr_pool(fps, fpo);
 	else
 		rc = kiblnd_alloc_freg_pool(fps, fpo);
@@ -2261,6 +2248,9 @@ static int kiblnd_net_init_pools(struct kib_net *net, struct lnet_ni *ni,
 
 static int kiblnd_hdev_get_attr(struct kib_hca_dev *hdev)
 {
+	struct ib_device_attr *dev_attr = &hdev->ibh_ibdev->attrs;
+	int rc = 0;
+
 	/*
 	 * It's safe to assume a HCA can handle a page size
 	 * matching that of the native system
@@ -2269,7 +2259,22 @@ static int kiblnd_hdev_get_attr(struct kib_hca_dev *hdev)
 	hdev->ibh_page_size  = 1 << PAGE_SHIFT;
 	hdev->ibh_page_mask  = ~((__u64)hdev->ibh_page_size - 1);
 
-	hdev->ibh_mr_size = hdev->ibh_ibdev->attrs.max_mr_size;
+	if (hdev->ibh_ibdev->alloc_fmr &&
+	    hdev->ibh_ibdev->dealloc_fmr &&
+	    hdev->ibh_ibdev->map_phys_fmr &&
+	    hdev->ibh_ibdev->unmap_fmr) {
+		LCONSOLE_INFO("Using FMR for registration\n");
+		hdev->ibh_dev->ibd_dev_caps |= IBLND_DEV_CAPS_FMR_ENABLED;
+	} else if (dev_attr->device_cap_flags & IB_DEVICE_MEM_MGT_EXTENSIONS) {
+		LCONSOLE_INFO("Using FastReg for registration\n");
+		hdev->ibh_dev->ibd_dev_caps |= IBLND_DEV_CAPS_FASTREG_ENABLED;
+	} else {
+		CERROR("IB device does not support FMRs nor FastRegs, can't register memory: %d\n",
+		       rc);
+		return -ENXIO;
+	}
+
+	hdev->ibh_mr_size = dev_attr->max_mr_size;
 	if (hdev->ibh_mr_size == ~0ULL) {
 		hdev->ibh_mr_shift = 64;
 		return 0;

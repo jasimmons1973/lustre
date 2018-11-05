@@ -73,6 +73,10 @@
 #define IBLND_N_SCHED			2
 #define IBLND_N_SCHED_HIGH		4
 
+#define IBLND_DEV_CAPS_FASTREG_ENABLED		0x1
+#define IBLND_DEV_CAPS_FASTREG_GAPS_SUPPORT	0x2
+#define IBLND_DEV_CAPS_FMR_ENABLED		0x4
+
 struct kib_tunables {
 	int *kib_dev_failover;           /* HCA failover */
 	unsigned int *kib_service;       /* IB service number */
@@ -162,6 +166,7 @@ struct kib_dev {
 	unsigned int ibd_can_failover; /* IPoIB interface is a bonding master */
 	struct list_head   ibd_nets;
 	struct kib_hca_dev *ibd_hdev;
+	u32			ibd_dev_caps;
 };
 
 struct kib_hca_dev {
