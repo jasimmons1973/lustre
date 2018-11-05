@@ -111,6 +111,10 @@ static int concurrent_sends;
 module_param(concurrent_sends, int, 0444);
 MODULE_PARM_DESC(concurrent_sends, "send work-queue sizing");
 
+static bool use_fastreg_gaps;
+module_param(use_fastreg_gaps, bool, 0444);
+MODULE_PARM_DESC(use_fastreg_gaps, "Enable discontiguous fastreg fragment support. Expect performance drop");
+
 #define IBLND_DEFAULT_MAP_ON_DEMAND IBLND_MAX_RDMA_FRAGS
 static int map_on_demand = IBLND_DEFAULT_MAP_ON_DEMAND;
 module_param(map_on_demand, int, 0444);
@@ -165,6 +169,7 @@ struct kib_tunables kiblnd_tunables = {
 	.kib_use_priv_port     = &use_privileged_port,
 	.kib_nscheds		= &nscheds,
 	.kib_wrq_sge		= &wrq_sge,
+	.kib_use_fastreg_gaps	= &use_fastreg_gaps,
 };
 
 static struct lnet_ioctl_config_o2iblnd_tunables default_tunables;

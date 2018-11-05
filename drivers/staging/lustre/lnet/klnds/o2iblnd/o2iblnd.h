@@ -94,6 +94,9 @@ struct kib_tunables {
 	int *kib_use_priv_port; /* use privileged port for active connect */
 	int *kib_nscheds;                /* # threads on each CPT */
 	int *kib_wrq_sge;		 /* # sg elements per wrq */
+	bool *kib_use_fastreg_gaps;	 /* enable discontiguous fastreg
+					  * fragment support
+					  */
 };
 
 extern struct kib_tunables  kiblnd_tunables;

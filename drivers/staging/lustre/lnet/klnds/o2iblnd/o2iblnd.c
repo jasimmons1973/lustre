@@ -1404,7 +1404,8 @@ static int kiblnd_alloc_fmr_pool(struct kib_fmr_poolset *fps, struct kib_fmr_poo
 	return rc;
 }
 
-static int kiblnd_alloc_freg_pool(struct kib_fmr_poolset *fps, struct kib_fmr_pool *fpo)
+static int kiblnd_alloc_freg_pool(struct kib_fmr_poolset *fps,
+				  struct kib_fmr_pool *fpo, u32 dev_caps)
 {
 	struct kib_fast_reg_descriptor *frd;
 	int i, rc;
@@ -1414,6 +1415,8 @@ static int kiblnd_alloc_freg_pool(struct kib_fmr_poolset *fps, struct kib_fmr_po
 	INIT_LIST_HEAD(&fpo->fast_reg.fpo_pool_list);
 	fpo->fast_reg.fpo_pool_size = 0;
 	for (i = 0; i < fps->fps_pool_size; i++) {
+		bool fastreg_gaps = false;
+
 		frd = kzalloc_cpt(sizeof(*frd), GFP_NOFS, fps->fps_cpt);
 		if (!frd) {
 			CERROR("Failed to allocate a new fast_reg descriptor\n");
@@ -1421,8 +1424,21 @@ static int kiblnd_alloc_freg_pool(struct kib_fmr_poolset *fps, struct kib_fmr_po
 			goto out;
 		}
 
+		/*
+		 * it is expected to get here if this is an MLX-5 card.
+		 * MLX-4 cards will always use FMR and MLX-5 cards will
+		 * always use fast_reg. It turns out that some MLX-5 cards
+		 * (possibly due to older FW versions) do not natively support
+		 * gaps. So we will need to track them here.
+		 */
+		if ((*kiblnd_tunables.kib_use_fastreg_gaps == 1) &&
+		    (dev_caps & IBLND_DEV_CAPS_FASTREG_GAPS_SUPPORT)) {
+			CWARN("using IB_MR_TYPE_SG_GAPS, expect a performance drop\n");
+			fastreg_gaps = true;
+		}
 		frd->frd_mr = ib_alloc_mr(fpo->fpo_hdev->ibh_pd,
-					  IB_MR_TYPE_MEM_REG,
+					  fastreg_gaps ? IB_MR_TYPE_SG_GAPS :
+							 IB_MR_TYPE_MEM_REG,
 					  LNET_MAX_PAYLOAD / PAGE_SIZE);
 		if (IS_ERR(frd->frd_mr)) {
 			rc = PTR_ERR(frd->frd_mr);
@@ -1475,7 +1491,7 @@ static int kiblnd_create_fmr_pool(struct kib_fmr_poolset *fps,
 	if (dev->ibd_dev_caps & IBLND_DEV_CAPS_FMR_ENABLED)
 		rc = kiblnd_alloc_fmr_pool(fps, fpo);
 	else
-		rc = kiblnd_alloc_freg_pool(fps, fpo);
+		rc = kiblnd_alloc_freg_pool(fps, fpo, dev->ibd_dev_caps);
 	if (rc)
 		goto out_fpo;
 
@@ -2268,6 +2284,8 @@ static int kiblnd_hdev_get_attr(struct kib_hca_dev *hdev)
 	} else if (dev_attr->device_cap_flags & IB_DEVICE_MEM_MGT_EXTENSIONS) {
 		LCONSOLE_INFO("Using FastReg for registration\n");
 		hdev->ibh_dev->ibd_dev_caps |= IBLND_DEV_CAPS_FASTREG_ENABLED;
+		if (dev_attr->device_cap_flags & IB_DEVICE_SG_GAPS_REG)
+			hdev->ibh_dev->ibd_dev_caps |= IBLND_DEV_CAPS_FASTREG_GAPS_SUPPORT;
 	} else {
 		CERROR("IB device does not support FMRs nor FastRegs, can't register memory: %d\n",
 		       rc);
