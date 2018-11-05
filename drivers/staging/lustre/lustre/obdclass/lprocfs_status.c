@@ -1509,7 +1509,7 @@ __s64 lprocfs_read_helper(struct lprocfs_counter *lc,
 		break;
 	}
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL(lprocfs_read_helper);
 
