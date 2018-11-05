@@ -467,6 +467,8 @@ struct lnet_peer_ni {
 	atomic_t		 lpni_refcount;
 	/* CPT this peer attached on */
 	int			 lpni_cpt;
+	/* state flags -- protected by lpni_lock */
+	unsigned int		lpni_state;
 	/* # refs from lnet_route::lr_gateway */
 	int			 lpni_rtr_refcount;
 	/* sequence number used to round robin over peer nis within a net */
@@ -497,9 +499,14 @@ struct lnet_peer {
 	/* primary NID of the peer */
 	lnet_nid_t		lp_primary_nid;
 
-	/* peer is Multi-Rail enabled peer */
-	bool			lp_multi_rail;
+	/* lock protecting peer state flags */
+	spinlock_t		lp_lock;
+
+	/* peer state flags */
+	unsigned int		lp_state;
 };
+
+#define LNET_PEER_MULTI_RAIL	BIT(0)
 
 struct lnet_peer_net {
 	/* chain on peer block */
