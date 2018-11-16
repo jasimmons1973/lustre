@@ -709,14 +709,14 @@ static void obd_connect_seq_flags2str(struct seq_file *m, u64 flags,
 	for (i = 0, mask = 1; i < 64; i++, mask <<= 1) {
 		if (flags & mask) {
 			seq_printf(m, "%s%s",
-				   first ? sep : "", obd_connect_names[i]);
+				   first ? "" : sep, obd_connect_names[i]);
 			first = false;
 		}
 	}
 
 	if (flags & ~(mask - 1)) {
 		seq_printf(m, "%sunknown flags %#llx",
-			   first ? sep : "", flags & ~(mask - 1));
+			   first ? "" : sep, flags & ~(mask - 1));
 		first = false;
 	}
 
