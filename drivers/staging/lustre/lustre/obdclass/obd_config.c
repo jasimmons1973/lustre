@@ -280,6 +280,7 @@ static int class_attach(struct lustre_cfg *lcfg)
 {
 	struct obd_device *obd = NULL;
 	char *typename, *name, *uuid;
+	struct obd_export *exp;
 	int rc, len;
 
 	if (!LUSTRE_CFG_BUFLEN(lcfg, 1)) {
@@ -298,78 +299,50 @@ static int class_attach(struct lustre_cfg *lcfg)
 		CERROR("No UUID passed!\n");
 		return -EINVAL;
 	}
+
 	uuid = lustre_cfg_string(lcfg, 2);
+	len = strlen(uuid);
+	if (len >= sizeof(obd->obd_uuid)) {
+		CERROR("uuid must be < %d bytes long\n",
+		       (int)sizeof(obd->obd_uuid));
+		return -EINVAL;
+	}
 
-	CDEBUG(D_IOCTL, "attach type %s name: %s uuid: %s\n",
-	       typename, name, uuid);
-
-	obd = class_newdev(typename, name);
+	obd = class_newdev(typename, name, uuid);
 	if (IS_ERR(obd)) {
 		/* Already exists or out of obds */
 		rc = PTR_ERR(obd);
-		obd = NULL;
 		CERROR("Cannot create device %s of type %s : %d\n",
 		       name, typename, rc);
-		goto out;
+		return rc;
 	}
-	LASSERTF(obd, "Cannot get obd device %s of type %s\n",
-		 name, typename);
 	LASSERTF(obd->obd_magic == OBD_DEVICE_MAGIC,
 		 "obd %p obd_magic %08X != %08X\n",
 		 obd, obd->obd_magic, OBD_DEVICE_MAGIC);
 	LASSERTF(strncmp(obd->obd_name, name, strlen(name)) == 0,
 		 "%p obd_name %s != %s\n", obd, obd->obd_name, name);
 
-	rwlock_init(&obd->obd_pool_lock);
-	obd->obd_pool_limit = 0;
-	obd->obd_pool_slv = 0;
-
-	INIT_LIST_HEAD(&obd->obd_exports);
-	INIT_LIST_HEAD(&obd->obd_unlinked_exports);
-	INIT_LIST_HEAD(&obd->obd_delayed_exports);
-	spin_lock_init(&obd->obd_nid_lock);
-	spin_lock_init(&obd->obd_dev_lock);
-	mutex_init(&obd->obd_dev_mutex);
-	spin_lock_init(&obd->obd_osfs_lock);
-	/* obd->obd_osfs_age must be set to a value in the distant
-	 * past to guarantee a fresh statfs is fetched on mount.
-	 */
-	obd->obd_osfs_age = get_jiffies_64() - 1000 * HZ;
-
-	/* XXX belongs in setup not attach  */
-	init_rwsem(&obd->obd_observer_link_sem);
-	/* recovery data */
-	init_waitqueue_head(&obd->obd_evict_inprogress_waitq);
-
-	llog_group_init(&obd->obd_olg);
-
-	obd->obd_conn_inprogress = 0;
-
-	len = strlen(uuid);
-	if (len >= sizeof(obd->obd_uuid)) {
-		CERROR("uuid must be < %d bytes long\n",
-		       (int)sizeof(obd->obd_uuid));
-		rc = -EINVAL;
-		goto out;
+	exp = class_new_export_self(obd, &obd->obd_uuid);
+	if (IS_ERR(exp)) {
+		rc = PTR_ERR(exp);
+		class_free_dev(obd);
+		return rc;
 	}
-	memcpy(obd->obd_uuid.uuid, uuid, len);
 
-	/* Detach drops this */
-	spin_lock(&obd->obd_dev_lock);
-	atomic_set(&obd->obd_refcount, 1);
-	spin_unlock(&obd->obd_dev_lock);
-	lu_ref_init(&obd->obd_reference);
-	lu_ref_add(&obd->obd_reference, "attach", obd);
+	obd->obd_self_export = exp;
+	class_export_put(exp);
+
+	rc = class_register_device(obd);
+	if (rc) {
+		class_decref(obd, "newdev", obd);
+		return rc;
+	}
 
 	obd->obd_attached = 1;
 	CDEBUG(D_IOCTL, "OBD: dev %d attached type %s with refcount %d\n",
 	       obd->obd_minor, typename, atomic_read(&obd->obd_refcount));
-	return 0;
- out:
-	if (obd)
-		class_release_dev(obd);
 
-	return rc;
+	return 0;
 }
 
 /** Create hashes, self-export, and call type-specific setup.
@@ -378,7 +351,6 @@ static int class_attach(struct lustre_cfg *lcfg)
 static int class_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 {
 	int err = 0;
-	struct obd_export *exp;
 
 	LASSERT(obd);
 	LASSERTF(obd == class_num2obd(obd->obd_minor),
@@ -420,18 +392,9 @@ static int class_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	if (err)
 		goto err_hash;
 
-	exp = class_new_export(obd, &obd->obd_uuid);
-	if (IS_ERR(exp)) {
-		err = PTR_ERR(exp);
-		goto err_new;
-	}
-
-	obd->obd_self_export = exp;
-	class_export_put(exp);
-
 	err = obd_setup(obd, lcfg);
 	if (err)
-		goto err_exp;
+		goto err_setup;
 
 	obd->obd_set_up = 1;
 
@@ -444,12 +407,7 @@ static int class_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	       obd->obd_name, obd->obd_uuid.uuid);
 
 	return 0;
-err_exp:
-	if (obd->obd_self_export) {
-		class_unlink_export(obd->obd_self_export);
-		obd->obd_self_export = NULL;
-	}
-err_new:
+err_setup:
 	rhashtable_destroy(&obd->obd_uuid_hash);
 err_hash:
 	obd->obd_starting = 0;
@@ -476,10 +434,13 @@ static int class_detach(struct obd_device *obd, struct lustre_cfg *lcfg)
 	obd->obd_attached = 0;
 	spin_unlock(&obd->obd_dev_lock);
 
+	/* cleanup in progress. we don't like to find this device after now */
+	class_unregister_device(obd);
+
 	CDEBUG(D_IOCTL, "detach on obd %s (uuid %s)\n",
 	       obd->obd_name, obd->obd_uuid.uuid);
 
-	class_decref(obd, "attach", obd);
+	class_decref(obd, "newdev", obd);
 	return 0;
 }
 
@@ -507,6 +468,10 @@ static int class_cleanup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	}
 	/* Leave this on forever */
 	obd->obd_stopping = 1;
+	/* function can't return error after that point, so clear setup flag
+	 * as early as possible to avoid finding via obd_devs / hash
+	 */
+	obd->obd_set_up = 0;
 	spin_unlock(&obd->obd_dev_lock);
 
 	while (obd->obd_conn_inprogress > 0)
@@ -567,43 +532,27 @@ EXPORT_SYMBOL(class_incref);
 
 void class_decref(struct obd_device *obd, const char *scope, const void *source)
 {
-	int err;
-	int refs;
+	int last;
 
-	spin_lock(&obd->obd_dev_lock);
-	atomic_dec(&obd->obd_refcount);
-	refs = atomic_read(&obd->obd_refcount);
-	spin_unlock(&obd->obd_dev_lock);
+	CDEBUG(D_INFO, "Decref %s (%p) now %d - %s\n", obd->obd_name, obd,
+	       atomic_read(&obd->obd_refcount), scope);
+
+	LASSERT(obd->obd_num_exports >= 0);
+	last = atomic_dec_and_test(&obd->obd_refcount);
 	lu_ref_del(&obd->obd_reference, scope, source);
 
-	CDEBUG(D_INFO, "Decref %s (%p) now %d\n", obd->obd_name, obd, refs);
+	if (last) {
+		struct obd_export *exp;
 
-	if ((refs == 1) && obd->obd_stopping) {
+		LASSERT(!obd->obd_attached);
 		/* All exports have been destroyed; there should
 		 * be no more in-progress ops by this point.
 		 */
-
-		spin_lock(&obd->obd_self_export->exp_lock);
-		obd->obd_self_export->exp_flags |= exp_flags_from_obd(obd);
-		spin_unlock(&obd->obd_self_export->exp_lock);
-
-		/* note that we'll recurse into class_decref again */
-		class_unlink_export(obd->obd_self_export);
-		return;
-	}
-
-	if (refs == 0) {
-		CDEBUG(D_CONFIG, "finishing cleanup of obd %s (%s)\n",
-		       obd->obd_name, obd->obd_uuid.uuid);
-		LASSERT(!obd->obd_attached);
-		if (obd->obd_stopping) {
-			/* If we're not stopping, we were never set up */
-			err = obd_cleanup(obd);
-			if (err)
-				CERROR("Cleanup %s returned %d\n",
-				       obd->obd_name, err);
+		exp = obd->obd_self_export;
+		if (exp) {
+			exp->exp_flags |= exp_flags_from_obd(obd);
+			class_unlink_export(exp);
 		}
-		class_release_dev(obd);
 	}
 }
 EXPORT_SYMBOL(class_decref);
