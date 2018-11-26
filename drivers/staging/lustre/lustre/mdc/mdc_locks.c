@@ -352,6 +352,20 @@ mdc_intent_getxattr_pack(struct obd_export *exp,
 	lit = req_capsule_client_get(&req->rq_pill, &RMF_LDLM_INTENT);
 	lit->opc = IT_GETXATTR;
 
+	/* If the supplied buffer is too small then the server will
+	 * return -ERANGE and llite will fallback to using non cached
+	 * xattr operations. On servers before 2.10.1 a (non-cached)
+	 * listxattr RPC for an orphan or dead file causes an oops. So
+	 * let's try to avoid sending too small a buffer to too old a
+	 * server. This is effectively undoing the memory conservation
+	 * of LU-9417 when it would be *more* likely to crash the
+	 * server. See LU-9856.
+	 */
+	BUILD_BUG_ON(OBD_OCD_VERSION(3, 0, 53, 0) <= LUSTRE_VERSION_CODE);
+	if (exp->exp_connect_data.ocd_version < OBD_OCD_VERSION(2, 10, 1, 0))
+		ea_vals_buf_size = max_t(u32, ea_vals_buf_size,
+					 exp->exp_connect_data.ocd_max_easize);
+
 	/* pack the intended request */
 	mdc_pack_body(req, &op_data->op_fid1, op_data->op_valid,
 		      ea_vals_buf_size, -1, 0);
