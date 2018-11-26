@@ -1212,7 +1212,10 @@ static int mdc_read_page_remote(void *data, struct page *page0)
 	}
 
 	rc = mdc_getpage(rp->rp_exp, fid, rp->rp_off, page_pool, npages, &req);
-	if (!rc) {
+	if (rc < 0) {
+		/* page0 is special, which was added into page cache early */
+		delete_from_page_cache(page0);
+	} else {
 		int lu_pgs = req->rq_bulk->bd_nob_transferred;
 
 		rd_pgs = (lu_pgs + PAGE_SIZE - 1) >> PAGE_SHIFT;
