@@ -388,6 +388,9 @@ static int vvp_mmap_locks(const struct lu_env *env,
 	if (!mm)
 		return 0;
 
+	if (iov_iter_type(vio->vui_iter) != ITER_IOVEC &&
+	    iov_iter_type(vio->vui_iter) != ITER_KVEC)
+		return 0;
 	for (i = *vio->vui_iter;
 	     i.count;
 	     iov_iter_advance(&i, iov.iov_len)) {
