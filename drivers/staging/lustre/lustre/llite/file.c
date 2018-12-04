@@ -135,7 +135,7 @@ static int ll_close_inode_openhandle(struct inode *inode,
 		goto out;
 	}
 
-	op_data = kzalloc(sizeof(*op_data), GFP_KERNEL);
+	op_data = kzalloc(sizeof(*op_data), GFP_NOFS);
 	/*
 	 * We leak openhandle and request here on error, but not much to be
 	 * done in OOM case since app won't retry close on error either.
@@ -1652,7 +1652,7 @@ int ll_release_openhandle(struct inode *inode, struct lookup_intent *it)
 
 	LASSERT(it_open_error(DISP_OPEN_OPEN, it) == 0);
 
-	och = kzalloc(sizeof(*och), GFP_KERNEL);
+	och = kzalloc(sizeof(*och), GFP_NOFS);
 	if (!och) {
 		rc = -ENOMEM;
 		goto out;
