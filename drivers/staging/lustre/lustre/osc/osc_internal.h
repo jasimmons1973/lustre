@@ -43,54 +43,56 @@ extern struct ptlrpc_request_pool *osc_rq_pool;
 struct lu_env;
 
 enum async_flags {
-	ASYNC_READY = 0x1, /* ap_make_ready will not be called before this
-			    * page is added to an rpc
-			    */
-	ASYNC_URGENT = 0x2, /* page must be put into an RPC before return */
-	ASYNC_COUNT_STABLE = 0x4, /* ap_refresh_count will not be called
-				   * to give the caller a chance to update
-				   * or cancel the size of the io
-				   */
+	ASYNC_READY		= 0x1, /* ap_make_ready will not be
+					* called before this page is
+					* added to an rpc
+					*/
+	ASYNC_URGENT		= 0x2, /* page must be put into an RPC
+					* before return */
+	ASYNC_COUNT_STABLE	= 0x4, /* ap_refresh_count will not be
+					* called to give the caller a
+					* chance to update or cancel
+					* the size of the io
+					*/
 	ASYNC_HP = 0x10,
 };
 
 struct osc_async_page {
-	int		     oap_magic;
-	unsigned short	  oap_cmd;
-	unsigned short	  oap_interrupted:1;
+	int				oap_magic;
+	unsigned short			oap_cmd;
+	unsigned short			oap_interrupted:1;
 
-	struct list_head	      oap_pending_item;
-	struct list_head	      oap_rpc_item;
+	struct list_head		oap_pending_item;
+	struct list_head		oap_rpc_item;
 
-	u64		 oap_obj_off;
-	unsigned int		oap_page_off;
-	enum async_flags	oap_async_flags;
+	u64				oap_obj_off;
+	unsigned int			oap_page_off;
+	enum async_flags		oap_async_flags;
 
-	struct brw_page	 oap_brw_page;
+	struct brw_page			oap_brw_page;
 
-	struct ptlrpc_request   *oap_request;
-	struct client_obd       *oap_cli;
-	struct osc_object       *oap_obj;
+	struct ptlrpc_request		*oap_request;
+	struct client_obd		*oap_cli;
+	struct osc_object		*oap_obj;
 
-	spinlock_t		 oap_lock;
+	spinlock_t			oap_lock;
 };
 
 #define oap_page	oap_brw_page.pg
-#define oap_count       oap_brw_page.count
-#define oap_brw_flags   oap_brw_page.flag
+#define oap_count	oap_brw_page.count
+#define oap_brw_flags	oap_brw_page.flag
 
 static inline struct osc_async_page *brw_page2oap(struct brw_page *pga)
 {
-	return (struct osc_async_page *)container_of(pga, struct osc_async_page,
-						     oap_brw_page);
+	return container_of(pga, struct osc_async_page, oap_brw_page);
 }
 
 struct osc_cache_waiter {
-	struct list_head	      ocw_entry;
-	wait_queue_head_t	     ocw_waitq;
-	struct osc_async_page  *ocw_oap;
-	int		     ocw_grant;
-	int		     ocw_rc;
+	struct list_head		ocw_entry;
+	wait_queue_head_t		ocw_waitq;
+	struct osc_async_page		*ocw_oap;
+	int				ocw_grant;
+	int				ocw_rc;
 };
 
 void osc_wake_cache_waiters(struct client_obd *cli);
@@ -166,19 +168,19 @@ static inline char *cli_name(struct client_obd *cli)
 }
 
 struct osc_device {
-	struct cl_device    od_cl;
-	struct obd_export  *od_exp;
+	struct cl_device	od_cl;
+	struct obd_export	*od_exp;
 
 	/* Write stats is actually protected by client_obd's lock. */
 	struct osc_stats {
-		u64	os_lockless_writes;	  /* by bytes */
-		u64	os_lockless_reads;	  /* by bytes */
-		u64	os_lockless_truncates;    /* by times */
-	} od_stats;
+		u64	os_lockless_writes;	/* by bytes */
+		u64	os_lockless_reads;	/* by bytes */
+		u64	os_lockless_truncates;	/* by times */
+	}			od_stats;
 
 	/* configuration item(s) */
-	int		 od_contention_time;
-	int		 od_lockless_truncate;
+	int			od_contention_time;
+	int			od_lockless_truncate;
 };
 
 static inline struct osc_device *obd2osc_dev(const struct obd_device *d)
@@ -190,10 +192,10 @@ extern struct lu_kmem_descr osc_caches[];
 
 extern struct kmem_cache *osc_quota_kmem;
 struct osc_quota_info {
-	/** linkage for quota hash table */
-	struct rhash_head oqi_hash;
-	u32		  oqi_id;
-	struct rcu_head	  rcu;
+	/* linkage for quota hash table */
+	struct rhash_head	oqi_hash;
+	u32			oqi_id;
+	struct rcu_head		rcu;
 };
 
 int osc_quota_setup(struct obd_device *obd);
@@ -207,16 +209,16 @@ void osc_inc_unstable_pages(struct ptlrpc_request *req);
 void osc_dec_unstable_pages(struct ptlrpc_request *req);
 bool osc_over_unstable_soft_limit(struct client_obd *cli);
 
-/**
+/*
  * Bit flags for osc_dlm_lock_at_pageoff().
  */
 enum osc_dap_flags {
-	/**
+	/*
 	 * Just check if the desired lock exists, it won't hold reference
 	 * count on lock.
 	 */
 	OSC_DAP_FL_TEST_LOCK	= BIT(0),
-	/**
+	/*
 	 * Return the lock even if it is being canceled.
 	 */
 	OSC_DAP_FL_CANCELING	= BIT(1),
@@ -228,9 +230,9 @@ struct ldlm_lock *osc_dlmlock_at_pgoff(const struct lu_env *env,
 
 int osc_object_invalidate(const struct lu_env *env, struct osc_object *osc);
 
-/** osc shrink list to link all osc client obd */
+/* osc shrink list to link all osc client obd */
 extern struct list_head osc_shrink_list;
-/** spin lock to protect osc_shrink_list */
+/* spin lock to protect osc_shrink_list */
 extern spinlock_t osc_shrink_lock;
 unsigned long osc_cache_shrink_count(struct shrinker *sk,
 				     struct shrink_control *sc);
