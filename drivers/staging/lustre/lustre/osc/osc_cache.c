@@ -345,8 +345,8 @@ static void osc_extent_state_set(struct osc_extent *ext, int state)
 	/* LASSERT(osc_extent_sanity_check_nolock(ext) == 0); */
 
 	/* TODO: validate the state machine */
-	ext->oe_state = state;
-	wake_up_all(&ext->oe_waitq);
+	smp_store_release(&ext->oe_state, state);
+	wake_up(&ext->oe_waitq);
 }
 
 static struct osc_extent *osc_extent_alloc(struct osc_object *obj)
@@ -948,17 +948,6 @@ int osc_extent_finish(const struct lu_env *env, struct osc_extent *ext,
 	return 0;
 }
 
-static int extent_wait_cb(struct osc_extent *ext, enum osc_extent_state state)
-{
-	int ret;
-
-	osc_object_lock(ext->oe_obj);
-	ret = ext->oe_state == state;
-	osc_object_unlock(ext->oe_obj);
-
-	return ret;
-}
-
 /**
  * Wait for the extent's state to become @state.
  */
@@ -989,13 +978,16 @@ static int osc_extent_wait(const struct lu_env *env, struct osc_extent *ext,
 
 	/* wait for the extent until its state becomes @state */
 	rc = wait_event_idle_timeout(ext->oe_waitq,
-				     extent_wait_cb(ext, state), 600 * HZ);
+				     smp_load_acquire(&ext->oe_state) == state,
+				     600 * HZ);
 	if (rc == 0) {
 		OSC_EXTENT_DUMP(D_ERROR, ext,
 				"%s: wait ext to %u timedout, recovery in progress?\n",
 				cli_name(osc_cli(obj)), state);
 
-		wait_event_idle(ext->oe_waitq, extent_wait_cb(ext, state));
+		wait_event_idle(ext->oe_waitq,
+				smp_load_acquire(&ext->oe_state) == state);
+
 	}
 	if (ext->oe_rc < 0)
 		rc = ext->oe_rc;
