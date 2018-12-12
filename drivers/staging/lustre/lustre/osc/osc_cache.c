@@ -313,6 +313,11 @@ out:
 	__res;								\
 })
 
+static inline int overlapped(struct osc_extent *ex1, struct osc_extent *ex2)
+{
+	return !(ex1->oe_end < ex2->oe_start || ex2->oe_end < ex1->oe_start);
+}
+
 /**
  * sanity check - to make sure there is no overlapped extent in the tree.
  */
@@ -329,8 +334,7 @@ static int osc_extent_is_overlapped(struct osc_object *obj,
 	for (tmp = first_extent(obj); tmp; tmp = next_extent(tmp)) {
 		if (tmp == ext)
 			continue;
-		if (tmp->oe_end >= ext->oe_start &&
-		    tmp->oe_start <= ext->oe_end)
+		if (overlapped(tmp, ext))
 			return 1;
 	}
 	return 0;
@@ -653,11 +657,6 @@ void osc_extent_release(const struct lu_env *env, struct osc_extent *ext)
 		osc_io_unplug_async(env, cli, obj);
 	}
 	osc_extent_put(env, ext);
-}
-
-static inline int overlapped(struct osc_extent *ex1, struct osc_extent *ex2)
-{
-	return !(ex1->oe_end < ex2->oe_start || ex2->oe_end < ex1->oe_start);
 }
 
 /**
