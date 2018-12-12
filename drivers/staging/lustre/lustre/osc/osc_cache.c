@@ -181,10 +181,7 @@ static int osc_extent_sanity_check0(struct osc_extent *ext,
 	size_t page_count;
 	int rc = 0;
 
-	if (!osc_object_is_locked(obj)) {
-		rc = 9;
-		goto out;
-	}
+	assert_osc_object_is_locked(obj);
 
 	if (ext->oe_state >= OES_STATE_MAX) {
 		rc = 10;
@@ -324,7 +321,7 @@ static int osc_extent_is_overlapped(struct osc_object *obj,
 {
 	struct osc_extent *tmp;
 
-	LASSERT(osc_object_is_locked(obj));
+	assert_osc_object_is_locked(obj);
 
 	if (!extent_debug)
 		return 0;
@@ -341,7 +338,7 @@ static int osc_extent_is_overlapped(struct osc_object *obj,
 
 static void osc_extent_state_set(struct osc_extent *ext, int state)
 {
-	LASSERT(osc_object_is_locked(ext->oe_obj));
+	assert_osc_object_is_locked(ext->oe_obj);
 	LASSERT(state >= OES_INV && state < OES_STATE_MAX);
 
 	/* Never try to sanity check a state changing extent :-) */
@@ -414,7 +411,7 @@ static void osc_extent_put(const struct lu_env *env, struct osc_extent *ext)
 static void osc_extent_put_trust(struct osc_extent *ext)
 {
 	LASSERT(atomic_read(&ext->oe_refc) > 1);
-	LASSERT(osc_object_is_locked(ext->oe_obj));
+	assert_osc_object_is_locked(ext->oe_obj);
 	atomic_dec(&ext->oe_refc);
 }
 
@@ -428,7 +425,7 @@ static struct osc_extent *osc_extent_search(struct osc_object *obj,
 	struct rb_node *n = obj->oo_root.rb_node;
 	struct osc_extent *tmp, *p = NULL;
 
-	LASSERT(osc_object_is_locked(obj));
+	assert_osc_object_is_locked(obj);
 	while (n) {
 		tmp = rb_extent(n);
 		if (index < tmp->oe_start) {
@@ -467,7 +464,7 @@ static void osc_extent_insert(struct osc_object *obj, struct osc_extent *ext)
 
 	LASSERT(RB_EMPTY_NODE(&ext->oe_node));
 	LASSERT(ext->oe_obj == obj);
-	LASSERT(osc_object_is_locked(obj));
+	assert_osc_object_is_locked(obj);
 	while (*n) {
 		tmp = rb_extent(*n);
 		parent = *n;
@@ -489,7 +486,7 @@ static void osc_extent_erase(struct osc_extent *ext)
 {
 	struct osc_object *obj = ext->oe_obj;
 
-	LASSERT(osc_object_is_locked(obj));
+	assert_osc_object_is_locked(obj);
 	if (!RB_EMPTY_NODE(&ext->oe_node)) {
 		rb_erase(&ext->oe_node, &obj->oo_root);
 		RB_CLEAR_NODE(&ext->oe_node);
@@ -502,7 +499,7 @@ static struct osc_extent *osc_extent_hold(struct osc_extent *ext)
 {
 	struct osc_object *obj = ext->oe_obj;
 
-	LASSERT(osc_object_is_locked(obj));
+	assert_osc_object_is_locked(obj);
 	LASSERT(ext->oe_state == OES_ACTIVE || ext->oe_state == OES_CACHE);
 	if (ext->oe_state == OES_CACHE) {
 		osc_extent_state_set(ext, OES_ACTIVE);
@@ -515,7 +512,7 @@ static struct osc_extent *osc_extent_hold(struct osc_extent *ext)
 
 static void __osc_extent_remove(struct osc_extent *ext)
 {
-	LASSERT(osc_object_is_locked(ext->oe_obj));
+	assert_osc_object_is_locked(ext->oe_obj);
 	LASSERT(list_empty(&ext->oe_pages));
 	osc_extent_erase(ext);
 	list_del_init(&ext->oe_link);
@@ -546,7 +543,7 @@ static int osc_extent_merge(const struct lu_env *env, struct osc_extent *cur,
 	int ppc_bits;
 
 	LASSERT(cur->oe_state == OES_CACHE);
-	LASSERT(osc_object_is_locked(obj));
+	assert_osc_object_is_locked(obj);
 	if (!victim)
 		return -EINVAL;
 
@@ -2079,7 +2076,7 @@ static unsigned int get_write_extents(struct osc_object *obj,
 		.erd_max_extents = 256,
 	};
 
-	LASSERT(osc_object_is_locked(obj));
+	assert_osc_object_is_locked(obj);
 	while (!list_empty(&obj->oo_hp_exts)) {
 		ext = list_entry(obj->oo_hp_exts.next, struct osc_extent,
 				 oe_link);
@@ -2146,7 +2143,7 @@ osc_send_write_rpc(const struct lu_env *env, struct client_obd *cli,
 	int srvlock = 0;
 	int rc = 0;
 
-	LASSERT(osc_object_is_locked(osc));
+	assert_osc_object_is_locked(osc);
 
 	page_count = get_write_extents(osc, &rpclist);
 	LASSERT(equi(page_count == 0, list_empty(&rpclist)));
@@ -2224,7 +2221,7 @@ osc_send_read_rpc(const struct lu_env *env, struct client_obd *cli,
 	};
 	int rc = 0;
 
-	LASSERT(osc_object_is_locked(osc));
+	assert_osc_object_is_locked(osc);
 	list_for_each_entry_safe(ext, next, &osc->oo_reading_exts, oe_link) {
 		EASSERT(ext->oe_state == OES_LOCK_DONE, ext);
 		if (!try_to_add_extent_for_io(cli, ext, &data))
