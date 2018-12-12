@@ -2885,10 +2885,7 @@ again:
 		}
 		/* This extent could be on the full extents list, that's OK */
 		EASSERT(!ext->oe_hp && !ext->oe_urgent, ext);
-		if (!list_empty(&ext->oe_link))
-			list_move_tail(&ext->oe_link, &list);
-		else
-			list_add_tail(&ext->oe_link, &list);
+		list_move_tail(&ext->oe_link, &list);
 
 		ext = next_extent(ext);
 	}
