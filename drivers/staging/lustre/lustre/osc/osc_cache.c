@@ -929,7 +929,8 @@ static int osc_extent_wait(const struct lu_env *env, struct osc_extent *ext,
 			   enum osc_extent_state state)
 {
 	struct osc_object *obj = ext->oe_obj;
-	int rc = 0;
+	bool need_release = false;
+	int rc;
 
 	osc_object_lock(obj);
 	LASSERT(osc_extent_sanity_check_nolock(ext) == 0);
@@ -943,11 +944,11 @@ static int osc_extent_wait(const struct lu_env *env, struct osc_extent *ext,
 		} else if (ext->oe_state == OES_CACHE) {
 			ext->oe_urgent = 1;
 			osc_extent_hold(ext);
-			rc = 1;
+			need_release = true;
 		}
 	}
 	osc_object_unlock(obj);
-	if (rc == 1)
+	if (need_release)
 		osc_extent_release(env, ext);
 
 	/* wait for the extent until its state becomes @state */
@@ -963,11 +964,7 @@ static int osc_extent_wait(const struct lu_env *env, struct osc_extent *ext,
 				smp_load_acquire(&ext->oe_state) == state);
 
 	}
-	if (ext->oe_rc < 0)
-		rc = ext->oe_rc;
-	else
-		rc = 0;
-	return rc;
+	return ext->oe_rc < 0 ? ext->oe_rc : 0;
 }
 
 /**
