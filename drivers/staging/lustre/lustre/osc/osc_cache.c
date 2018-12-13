@@ -821,11 +821,9 @@ restart:
 	osc_extent_tree_dump(D_CACHE, obj);
 	if (found) {
 		LASSERT(!conflict);
-		if (!IS_ERR(found)) {
-			LASSERT(found->oe_dlmlock == cur->oe_dlmlock);
-			OSC_EXTENT_DUMP(D_CACHE, found,
-					"found caching ext for %lu.\n", index);
-		}
+		LASSERT(found->oe_dlmlock == cur->oe_dlmlock);
+		OSC_EXTENT_DUMP(D_CACHE, found,
+				"found caching ext for %lu.\n", index);
 	} else if (!conflict) {
 		/* create a new extent */
 		EASSERT(osc_extent_is_overlapped(obj, cur) == 0, cur);
