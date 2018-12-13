@@ -869,7 +869,6 @@ int osc_extent_finish(const struct lu_env *env, struct osc_extent *ext,
 {
 	struct client_obd *cli = osc_cli(ext->oe_obj);
 	struct osc_async_page *oap;
-	struct osc_async_page *tmp;
 	int nr_pages = ext->oe_nr_pages;
 	int lost_grant = 0;
 	int blocksize = cli->cl_import->imp_obd->obd_osfs.os_bsize ? : 4096;
@@ -882,7 +881,9 @@ int osc_extent_finish(const struct lu_env *env, struct osc_extent *ext,
 	EASSERT(ergo(rc == 0, ext->oe_state == OES_RPC), ext);
 
 	osc_lru_add_batch(cli, &ext->oe_pages);
-	list_for_each_entry_safe(oap, tmp, &ext->oe_pages, oap_pending_item) {
+	while ((oap = list_first_entry_or_null(&ext->oe_pages,
+					       struct osc_async_page,
+					       oap_pending_item))) {
 		list_del_init(&oap->oap_rpc_item);
 		list_del_init(&oap->oap_pending_item);
 		if (last_off <= oap->oap_obj_off) {
@@ -1686,11 +1687,11 @@ out:
 /* caller must hold loi_list_lock */
 void osc_wake_cache_waiters(struct client_obd *cli)
 {
-	struct list_head *l, *tmp;
 	struct osc_cache_waiter *ocw;
 
-	list_for_each_safe(l, tmp, &cli->cl_cache_waiters) {
-		ocw = list_entry(l, struct osc_cache_waiter, ocw_entry);
+	while ((ocw = list_first_entry_or_null(&cli->cl_cache_waiters,
+					       struct osc_cache_waiter,
+					       ocw_entry))) {
 		list_del_init(&ocw->ocw_entry);
 
 		ocw->ocw_rc = -EDQUOT;
@@ -2739,7 +2740,7 @@ int osc_queue_sync_pages(const struct lu_env *env, struct osc_object *obj,
 {
 	struct client_obd *cli = osc_cli(obj);
 	struct osc_extent *ext;
-	struct osc_async_page *oap, *tmp;
+	struct osc_async_page *oap;
 	int page_count = 0;
 	int mppr = cli->cl_max_pages_per_rpc;
 	bool can_merge = true;
@@ -2763,7 +2764,9 @@ int osc_queue_sync_pages(const struct lu_env *env, struct osc_object *obj,
 
 	ext = osc_extent_alloc(obj);
 	if (!ext) {
-		list_for_each_entry_safe(oap, tmp, list, oap_pending_item) {
+		while ((oap = list_first_entry_or_null(&oap->oap_pending_item,
+						       struct osc_async_page,
+						       oap_pending_item))) {
 			list_del_init(&oap->oap_pending_item);
 			osc_ap_completion(env, cli, oap, 0, -ENOMEM);
 		}
@@ -3093,11 +3096,12 @@ int osc_cache_writeback_range(const struct lu_env *env, struct osc_object *obj,
 
 	LASSERT(ergo(!discard, list_empty(&discard_list)));
 	if (!list_empty(&discard_list)) {
-		struct osc_extent *tmp;
 		int rc;
 
 		osc_list_maint(osc_cli(obj), obj);
-		list_for_each_entry_safe(ext, tmp, &discard_list, oe_link) {
+		while ((ext = list_first_entry_or_null(&discard_list,
+						       struct osc_extent,
+						       oe_link))) {
 			list_del_init(&ext->oe_link);
 			EASSERT(ext->oe_state == OES_LOCKING, ext);
 
