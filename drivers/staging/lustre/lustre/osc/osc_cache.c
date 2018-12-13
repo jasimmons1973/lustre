@@ -1694,20 +1694,11 @@ void osc_wake_cache_waiters(struct client_obd *cli)
 					       ocw_entry))) {
 		list_del_init(&ocw->ocw_entry);
 
-		ocw->ocw_rc = -EDQUOT;
-		/* we can't dirty more */
-		if ((cli->cl_dirty_pages > cli->cl_dirty_max_pages) ||
-		    (atomic_long_read(&obd_dirty_pages) + 1 >
-		     obd_max_dirty_pages)) {
-			CDEBUG(D_CACHE, "no dirty room: dirty: %ld osc max %ld, sys max %ld\n",
-			       cli->cl_dirty_pages, cli->cl_dirty_max_pages,
-			       obd_max_dirty_pages);
-			goto wakeup;
-		}
-
 		if (osc_enter_cache_try(cli, ocw->ocw_oap, ocw->ocw_grant, 0))
 			ocw->ocw_rc = 0;
-wakeup:
+		else
+			ocw->ocw_rc = -EDQUOT;
+
 		CDEBUG(D_CACHE, "wake up %p for oap %p, avail grant %ld, %d\n",
 		       ocw, ocw->ocw_oap, cli->cl_avail_grant, ocw->ocw_rc);
 
