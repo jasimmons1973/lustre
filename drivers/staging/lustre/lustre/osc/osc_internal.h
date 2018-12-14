@@ -87,15 +87,11 @@ static inline struct osc_async_page *brw_page2oap(struct brw_page *pga)
 	return container_of(pga, struct osc_async_page, oap_brw_page);
 }
 
-struct osc_cache_waiter {
-	struct list_head		ocw_entry;
-	wait_queue_head_t		ocw_waitq;
-	struct osc_async_page		*ocw_oap;
-	int				ocw_grant;
-	int				ocw_rc;
-};
+static inline void osc_wake_cache_waiters(struct client_obd *cli)
+{
+	wake_up(&cli->cl_cache_waiters);
+}
 
-void osc_wake_cache_waiters(struct client_obd *cli);
 int osc_shrink_grant_to_target(struct client_obd *cli, __u64 target_bytes);
 void osc_update_next_shrink(struct client_obd *cli);
 
