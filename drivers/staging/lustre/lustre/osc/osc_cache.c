@@ -1665,10 +1665,10 @@ static int osc_max_rpc_in_flight(struct client_obd *cli, struct osc_object *osc)
  * (lop).  This is used by osc_check_rpcs->osc_next_obj() and osc_list_maint()
  * to quickly find objects that are ready to send an RPC.
  */
-static int osc_makes_rpc(struct client_obd *cli, struct osc_object *osc,
-			 int cmd)
+static bool osc_makes_rpc(struct client_obd *cli, struct osc_object *osc,
+			  int cmd)
 {
-	int invalid_import = 0;
+	bool invalid_import = false;
 
 	/* if we have an invalid import we want to drain the queued pages
 	 * by forcing them through rpcs that immediately fail and complete
@@ -1676,22 +1676,22 @@ static int osc_makes_rpc(struct client_obd *cli, struct osc_object *osc,
 	 * before canceling the locks and evicting down the llite pages
 	 */
 	if (!cli->cl_import || cli->cl_import->imp_invalid)
-		invalid_import = 1;
+		invalid_import = true;
 
 	if (cmd & OBD_BRW_WRITE) {
 		if (atomic_read(&osc->oo_nr_writes) == 0)
-			return 0;
+			return false;
 		if (invalid_import) {
 			CDEBUG(D_CACHE, "invalid import forcing RPC\n");
-			return 1;
+			return true;
 		}
 		if (!list_empty(&osc->oo_hp_exts)) {
 			CDEBUG(D_CACHE, "high prio request forcing RPC\n");
-			return 1;
+			return true;
 		}
 		if (!list_empty(&osc->oo_urgent_exts)) {
 			CDEBUG(D_CACHE, "urgent request forcing RPC\n");
-			return 1;
+			return true;
 		}
 		/* trigger a write rpc stream as long as there are dirtiers
 		 * waiting for space.  as they're waiting, they're not going to
@@ -1699,25 +1699,25 @@ static int osc_makes_rpc(struct client_obd *cli, struct osc_object *osc,
 		 */
 		if (waitqueue_active(&cli->cl_cache_waiters)) {
 			CDEBUG(D_CACHE, "cache waiters forcing RPC\n");
-			return 1;
+			return true;
 		}
 		if (!list_empty(&osc->oo_full_exts)) {
 			CDEBUG(D_CACHE, "full extent ready, make an RPC\n");
-			return 1;
+			return true;
 		}
 	} else {
 		if (atomic_read(&osc->oo_nr_reads) == 0)
-			return 0;
+			return false;
 		if (invalid_import) {
 			CDEBUG(D_CACHE, "invalid import forcing RPC\n");
-			return 1;
+			return true;
 		}
 		/* all read are urgent. */
 		if (!list_empty(&osc->oo_reading_exts))
-			return 1;
+			return true;
 	}
 
-	return 0;
+	return false;
 }
 
 static void osc_update_pending(struct osc_object *obj, int cmd, int delta)
