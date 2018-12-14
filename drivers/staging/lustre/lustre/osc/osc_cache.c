@@ -1654,9 +1654,14 @@ out:
 	return rc;
 }
 
+static int osc_makes_hprpc(struct osc_object *obj)
+{
+	return !list_empty(&obj->oo_hp_exts);
+}
+
 static int osc_max_rpc_in_flight(struct client_obd *cli, struct osc_object *osc)
 {
-	int hprpc = !!list_empty(&osc->oo_hp_exts);
+	int hprpc = !osc_makes_hprpc(osc);
 
 	return rpcs_in_flight(cli) >= cli->cl_max_rpcs_in_flight + hprpc;
 }
@@ -1685,7 +1690,7 @@ static bool osc_makes_rpc(struct client_obd *cli, struct osc_object *osc,
 			CDEBUG(D_CACHE, "invalid import forcing RPC\n");
 			return true;
 		}
-		if (!list_empty(&osc->oo_hp_exts)) {
+		if (osc_makes_hprpc(osc)) {
 			CDEBUG(D_CACHE, "high prio request forcing RPC\n");
 			return true;
 		}
@@ -1734,11 +1739,6 @@ static void osc_update_pending(struct osc_object *obj, int cmd, int delta)
 		LASSERT(atomic_read(&obj->oo_nr_reads) >= 0);
 	}
 	OSC_IO_DEBUG(obj, "update pending cmd %d delta %d.\n", cmd, delta);
-}
-
-static int osc_makes_hprpc(struct osc_object *obj)
-{
-	return !list_empty(&obj->oo_hp_exts);
 }
 
 static void on_list(struct list_head *item, struct list_head *list, int should_be_on)
