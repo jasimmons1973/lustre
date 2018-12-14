@@ -1982,9 +1982,9 @@ static unsigned int get_write_extents(struct osc_object *obj,
 	};
 
 	assert_osc_object_is_locked(obj);
-	while (!list_empty(&obj->oo_hp_exts)) {
-		ext = list_entry(obj->oo_hp_exts.next, struct osc_extent,
-				 oe_link);
+	while ((ext = list_first_entry_or_null(&obj->oo_hp_exts,
+					       struct osc_extent,
+					       oe_link))) {
 		LASSERT(ext->oe_state == OES_CACHE);
 		if (!try_to_add_extent_for_io(cli, ext, &data))
 			return data.erd_page_count;
