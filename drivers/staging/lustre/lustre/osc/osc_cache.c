@@ -1990,8 +1990,6 @@ static unsigned int get_write_extents(struct osc_object *obj,
 			return data.erd_page_count;
 		EASSERT(ext->oe_nr_pages <= data.erd_max_pages, ext);
 	}
-	if (data.erd_page_count == data.erd_max_pages)
-		return data.erd_page_count;
 
 	while (!list_empty(&obj->oo_urgent_exts)) {
 		ext = list_entry(obj->oo_urgent_exts.next,
@@ -1999,8 +1997,6 @@ static unsigned int get_write_extents(struct osc_object *obj,
 		if (!try_to_add_extent_for_io(cli, ext, &data))
 			return data.erd_page_count;
 	}
-	if (data.erd_page_count == data.erd_max_pages)
-		return data.erd_page_count;
 
 	/*
 	 * One key difference between full extents and other extents: full
@@ -2015,8 +2011,6 @@ static unsigned int get_write_extents(struct osc_object *obj,
 		if (!try_to_add_extent_for_io(cli, ext, &data))
 			break;
 	}
-	if (data.erd_page_count == data.erd_max_pages)
-		return data.erd_page_count;
 
 	ext = first_extent(obj);
 	while (ext) {
