@@ -2287,7 +2287,7 @@ int osc_prep_async_page(struct osc_object *osc, struct osc_page *ops,
 	struct osc_async_page *oap = &ops->ops_oap;
 
 	if (!page)
-		return cfs_size_round(sizeof(*oap));
+		return -EIO;
 
 	oap->oap_magic = OAP_MAGIC;
 	oap->oap_cli = &exp->exp_obd->u.cli;
