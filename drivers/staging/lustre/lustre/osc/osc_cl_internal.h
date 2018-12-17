@@ -660,11 +660,11 @@ void osc_extent_release(const struct lu_env *env, struct osc_extent *ext);
 int osc_lock_discard_pages(const struct lu_env *env, struct osc_object *osc,
 			   pgoff_t start, pgoff_t end, bool discard_pages);
 
-typedef int (*osc_page_gang_cbt)(const struct lu_env *, struct cl_io *,
-				 struct osc_page *, void *);
-int osc_page_gang_lookup(const struct lu_env *env, struct cl_io *io,
-			 struct osc_object *osc, pgoff_t start, pgoff_t end,
-			 osc_page_gang_cbt cb, void *cbdata);
+typedef bool (*osc_page_gang_cbt)(const struct lu_env *, struct cl_io *,
+				  struct osc_page *, void *);
+bool osc_page_gang_lookup(const struct lu_env *env, struct cl_io *io,
+			  struct osc_object *osc, pgoff_t start, pgoff_t end,
+			  osc_page_gang_cbt cb, void *cbdata);
 /* @} osc */
 
 #endif /* OSC_CL_INTERNAL_H */
