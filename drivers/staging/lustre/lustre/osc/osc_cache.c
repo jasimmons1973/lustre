@@ -2311,7 +2311,7 @@ int osc_queue_async_io(const struct lu_env *env, struct cl_io *io,
 	unsigned int grants = 0, tmp;
 	int brw_flags = OBD_BRW_ASYNC;
 	int cmd = OBD_BRW_WRITE;
-	int need_release = 0;
+	bool need_release = false;
 	int rc = 0;
 
 	if (oap->oap_magic != OAP_MAGIC)
@@ -2388,7 +2388,7 @@ int osc_queue_async_io(const struct lu_env *env, struct cl_io *io,
 		spin_lock(&cli->cl_loi_list_lock);
 		if (!osc_enter_cache_try(cli, oap, grants)) {
 			grants = 0;
-			need_release = 1;
+			need_release = true;
 		}
 		spin_unlock(&cli->cl_loi_list_lock);
 		if (!need_release && ext->oe_end < index) {
@@ -2396,7 +2396,7 @@ int osc_queue_async_io(const struct lu_env *env, struct cl_io *io,
 			/* try to expand this extent */
 			rc = osc_extent_expand(ext, index, &tmp);
 			if (rc < 0) {
-				need_release = 1;
+				need_release = true;
 				/* don't free reserved grant */
 			} else {
 				OSC_EXTENT_DUMP(D_CACHE, ext,
@@ -2408,7 +2408,7 @@ int osc_queue_async_io(const struct lu_env *env, struct cl_io *io,
 		rc = 0;
 	} else if (ext) {
 		/* index is located outside of active extent */
-		need_release = 1;
+		need_release = true;
 	}
 	if (need_release) {
 		osc_extent_release(env, ext);
