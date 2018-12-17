@@ -1817,7 +1817,6 @@ static void osc_ap_completion(const struct lu_env *env, struct client_obd *cli,
 	spin_lock(&oap->oap_lock);
 	oap->oap_async_flags = 0;
 	spin_unlock(&oap->oap_lock);
-	oap->oap_interrupted = 0;
 
 	if (oap->oap_cmd & OBD_BRW_WRITE && xid > 0) {
 		spin_lock(&cli->cl_loi_list_lock);
@@ -2583,72 +2582,6 @@ out:
 	osc_extent_put(env, ext);
 	if (unplug)
 		osc_io_unplug_async(env, osc_cli(obj), obj);
-	return rc;
-}
-
-/**
- * this is called when a sync waiter receives an interruption.  Its job is to
- * get the caller woken as soon as possible.  If its page hasn't been put in an
- * rpc yet it can dequeue immediately.  Otherwise it has to mark the rpc as
- * desiring interruption which will forcefully complete the rpc once the rpc
- * has timed out.
- */
-int osc_cancel_async_page(const struct lu_env *env, struct osc_page *ops)
-{
-	struct osc_async_page *oap = &ops->ops_oap;
-	struct osc_object *obj = oap->oap_obj;
-	struct client_obd *cli = osc_cli(obj);
-	struct osc_extent *ext;
-	struct osc_extent *found = NULL;
-	struct list_head *plist;
-	pgoff_t index = osc_index(ops);
-	int rc = -EBUSY;
-	int cmd;
-
-	LASSERT(!oap->oap_interrupted);
-	oap->oap_interrupted = 1;
-
-	/* Find out the caching extent */
-	osc_object_lock(obj);
-	if (oap->oap_cmd & OBD_BRW_WRITE) {
-		plist = &obj->oo_urgent_exts;
-		cmd = OBD_BRW_WRITE;
-	} else {
-		plist = &obj->oo_reading_exts;
-		cmd = OBD_BRW_READ;
-	}
-	list_for_each_entry(ext, plist, oe_link) {
-		if (ext->oe_start <= index && ext->oe_end >= index) {
-			LASSERT(ext->oe_state == OES_LOCK_DONE);
-			/* For OES_LOCK_DONE state extent, it has already held
-			 * a refcount for RPC.
-			 */
-			found = osc_extent_get(ext);
-			break;
-		}
-	}
-	if (found) {
-		list_del_init(&found->oe_link);
-		osc_update_pending(obj, cmd, -found->oe_nr_pages);
-		osc_object_unlock(obj);
-
-		osc_extent_finish(env, found, 0, -EINTR);
-		osc_extent_put(env, found);
-		rc = 0;
-	} else {
-		osc_object_unlock(obj);
-		/* ok, it's been put in an rpc. only one oap gets a request
-		 * reference
-		 */
-		if (oap->oap_request) {
-			ptlrpc_mark_interrupted(oap->oap_request);
-			ptlrpcd_wake(oap->oap_request);
-			ptlrpc_req_finished(oap->oap_request);
-			oap->oap_request = NULL;
-		}
-	}
-
-	osc_list_maint(cli, obj);
 	return rc;
 }
 

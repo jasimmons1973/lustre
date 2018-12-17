@@ -60,7 +60,6 @@ enum async_flags {
 struct osc_async_page {
 	int				oap_magic;
 	unsigned short			oap_cmd;
-	unsigned short			oap_interrupted:1;
 
 	struct list_head		oap_pending_item;
 	struct list_head		oap_rpc_item;
