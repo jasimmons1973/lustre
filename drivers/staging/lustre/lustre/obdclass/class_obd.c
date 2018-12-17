@@ -77,9 +77,6 @@ EXPORT_SYMBOL(at_early_margin);
 int at_extra = 30;
 EXPORT_SYMBOL(at_extra);
 
-atomic_long_t obd_dirty_transit_pages;
-EXPORT_SYMBOL(obd_dirty_transit_pages);
-
 char obd_jobid_var[JOBSTATS_JOBID_VAR_MAX_LEN + 1] = JOBSTATS_DISABLE;
 char obd_jobid_node[LUSTRE_JOBID_SIZE + 1];
 

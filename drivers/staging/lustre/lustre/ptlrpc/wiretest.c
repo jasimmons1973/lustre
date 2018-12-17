@@ -1823,8 +1823,6 @@ void lustre_assert_wire_constants(void)
 		 OBD_BRW_FROM_GRANT);
 	LASSERTF(OBD_BRW_GRANTED == 0x40, "found 0x%.8x\n",
 		 OBD_BRW_GRANTED);
-	LASSERTF(OBD_BRW_NOCACHE == 0x80, "found 0x%.8x\n",
-		 OBD_BRW_NOCACHE);
 	LASSERTF(OBD_BRW_NOQUOTA == 0x100, "found 0x%.8x\n",
 		 OBD_BRW_NOQUOTA);
 	LASSERTF(OBD_BRW_SRVLOCK == 0x200, "found 0x%.8x\n",
