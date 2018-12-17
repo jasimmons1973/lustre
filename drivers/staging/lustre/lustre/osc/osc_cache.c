@@ -2187,11 +2187,11 @@ static struct osc_object *osc_next_obj(struct client_obd *cli)
 
 /* called with the loi list lock held */
 static void osc_check_rpcs(const struct lu_env *env, struct client_obd *cli)
-	__must_hold(&cli->cl_loi_list_lock)
 {
 	struct osc_object *osc;
 	int rc = 0;
 
+	spin_lock(&cli->cl_loi_list_lock);
 	while ((osc = osc_next_obj(cli)) != NULL) {
 		struct cl_object *obj = osc2cl(osc);
 		struct lu_ref_link link;
@@ -2247,6 +2247,7 @@ static void osc_check_rpcs(const struct lu_env *env, struct client_obd *cli)
 
 		spin_lock(&cli->cl_loi_list_lock);
 	}
+	spin_unlock(&cli->cl_loi_list_lock);
 }
 
 static int __osc_io_unplug(const struct lu_env *env, struct client_obd *cli,
@@ -2258,9 +2259,7 @@ static int __osc_io_unplug(const struct lu_env *env, struct client_obd *cli,
 		return 0;
 
 	if (!async) {
-		spin_lock(&cli->cl_loi_list_lock);
 		osc_check_rpcs(env, cli);
-		spin_unlock(&cli->cl_loi_list_lock);
 	} else {
 		CDEBUG(D_CACHE, "Queue writeback work for client %p.\n", cli);
 		LASSERT(cli->cl_writeback_work);
