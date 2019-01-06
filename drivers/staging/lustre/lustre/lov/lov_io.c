@@ -466,7 +466,6 @@ static int lov_io_rw_iter_init(const struct lu_env *env,
 	struct cl_io	 *io  = ios->cis_io;
 	u64 start = io->u.ci_rw.crw_pos;
 	struct lov_stripe_md_entry *lse;
-	unsigned long ssize;
 	int index;
 	u64 next;
 
@@ -491,11 +490,15 @@ static int lov_io_rw_iter_init(const struct lu_env *env,
 
 	lse = lov_lse(lio->lis_object, index);
 
-	ssize = lse->lsme_stripe_size;
-	lov_do_div64(start, ssize);
-	next = (start + 1) * ssize;
-	if (next <= start * ssize)
-		next = ~0ull;
+	next = MAX_LFS_FILESIZE;
+	if (lse->lsme_stripe_count > 1) {
+		unsigned long ssize = lse->lsme_stripe_size;
+
+		lov_do_div64(start, ssize);
+		next = (start + 1) * ssize;
+		if (next <= start * ssize)
+			next = MAX_LFS_FILESIZE;
+	}
 
 	LASSERTF(io->u.ci_rw.crw_pos >= lse->lsme_extent.e_start,
 		 "pos %lld, [%lld, %lld]\n", io->u.ci_rw.crw_pos,
