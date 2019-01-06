@@ -76,10 +76,16 @@ int lov_page_init_composite(const struct lu_env *env, struct cl_object *obj,
 	u64 offset;
 	u64	    suboff;
 	int		stripe;
-	int entry = 0;
+	int entry;
 	int		rc;
 
 	offset = cl_offset(obj, index);
+	entry = lov_lsm_entry(loo->lo_lsm, offset);
+	if (entry < 0) {
+		/* non-existing layout component */
+		lov_page_init_empty(env, obj, page, index);
+		return 0;
+	}
 
 	r0 = lov_r0(loo, entry);
 	stripe = lov_stripe_number(loo->lo_lsm, entry, offset);

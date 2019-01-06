@@ -76,7 +76,7 @@ static struct lov_sublock_env *lov_sublock_env_get(const struct lu_env *env,
 		sub = lov_sub_get(env, lio, lls->sub_index);
 		if (!IS_ERR(sub)) {
 			subenv->lse_env = sub->sub_env;
-			subenv->lse_io  = sub->sub_io;
+			subenv->lse_io = &sub->sub_io;
 		} else {
 			subenv = (void *)sub;
 		}
@@ -114,52 +114,65 @@ static struct lov_lock *lov_lock_sub_init(const struct lu_env *env,
 					  const struct cl_object *obj,
 					  struct cl_lock *lock)
 {
-	struct lov_object *loo = cl2lov(obj);
-	struct lov_layout_raid0 *r0;
-	struct lov_lock	*lovlck;
+	struct lov_object *lov = cl2lov(obj);
+	struct lov_lock *lovlck;
+	struct lu_extent ext;
 	int result = 0;
-	int index = 0;
+	int index;
 	int i;
 	int nr;
 	u64 start;
 	u64 end;
-	u64 file_start;
-	u64 file_end;
 
-	CDEBUG(D_INODE, "%p: lock/io FID " DFID "/" DFID ", lock/io clobj %p/%p\n",
-	       loo, PFID(lu_object_fid(lov2lu(loo))),
-	       PFID(lu_object_fid(&obj->co_lu)),
-	       lov2cl(loo), obj);
+	ext.e_start = cl_offset(obj, lock->cll_descr.cld_start);
+	if (lock->cll_descr.cld_end == CL_PAGE_EOF)
+		ext.e_end = OBD_OBJECT_EOF;
+	else
+		ext.e_end = cl_offset(obj, lock->cll_descr.cld_end + 1);
 
-	file_start = cl_offset(lov2cl(loo), lock->cll_descr.cld_start);
-	file_end   = cl_offset(lov2cl(loo), lock->cll_descr.cld_end + 1) - 1;
+	nr = 0;
+	for (index = lov_lsm_entry(lov->lo_lsm, ext.e_start);
+	     index != -1 && index < lov->lo_lsm->lsm_entry_count; index++) {
+		struct lov_layout_raid0 *r0 = lov_r0(lov, index);
 
-	r0 = lov_r0(loo, index);
-	for (i = 0, nr = 0; i < r0->lo_nr; i++) {
-		/*
-		 * XXX for wide striping smarter algorithm is desirable,
-		 * breaking out of the loop, early.
-		 */
-		if (likely(r0->lo_sub[i]) && /* spare layout */
-		    lov_stripe_intersects(loo->lo_lsm, index, i,
-					  file_start, file_end, &start, &end))
-			nr++;
+		/* assume lsm entries are sorted. */
+		if (!lu_extent_is_overlapped(&ext,
+					     &lov_lse(lov, index)->lsme_extent))
+			break;
+
+		for (i = 0; i < r0->lo_nr; i++) {
+			if (likely(r0->lo_sub[i]) && /* spare layout */
+			    lov_stripe_intersects(lov->lo_lsm, index, i,
+						  &ext, &start, &end))
+				nr++;
+		}
 	}
-	LASSERT(nr > 0);
+	if (nr == 0)
+		return ERR_PTR(-EINVAL);
+
 	lovlck = kvzalloc(offsetof(struct lov_lock, lls_sub[nr]),
 				 GFP_NOFS);
 	if (!lovlck)
 		return ERR_PTR(-ENOMEM);
 
 	lovlck->lls_nr = nr;
-	for (i = 0, nr = 0; i < r0->lo_nr; ++i) {
-		if (likely(r0->lo_sub[i]) &&
-		    lov_stripe_intersects(loo->lo_lsm, index, i,
-					  file_start, file_end, &start, &end)) {
-			struct lov_lock_sub *lls = &lovlck->lls_sub[nr];
-			struct cl_lock_descr *descr;
+	nr = 0;
+	for (index = lov_lsm_entry(lov->lo_lsm, ext.e_start);
+	     index < lov->lo_lsm->lsm_entry_count; index++) {
+		struct lov_layout_raid0 *r0 = lov_r0(lov, index);
 
-			descr = &lls->sub_lock.cll_descr;
+		/* assume lsm entries are sorted. */
+		if (!lu_extent_is_overlapped(&ext,
+					     &lov_lse(lov, index)->lsme_extent))
+			break;
+		for (i = 0; i < r0->lo_nr; ++i) {
+			struct lov_lock_sub *lls = &lovlck->lls_sub[nr];
+			struct cl_lock_descr *descr = &lls->sub_lock.cll_descr;
+
+			if (unlikely(!r0->lo_sub[i]) ||
+			    !lov_stripe_intersects(lov->lo_lsm, index, i,
+						   &ext, &start, &end))
+				continue;
 
 			LASSERT(!descr->cld_obj);
 			descr->cld_obj   = lovsub2cl(r0->lo_sub[i]);
@@ -267,8 +280,8 @@ static void lov_lock_cancel(const struct lu_env *env,
 			cl_lock_cancel(subenv->lse_env, sublock);
 		} else {
 			CL_LOCK_DEBUG(D_ERROR, env, slice->cls_lock,
-				      "%s fails with %ld.\n",
-				      __func__, PTR_ERR(subenv));
+				      "lov_lock_cancel fails with %ld.\n",
+				      PTR_ERR(subenv));
 		}
 	}
 }

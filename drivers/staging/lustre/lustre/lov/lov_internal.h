@@ -81,7 +81,10 @@ static inline bool lsm_has_objects(struct lov_stripe_md *lsm)
 
 static inline unsigned int lov_comp_index(int entry, int stripe)
 {
-	return stripe;
+	LASSERT(entry >= 0 && entry <= SHRT_MAX);
+	LASSERT(stripe >= 0 && stripe < USHRT_MAX);
+
+	return entry << 16 | stripe;
 }
 
 static inline int lov_comp_stripe(int index)
@@ -91,7 +94,7 @@ static inline int lov_comp_stripe(int index)
 
 static inline int lov_comp_entry(int index)
 {
-	return 0;
+	return index >> 16;
 }
 
 struct lsm_operations {
@@ -191,8 +194,7 @@ int lov_stripe_offset(struct lov_stripe_md *lsm, int index, u64 lov_off,
 u64 lov_size_to_stripe(struct lov_stripe_md *lsm, int index, u64 file_size,
 		       int stripeno);
 int lov_stripe_intersects(struct lov_stripe_md *lsm, int index, int stripeno,
-			  u64 start, u64 end,
-			  u64 *obd_start, u64 *obd_end);
+			  struct lu_extent *ext, u64 *obd_start, u64 *obd_end);
 int lov_stripe_number(struct lov_stripe_md *lsm, int index, u64 lov_off);
 pgoff_t lov_stripe_pgoff(struct lov_stripe_md *lsm, int index,
 			 pgoff_t stripe_index, int stripe);

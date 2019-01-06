@@ -189,8 +189,8 @@ int lov_free_memmd(struct lov_stripe_md **lsmp)
 	int refc;
 
 	*lsmp = NULL;
-	LASSERT(atomic_read(&lsm->lsm_refc) > 0);
 	refc = atomic_dec_return(&lsm->lsm_refc);
+	LASSERT(refc >= 0);
 	if (refc == 0)
 		lsm_free(lsm);
 

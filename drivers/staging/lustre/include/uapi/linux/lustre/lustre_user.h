@@ -416,6 +416,15 @@ struct lu_extent {
 	__u64	e_end;
 };
 
+#define DEXT "[ %#llx , %#llx )"
+#define PEXT(ext) (ext)->e_start, (ext)->e_end
+
+static inline bool lu_extent_is_overlapped(struct lu_extent *e1,
+					    struct lu_extent *e2)
+{
+	return e1->e_start < e2->e_end && e2->e_start < e1->e_end;
+}
+
 enum lov_comp_md_entry_flags {
 	LCME_FL_PRIMARY		= 0x00000001,   /* Not used */
 	LCME_FL_STALE		= 0x00000002,   /* Not used */

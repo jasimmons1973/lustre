@@ -225,9 +225,19 @@ u64 lov_size_to_stripe(struct lov_stripe_md *lsm, int index, u64 file_size,
  * stripe does intersect with the lov extent.
  */
 int lov_stripe_intersects(struct lov_stripe_md *lsm, int index, int stripeno,
-			  u64 start, u64 end, u64 *obd_start, u64 *obd_end)
+			  struct lu_extent *ext, u64 *obd_start, u64 *obd_end)
 {
+	struct lov_stripe_md_entry *entry = lsm->lsm_entries[index];
 	int start_side, end_side;
+	u64 start, end;
+
+	if (!lu_extent_is_overlapped(ext, &entry->lsme_extent))
+		return 0;
+
+	start = max_t(u64, ext->e_start, entry->lsme_extent.e_start);
+	end = min_t(u64, ext->e_end, entry->lsme_extent.e_end);
+	if (end != OBD_OBJECT_EOF)
+		end--;
 
 	start_side = lov_stripe_offset(lsm, index, start, stripeno, obd_start);
 	end_side = lov_stripe_offset(lsm, index, end, stripeno, obd_end);

@@ -224,6 +224,7 @@ struct lov_object {
 			 */
 			unsigned int lo_entry_count;
 			struct lov_layout_entry {
+				struct lu_extent lle_extent;
 				struct lov_layout_raid0 lle_raid0;
 			} *lo_entries;
 		} composite;
@@ -320,15 +321,9 @@ struct lov_thread_info {
  */
 struct lov_io_sub {
 	/**
-	 * true, iff cl_io_init() was successfully executed against
-	 * lov_io_sub::sub_io.
+	 * Linkage into a list (hanging off lov_io::lis_subios)
 	 */
-	u16			 sub_io_initialized:1,
-	/**
-	 * True, iff lov_io_sub::sub_io and lov_io_sub::sub_env weren't
-	 * allocated, but borrowed from a per-device emergency pool.
-	 */
-				 sub_borrowed:1;
+	struct list_head	sub_list;
 	/**
 	 * Linkage into a list (hanging off lov_io::lis_active) of all
 	 * sub-io's active for the current IO iteration.
@@ -340,7 +335,7 @@ struct lov_io_sub {
 	 * independently, with lov acting as a scheduler to maximize overall
 	 * throughput.
 	 */
-	struct cl_io		*sub_io;
+	struct cl_io		sub_io;
 	/**
 	 * environment, in which sub-io executes.
 	 */
@@ -351,6 +346,7 @@ struct lov_io_sub {
 	 * \see cl_env_get()
 	 */
 	u16			sub_refcheck;
+	u16			sub_reenter;
 };
 
 /**
@@ -384,14 +380,13 @@ struct lov_io {
 	 * exclusive (i.e., next offset after last byte affected by io).
 	 */
 	u64			lis_endpos;
-	int			lis_stripe_count;
-	int			lis_active_subios;
+	int			lis_nr_subios;
 
 	/**
 	 * the index of ls_single_subio in ls_subios array
 	 */
 	int			lis_single_subio_index;
-	struct cl_io		lis_single_subio;
+	struct lov_io_sub	lis_single_subio;
 
 	/**
 	 * List of active sub-io's. Active sub-io's are under the range
@@ -400,10 +395,9 @@ struct lov_io {
 	struct list_head	lis_active;
 
 	/**
-	 * size of ls_subios array, actually the highest stripe #
+	 * All sub-io's created in this lov_io.
 	 */
-	int		lis_nr_subios;
-	struct lov_io_sub *lis_subs;
+	struct list_head	lis_subios;
 };
 
 struct lov_session {
@@ -466,6 +460,7 @@ struct lu_object *lovsub_object_alloc(const struct lu_env *env,
 				      struct lu_device *dev);
 
 struct lov_stripe_md *lov_lsm_addref(struct lov_object *lov);
+int lov_lsm_entry(const struct lov_stripe_md *lsm, u64 offset);
 
 #define lov_foreach_target(lov, var)		    \
 	for (var = 0; var < lov_targets_nr(lov); ++var)

@@ -519,9 +519,26 @@ void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm)
 		struct lov_stripe_md_entry *lse = lsm->lsm_entries[i];
 
 		CDEBUG(level,
-		       ": id: %u, magic 0x%08X, stripe count %u, size %u, layout_gen %u, pool: [" LOV_POOLNAMEF "]\n",
-		       lse->lsme_id, lse->lsme_magic,
+		       DEXT ": id: %u, magic 0x%08X, stripe count %u, size %u, layout_gen %u, pool: [" LOV_POOLNAMEF "]\n",
+		       PEXT(&lse->lsme_extent), lse->lsme_id, lse->lsme_magic,
 		       lse->lsme_stripe_count, lse->lsme_stripe_size,
 		       lse->lsme_layout_gen, lse->lsme_pool_name);
 	}
+}
+
+int lov_lsm_entry(const struct lov_stripe_md *lsm, u64 offset)
+{
+	int i;
+
+	for (i = 0; i < lsm->lsm_entry_count; i++) {
+		struct lov_stripe_md_entry *lse = lsm->lsm_entries[i];
+
+		if ((offset >= lse->lsme_extent.e_start &&
+		     offset < lse->lsme_extent.e_end) ||
+		    (offset == OBD_OBJECT_EOF &&
+		     lse->lsme_extent.e_end == OBD_OBJECT_EOF))
+			return i;
+	}
+
+	return -1;
 }
