@@ -378,6 +378,7 @@ static int lov_io_iter_init(const struct lu_env *env,
 {
 	struct lov_io	*lio = cl2lov_io(env, ios);
 	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
+	struct cl_io *io = ios->cis_io;
 	struct lov_layout_entry *le;
 	struct lov_io_sub    *sub;
 	struct lu_extent ext;
@@ -394,14 +395,27 @@ static int lov_io_iter_init(const struct lu_env *env,
 		u64 start;
 		u64 end;
 
-		CDEBUG(D_VFSTRACE, "component[%d] flags %#x\n",
-		       index, lsm->lsm_entries[index]->lsme_flags);
-		if (!lsm_entry_inited(lsm, index))
-			break;
-
 		index++;
 		if (!lu_extent_is_overlapped(&ext, &le->lle_extent))
 			continue;
+
+		CDEBUG(D_VFSTRACE, "component[%d] flags %#x\n",
+		       index - 1, lsm->lsm_entries[index - 1]->lsme_flags);
+		if (!lsm_entry_inited(lsm, index - 1)) {
+			/* truncate IO will trigger write intent as well, and
+			 * it's handled in lov_io_setattr_iter_init()
+			 */
+			if (io->ci_type == CIT_WRITE || cl_io_is_mkwrite(io)) {
+			    io->ci_need_write_intent = 1;
+				rc = -ENODATA;
+				break;
+			}
+
+			/* Read from uninitialized components should return
+			 * zero filled pages.
+			 */
+			continue;
+		}
 
 		for (stripe = 0; stripe < r0->lo_nr; stripe++) {
 			if (!lov_stripe_intersects(lsm, index - 1, stripe,
@@ -498,13 +512,6 @@ static int lov_io_rw_iter_init(const struct lu_env *env,
 	       start, lio->lis_pos, lio->lis_endpos,
 	       lio->lis_io_endpos);
 
-	index = lov_lsm_entry(lsm, lio->lis_endpos - 1);
-	if (index > 0 && !lsm_entry_inited(lsm, index)) {
-		io->ci_need_write_intent = 1;
-		io->ci_result = -ENODATA;
-		return io->ci_result;
-	}
-
 	/*
 	 * XXX The following call should be optimized: we know, that
 	 * [lio->lis_pos, lio->lis_endpos) intersects with exactly one stripe.
@@ -520,7 +527,7 @@ static int lov_io_setattr_iter_init(const struct lu_env *env,
 	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
 	int index;
 
-	if (cl_io_is_trunc(io) && lio->lis_pos) {
+	if (cl_io_is_trunc(io) && lio->lis_pos > 0) {
 		index = lov_lsm_entry(lsm, lio->lis_pos - 1);
 		if (index > 0 && !lsm_entry_inited(lsm, index)) {
 			io->ci_need_write_intent = 1;
