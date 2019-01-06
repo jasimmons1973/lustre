@@ -1784,6 +1784,7 @@ struct cl_io {
 			unsigned int     sa_avalid;
 			unsigned int		sa_xvalid; /* OP_XVALID */
 			int		sa_stripe_index;
+			struct ost_layout	 sa_layout;
 			const struct lu_fid	*sa_parent_fid;
 		} ci_setattr;
 		struct cl_data_version_io {

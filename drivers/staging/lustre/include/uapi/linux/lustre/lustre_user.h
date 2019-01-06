@@ -159,16 +159,13 @@ static inline bool fid_is_zero(const struct lu_fid *fid)
 	return !fid->f_seq && !fid->f_oid;
 }
 
-struct filter_fid {
-	struct lu_fid	ff_parent;  /* ff_parent.f_ver == file stripe number */
-};
-
-/* keep this one for compatibility */
-struct filter_fid_old {
-	struct lu_fid	ff_parent;
-	__u64		ff_objid;
-	__u64		ff_seq;
-};
+struct ost_layout {
+	__u32	ol_stripe_size;
+	__u32	ol_stripe_count;
+	__u64	ol_comp_start;
+	__u64	ol_comp_end;
+	__u32	ol_comp_id;
+} __packed;
 
 /* Userspace should treat lu_fid as opaque, and only use the following methods
  * to print or parse them.  Other functions (e.g. compare, swab) could be moved

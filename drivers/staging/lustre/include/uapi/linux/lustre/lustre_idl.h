@@ -1134,6 +1134,7 @@ lov_mds_md_max_stripe_count(size_t buf_size, __u32 lmm_magic)
 							    */
 
 #define OBD_MD_DEFAULT_MEA	(0x0040000000000000ULL) /* default MEA */
+#define OBD_MD_FLOSTLAYOUT	(0x0080000000000000ULL)	/* contain ost_layout */
 #define OBD_MD_FLPROJID		(0x0100000000000000ULL) /* project ID */
 
 #define OBD_MD_FLALLQUOTA (OBD_MD_FLUSRQUOTA | \
@@ -2637,9 +2638,16 @@ struct obdo {
 	__u32		o_parent_ver;
 	struct lustre_handle    o_handle;  /* brw: lock handle to prolong locks
 					    */
-	struct llog_cookie      o_lcookie; /* destroy: unlink cookie from MDS,
-					    * obsolete in 2.8, reused in OSP
-					    */
+	/* Originally, the field is llog_cookie for destroy with unlink cookie
+	 * from MDS, it is obsolete in 2.8. Then reuse it by client to transfer
+	 * layout and PFL information in IO, setattr RPCs. Since llog_cookie is
+	 * not used on wire any longer, remove it from the obdo, then it can be
+	 * enlarged freely in the further without affect related RPCs.
+	 *
+	 * sizeof(ost_layout) + sizeof(__u32) == sizeof(llog_cookie).
+	 */
+	struct ost_layout	o_layout;
+	__u32			o_padding_3;
 	__u32		o_uid_h;
 	__u32		o_gid_h;
 

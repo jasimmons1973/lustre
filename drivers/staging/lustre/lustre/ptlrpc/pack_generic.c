@@ -1587,6 +1587,15 @@ void lustre_swab_connect(struct obd_connect_data *ocd)
 	BUILD_BUG_ON(offsetof(typeof(*ocd), paddingF) == 0);
 }
 
+static void lustre_swab_ost_layout(struct ost_layout *ol)
+{
+	__swab32s(&ol->ol_stripe_size);
+	__swab32s(&ol->ol_stripe_count);
+	__swab64s(&ol->ol_comp_start);
+	__swab64s(&ol->ol_comp_end);
+	__swab32s(&ol->ol_comp_id);
+}
+
 static void lustre_swab_obdo(struct obdo *o)
 {
 	__swab64s(&o->o_valid);
@@ -1609,8 +1618,8 @@ static void lustre_swab_obdo(struct obdo *o)
 	__swab64s(&o->o_ioepoch);
 	__swab32s(&o->o_stripe_idx);
 	__swab32s(&o->o_parent_ver);
-	/* o_handle is opaque */
-	/* o_lcookie is swabbed elsewhere */
+	lustre_swab_ost_layout(&o->o_layout);
+	BUILD_BUG_ON(offsetof(typeof(*o), o_padding_3) == 0);
 	__swab32s(&o->o_uid_h);
 	__swab32s(&o->o_gid_h);
 	__swab64s(&o->o_data_version);
