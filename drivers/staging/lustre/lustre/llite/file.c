@@ -1430,8 +1430,9 @@ int ll_lov_getstripe_ea_info(struct inode *inode, const char *filename,
 
 	lmm = req_capsule_server_sized_get(&req->rq_pill, &RMF_MDT_MD, lmmsize);
 
-	if ((lmm->lmm_magic != cpu_to_le32(LOV_MAGIC_V1)) &&
-	    (lmm->lmm_magic != cpu_to_le32(LOV_MAGIC_V3))) {
+	if (lmm->lmm_magic != cpu_to_le32(LOV_MAGIC_V1) &&
+	    lmm->lmm_magic != cpu_to_le32(LOV_MAGIC_V3) &&
+	    lmm->lmm_magic != cpu_to_le32(LOV_MAGIC_COMP_V1)) {
 		rc = -EPROTO;
 		goto out;
 	}
@@ -1444,9 +1445,13 @@ int ll_lov_getstripe_ea_info(struct inode *inode, const char *filename,
 	if (cpu_to_le32(LOV_MAGIC) != LOV_MAGIC) {
 		int stripe_count;
 
-		stripe_count = le16_to_cpu(lmm->lmm_stripe_count);
-		if (le32_to_cpu(lmm->lmm_pattern) & LOV_PATTERN_F_RELEASED)
-			stripe_count = 0;
+		if (lmm->lmm_magic == cpu_to_le32(LOV_MAGIC_V1) ||
+		    lmm->lmm_magic == cpu_to_le32(LOV_MAGIC_V3)) {
+			stripe_count = le16_to_cpu(lmm->lmm_stripe_count);
+			if (le32_to_cpu(lmm->lmm_pattern) &
+			    LOV_PATTERN_F_RELEASED)
+				stripe_count = 0;
+		}
 
 		/* if function called for directory - we should
 		 * avoid swab not existent lsm objects
@@ -1463,6 +1468,8 @@ int ll_lov_getstripe_ea_info(struct inode *inode, const char *filename,
 				lustre_swab_lov_user_md_objects(
 				 ((struct lov_user_md_v3 *)lmm)->lmm_objects,
 				 stripe_count);
+		} else if (lmm->lmm_magic == cpu_to_le32(LOV_MAGIC_COMP_V1)) {
+			lustre_swab_lov_comp_md_v1((struct lov_comp_md_v1 *)lmm);
 		}
 	}
 
@@ -1534,14 +1541,6 @@ static int ll_lov_setstripe(struct inode *inode, struct file *file,
 	rc = ll_lov_setstripe_ea_info(inode, file->f_path.dentry, flags, klum,
 				      lum_size);
 	cl_lov_delay_create_clear(&file->f_flags);
-	if (rc == 0) {
-		__u32 gen;
-
-		put_user(0, &lum->lmm_stripe_count);
-
-		ll_layout_refresh(inode, &gen);
-		rc = ll_file_getstripe(inode, (struct lov_user_md __user *)arg);
-	}
 
 	kfree(klum);
 	return rc;

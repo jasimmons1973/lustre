@@ -194,40 +194,53 @@ static int get_hsm_state(struct inode *inode, u32 *hus_states)
 
 static int ll_adjust_lum(struct inode *inode, struct lov_user_md *lump)
 {
+	struct lov_comp_md_v1 *comp_v1 = (struct lov_comp_md_v1 *)lump;
+	struct lov_user_md *v1 = lump;
+	bool need_clear_release = false;
+	bool release_checked = false;
+	bool is_composite = false;
+	u16 entry_count = 1;
 	int rc = 0;
+	int i;
 
 	if (!lump)
 		return 0;
 
-	/* Attributes that are saved via getxattr will always have
-	 * the stripe_offset as 0.  Instead, the MDS should be
-	 * allowed to pick the starting OST index.   b=17846
-	 */
-	if (lump->lmm_stripe_offset == 0)
-		lump->lmm_stripe_offset = -1;
+	if (lump->lmm_magic == LOV_USER_MAGIC_COMP_V1) {
+		entry_count = comp_v1->lcm_entry_count;
+		is_composite = true;
+        }
 
-	/* Avoid anyone directly setting the RELEASED flag. */
-	if (lump->lmm_pattern & LOV_PATTERN_F_RELEASED) {
-		/* Only if we have a released flag check if the file
-		 * was indeed archived.
+	for (i = 0; i < entry_count; i++) {
+		if (lump->lmm_magic == LOV_USER_MAGIC_COMP_V1) {
+			void *ptr = comp_v1;
+
+			ptr += comp_v1->lcm_entries[i].lcme_offset;
+			v1 = (struct lov_user_md *)ptr;
+		}
+
+		/* Attributes that are saved via getxattr will always have
+		 * the stripe_offset as 0.  Instead, the MDS should be
+		 * allowed to pick the starting OST index.   b=17846
 		 */
-		u32 state = HS_NONE;
+		if (!is_composite && v1->lmm_stripe_offset == 0)
+			v1->lmm_stripe_offset = -1;
 
-		rc = get_hsm_state(inode, &state);
-		if (rc)
-			return rc;
+		/* Avoid anyone directly setting the RELEASED flag. */
+		if (v1->lmm_pattern & LOV_PATTERN_F_RELEASED) {
+			if (!release_checked) {
+				u32 state = HS_NONE;
 
-		if (!(state & HS_ARCHIVED)) {
-			CDEBUG(D_VFSTRACE,
-			       "hus_states state = %x, pattern = %x\n",
-				state, lump->lmm_pattern);
-			/*
-			 * Here the state is: real file is not
-			 * archived but user is requesting to set
-			 * the RELEASED flag so we mask off the
-			 * released flag from the request
-			 */
-			lump->lmm_pattern ^= LOV_PATTERN_F_RELEASED;
+				rc = get_hsm_state(inode, &state);
+				if (rc)
+					return rc;
+
+				if (!(state & HS_ARCHIVED))
+					need_clear_release = true;
+				release_checked = true;
+			}
+			if (need_clear_release)
+				v1->lmm_pattern ^= LOV_PATTERN_F_RELEASED;
 		}
 	}
 
@@ -495,6 +508,9 @@ static ssize_t ll_getxattr_lov(struct inode *inode, void *buf, size_t buf_size)
 		 * recognizing layout gen as stripe offset when the
 		 * file is restored. See LU-2809.
 		 */
+		if (((struct lov_mds_md *)buf)->lmm_magic == LOV_MAGIC_COMP_V1)
+			goto out_env;
+
 		((struct lov_mds_md *)buf)->lmm_layout_gen = 0;
 out_env:
 		cl_env_put(env, &refcheck);

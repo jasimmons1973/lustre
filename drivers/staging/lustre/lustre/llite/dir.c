@@ -522,6 +522,15 @@ int ll_dir_setstripe(struct inode *inode, struct lov_user_md *lump,
 			lum_size = sizeof(struct lov_user_md_v3);
 			break;
 		}
+		case LOV_USER_MAGIC_COMP_V1: {
+			if (lump->lmm_magic !=
+			    cpu_to_le32(LOV_USER_MAGIC_COMP_V1))
+				lustre_swab_lov_comp_md_v1(
+					(struct lov_comp_md_v1 *)lump);
+			lum_size = le32_to_cpu(
+				((struct lov_comp_md_v1 *)lump)->lcm_size);
+			break;
+		}
 		case LMV_USER_MAGIC: {
 			if (lump->lmm_magic != cpu_to_le32(LMV_USER_MAGIC))
 				lustre_swab_lmv_user_md(
@@ -562,7 +571,9 @@ int ll_dir_setstripe(struct inode *inode, struct lov_user_md *lump,
 	 * LOV_USER_MAGIC_V3 have the same initial fields so we do not
 	 * need to make the distinction between the 2 versions
 	 */
-	if (set_default && mgc->u.cli.cl_mgc_mgsexp) {
+	if (set_default && mgc->u.cli.cl_mgc_mgsexp &&
+	    (!lump || le32_to_cpu(lump->lmm_magic) == LOV_USER_MAGIC_V1 ||
+	     le32_to_cpu(lump->lmm_magic) == LOV_USER_MAGIC_V3)) {
 		char *param = NULL;
 		char *buf;
 
@@ -577,23 +588,23 @@ int ll_dir_setstripe(struct inode *inode, struct lov_user_md *lump,
 		buf += strlen(buf);
 
 		/* Set root stripesize */
-		sprintf(buf, ".stripesize=%u",
-			lump ? le32_to_cpu(lump->lmm_stripe_size) : 0);
+		snprintf(buf, MGS_PARAM_MAXLEN, ".stripesize=%u",
+			 lump ? le32_to_cpu(lump->lmm_stripe_size) : 0);
 		rc = ll_send_mgc_param(mgc->u.cli.cl_mgc_mgsexp, param);
 		if (rc)
 			goto end;
 
 		/* Set root stripecount */
-		sprintf(buf, ".stripecount=%hd",
-			lump ? le16_to_cpu(lump->lmm_stripe_count) : 0);
+		snprintf(buf, MGS_PARAM_MAXLEN, ".stripecount=%hd",
+			 lump ? le16_to_cpu(lump->lmm_stripe_count) : 0);
 		rc = ll_send_mgc_param(mgc->u.cli.cl_mgc_mgsexp, param);
 		if (rc)
 			goto end;
 
 		/* Set root stripeoffset */
-		sprintf(buf, ".stripeoffset=%hd",
-			lump ? le16_to_cpu(lump->lmm_stripe_offset) :
-			(typeof(lump->lmm_stripe_offset))(-1));
+		snprintf(buf, MGS_PARAM_MAXLEN, ".stripeoffset=%hd",
+			 lump ? le16_to_cpu(lump->lmm_stripe_offset) :
+				(typeof(lump->lmm_stripe_offset))(-1));
 		rc = ll_send_mgc_param(mgc->u.cli.cl_mgc_mgsexp, param);
 
 end:
@@ -668,6 +679,10 @@ int ll_dir_getstripe(struct inode *inode, void **plmm, int *plmm_size,
 	case LOV_MAGIC_V3:
 		if (cpu_to_le32(LOV_MAGIC) != LOV_MAGIC)
 			lustre_swab_lov_user_md_v3((struct lov_user_md_v3 *)lmm);
+		break;
+	case LOV_MAGIC_COMP_V1:
+		if (cpu_to_le32(LOV_MAGIC) != LOV_MAGIC)
+			lustre_swab_lov_comp_md_v1((struct lov_comp_md_v1 *)lmm);
 		break;
 	case LMV_MAGIC_V1:
 		if (cpu_to_le32(LMV_MAGIC) != LMV_MAGIC)
@@ -1217,6 +1232,8 @@ lmv_out_free:
 
 		int set_default = 0;
 
+		BUILD_BUG_ON(sizeof(struct lov_user_md_v3) <=
+			     sizeof(struct lov_comp_md_v1));
 		LASSERT(sizeof(lumv3) == sizeof(*lumv3p));
 		LASSERT(sizeof(lumv3.lmm_objects[0]) ==
 			sizeof(lumv3p->lmm_objects[0]));
