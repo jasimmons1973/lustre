@@ -92,21 +92,7 @@ struct lsm_operations {
 			    struct lov_mds_md *lmm);
 };
 
-extern const struct lsm_operations lsm_v1_ops;
-extern const struct lsm_operations lsm_v3_ops;
-
-static inline const struct lsm_operations *lsm_op_find(int magic)
-{
-	switch (magic) {
-	case LOV_MAGIC_V1:
-		return &lsm_v1_ops;
-	case LOV_MAGIC_V3:
-		return &lsm_v3_ops;
-	default:
-		CERROR("unrecognized lsm_magic %08x\n", magic);
-		return NULL;
-	}
-}
+const struct lsm_operations *lsm_op_find(int magic);
 
 /* lov_do_div64(a, b) returns a % b, and a = a / b.
  * The 32-bit code is LOV-specific due to knowing about stripe limits in

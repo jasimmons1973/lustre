@@ -44,6 +44,33 @@
 
 #include "lov_internal.h"
 
+/*
+ * Find minimum stripe maxbytes value. For inactive or
+ * reconnecting targets use LUSTRE_EXT3_STRIPE_MAXBYTES.
+ */
+static loff_t lov_tgt_maxbytes(struct lov_tgt_desc *tgt)
+{
+	loff_t maxbytes = LUSTRE_EXT3_STRIPE_MAXBYTES;
+	struct obd_import *imp;
+
+	if (!tgt->ltd_active)
+		return maxbytes;
+
+	imp = tgt->ltd_obd->u.cli.cl_import;
+	if (!imp)
+		return maxbytes;
+
+	spin_lock(&imp->imp_lock);
+	if (imp->imp_state == LUSTRE_IMP_FULL &&
+	    (imp->imp_connect_data.ocd_connect_flags & OBD_CONNECT_MAXBYTES) &&
+	     imp->imp_connect_data.ocd_maxbytes > 0)
+		maxbytes = imp->imp_connect_data.ocd_maxbytes;
+
+	spin_unlock(&imp->imp_lock);
+
+	return maxbytes;
+}
+
 static int lsm_lmm_verify_common(struct lov_mds_md *lmm, int lmm_bytes,
 				 __u16 stripe_count)
 {
@@ -76,6 +103,16 @@ static int lsm_lmm_verify_common(struct lov_mds_md *lmm, int lmm_bytes,
 	return 0;
 }
 
+void lsm_free_plain(struct lov_stripe_md *lsm)
+{
+	__u16 stripe_count = lsm->lsm_stripe_count;
+	int i;
+
+	for (i = 0; i < stripe_count; i++)
+		kmem_cache_free(lov_oinfo_slab, lsm->lsm_oinfo[i]);
+	kvfree(lsm);
+}
+
 struct lov_stripe_md *lsm_alloc_plain(u16 stripe_count)
 {
 	size_t oinfo_ptrs_size, lsm_size;
@@ -106,43 +143,6 @@ err:
 		kmem_cache_free(lov_oinfo_slab, lsm->lsm_oinfo[i]);
 	kvfree(lsm);
 	return NULL;
-}
-
-void lsm_free_plain(struct lov_stripe_md *lsm)
-{
-	__u16 stripe_count = lsm->lsm_stripe_count;
-	int i;
-
-	for (i = 0; i < stripe_count; i++)
-		kmem_cache_free(lov_oinfo_slab, lsm->lsm_oinfo[i]);
-	kvfree(lsm);
-}
-
-/*
- * Find minimum stripe maxbytes value.  For inactive or
- * reconnecting targets use LUSTRE_EXT3_STRIPE_MAXBYTES.
- */
-static loff_t lov_tgt_maxbytes(struct lov_tgt_desc *tgt)
-{
-	loff_t maxbytes = LUSTRE_EXT3_STRIPE_MAXBYTES;
-	struct obd_import *imp;
-
-	if (!tgt->ltd_active)
-		return maxbytes;
-
-	imp = tgt->ltd_obd->u.cli.cl_import;
-	if (!imp)
-		return maxbytes;
-
-	spin_lock(&imp->imp_lock);
-	if (imp->imp_state == LUSTRE_IMP_FULL &&
-	    (imp->imp_connect_data.ocd_connect_flags & OBD_CONNECT_MAXBYTES) &&
-	     imp->imp_connect_data.ocd_maxbytes > 0)
-		maxbytes = imp->imp_connect_data.ocd_maxbytes;
-
-	spin_unlock(&imp->imp_lock);
-
-	return maxbytes;
 }
 
 static int lsm_unpackmd_common(struct lov_obd *lov,
@@ -319,6 +319,19 @@ const struct lsm_operations lsm_v3_ops = {
 	.lsm_lmm_verify	 = lsm_lmm_verify_v3,
 	.lsm_unpackmd	   = lsm_unpackmd_v3,
 };
+
+const struct lsm_operations *lsm_op_find(int magic)
+{
+	switch (magic) {
+	case LOV_MAGIC_V1:
+		return &lsm_v1_ops;
+	case LOV_MAGIC_V3:
+		return &lsm_v3_ops;
+	default:
+		CERROR("unrecognized lsm_magic %08x\n", magic);
+		return NULL;
+	}
+}
 
 void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm)
 {
