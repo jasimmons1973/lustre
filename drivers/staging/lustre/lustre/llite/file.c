@@ -1195,7 +1195,7 @@ restart:
 	}
 
 	if (io->ci_nob > 0) {
-		result = io->ci_nob;
+		result += io->ci_nob;
 		count -= io->ci_nob;
 		*ppos = io->u.ci_wr.wr.crw_pos;
 
