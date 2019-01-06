@@ -631,7 +631,7 @@ int ll_dir_getstripe(struct inode *inode, void **plmm, int *plmm_size,
 	if (IS_ERR(op_data))
 		return PTR_ERR(op_data);
 
-	op_data->op_valid = OBD_MD_FLEASIZE | OBD_MD_FLDIREA;
+	op_data->op_valid = valid | OBD_MD_FLEASIZE | OBD_MD_FLDIREA;
 	rc = md_getattr(sbi->ll_md_exp, op_data, &req);
 	ll_finish_md_op_data(op_data);
 	if (rc < 0) {
