@@ -36,6 +36,7 @@
 #ifndef __LNET_LIB_TYPES_H__
 #define __LNET_LIB_TYPES_H__
 
+#include <linux/bvec.h>
 #include <linux/kthread.h>
 #include <linux/net.h>
 #include <linux/uio.h>

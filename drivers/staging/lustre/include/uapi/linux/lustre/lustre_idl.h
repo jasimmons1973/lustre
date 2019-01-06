@@ -40,7 +40,7 @@
  * that are used in interfaces with userspace should go in lustre_user.h.
  *
  * All structs being declared here should be built from simple fixed-size
- * types (__u8, __u16, __u32, __u64) or be built from other types or
+ * types defined in linux/types.h or be built from other types or
  * structs also declared in this file.  Similarly, all flags and magic
  * values in those structs should also be declared here.  This ensures
  * that the Lustre wire protocol is not influenced by external dependencies.

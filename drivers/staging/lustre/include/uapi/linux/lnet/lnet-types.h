@@ -34,7 +34,6 @@
 #define __LNET_TYPES_H__
 
 #include <linux/types.h>
-#include <linux/bvec.h>
 
 /** \addtogroup lnet
  * @{
