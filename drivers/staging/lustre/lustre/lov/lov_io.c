@@ -251,10 +251,9 @@ static int lov_io_subio_init(const struct lu_env *env, struct lov_io *lio,
 	 * Need to be optimized, we can't afford to allocate a piece of memory
 	 * when writing a page. -jay
 	 */
-	lio->lis_subs =
-		kvzalloc(lsm->lsm_stripe_count *
+	lio->lis_subs = kcalloc(lsm->lsm_entries[0]->lsme_stripe_count,
 				sizeof(lio->lis_subs[0]),
-				GFP_NOFS);
+				GFP_KERNEL);
 	if (lio->lis_subs) {
 		lio->lis_nr_subios = lio->lis_stripe_count;
 		lio->lis_single_subio_index = -1;
@@ -272,7 +271,7 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 	io->ci_result = 0;
 	lio->lis_object = obj;
 
-	lio->lis_stripe_count = obj->lo_lsm->lsm_stripe_count;
+	lio->lis_stripe_count = obj->lo_lsm->lsm_entries[0]->lsme_stripe_count;
 
 	switch (io->ci_type) {
 	case CIT_READ:
@@ -287,7 +286,7 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 			 * If there is LOV EA hole, then we may cannot locate
 			 * the current file-tail exactly.
 			 */
-			if (unlikely(obj->lo_lsm->lsm_pattern &
+			if (unlikely(obj->lo_lsm->lsm_entries[0]->lsme_pattern &
 				     LOV_PATTERN_F_HOLE))
 				return -EIO;
 
@@ -419,9 +418,9 @@ static int lov_io_rw_iter_init(const struct lu_env *env,
 	struct lov_io	*lio = cl2lov_io(env, ios);
 	struct cl_io	 *io  = ios->cis_io;
 	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
-	__u64 start = io->u.ci_rw.crw_pos;
+	unsigned long ssize = lsm->lsm_entries[0]->lsme_stripe_size;
+	u64 start = io->u.ci_rw.crw_pos;
 	loff_t next;
-	unsigned long ssize = lsm->lsm_stripe_size;
 
 	LASSERT(io->ci_type == CIT_READ || io->ci_type == CIT_WRITE);
 
@@ -596,11 +595,11 @@ static int lov_io_read_ahead(const struct lu_env *env,
 	if (ra_end != CL_PAGE_EOF)
 		ra_end = lov_stripe_pgoff(loo->lo_lsm, ra_end, stripe);
 
-	pps = loo->lo_lsm->lsm_stripe_size >> PAGE_SHIFT;
+	pps = loo->lo_lsm->lsm_entries[0]->lsme_stripe_size >> PAGE_SHIFT;
 
 	CDEBUG(D_READA, DFID " max_index = %lu, pps = %u, stripe_size = %u, stripe no = %u, start index = %lu\n",
 	       PFID(lu_object_fid(lov2lu(loo))), ra_end, pps,
-	       loo->lo_lsm->lsm_stripe_size, stripe, start);
+	       loo->lo_lsm->lsm_entries[0]->lsme_stripe_size, stripe, start);
 
 	/* never exceed the end of the stripe */
 	ra->cra_end = min_t(pgoff_t, ra_end, start + pps - start % pps - 1);

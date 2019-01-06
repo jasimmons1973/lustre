@@ -44,6 +44,18 @@
  */
 #define LUSTRE_EXT3_STRIPE_MAXBYTES 0x1fffffff000ULL
 
+struct lov_stripe_md_entry {
+	struct lu_extent	lsme_extent;
+	u32			lsme_id;
+	u32			lsme_magic;
+	u32			lsme_pattern;
+	u32			lsme_stripe_size;
+	u16			lsme_stripe_count;
+	u16			lsme_layout_gen;
+	char			lsme_pool_name[LOV_MAXPOOLNAME + 1];
+	struct lov_oinfo       *lsme_oinfo[];
+};
+
 struct lov_stripe_md {
 	atomic_t	lsm_refc;
 	spinlock_t	lsm_lock;
@@ -56,28 +68,15 @@ struct lov_stripe_md {
 	loff_t		lsm_maxbytes;
 	struct ost_id	lsm_oi;
 	u32		lsm_magic;
-	u32		lsm_stripe_size;
-	u32		lsm_pattern; /* RAID0, RAID1, released, ... */
-	u16		lsm_stripe_count;
-	u16		lsm_layout_gen;
-	char		lsm_pool_name[LOV_MAXPOOLNAME + 1];
-	struct lov_oinfo	*lsm_oinfo[0];
+	u32		lsm_layout_gen;
+	u32		lsm_entry_count;
+	bool		lsm_is_released;
+	struct lov_stripe_md_entry *lsm_entries[];
 };
-
-static inline bool lsm_is_released(struct lov_stripe_md *lsm)
-{
-	return !!(lsm->lsm_pattern & LOV_PATTERN_F_RELEASED);
-}
 
 static inline bool lsm_has_objects(struct lov_stripe_md *lsm)
 {
-	if (!lsm)
-		return false;
-
-	if (lsm_is_released(lsm))
-		return false;
-
-	return true;
+	return lsm && !lsm->lsm_is_released;
 }
 
 struct lsm_operations {

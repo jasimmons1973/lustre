@@ -103,114 +103,106 @@ static int lsm_lmm_verify_v1v3(struct lov_mds_md *lmm, size_t lmm_size,
 	return 0;
 }
 
+static void lsme_free(struct lov_stripe_md_entry *lsme)
+{
+	unsigned int stripe_count = lsme->lsme_stripe_count;
+	unsigned int i;
+
+	for (i = 0; i < stripe_count; i++)
+		kmem_cache_free(lov_oinfo_slab, lsme->lsme_oinfo[i]);
+
+	kvfree(lsme);
+}
+
 void lsm_free(struct lov_stripe_md *lsm)
 {
-	__u16 stripe_count = lsm->lsm_stripe_count;
-	int i;
-
-	for (i = 0; i < stripe_count; i++)
-		kmem_cache_free(lov_oinfo_slab, lsm->lsm_oinfo[i]);
-	kvfree(lsm);
-}
-
-struct lov_stripe_md *lsm_alloc_plain(u16 stripe_count)
-{
-	size_t oinfo_ptrs_size, lsm_size;
-	struct lov_stripe_md *lsm;
-	struct lov_oinfo     *loi;
-	int i;
-
-	LASSERT(stripe_count <= LOV_MAX_STRIPE_COUNT);
-
-	oinfo_ptrs_size = sizeof(struct lov_oinfo *) * stripe_count;
-	lsm_size = sizeof(*lsm) + oinfo_ptrs_size;
-
-	lsm = kvzalloc(lsm_size, GFP_NOFS);
-	if (!lsm)
-		return NULL;
-
-	for (i = 0; i < stripe_count; i++) {
-		loi = kmem_cache_zalloc(lov_oinfo_slab, GFP_NOFS);
-		if (!loi)
-			goto err;
-		lsm->lsm_oinfo[i] = loi;
-	}
-	lsm->lsm_stripe_count = stripe_count;
-	return lsm;
-
-err:
-	while (--i >= 0)
-		kmem_cache_free(lov_oinfo_slab, lsm->lsm_oinfo[i]);
-	kvfree(lsm);
-	return NULL;
-}
-
-static struct lov_stripe_md *lov_lsm_alloc(u16 stripe_count, u32 pattern,
-					   u32 magic)
-{
-	struct lov_stripe_md *lsm;
+	unsigned int entry_count = lsm->lsm_entry_count;
 	unsigned int i;
 
-	CDEBUG(D_INFO, "alloc lsm, stripe_count %u\n", stripe_count);
+	for (i = 0; i < entry_count; i++)
+		lsme_free(lsm->lsm_entries[i]);
 
-	lsm = lsm_alloc_plain(stripe_count);
-	if (!lsm) {
-		CERROR("cannot allocate LSM stripe_count %u\n", stripe_count);
-		return ERR_PTR(-ENOMEM);
-	}
-
-	atomic_set(&lsm->lsm_refc, 1);
-	spin_lock_init(&lsm->lsm_lock);
-	lsm->lsm_magic = magic;
-	lsm->lsm_stripe_count = stripe_count;
-	lsm->lsm_maxbytes = LUSTRE_EXT3_STRIPE_MAXBYTES * stripe_count;
-	lsm->lsm_pattern = pattern;
-	lsm->lsm_pool_name[0] = '\0';
-	lsm->lsm_layout_gen = 0;
-	if (stripe_count > 0)
-		lsm->lsm_oinfo[0]->loi_ost_idx = ~0;
-
-	for (i = 0; i < stripe_count; i++)
-		loi_init(lsm->lsm_oinfo[i]);
-
-	return lsm;
+	kfree(lsm);
 }
 
-static int lsm_unpackmd_v1v3(struct lov_obd *lov,
-			     struct lov_stripe_md *lsm,
-			     struct lov_mds_md *lmm,
-			     const char *pool_name,
-			     struct lov_ost_data_v1 *objects)
+/**
+ * Unpack a struct lov_mds_md into a struct lov_stripe_md_entry.
+ *
+ * The caller should set id and extent.
+ */
+static struct lov_stripe_md_entry *
+lsme_unpack(struct lov_obd *lov, struct lov_mds_md *lmm, size_t buf_size,
+	    const char *pool_name, struct lov_ost_data_v1 *objects,
+	    loff_t *maxbytes)
 {
+	struct lov_stripe_md_entry *lsme;
 	loff_t min_stripe_maxbytes = 0;
 	unsigned int stripe_count;
-	struct lov_oinfo *loi;
 	loff_t lov_bytes;
+	size_t lsme_size;
 	unsigned int i;
+	u32 pattern;
+	u32 magic;
+	int rc;
 
-	/*
-	 * This supposes lov_mds_md_v1/v3 first fields are
-	 * are the same
-	 */
-	lmm_oi_le_to_cpu(&lsm->lsm_oi, &lmm->lmm_oi);
-	lsm->lsm_stripe_size = le32_to_cpu(lmm->lmm_stripe_size);
-	lsm->lsm_pattern = le32_to_cpu(lmm->lmm_pattern);
-	lsm->lsm_layout_gen = le16_to_cpu(lmm->lmm_layout_gen);
-	lsm->lsm_pool_name[0] = '\0';
+	magic = le32_to_cpu(lmm->lmm_magic);
+	if (magic != LOV_MAGIC_V1 && magic != LOV_MAGIC_V3)
+		return ERR_PTR(-EINVAL);
 
-	stripe_count = lsm_is_released(lsm) ? 0 : lsm->lsm_stripe_count;
+	pattern = le32_to_cpu(lmm->lmm_pattern);
+	if (pattern & LOV_PATTERN_F_RELEASED)
+		stripe_count = 0;
+	else
+		stripe_count = le16_to_cpu(lmm->lmm_stripe_count);
+
+	if (buf_size < (magic == LOV_MAGIC_V1 ? sizeof(struct lov_mds_md_v1) :
+						sizeof(struct lov_mds_md_v3))) {
+		CERROR("LOV EA %s too small: %zu, need %u\n",
+		       magic == LOV_MAGIC_V1 ? "V1" : "V3", buf_size,
+		       lov_mds_md_size(stripe_count, magic == LOV_MAGIC_V1 ?
+				       LOV_MAGIC_V1 : LOV_MAGIC_V3));
+		lov_dump_lmm_common(D_WARNING, lmm);
+		return ERR_PTR(-EINVAL);
+	}
+
+	rc = lsm_lmm_verify_v1v3(lmm, buf_size, stripe_count);
+	if (rc < 0)
+		return ERR_PTR(rc);
+
+	lsme_size = offsetof(typeof(*lsme), lsme_oinfo[stripe_count]);
+	lsme = kvzalloc(lsme_size, GFP_KERNEL);
+	if (!lsme)
+		return ERR_PTR(-ENOMEM);
+
+	lsme->lsme_magic = magic;
+	lsme->lsme_pattern = pattern;
+	lsme->lsme_stripe_size = le32_to_cpu(lmm->lmm_stripe_size);
+	lsme->lsme_stripe_count = stripe_count;
+	lsme->lsme_layout_gen = le16_to_cpu(lmm->lmm_layout_gen);
 
 	if (pool_name) {
 		size_t pool_name_len;
 
-		pool_name_len = strlcpy(lsm->lsm_pool_name, pool_name,
-					sizeof(lsm->lsm_pool_name));
-		if (pool_name_len >= sizeof(lsm->lsm_pool_name))
-			return -E2BIG;
+		pool_name_len = strlcpy(lsme->lsme_pool_name, pool_name,
+					sizeof(lsme->lsme_pool_name));
+		if (pool_name_len >= sizeof(lsme->lsme_pool_name)) {
+			rc = -E2BIG;
+			goto out_lsme;
+		}
 	}
 
 	for (i = 0; i < stripe_count; i++) {
-		loi = lsm->lsm_oinfo[i];
+		struct lov_tgt_desc *ltd;
+		struct lov_oinfo *loi;
+
+		loi = kmem_cache_zalloc(lov_oinfo_slab, GFP_KERNEL);
+		if (!loi) {
+			rc = -ENOMEM;
+			goto out_lsme;
+		}
+
+		lsme->lsme_oinfo[i] = loi;
+
 		ostid_le_to_cpu(&objects[i].l_ost_oi, &loi->loi_oi);
 		loi->loi_ost_idx = le32_to_cpu(objects[i].l_ost_idx);
 		loi->loi_ost_gen = le32_to_cpu(objects[i].l_ost_gen);
@@ -223,10 +215,12 @@ static int lsm_unpackmd_v1v3(struct lov_obd *lov,
 			       (char *)lov->desc.ld_uuid.uuid,
 			       loi->loi_ost_idx, lov->desc.ld_tgt_count);
 			lov_dump_lmm_v1(D_WARNING, lmm);
-			return -EINVAL;
+			rc = -EINVAL;
+			goto out_lsme;
 		}
 
-		if (!lov->lov_tgts[loi->loi_ost_idx]) {
+		ltd = lov->lov_tgts[loi->loi_ost_idx];
+		if (!ltd) {
 			CERROR("%s: OST index %d missing\n",
 			       (char *)lov->desc.ld_uuid.uuid,
 			       loi->loi_ost_idx);
@@ -234,7 +228,7 @@ static int lsm_unpackmd_v1v3(struct lov_obd *lov,
 			continue;
 		}
 
-		lov_bytes = lov_tgt_maxbytes(lov->lov_tgts[loi->loi_ost_idx]);
+		lov_bytes = lov_tgt_maxbytes(ltd);
 		if (min_stripe_maxbytes == 0 || lov_bytes < min_stripe_maxbytes)
 			min_stripe_maxbytes = lov_bytes;
 	}
@@ -242,15 +236,68 @@ static int lsm_unpackmd_v1v3(struct lov_obd *lov,
 	if (min_stripe_maxbytes == 0)
 		min_stripe_maxbytes = LUSTRE_EXT3_STRIPE_MAXBYTES;
 
-	stripe_count = lsm->lsm_stripe_count ?: lov->desc.ld_tgt_count;
 	lov_bytes = min_stripe_maxbytes * stripe_count;
 
-	if (lov_bytes < min_stripe_maxbytes) /* handle overflow */
-		lsm->lsm_maxbytes = MAX_LFS_FILESIZE;
-	else
-		lsm->lsm_maxbytes = lov_bytes;
+	if (maxbytes) {
+		if (lov_bytes < min_stripe_maxbytes) /* handle overflow */
+			*maxbytes = MAX_LFS_FILESIZE;
+		else
+			*maxbytes = lov_bytes;
+	}
 
-	return 0;
+	return lsme;
+
+out_lsme:
+	for (i = 0; i < stripe_count; i++) {
+		struct lov_oinfo *loi = lsme->lsme_oinfo[i];
+
+		if (loi)
+			kmem_cache_free(lov_oinfo_slab, lsme->lsme_oinfo[i]);
+	}
+	kvfree(lsme);
+
+	return ERR_PTR(rc);
+}
+
+static inline struct lov_stripe_md *
+lsm_unpackmd_v1v3(struct lov_obd *lov,
+		  struct lov_mds_md *lmm, size_t buf_size,
+		  const char *pool_name,
+		  struct lov_ost_data_v1 *objects)
+{
+	struct lov_stripe_md_entry *lsme;
+	struct lov_stripe_md *lsm;
+	size_t lsm_size;
+	loff_t maxbytes;
+	u32 pattern;
+
+	pattern = le32_to_cpu(lmm->lmm_pattern);
+
+	lsme = lsme_unpack(lov, lmm, buf_size, pool_name, objects, &maxbytes);
+	if (IS_ERR(lsme))
+		return ERR_CAST(lsme);
+
+	lsme->lsme_extent.e_start = 0;
+	lsme->lsme_extent.e_end = LUSTRE_EOF;
+
+	lsm_size = offsetof(typeof(*lsm), lsm_entries[1]);
+	lsm = kzalloc(lsm_size, GFP_KERNEL);
+	if (!lsm) {
+		lsme_free(lsme);
+		return ERR_PTR(-ENOMEM);
+	}
+
+	atomic_set(&lsm->lsm_refc, 1);
+	spin_lock_init(&lsm->lsm_lock);
+	lsm->lsm_maxbytes = maxbytes;
+	lmm_oi_le_to_cpu(&lsm->lsm_oi, &lmm->lmm_oi);
+	lsm->lsm_magic = le32_to_cpu(lmm->lmm_magic);
+	lsm->lsm_layout_gen = le16_to_cpu(lmm->lmm_layout_gen);
+	lsm->lsm_entry_count = 1;
+	lsm->lsm_is_released = pattern & LOV_PATTERN_F_RELEASED;
+	lsm->lsm_entries[0] = lsme;
+
+	return lsm;
 }
 
 static void
@@ -258,7 +305,8 @@ lsm_stripe_by_index_plain(struct lov_stripe_md *lsm, int *stripeno,
 			  loff_t *lov_off, loff_t *swidth)
 {
 	if (swidth)
-		*swidth = (u64)lsm->lsm_stripe_size * lsm->lsm_stripe_count;
+		*swidth = (loff_t)lsm->lsm_entries[0]->lsme_stripe_size *
+			  lsm->lsm_entries[0]->lsme_stripe_count;
 }
 
 static void
@@ -266,59 +314,16 @@ lsm_stripe_by_offset_plain(struct lov_stripe_md *lsm, int *stripeno,
 			   loff_t *lov_off, loff_t *swidth)
 {
 	if (swidth)
-		*swidth = (u64)lsm->lsm_stripe_size * lsm->lsm_stripe_count;
-}
-
-static int lsm_lmm_verify_v1(struct lov_mds_md_v1 *lmm, size_t lmm_bytes,
-			     __u16 *stripe_count)
-{
-	if (lmm_bytes < sizeof(*lmm)) {
-		CERROR("lov_mds_md_v1 too small: %zu, need at least %zu\n",
-		       lmm_bytes, sizeof(*lmm));
-		return -EINVAL;
-	}
-
-	*stripe_count = le16_to_cpu(lmm->lmm_stripe_count);
-	if (le32_to_cpu(lmm->lmm_pattern) & LOV_PATTERN_F_RELEASED)
-		*stripe_count = 0;
-
-	if (lmm_bytes < lov_mds_md_size(*stripe_count, LOV_MAGIC_V1)) {
-		CERROR("LOV EA V1 too small: %zu, need %d\n",
-		       lmm_bytes, lov_mds_md_size(*stripe_count, LOV_MAGIC_V1));
-		lov_dump_lmm_common(D_WARNING, lmm);
-		return -EINVAL;
-	}
-
-	return lsm_lmm_verify_v1v3(lmm, lmm_bytes, *stripe_count);
+		*swidth = (loff_t)lsm->lsm_entries[0]->lsme_stripe_size *
+			  lsm->lsm_entries[0]->lsme_stripe_count;
 }
 
 static struct lov_stripe_md *
 lsm_unpackmd_v1(struct lov_obd *lov, void *buf, size_t buf_size)
 {
 	struct lov_mds_md_v1 *lmm = buf;
-	u32 magic = le32_to_cpu(lmm->lmm_magic);
-	struct lov_stripe_md *lsm;
-	u16 stripe_count;
-	u32 pattern;
-	int rc;
 
-	rc = lsm_lmm_verify_v1(lmm, buf_size, &stripe_count);
-	if (rc)
-		return ERR_PTR(rc);
-
-	pattern = le32_to_cpu(lmm->lmm_pattern);
-
-	lsm = lov_lsm_alloc(stripe_count, pattern, magic);
-	if (IS_ERR(lsm))
-		return lsm;
-
-	rc = lsm_unpackmd_v1v3(lov, lsm, lmm, NULL, lmm->lmm_objects);
-	if (rc) {
-		lov_free_memmd(&lsm);
-		lsm = ERR_PTR(rc);
-	}
-
-	return lsm;
+	return lsm_unpackmd_v1v3(lov, buf, buf_size, NULL, lmm->lmm_objects);
 }
 
 const static struct lsm_operations lsm_v1_ops = {
@@ -327,58 +332,13 @@ const static struct lsm_operations lsm_v1_ops = {
 	.lsm_unpackmd	   = lsm_unpackmd_v1,
 };
 
-static int lsm_lmm_verify_v3(struct lov_mds_md_v3 *lmm, size_t lmm_bytes,
-			     __u16 *stripe_count)
-{
-	if (lmm_bytes < sizeof(*lmm)) {
-		CERROR("lov_mds_md_v3 too small: %zu, need at least %zu\n",
-		       lmm_bytes, sizeof(*lmm));
-		return -EINVAL;
-	}
-
-	*stripe_count = le16_to_cpu(lmm->lmm_stripe_count);
-	if (le32_to_cpu(lmm->lmm_pattern) & LOV_PATTERN_F_RELEASED)
-		*stripe_count = 0;
-
-	if (lmm_bytes < lov_mds_md_size(*stripe_count, LOV_MAGIC_V3)) {
-		CERROR("LOV EA V3 too small: %zu, need %d\n",
-		       lmm_bytes, lov_mds_md_size(*stripe_count, LOV_MAGIC_V3));
-		lov_dump_lmm_common(D_WARNING, lmm);
-		return -EINVAL;
-	}
-
-	return lsm_lmm_verify_v1v3((struct lov_mds_md_v1 *)lmm, lmm_bytes,
-				     *stripe_count);
-}
-
 static struct lov_stripe_md *
 lsm_unpackmd_v3(struct lov_obd *lov, void *buf, size_t buf_size)
 {
 	struct lov_mds_md_v3 *lmm = buf;
-	u32 magic = le32_to_cpu(lmm->lmm_magic);
-	struct lov_stripe_md *lsm;
-	u16 stripe_count;
-	u32 pattern;
-	int rc;
 
-	rc = lsm_lmm_verify_v3(lmm, buf_size, &stripe_count);
-	if (rc)
-		return ERR_PTR(rc);
-
-	pattern = le32_to_cpu(lmm->lmm_pattern);
-
-	lsm = lov_lsm_alloc(stripe_count, pattern, magic);
-	if (IS_ERR(lsm))
-		return lsm;
-
-	rc = lsm_unpackmd_v1v3(lov, lsm, (struct lov_mds_md_v1 *)lmm,
-			       lmm->lmm_pool_name, lmm->lmm_objects);
-	if (rc) {
-		lov_free_memmd(&lsm);
-		lsm = ERR_PTR(rc);
-	}
-
-	return lsm;
+	return lsm_unpackmd_v1v3(lov, buf, buf_size, lmm->lmm_pool_name,
+				 lmm->lmm_objects);
 }
 
 const static struct lsm_operations lsm_v3_ops = {
@@ -403,9 +363,9 @@ const struct lsm_operations *lsm_op_find(int magic)
 void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm)
 {
 	CDEBUG(level, "lsm %p, objid " DOSTID ", maxbytes %#llx, magic 0x%08X, stripe_size %u, stripe_count %u, refc: %d, layout_gen %u, pool [" LOV_POOLNAMEF "]\n",
-	       lsm,
-	       POSTID(&lsm->lsm_oi), lsm->lsm_maxbytes, lsm->lsm_magic,
-	       lsm->lsm_stripe_size, lsm->lsm_stripe_count,
+	       lsm, POSTID(&lsm->lsm_oi), lsm->lsm_maxbytes, lsm->lsm_magic,
+	       lsm->lsm_entries[0]->lsme_stripe_size,
+	       lsm->lsm_entries[0]->lsme_stripe_count,
 	       atomic_read(&lsm->lsm_refc), lsm->lsm_layout_gen,
-	       lsm->lsm_pool_name);
+	       lsm->lsm_entries[0]->lsme_pool_name);
 }

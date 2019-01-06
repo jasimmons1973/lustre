@@ -40,7 +40,7 @@
 /* compute object size given "stripeno" and the ost size */
 u64 lov_stripe_size(struct lov_stripe_md *lsm, u64 ost_size, int stripeno)
 {
-	unsigned long ssize = lsm->lsm_stripe_size;
+	unsigned long ssize = lsm->lsm_entries[0]->lsme_stripe_size;
 	unsigned long stripe_size;
 	u64 swidth;
 	u64 lov_size;
@@ -125,7 +125,7 @@ pgoff_t lov_stripe_pgoff(struct lov_stripe_md *lsm, pgoff_t stripe_index,
 int lov_stripe_offset(struct lov_stripe_md *lsm, u64 lov_off,
 		      int stripeno, u64 *obdoff)
 {
-	unsigned long ssize  = lsm->lsm_stripe_size;
+	unsigned long ssize  = lsm->lsm_entries[0]->lsme_stripe_size;
 	u64 stripe_off, this_stripe, swidth;
 	int magic = lsm->lsm_magic;
 	int ret = 0;
@@ -180,7 +180,7 @@ int lov_stripe_offset(struct lov_stripe_md *lsm, u64 lov_off,
 u64 lov_size_to_stripe(struct lov_stripe_md *lsm, u64 file_size,
 		       int stripeno)
 {
-	unsigned long ssize  = lsm->lsm_stripe_size;
+	unsigned long ssize  = lsm->lsm_entries[0]->lsme_stripe_size;
 	u64 stripe_off, this_stripe, swidth;
 	int magic = lsm->lsm_magic;
 
@@ -254,7 +254,7 @@ int lov_stripe_intersects(struct lov_stripe_md *lsm, int stripeno,
 /* compute which stripe number "lov_off" will be written into */
 int lov_stripe_number(struct lov_stripe_md *lsm, u64 lov_off)
 {
-	unsigned long ssize  = lsm->lsm_stripe_size;
+	unsigned long ssize  = lsm->lsm_entries[0]->lsme_stripe_size;
 	u64 stripe_off, swidth;
 	int magic = lsm->lsm_magic;
 

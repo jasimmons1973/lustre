@@ -116,7 +116,8 @@ ssize_t lov_lsm_pack(const struct lov_stripe_md *lsm, void *buf,
 	size_t lmm_size;
 	unsigned int i;
 
-	lmm_size = lov_mds_md_size(lsm->lsm_stripe_count, lsm->lsm_magic);
+	lmm_size = lov_mds_md_size(lsm->lsm_entries[0]->lsme_stripe_count,
+				   lsm->lsm_magic);
 	if (!buf_size)
 		return lmm_size;
 
@@ -129,23 +130,24 @@ ssize_t lov_lsm_pack(const struct lov_stripe_md *lsm, void *buf,
 	 */
 	lmmv1->lmm_magic = cpu_to_le32(lsm->lsm_magic);
 	lmm_oi_cpu_to_le(&lmmv1->lmm_oi, &lsm->lsm_oi);
-	lmmv1->lmm_stripe_size = cpu_to_le32(lsm->lsm_stripe_size);
-	lmmv1->lmm_stripe_count = cpu_to_le16(lsm->lsm_stripe_count);
-	lmmv1->lmm_pattern = cpu_to_le32(lsm->lsm_pattern);
+	lmmv1->lmm_stripe_size = cpu_to_le32(lsm->lsm_entries[0]->lsme_stripe_size);
+	lmmv1->lmm_stripe_count = cpu_to_le16(lsm->lsm_entries[0]->lsme_stripe_count);
+	lmmv1->lmm_pattern = cpu_to_le32(lsm->lsm_entries[0]->lsme_pattern);
 	lmmv1->lmm_layout_gen = cpu_to_le16(lsm->lsm_layout_gen);
 
 	if (lsm->lsm_magic == LOV_MAGIC_V3) {
-		BUILD_BUG_ON(sizeof(lsm->lsm_pool_name) !=
-			 sizeof(lmmv3->lmm_pool_name));
-		strlcpy(lmmv3->lmm_pool_name, lsm->lsm_pool_name,
+		BUILD_BUG_ON(sizeof(lsm->lsm_entries[0]->lsme_pool_name) !=
+			     sizeof(lmmv3->lmm_pool_name));
+		strlcpy(lmmv3->lmm_pool_name,
+			lsm->lsm_entries[0]->lsme_pool_name,
 			sizeof(lmmv3->lmm_pool_name));
 		lmm_objects = lmmv3->lmm_objects;
 	} else {
 		lmm_objects = lmmv1->lmm_objects;
 	}
 
-	for (i = 0; i < lsm->lsm_stripe_count; i++) {
-		struct lov_oinfo *loi = lsm->lsm_oinfo[i];
+	for (i = 0; i < lsm->lsm_entries[0]->lsme_stripe_count; i++) {
+		struct lov_oinfo *loi = lsm->lsm_entries[0]->lsme_oinfo[i];
 
 		ostid_cpu_to_le(&loi->loi_oi, &lmm_objects[i].l_ost_oi);
 		lmm_objects[i].l_ost_gen = cpu_to_le32(loi->loi_ost_gen);
@@ -240,8 +242,8 @@ int lov_getstripe(struct lov_object *obj, struct lov_stripe_md *lsm,
 		goto out;
 	}
 
-	if (!lsm_is_released(lsm))
-		stripe_count = lsm->lsm_stripe_count;
+	if (!lsm->lsm_is_released)
+		stripe_count = lsm->lsm_entries[0]->lsme_stripe_count;
 	else
 		stripe_count = 0;
 
@@ -260,18 +262,16 @@ int lov_getstripe(struct lov_object *obj, struct lov_stripe_md *lsm,
 		goto out;
 	}
 
-	if (lum.lmm_stripe_count &&
-	    (lum.lmm_stripe_count < lsm->lsm_stripe_count)) {
+	if (lum.lmm_stripe_count && lum.lmm_stripe_count < stripe_count) {
 		/* Return right size of stripe to user */
 		lum.lmm_stripe_count = stripe_count;
 		rc = copy_to_user(lump, &lum, lum_size);
 		rc = -EOVERFLOW;
 		goto out;
 	}
+
 	lmmk_size = lov_mds_md_size(stripe_count, lsm->lsm_magic);
-
-
-	lmmk = kvzalloc(lmmk_size, GFP_NOFS);
+	lmmk = kvzalloc(lmmk_size, GFP_KERNEL);
 	if (!lmmk) {
 		rc = -ENOMEM;
 		goto out;

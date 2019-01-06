@@ -153,7 +153,7 @@ static int lov_init_sub(const struct lu_env *env, struct lov_object *lov,
 	hdr    = cl_object_header(lov2cl(lov));
 	subhdr = cl_object_header(stripe);
 
-	oinfo = lov->lo_lsm->lsm_oinfo[idx];
+	oinfo = lov->lo_lsm->lsm_entries[0]->lsme_oinfo[idx];
 	CDEBUG(D_INODE, DFID "@%p[%d] -> " DFID "@%p: ostid: " DOSTID " idx: %d gen: %d\n",
 	       PFID(&subhdr->coh_lu.loh_fid), subhdr, idx,
 	       PFID(&hdr->coh_lu.loh_fid), hdr, POSTID(&oinfo->loi_oi),
@@ -239,7 +239,7 @@ static int lov_init_raid0(const struct lu_env *env, struct lov_device *dev,
 	LASSERT(!lov->lo_lsm);
 	lov->lo_lsm = lsm_addref(lsm);
 	lov->lo_layout_invalid = true;
-	r0->lo_nr  = lsm->lsm_stripe_count;
+	r0->lo_nr  = lsm->lsm_entries[0]->lsme_stripe_count;
 	LASSERT(r0->lo_nr <= lov_targets_nr(dev));
 
 	r0->lo_sub = kvzalloc(r0->lo_nr * sizeof(r0->lo_sub[0]),
@@ -255,9 +255,10 @@ static int lov_init_raid0(const struct lu_env *env, struct lov_device *dev,
 		 */
 		for (i = 0; i < r0->lo_nr && result == 0; ++i) {
 			struct cl_device *subdev;
-			struct lov_oinfo *oinfo = lsm->lsm_oinfo[i];
-			int ost_idx = oinfo->loi_ost_idx;
+			struct lov_oinfo *oinfo;
+			int ost_idx;
 
+			oinfo = lsm->lsm_entries[0]->lsme_oinfo[i];
 			if (lov_oinfo_is_dummy(oinfo))
 				continue;
 
@@ -266,6 +267,7 @@ static int lov_init_raid0(const struct lu_env *env, struct lov_device *dev,
 			if (result != 0)
 				goto out;
 
+			ost_idx = oinfo->loi_ost_idx;
 			if (!dev->ld_target[ost_idx]) {
 				CERROR("%s: OST %04x is not initialized\n",
 				lov2obd(dev->ld_lov)->obd_name, ost_idx);
@@ -314,7 +316,7 @@ static int lov_init_released(const struct lu_env *env, struct lov_device *dev,
 			     union  lov_layout_state *state)
 {
 	LASSERT(lsm);
-	LASSERT(lsm_is_released(lsm));
+	LASSERT(lsm->lsm_is_released);
 	LASSERT(!lov->lo_lsm);
 
 	lov->lo_lsm = lsm_addref(lsm);
@@ -327,7 +329,7 @@ static struct cl_object *lov_find_subobj(const struct lu_env *env,
 					 int stripe_idx)
 {
 	struct lov_device *dev = lu2lov_dev(lov2lu(lov)->lo_dev);
-	struct lov_oinfo *oinfo = lsm->lsm_oinfo[stripe_idx];
+	struct lov_oinfo *oinfo = lsm->lsm_entries[0]->lsme_oinfo[stripe_idx];
 	struct lov_thread_info *lti = lov_env_info(env);
 	struct lu_fid *ofid = &lti->lti_fid;
 	struct cl_device *subdev;
@@ -485,7 +487,7 @@ static int lov_print_raid0(const struct lu_env *env, void *cookie,
 	(*p)(env, cookie, "stripes: %d, %s, lsm{%p 0x%08X %d %u %u}:\n",
 	     r0->lo_nr, lov->lo_layout_invalid ? "invalid" : "valid", lsm,
 	     lsm->lsm_magic, atomic_read(&lsm->lsm_refc),
-	     lsm->lsm_stripe_count, lsm->lsm_layout_gen);
+	     lsm->lsm_entries[0]->lsme_stripe_count, lsm->lsm_layout_gen);
 	for (i = 0; i < r0->lo_nr; ++i) {
 		struct lu_object *sub;
 
@@ -509,7 +511,7 @@ static int lov_print_released(const struct lu_env *env, void *cookie,
 	     "released: %s, lsm{%p 0x%08X %d %u %u}:\n",
 	     lov->lo_layout_invalid ? "invalid" : "valid", lsm,
 	     lsm->lsm_magic, atomic_read(&lsm->lsm_refc),
-	     lsm->lsm_stripe_count, lsm->lsm_layout_gen);
+	     lsm->lsm_entries[0]->lsme_stripe_count, lsm->lsm_layout_gen);
 	return 0;
 }
 
@@ -650,8 +652,13 @@ static enum lov_layout_type lov_type(struct lov_stripe_md *lsm)
 {
 	if (!lsm)
 		return LLT_EMPTY;
-	if (lsm_is_released(lsm))
+
+	if (lsm->lsm_magic == LOV_MAGIC_COMP_V1)
+		return LLT_EMPTY;
+
+	if (lsm->lsm_is_released)
 		return LLT_RELEASED;
+
 	return LLT_RAID0;
 }
 
@@ -882,7 +889,8 @@ static int lov_conf_set(const struct lu_env *env, struct cl_object *obj,
 	if ((!lsm && !lov->lo_lsm) ||
 	    ((lsm && lov->lo_lsm) &&
 	     (lov->lo_lsm->lsm_layout_gen == lsm->lsm_layout_gen) &&
-	     (lov->lo_lsm->lsm_pattern == lsm->lsm_pattern))) {
+	     (lov->lo_lsm->lsm_entries[0]->lsme_pattern ==
+	      lsm->lsm_entries[0]->lsme_pattern))) {
 		/* same version of layout */
 		lov->lo_layout_invalid = false;
 		result = 0;
@@ -1010,19 +1018,24 @@ static int fiemap_calc_last_stripe(struct lov_stripe_md *lsm,
 	u64 obd_end;
 	int i, j;
 
-	if (fm_end - fm_start > lsm->lsm_stripe_size * lsm->lsm_stripe_count) {
-		last_stripe = (start_stripe < 1 ? lsm->lsm_stripe_count - 1 :
+	if (fm_end - fm_start > lsm->lsm_entries[0]->lsme_stripe_size *
+				lsm->lsm_entries[0]->lsme_stripe_count) {
+		last_stripe = (start_stripe < 1 ?
+			       lsm->lsm_entries[0]->lsme_stripe_count - 1 :
 			       start_stripe - 1);
-		*stripe_count = lsm->lsm_stripe_count;
+		*stripe_count = lsm->lsm_entries[0]->lsme_stripe_count;
 	} else {
-		for (j = 0, i = start_stripe; j < lsm->lsm_stripe_count;
-		     i = (i + 1) % lsm->lsm_stripe_count, j++) {
-			if (!(lov_stripe_intersects(lsm, i, fm_start, fm_end,
-						    &obd_start, &obd_end)))
+		for (j = 0, i = start_stripe;
+		     j < lsm->lsm_entries[0]->lsme_stripe_count;
+		     i = (i + 1) % lsm->lsm_entries[0]->lsme_stripe_count,
+		     j++) {
+			if (lov_stripe_intersects(lsm, i, fm_start, fm_end,
+						  &obd_start, &obd_end) == 0)
 				break;
 		}
 		*stripe_count = j;
-		last_stripe = (start_stripe + j - 1) % lsm->lsm_stripe_count;
+		last_stripe = (start_stripe + j - 1) %
+			      lsm->lsm_entries[0]->lsme_stripe_count;
 	}
 
 	return last_stripe;
@@ -1090,8 +1103,8 @@ static u64 fiemap_calc_fm_end_offset(struct fiemap *fiemap,
 		return 0;
 
 	/* Find out stripe_no from ost_index saved in the fe_device */
-	for (i = 0; i < lsm->lsm_stripe_count; i++) {
-		struct lov_oinfo *oinfo = lsm->lsm_oinfo[i];
+	for (i = 0; i < lsm->lsm_entries[0]->lsme_stripe_count; i++) {
+		struct lov_oinfo *oinfo = lsm->lsm_entries[0]->lsme_oinfo[i];
 
 		if (lov_oinfo_is_dummy(oinfo))
 			continue;
@@ -1110,7 +1123,7 @@ static u64 fiemap_calc_fm_end_offset(struct fiemap *fiemap,
 	 * offset to start of next device
 	 */
 	if (lov_stripe_intersects(lsm, stripe_no, fm_start, fm_end,
-				  &lun_start, &lun_end) &&
+				  &lun_start, &lun_end) != 0 &&
 	    local_end < lun_end) {
 		fm_end_offset = local_end;
 		*start_stripe = stripe_no;
@@ -1119,7 +1132,8 @@ static u64 fiemap_calc_fm_end_offset(struct fiemap *fiemap,
 		 * calculate offset in next stripe.
 		 */
 		fm_end_offset = 0;
-		*start_stripe = (stripe_no + 1) % lsm->lsm_stripe_count;
+		*start_stripe = (stripe_no + 1) %
+				lsm->lsm_entries[0]->lsme_stripe_count;
 	}
 
 	return fm_end_offset;
@@ -1168,7 +1182,7 @@ static int fiemap_for_stripe(const struct lu_env *env, struct cl_object *obj,
 				   &lun_start, &obd_object_end)) == 0)
 		return 0;
 
-	if (lov_oinfo_is_dummy(lsm->lsm_oinfo[stripeno]))
+	if (lov_oinfo_is_dummy(lsm->lsm_entries[0]->lsme_oinfo[stripeno]))
 		return -EIO;
 
 	/* If this is a continuation FIEMAP call and we are on
@@ -1218,7 +1232,7 @@ static int fiemap_for_stripe(const struct lu_env *env, struct cl_object *obj,
 		fs->fs_fm->fm_mapped_extents = 0;
 		fs->fs_fm->fm_flags = fiemap->fm_flags;
 
-		ost_index = lsm->lsm_oinfo[stripeno]->loi_ost_idx;
+		ost_index = lsm->lsm_entries[0]->lsme_oinfo[stripeno]->loi_ost_idx;
 
 		if (ost_index < 0 || ost_index >= lov->desc.ld_tgt_count) {
 			rc = -EINVAL;
@@ -1347,13 +1361,13 @@ static int lov_object_fiemap(const struct lu_env *env, struct cl_object *obj,
 	 * If the stripe_count > 1 and the application does not understand
 	 * DEVICE_ORDER flag, it cannot interpret the extents correctly.
 	 */
-	if (lsm->lsm_stripe_count > 1 &&
+	if (lsm->lsm_entries[0]->lsme_stripe_count > 1 &&
 	    !(fiemap->fm_flags & FIEMAP_FLAG_DEVICE_ORDER)) {
 		rc = -ENOTSUPP;
 		goto out;
 	}
 
-	if (lsm_is_released(lsm)) {
+	if (lsm->lsm_is_released) {
 		if (fiemap->fm_start < fmkey->lfik_oa.o_size) {
 			/**
 			 * released file, return a minimal FIEMAP if
@@ -1431,7 +1445,8 @@ static int lov_object_fiemap(const struct lu_env *env, struct cl_object *obj,
 	/* Check each stripe */
 	for (cur_stripe = fs.fs_start_stripe; stripe_count > 0;
 	     --stripe_count,
-	     cur_stripe = (cur_stripe + 1) % lsm->lsm_stripe_count) {
+	     cur_stripe = (cur_stripe + 1) %
+			  lsm->lsm_entries[0]->lsme_stripe_count) {
 		rc = fiemap_for_stripe(env, obj, lsm, fiemap, buflen, fmkey,
 				       cur_stripe, &fs);
 		if (rc < 0)
@@ -1443,7 +1458,7 @@ static int lov_object_fiemap(const struct lu_env *env, struct cl_object *obj,
 	 * Indicate that we are returning device offsets unless file just has
 	 * single stripe
 	 */
-	if (lsm->lsm_stripe_count > 1)
+	if (lsm->lsm_entries[0]->lsme_stripe_count > 1)
 		fiemap->fm_flags |= FIEMAP_FLAG_DEVICE_ORDER;
 
 	if (!fiemap->fm_extent_count)
@@ -1495,7 +1510,8 @@ static int lov_object_layout_get(const struct lu_env *env,
 		return 0;
 	}
 
-	cl->cl_size = lov_mds_md_size(lsm->lsm_stripe_count, lsm->lsm_magic);
+	cl->cl_size = lov_mds_md_size(lsm->lsm_entries[0]->lsme_stripe_count,
+				      lsm->lsm_magic);
 	cl->cl_layout_gen = lsm->lsm_layout_gen;
 
 	rc = lov_lsm_pack(lsm, buf->lb_buf, buf->lb_len);
@@ -1599,9 +1615,11 @@ int lov_read_and_clear_async_rc(struct cl_object *clob)
 			int i;
 
 			lsm = lov->lo_lsm;
-			for (i = 0; i < lsm->lsm_stripe_count; i++) {
-				struct lov_oinfo *loi = lsm->lsm_oinfo[i];
+			for (i = 0; i < lsm->lsm_entries[0]->lsme_stripe_count;
+			     i++) {
+				struct lov_oinfo *loi;
 
+				loi = lsm->lsm_entries[0]->lsme_oinfo[i];
 				if (lov_oinfo_is_dummy(loi))
 					continue;
 
