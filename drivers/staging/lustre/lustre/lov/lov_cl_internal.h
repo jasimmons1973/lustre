@@ -235,6 +235,11 @@ struct lov_object {
 	struct task_struct	*lo_owner;
 };
 
+#define lov_foreach_layout_entry(lov, entry)				\
+	for (entry = &lov->u.composite.lo_entries[0];			\
+	     entry < &lov->u.composite.lo_entries[lov->u.composite.lo_entry_count];\
+	     entry++)
+
 /**
  * State lov_lock keeps for each sub-lock.
  */
@@ -640,6 +645,14 @@ static inline struct lov_layout_raid0 *lov_r0(struct lov_object *lov, int i)
 		 "entry %d entry_count %d", i, lov->u.composite.lo_entry_count);
 
 	return &lov->u.composite.lo_entries[i].lle_raid0;
+}
+
+static inline struct lov_stripe_md_entry *lov_lse(struct lov_object *lov, int i)
+{
+	LASSERT(lov->lo_lsm);
+	LASSERT(i < lov->lo_lsm->lsm_entry_count);
+
+	return lov->lo_lsm->lsm_entries[i];
 }
 
 /* lov_pack.c */

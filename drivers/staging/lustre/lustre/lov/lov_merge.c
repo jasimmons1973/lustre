@@ -44,6 +44,7 @@
 int lov_merge_lvb_kms(struct lov_stripe_md *lsm, int index,
 		      struct ost_lvb *lvb, __u64 *kms_place)
 {
+	struct lov_stripe_md_entry *lse = lsm->lsm_entries[index];
 	__u64 size = 0;
 	__u64 kms = 0;
 	__u64 blocks = 0;
@@ -59,8 +60,9 @@ int lov_merge_lvb_kms(struct lov_stripe_md *lsm, int index,
 	CDEBUG(D_INODE, "MDT ID " DOSTID " initial value: s=%llu m=%llu a=%llu c=%llu b=%llu\n",
 	       POSTID(&lsm->lsm_oi), lvb->lvb_size, lvb->lvb_mtime,
 	       lvb->lvb_atime, lvb->lvb_ctime, lvb->lvb_blocks);
-	for (i = 0; i < lsm->lsm_entries[0]->lsme_stripe_count; i++) {
-		struct lov_oinfo *loi = lsm->lsm_entries[0]->lsme_oinfo[i];
+
+	for (i = 0; i < lse->lsme_stripe_count; i++) {
+		struct lov_oinfo *loi = lse->lsme_oinfo[i];
 		u64 lov_size, tmpsize;
 
 		if (OST_LVB_IS_ERR(loi->loi_lvb.lvb_blocks)) {

@@ -368,46 +368,59 @@ static int lov_io_iter_init(const struct lu_env *env,
 {
 	struct lov_io	*lio = cl2lov_io(env, ios);
 	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
+	struct lov_layout_entry *le;
 	struct lov_io_sub    *sub;
 	u64 endpos;
-	u64 start;
-	u64 end;
-	int stripe;
 	int rc = 0;
-	int index = 0;
+	int index;
 
 	endpos = lov_offset_mod(lio->lis_endpos, -1);
-	for (stripe = 0; stripe < lio->lis_stripe_count; stripe++) {
-		if (!lov_stripe_intersects(lsm, index, stripe, lio->lis_pos,
-					   endpos, &start, &end))
-			continue;
 
-		if (unlikely(!lov_r0(lio->lis_object, index)->lo_sub[stripe])) {
-			if (ios->cis_io->ci_type == CIT_READ ||
-			    ios->cis_io->ci_type == CIT_WRITE ||
-			    ios->cis_io->ci_type == CIT_FAULT)
-				return -EIO;
+	index = 0;
+	lov_foreach_layout_entry(lio->lis_object, le) {
+		struct lov_layout_raid0 *r0 = &le->lle_raid0;
+		int stripe;
+		u64 start;
+		u64 end;
 
-			continue;
+		index++;
+
+		for (stripe = 0; stripe < r0->lo_nr; stripe++) {
+			if (!lov_stripe_intersects(lsm, index - 1, stripe,
+						   lio->lis_pos,
+						   endpos, &start, &end))
+				continue;
+
+			if (unlikely(!r0->lo_sub[stripe])) {
+				if (ios->cis_io->ci_type == CIT_READ ||
+				    ios->cis_io->ci_type == CIT_WRITE ||
+				    ios->cis_io->ci_type == CIT_FAULT)
+					return -EIO;
+
+				continue;
+			}
+
+			end = lov_offset_mod(end, 1);
+			sub = lov_sub_get(env, lio, stripe);
+			if (IS_ERR(sub)) {
+				rc = PTR_ERR(sub);
+				break;
+			}
+
+			lov_io_sub_inherit(sub->sub_io, lio, stripe, start, end);
+			rc = cl_io_iter_init(sub->sub_env, sub->sub_io);
+			if (rc) {
+				cl_io_iter_fini(sub->sub_env, sub->sub_io);
+				break;
+			}
+
+			CDEBUG(D_VFSTRACE, "shrink: %d [%llu, %llu)\n",
+			       stripe, start, end);
+
+			list_add_tail(&sub->sub_linkage, &lio->lis_active);
 		}
-
-		end = lov_offset_mod(end, 1);
-		sub = lov_sub_get(env, lio, stripe);
-		if (IS_ERR(sub)) {
-			rc = PTR_ERR(sub);
+		if (rc)
 			break;
-		}
-
-		lov_io_sub_inherit(sub->sub_io, lio, stripe, start, end);
-		rc = cl_io_iter_init(sub->sub_env, sub->sub_io);
-		if (rc) {
-			cl_io_iter_fini(sub->sub_env, sub->sub_io);
-			break;
-		}
-		CDEBUG(D_VFSTRACE, "shrink: %d [%llu, %llu)\n",
-		       stripe, start, end);
-
-		list_add_tail(&sub->sub_linkage, &lio->lis_active);
 	}
 	return rc;
 }
@@ -417,12 +430,17 @@ static int lov_io_rw_iter_init(const struct lu_env *env,
 {
 	struct lov_io	*lio = cl2lov_io(env, ios);
 	struct cl_io	 *io  = ios->cis_io;
-	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
-	unsigned long ssize = lsm->lsm_entries[0]->lsme_stripe_size;
 	u64 start = io->u.ci_rw.crw_pos;
+	struct lov_stripe_md_entry *lse;
+	unsigned long ssize;
 	loff_t next;
+	int index = 0;
 
 	LASSERT(io->ci_type == CIT_READ || io->ci_type == CIT_WRITE);
+
+	lse = lov_lse(lio->lis_object, index);
+
+	ssize = lse->lsme_stripe_size;
 
 	/* fast path for common case. */
 	if (lio->lis_nr_subios != 1 && !cl_io_is_append(io)) {
@@ -598,12 +616,12 @@ static int lov_io_read_ahead(const struct lu_env *env,
 	if (ra_end != CL_PAGE_EOF)
 		ra_end = lov_stripe_pgoff(loo->lo_lsm, index, ra_end, stripe);
 
-	pps = loo->lo_lsm->lsm_entries[0]->lsme_stripe_size >> PAGE_SHIFT;
+	pps = lov_lse(loo, index)->lsme_stripe_size >> PAGE_SHIFT;
 
 	CDEBUG(D_READA,
 	       DFID " max_index = %lu, pps = %u, stripe_size = %u, stripe no = %u, start index = %lu\n",
 	       PFID(lu_object_fid(lov2lu(loo))), ra_end, pps,
-	       loo->lo_lsm->lsm_entries[0]->lsme_stripe_size, stripe, start);
+	       lov_lse(loo, index)->lsme_stripe_size, stripe, start);
 
 	/* never exceed the end of the stripe */
 	ra->cra_end = min_t(pgoff_t, ra_end, start + pps - start % pps - 1);

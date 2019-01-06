@@ -507,11 +507,21 @@ const struct lsm_operations *lsm_op_find(int magic)
 
 void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm)
 {
+	int i;
+
 	CDEBUG(level,
-	       "lsm %p, objid " DOSTID ", maxbytes %#llx, magic 0x%08X, stripe_size %u, stripe_count %u, refc: %d, layout_gen %u, pool [" LOV_POOLNAMEF "]\n",
+	       "lsm %p, objid " DOSTID ", maxbytes %#llx, magic 0x%08X, refc: %d, entry: %u, layout_gen %u\n",
 	       lsm, POSTID(&lsm->lsm_oi), lsm->lsm_maxbytes, lsm->lsm_magic,
-	       lsm->lsm_entries[0]->lsme_stripe_size,
-	       lsm->lsm_entries[0]->lsme_stripe_count,
-	       atomic_read(&lsm->lsm_refc), lsm->lsm_layout_gen,
-	       lsm->lsm_entries[0]->lsme_pool_name);
+	       atomic_read(&lsm->lsm_refc), lsm->lsm_entry_count,
+	       lsm->lsm_layout_gen);
+
+	for (i = 0; i < lsm->lsm_entry_count; i++) {
+		struct lov_stripe_md_entry *lse = lsm->lsm_entries[i];
+
+		CDEBUG(level,
+		       ": id: %u, magic 0x%08X, stripe count %u, size %u, layout_gen %u, pool: [" LOV_POOLNAMEF "]\n",
+		       lse->lsme_id, lse->lsme_magic,
+		       lse->lsme_stripe_count, lse->lsme_stripe_size,
+		       lse->lsme_layout_gen, lse->lsme_pool_name);
+	}
 }
