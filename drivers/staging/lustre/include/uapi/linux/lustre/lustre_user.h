@@ -443,6 +443,8 @@ enum lmv_hash_type {
 	LMV_HASH_TYPE_FNV_1A_64 = 2,
 };
 
+#define LMV_HASH_TYPE_MAX	LMV_HASH_TYPE_FNV_1A_64 + 1
+
 #define LMV_HASH_NAME_ALL_CHARS		"all_char"
 #define LMV_HASH_NAME_FNV_1A_64		"fnv_1a_64"
 
