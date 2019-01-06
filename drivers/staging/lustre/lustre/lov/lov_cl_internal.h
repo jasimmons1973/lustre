@@ -129,6 +129,42 @@ static inline char *llt2str(enum lov_layout_type llt)
 	return "";
 }
 
+struct lov_layout_raid0 {
+	unsigned int		lo_nr;
+	/**
+	 * When this is true, lov_object::lo_attr contains
+	 * valid up to date attributes for a top-level
+	 * object. This field is reset to 0 when attributes of
+	 * any sub-object change.
+	 */
+	int			lo_attr_valid;
+	/**
+	 * Array of sub-objects. Allocated when top-object is
+	 * created (lov_init_raid0()).
+	 *
+	 * Top-object is a strict master of its sub-objects:
+	 * it is created before them, and outlives its
+	 * children (this later is necessary so that basic
+	 * functions like cl_object_top() always
+	 * work). Top-object keeps a reference on every
+	 * sub-object.
+	 *
+	 * When top-object is destroyed (lov_delete_raid0())
+	 * it releases its reference to a sub-object and waits
+	 * until the latter is finally destroyed.
+	 */
+	struct lovsub_object  **lo_sub;
+	/**
+	 * protect lo_sub
+	 */
+	spinlock_t		lo_sub_lock;
+	/**
+	 * Cached object attribute, built from sub-object
+	 * attributes.
+	 */
+	struct cl_attr		lo_attr;
+};
+
 /**
  * lov-specific file state.
  *
@@ -178,45 +214,15 @@ struct lov_object {
 	struct lov_stripe_md  *lo_lsm;
 
 	union lov_layout_state {
-		struct lov_layout_raid0 {
-			unsigned int	       lo_nr;
-			/**
-			 * When this is true, lov_object::lo_attr contains
-			 * valid up to date attributes for a top-level
-			 * object. This field is reset to 0 when attributes of
-			 * any sub-object change.
-			 */
-			int		       lo_attr_valid;
-			/**
-			 * Array of sub-objects. Allocated when top-object is
-			 * created (lov_init_raid0()).
-			 *
-			 * Top-object is a strict master of its sub-objects:
-			 * it is created before them, and outlives its
-			 * children (this later is necessary so that basic
-			 * functions like cl_object_top() always
-			 * work). Top-object keeps a reference on every
-			 * sub-object.
-			 *
-			 * When top-object is destroyed (lov_delete_raid0())
-			 * it releases its reference to a sub-object and waits
-			 * until the latter is finally destroyed.
-			 */
-			struct lovsub_object **lo_sub;
-			/**
-			 * protect lo_sub
-			 */
-			spinlock_t		lo_sub_lock;
-			/**
-			 * Cached object attribute, built from sub-object
-			 * attributes.
-			 */
-			struct cl_attr	 lo_attr;
-		} raid0;
 		struct lov_layout_state_empty {
 		} empty;
 		struct lov_layout_state_released {
 		} released;
+		struct lov_layout_composite {
+			struct lov_layout_entry {
+				struct lov_layout_raid0 lle_raid0;
+			} lo_entries;
+		} composite;
 	} u;
 	/**
 	 * Thread that acquired lov_object::lo_type_guard in an exclusive
@@ -627,7 +633,7 @@ static inline struct lov_layout_raid0 *lov_r0(struct lov_object *lov)
 	LASSERT(lov->lo_type == LLT_RAID0);
 	LASSERT(lov->lo_lsm->lsm_magic == LOV_MAGIC ||
 		lov->lo_lsm->lsm_magic == LOV_MAGIC_V3);
-	return &lov->u.raid0;
+	return &lov->u.composite.lo_entries.lle_raid0;
 }
 
 /* lov_pack.c */

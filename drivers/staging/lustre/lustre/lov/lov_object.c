@@ -228,7 +228,7 @@ static int lov_init_raid0(const struct lu_env *env, struct lov_device *dev,
 	struct lov_thread_info  *lti     = lov_env_info(env);
 	struct cl_object_conf   *subconf = &lti->lti_stripe_conf;
 	struct lu_fid	   *ofid    = &lti->lti_fid;
-	struct lov_layout_raid0 *r0      = &state->raid0;
+	struct lov_layout_raid0 *r0 = &state->composite.lo_entries.lle_raid0;
 
 	if (lsm->lsm_magic != LOV_MAGIC_V1 && lsm->lsm_magic != LOV_MAGIC_V3) {
 		dump_lsm(D_ERROR, lsm);
@@ -375,7 +375,7 @@ static void lov_subobject_kill(const struct lu_env *env, struct lov_object *lov,
 	wait_queue_head_t *wq;
 	wait_queue_entry_t	  *waiter;
 
-	r0  = &lov->u.raid0;
+	r0  = &lov->u.composite.lo_entries.lle_raid0;
 	LASSERT(r0->lo_sub[idx] == los);
 
 	sub  = lovsub2cl(los);
@@ -418,7 +418,7 @@ static void lov_subobject_kill(const struct lu_env *env, struct lov_object *lov,
 static int lov_delete_raid0(const struct lu_env *env, struct lov_object *lov,
 			    union lov_layout_state *state)
 {
-	struct lov_layout_raid0 *r0 = &state->raid0;
+	struct lov_layout_raid0 *r0 = &state->composite.lo_entries.lle_raid0;
 	struct lov_stripe_md    *lsm = lov->lo_lsm;
 	int i;
 
@@ -451,7 +451,7 @@ static void lov_fini_empty(const struct lu_env *env, struct lov_object *lov,
 static void lov_fini_raid0(const struct lu_env *env, struct lov_object *lov,
 			   union lov_layout_state *state)
 {
-	struct lov_layout_raid0 *r0 = &state->raid0;
+	struct lov_layout_raid0 *r0 = &state->composite.lo_entries.lle_raid0;
 
 	if (r0->lo_sub) {
 		kvfree(r0->lo_sub);
