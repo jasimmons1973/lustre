@@ -959,7 +959,7 @@ int ll_fill_super(struct super_block *sb)
 		len -= 7;
 
 	/* Mount info */
-	snprintf(name, MAX_STRING_SIZE, "%.*s-%p", len,
+	snprintf(name, MAX_STRING_SIZE, "%.*s-%px", len,
 		 lsi->lsi_lmd->lmd_profile, sb);
 
 	/* Call ll_debugsfs_register_super() before lustre_process_log()
@@ -997,13 +997,13 @@ int ll_fill_super(struct super_block *sb)
 	CDEBUG(D_CONFIG, "Found profile %s: mdc=%s osc=%s\n", profilenm,
 	       lprof->lp_md, lprof->lp_dt);
 
-	dt = kasprintf(GFP_NOFS, "%s-%p", lprof->lp_dt, cfg->cfg_instance);
+	dt = kasprintf(GFP_NOFS, "%s-%px", lprof->lp_dt, cfg->cfg_instance);
 	if (!dt) {
 		err = -ENOMEM;
 		goto out_debugfs;
 	}
 
-	md = kasprintf(GFP_NOFS, "%s-%p", lprof->lp_md, cfg->cfg_instance);
+	md = kasprintf(GFP_NOFS, "%s-%px", lprof->lp_md, cfg->cfg_instance);
 	if (!md) {
 		err = -ENOMEM;
 		goto out_debugfs;

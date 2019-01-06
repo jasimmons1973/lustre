@@ -1142,7 +1142,7 @@ static int mgc_apply_recover_logs(struct obd_device *mgc,
 	if (!inst)
 		return -ENOMEM;
 
-	pos = snprintf(inst, PAGE_SIZE, "%p", cfg->cfg_instance);
+	pos = snprintf(inst, PAGE_SIZE, "%px", cfg->cfg_instance);
 	if (pos >= PAGE_SIZE) {
 		kfree(inst);
 		return -E2BIG;

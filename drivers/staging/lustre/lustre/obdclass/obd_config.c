@@ -1323,7 +1323,7 @@ int class_config_llog_handler(const struct lu_env *env,
 		    LUSTRE_CFG_BUFLEN(lcfg, 0) > 0) {
 			inst_len = LUSTRE_CFG_BUFLEN(lcfg, 0) +
 				   sizeof(clli->cfg_instance) * 2 + 4;
-			inst_name = kasprintf(GFP_NOFS, "%s-%p",
+			inst_name = kasprintf(GFP_NOFS, "%s-%px",
 					      lustre_cfg_string(lcfg, 0),
 					      clli->cfg_instance);
 			if (!inst_name) {
