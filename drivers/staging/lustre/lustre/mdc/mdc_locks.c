@@ -692,9 +692,15 @@ static int mdc_finish_enqueue(struct obd_export *exp,
 		}
 	}
 
-	/* fill in stripe data for layout lock */
+	/* fill in stripe data for layout lock.
+	 * LU-6581: trust layout data only if layout lock is granted. The MDT
+	 * has stopped sending layout unless the layout lock is granted. The
+	 * client still does this checking in case it's talking with an old
+	 * server. - Jinshan
+	 */
 	lock = ldlm_handle2lock(lockh);
-	if (lock && ldlm_has_layout(lock) && lvb_data) {
+	if (lock && ldlm_has_layout(lock) && lvb_data &&
+	    !(lockrep->lock_flags & LDLM_FL_BLOCKED_MASK)) {
 		void *lmm;
 
 		LDLM_DEBUG(lock, "layout lock returned by: %s, lvb_len: %d",

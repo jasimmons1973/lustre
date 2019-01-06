@@ -3641,7 +3641,7 @@ static int ll_layout_fetch(struct inode *inode, struct ldlm_lock *lock)
 	       PFID(ll_inode2fid(inode)), ldlm_is_lvb_ready(lock),
 	       lock->l_lvb_data, lock->l_lvb_len);
 
-	if (lock->l_lvb_data && ldlm_is_lvb_ready(lock))
+	if (lock->l_lvb_data)
 		return 0;
 
 	/* if layout lock was granted right away, the layout is returned
@@ -3683,13 +3683,16 @@ static int ll_layout_fetch(struct inode *inode, struct ldlm_lock *lock)
 
 	memcpy(lvbdata, lmm, lmmsize);
 	lock_res_and_lock(lock);
-	if (lock->l_lvb_data)
-		kvfree(lock->l_lvb_data);
-
-	lock->l_lvb_data = lvbdata;
-	lock->l_lvb_len = lmmsize;
+	if (!lock->l_lvb_data) {
+		lock->l_lvb_type = LVB_T_LAYOUT;
+		lock->l_lvb_data = lvbdata;
+		lock->l_lvb_len = lmmsize;
+		lvbdata = NULL;
+	}
 	unlock_res_and_lock(lock);
 
+	if (lvbdata)
+		kvfree(lvbdata);
 out:
 	ptlrpc_req_finished(req);
 	return rc;
