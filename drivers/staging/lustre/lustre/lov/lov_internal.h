@@ -80,10 +80,6 @@ static inline bool lsm_has_objects(struct lov_stripe_md *lsm)
 }
 
 struct lsm_operations {
-	void (*lsm_stripe_by_index)(struct lov_stripe_md *, int *, loff_t *,
-				    loff_t *);
-	void (*lsm_stripe_by_offset)(struct lov_stripe_md *, int *, loff_t *,
-				     loff_t *);
 	struct lov_stripe_md *(*lsm_unpackmd)(struct lov_obd *obd, void *buf,
 					      size_t buf_len);
 };

@@ -309,24 +309,6 @@ lsm_unpackmd_v1v3(struct lov_obd *lov,
 	return lsm;
 }
 
-static void
-lsm_stripe_by_index_plain(struct lov_stripe_md *lsm, int *stripeno,
-			  loff_t *lov_off, loff_t *swidth)
-{
-	if (swidth)
-		*swidth = (loff_t)lsm->lsm_entries[0]->lsme_stripe_size *
-			  lsm->lsm_entries[0]->lsme_stripe_count;
-}
-
-static void
-lsm_stripe_by_offset_plain(struct lov_stripe_md *lsm, int *stripeno,
-			   loff_t *lov_off, loff_t *swidth)
-{
-	if (swidth)
-		*swidth = (loff_t)lsm->lsm_entries[0]->lsme_stripe_size *
-			  lsm->lsm_entries[0]->lsme_stripe_count;
-}
-
 static struct lov_stripe_md *
 lsm_unpackmd_v1(struct lov_obd *lov, void *buf, size_t buf_size)
 {
@@ -336,8 +318,6 @@ lsm_unpackmd_v1(struct lov_obd *lov, void *buf, size_t buf_size)
 }
 
 const static struct lsm_operations lsm_v1_ops = {
-	.lsm_stripe_by_index    = lsm_stripe_by_index_plain,
-	.lsm_stripe_by_offset   = lsm_stripe_by_offset_plain,
 	.lsm_unpackmd		= lsm_unpackmd_v1,
 };
 
@@ -351,8 +331,6 @@ lsm_unpackmd_v3(struct lov_obd *lov, void *buf, size_t buf_size)
 }
 
 const static struct lsm_operations lsm_v3_ops = {
-	.lsm_stripe_by_index	= lsm_stripe_by_index_plain,
-	.lsm_stripe_by_offset	= lsm_stripe_by_offset_plain,
 	.lsm_unpackmd		= lsm_unpackmd_v3,
 };
 
@@ -502,8 +480,6 @@ out_lsm:
 }
 
 const static struct lsm_operations lsm_comp_md_v1_ops = {
-	.lsm_stripe_by_index	= lsm_stripe_by_index_plain,
-	.lsm_stripe_by_offset	= lsm_stripe_by_offset_plain,
 	.lsm_unpackmd		= lsm_unpackmd_comp_md_v1,
 };
 

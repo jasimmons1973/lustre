@@ -37,6 +37,15 @@
 
 #include "lov_internal.h"
 
+static u64 stripe_width(struct lov_stripe_md *lsm, unsigned int index)
+{
+	struct lov_stripe_md_entry *entry = lsm->lsm_entries[index];
+
+	LASSERT(index < lsm->lsm_entry_count);
+
+	return entry->lsme_stripe_size * entry->lsme_stripe_count;
+}
+
 /* compute object size given "stripeno" and the ost size */
 u64 lov_stripe_size(struct lov_stripe_md *lsm, int index, u64 ost_size,
 		    int stripeno)
@@ -45,12 +54,11 @@ u64 lov_stripe_size(struct lov_stripe_md *lsm, int index, u64 ost_size,
 	unsigned long stripe_size;
 	u64 swidth;
 	u64 lov_size;
-	int magic = lsm->lsm_magic;
 
 	if (ost_size == 0)
 		return 0;
 
-	lsm_op_find(magic)->lsm_stripe_by_index(lsm, &stripeno, NULL, &swidth);
+	swidth = stripe_width(lsm, index);
 
 	/* lov_do_div64(a, b) returns a % b, and a = a / b */
 	stripe_size = lov_do_div64(ost_size, ssize);
@@ -129,7 +137,6 @@ int lov_stripe_offset(struct lov_stripe_md *lsm, int index, u64 lov_off,
 {
 	unsigned long ssize  = lsm->lsm_entries[index]->lsme_stripe_size;
 	u64 stripe_off, this_stripe, swidth;
-	int magic = lsm->lsm_magic;
 	int ret = 0;
 
 	if (lov_off == OBD_OBJECT_EOF) {
@@ -137,8 +144,7 @@ int lov_stripe_offset(struct lov_stripe_md *lsm, int index, u64 lov_off,
 		return 0;
 	}
 
-	lsm_op_find(magic)->lsm_stripe_by_index(lsm, &stripeno, &lov_off,
-						&swidth);
+	swidth = stripe_width(lsm, index);
 
 	/* lov_do_div64(a, b) returns a % b, and a = a / b */
 	stripe_off = lov_do_div64(lov_off, swidth);
@@ -184,13 +190,11 @@ u64 lov_size_to_stripe(struct lov_stripe_md *lsm, int index, u64 file_size,
 {
 	unsigned long ssize  = lsm->lsm_entries[index]->lsme_stripe_size;
 	u64 stripe_off, this_stripe, swidth;
-	int magic = lsm->lsm_magic;
 
 	if (file_size == OBD_OBJECT_EOF)
 		return OBD_OBJECT_EOF;
 
-	lsm_op_find(magic)->lsm_stripe_by_index(lsm, &stripeno, &file_size,
-						&swidth);
+	swidth = stripe_width(lsm, index);
 
 	/* lov_do_div64(a, b) returns a % b, and a = a / b */
 	stripe_off = lov_do_div64(file_size, swidth);
@@ -258,9 +262,8 @@ int lov_stripe_number(struct lov_stripe_md *lsm, int index, u64 lov_off)
 {
 	unsigned long ssize  = lsm->lsm_entries[index]->lsme_stripe_size;
 	u64 stripe_off, swidth;
-	int magic = lsm->lsm_magic;
 
-	lsm_op_find(magic)->lsm_stripe_by_offset(lsm, NULL, &lov_off, &swidth);
+	swidth = stripe_width(lsm, index);
 
 	stripe_off = lov_do_div64(lov_off, swidth);
 
