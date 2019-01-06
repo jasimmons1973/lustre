@@ -238,8 +238,9 @@ int lov_ost_pool_init(struct ost_pool *op, unsigned int count)
 	op->op_array = NULL;
 	op->op_count = 0;
 	init_rwsem(&op->op_rw_sem);
-	op->op_size = count;
-	op->op_array = kcalloc(op->op_size, sizeof(op->op_array[0]), GFP_NOFS);
+	op->op_size = count * sizeof(op->op_array[0]);
+	op->op_array = kcalloc(count, sizeof(op->op_array[0]),
+			       GFP_KERNEL);
 	if (!op->op_array) {
 		op->op_size = 0;
 		return -ENOMEM;
@@ -250,24 +251,25 @@ int lov_ost_pool_init(struct ost_pool *op, unsigned int count)
 /* Caller must hold write op_rwlock */
 int lov_ost_pool_extend(struct ost_pool *op, unsigned int min_count)
 {
-	__u32 *new;
-	int new_size;
+	int new_count;
+	u32 *new;
 
 	LASSERT(min_count != 0);
 
-	if (op->op_count < op->op_size)
+	if (op->op_count * sizeof(op->op_array[0]) < op->op_size)
 		return 0;
 
-	new_size = max(min_count, 2 * op->op_size);
-	new = kcalloc(new_size, sizeof(op->op_array[0]), GFP_NOFS);
+	new_count = max_t(u32, min_count,
+			  2 * op->op_size / sizeof(op->op_array[0]));
+	new = kcalloc(new_count, sizeof(op->op_array[0]), GFP_KERNEL);
 	if (!new)
 		return -ENOMEM;
 
 	/* copy old array to new one */
-	memcpy(new, op->op_array, op->op_size * sizeof(op->op_array[0]));
+	memcpy(new, op->op_array, op->op_size);
 	kfree(op->op_array);
 	op->op_array = new;
-	op->op_size = new_size;
+	op->op_size = new_count * sizeof(op->op_array[0]);
 	return 0;
 }
 

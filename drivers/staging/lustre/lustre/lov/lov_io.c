@@ -100,7 +100,8 @@ static int lov_io_sub_init(const struct lu_env *env, struct lov_io *lio,
 
 	LASSERT(!sub->sub_env);
 
-	if (unlikely(!lov_r0(lov, index)->lo_sub[stripe]))
+	if (unlikely(!lov_r0(lov, index)->lo_sub ||
+		     !lov_r0(lov, index)->lo_sub[stripe]))
 		return -EIO;
 
 	/* obtain new environment */
