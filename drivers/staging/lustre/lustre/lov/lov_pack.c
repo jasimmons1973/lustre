@@ -315,12 +315,14 @@ struct lov_stripe_md *lov_unpackmd(struct lov_obd *lov, void *buf,
  * the maximum number of OST indices which will fit in the user buffer.
  * lmm_magic must be LOV_USER_MAGIC.
  */
-int lov_getstripe(struct lov_object *obj, struct lov_stripe_md *lsm,
-		  struct lov_user_md __user *lump)
+int lov_getstripe(const struct lu_env *env, struct lov_object *obj,
+		  struct lov_stripe_md *lsm, struct lov_user_md __user *lump)
 {
 	/* we use lov_user_md_v3 because it is larger than lov_user_md_v1 */
 	struct lov_mds_md *lmmk;
-	ssize_t lmm_size;
+	struct lov_user_md_v1 lum;
+	ssize_t lmm_size, lum_size = 0;
+	static bool printed;
 	size_t lmmk_size;
 	int rc = 0;
 
@@ -330,6 +332,13 @@ int lov_getstripe(struct lov_object *obj, struct lov_stripe_md *lsm,
 		       lsm->lsm_magic, LOV_MAGIC_V1, LOV_MAGIC_V3);
 		rc = -EIO;
 		goto out;
+	}
+
+	if (!printed) {
+		LCONSOLE_WARN("%s: using old ioctl(LL_IOC_LOV_GETSTRIPE) on " DFID ", use llapi_layout_get_by_path()\n",
+			      current->comm,
+			      PFID(&obj->lo_cl.co_lu.lo_header->loh_fid));
+		printed = true;
 	}
 
 	lmmk_size = lov_comp_md_size(lsm);
@@ -357,10 +366,61 @@ int lov_getstripe(struct lov_object *obj, struct lov_stripe_md *lsm,
 		}
 	}
 
-	if (copy_to_user(lump, lmmk, lmmk_size))
+	/* Legacy appication passes limited buffer, we need to figure out
+	 * the user buffer size by the passed in lmm_stripe_count.
+	 */
+	if (copy_from_user(&lum, lump, sizeof(struct lov_user_md_v1))) {
 		rc = -EFAULT;
-	else
-		rc = 0;
+		goto out_free;
+	}
+
+	if (lum.lmm_magic == LOV_USER_MAGIC_V1 ||
+	    lum.lmm_magic == LOV_USER_MAGIC_V3)
+		lum_size = lov_user_md_size(lum.lmm_stripe_count,
+					    lum.lmm_magic);
+
+	if (lum_size != 0) {
+		struct lov_mds_md *comp_md = lmmk;
+
+		/* Legacy app (ADIO for instance) treats the layout as V1/V3
+		 * blindly, we'd return a reasonable V1/V3 for them.
+		 */
+		if (lmmk->lmm_magic == LOV_MAGIC_COMP_V1) {
+			struct lov_comp_md_v1 *comp_v1;
+			struct cl_object *cl_obj;
+			struct cl_attr attr;
+			int i;
+
+			attr.cat_size = 0;
+			cl_obj = cl_object_top(&obj->lo_cl);
+			cl_object_attr_get(env, cl_obj, &attr);
+
+			/* return the last instantiated component if file size
+			 * is non-zero, otherwise, return the last component.
+			 */
+			comp_v1 = (struct lov_comp_md_v1 *)lmmk;
+			i = attr.cat_size == 0 ? comp_v1->lcm_entry_count : 0;
+			for (; i < comp_v1->lcm_entry_count; i++) {
+				if (!(comp_v1->lcm_entries[i].lcme_flags &
+				    LCME_FL_INIT))
+					break;
+			}
+			if (i > 0)
+				i--;
+			comp_md = (struct lov_mds_md *)((char *)comp_v1 +
+					comp_v1->lcm_entries[i].lcme_offset);
+		}
+		if (copy_to_user(lump, comp_md, lum_size)) {
+			rc = -EFAULT;
+			goto out_free;
+		}
+	} else {
+		if (copy_to_user(lump, lmmk, lmmk_size)) {
+			rc = -EFAULT;
+			goto out_free;
+		}
+	}
+
 out_free:
 	kvfree(lmmk);
 out:
