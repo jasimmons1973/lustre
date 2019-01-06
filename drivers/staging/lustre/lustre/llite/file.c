@@ -620,7 +620,7 @@ restart:
 			 * Always specify MDS_OPEN_BY_FID because we don't want
 			 * to get file with different fid.
 			 */
-			it->it_flags |= MDS_OPEN_LOCK | MDS_OPEN_BY_FID;
+			it->it_flags |= MDS_OPEN_BY_FID;
 			rc = ll_intent_file_open(file->f_path.dentry,
 						 NULL, 0, it);
 			if (rc)
