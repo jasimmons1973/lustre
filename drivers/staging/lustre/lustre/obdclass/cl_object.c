@@ -323,7 +323,7 @@ EXPORT_SYMBOL(cl_object_prune);
  * Get stripe information of this object.
  */
 int cl_object_getstripe(const struct lu_env *env, struct cl_object *obj,
-			struct lov_user_md __user *uarg)
+			struct lov_user_md __user *uarg, size_t size)
 {
 	struct lu_object_header *top;
 	int result = 0;
@@ -331,7 +331,8 @@ int cl_object_getstripe(const struct lu_env *env, struct cl_object *obj,
 	top = obj->co_lu.lo_header;
 	list_for_each_entry(obj, &top->loh_layers, co_lu.lo_linkage) {
 		if (obj->co_ops->coo_getstripe) {
-			result = obj->co_ops->coo_getstripe(env, obj, uarg);
+			result = obj->co_ops->coo_getstripe(env, obj, uarg,
+							    size);
 			if (result)
 				break;
 		}

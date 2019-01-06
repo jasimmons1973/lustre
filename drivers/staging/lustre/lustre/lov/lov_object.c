@@ -1605,7 +1605,7 @@ out_lsm:
 }
 
 static int lov_object_getstripe(const struct lu_env *env, struct cl_object *obj,
-				struct lov_user_md __user *lum)
+				struct lov_user_md __user *lum, size_t size)
 {
 	struct lov_object *lov = cl2lov(obj);
 	struct lov_stripe_md *lsm;
@@ -1615,7 +1615,7 @@ static int lov_object_getstripe(const struct lu_env *env, struct cl_object *obj,
 	if (!lsm)
 		return -ENODATA;
 
-	rc = lov_getstripe(env, cl2lov(obj), lsm, lum);
+	rc = lov_getstripe(env, cl2lov(obj), lsm, lum, size);
 	lov_lsm_put(lsm);
 	return rc;
 }

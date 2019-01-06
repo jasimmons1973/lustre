@@ -1481,7 +1481,7 @@ out:
 }
 
 static int ll_lov_setea(struct inode *inode, struct file *file,
-			unsigned long arg)
+			void __user *arg)
 {
 	__u64			 flags = MDS_OPEN_HAS_OBJS | FMODE_WRITE;
 	struct lov_user_md	*lump;
@@ -1496,7 +1496,7 @@ static int ll_lov_setea(struct inode *inode, struct file *file,
 	if (!lump)
 		return -ENOMEM;
 
-	if (copy_from_user(lump, (struct lov_user_md __user *)arg, lum_size)) {
+	if (copy_from_user(lump, arg, lum_size)) {
 		kvfree(lump);
 		return -EFAULT;
 	}
@@ -1509,8 +1509,7 @@ static int ll_lov_setea(struct inode *inode, struct file *file,
 	return rc;
 }
 
-static int ll_file_getstripe(struct inode *inode,
-			     struct lov_user_md __user *lum)
+static int ll_file_getstripe(struct inode *inode, void __user *lum, size_t size)
 {
 	struct lu_env *env;
 	u16 refcheck;
@@ -1520,13 +1519,13 @@ static int ll_file_getstripe(struct inode *inode,
 	if (IS_ERR(env))
 		return PTR_ERR(env);
 
-	rc = cl_object_getstripe(env, ll_i2info(inode)->lli_clob, lum);
+	rc = cl_object_getstripe(env, ll_i2info(inode)->lli_clob, lum, size);
 	cl_env_put(env, &refcheck);
 	return rc;
 }
 
 static int ll_lov_setstripe(struct inode *inode, struct file *file,
-			    unsigned long arg)
+			    void __user *arg)
 {
 	struct lov_user_md __user *lum = (struct lov_user_md __user *)arg;
 	struct lov_user_md *klum;
@@ -1540,8 +1539,22 @@ static int ll_lov_setstripe(struct inode *inode, struct file *file,
 	lum_size = rc;
 	rc = ll_lov_setstripe_ea_info(inode, file->f_path.dentry, flags, klum,
 				      lum_size);
-	cl_lov_delay_create_clear(&file->f_flags);
+	if (!rc) {
+		u32 gen;
 
+		rc = put_user(0, &lum->lmm_stripe_count);
+		if (rc)
+			goto out;
+
+		rc = ll_layout_refresh(inode, &gen);
+		if (rc)
+			goto out;
+
+		rc = ll_file_getstripe(inode, arg, lum_size);
+	}
+
+	cl_lov_delay_create_clear(&file->f_flags);
+out:
 	kfree(klum);
 	return rc;
 }
@@ -2329,9 +2342,10 @@ ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 		return 0;
 	case LL_IOC_LOV_SETSTRIPE:
-		return ll_lov_setstripe(inode, file, arg);
+	case LL_IOC_LOV_SETSTRIPE_NEW:
+		return ll_lov_setstripe(inode, file, (void __user *) arg);
 	case LL_IOC_LOV_SETEA:
-		return ll_lov_setea(inode, file, arg);
+		return ll_lov_setea(inode, file, (void __user *) arg);
 	case LL_IOC_LOV_SWAP_LAYOUTS: {
 		struct file *file2;
 		struct lustre_swap_layouts lsl;
@@ -2384,8 +2398,8 @@ out:
 		return rc;
 	}
 	case LL_IOC_LOV_GETSTRIPE:
-		return ll_file_getstripe(inode,
-					 (struct lov_user_md __user *)arg);
+	case LL_IOC_LOV_GETSTRIPE_NEW:
+		return ll_file_getstripe(inode, (void __user *)arg, 0);
 	case FSFILT_IOC_GETFLAGS:
 	case FSFILT_IOC_SETFLAGS:
 		return ll_iocontrol(inode, file, cmd, arg);
