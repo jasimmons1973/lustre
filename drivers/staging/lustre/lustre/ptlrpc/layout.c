@@ -1797,9 +1797,9 @@ EXPORT_SYMBOL(req_capsule_server_pack);
  * Returns the PTLRPC request or reply (\a loc) buffer offset of a \a pill
  * corresponding to the given RMF (\a field).
  */
-static u32 __req_capsule_offset(const struct req_capsule *pill,
-				const struct req_msg_field *field,
-				enum req_location loc)
+u32 __req_capsule_offset(const struct req_capsule *pill,
+			 const struct req_msg_field *field,
+			 enum req_location loc)
 {
 	u32 offset;
 

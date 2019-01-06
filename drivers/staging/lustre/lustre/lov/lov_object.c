@@ -64,8 +64,6 @@ struct lov_layout_operations {
 			  union lov_layout_state *state);
 	void (*llo_fini)(const struct lu_env *env, struct lov_object *lov,
 			 union lov_layout_state *state);
-	void (*llo_install)(const struct lu_env *env, struct lov_object *lov,
-			    union lov_layout_state *state);
 	int  (*llo_print)(const struct lu_env *env, void *cookie,
 			  lu_printer_t p, const struct lu_object *o);
 	int  (*llo_page_init)(const struct lu_env *env, struct cl_object *obj,
@@ -92,28 +90,12 @@ static void lov_lsm_put(struct lov_stripe_md *lsm)
  * Lov object layout operations.
  *
  */
-
-static void lov_install_empty(const struct lu_env *env,
-			      struct lov_object *lov,
-			      union  lov_layout_state *state)
-{
-	/*
-	 * File without objects.
-	 */
-}
-
 static int lov_init_empty(const struct lu_env *env, struct lov_device *dev,
 			  struct lov_object *lov, struct lov_stripe_md *lsm,
 			  const struct cl_object_conf *conf,
 			  union lov_layout_state *state)
 {
 	return 0;
-}
-
-static void lov_install_composite(const struct lu_env *env,
-				  struct lov_object *lov,
-				  union lov_layout_state *state)
-{
 }
 
 static struct cl_object *lov_sub_find(const struct lu_env *env,
@@ -328,6 +310,14 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 		struct lov_layout_entry *le = &comp->lo_entries[i];
 
 		le->lle_extent = lsm->lsm_entries[i]->lsme_extent;
+		/**
+		 * If the component has not been init-ed on MDS side, for
+		 * PFL layout, we'd know that the components beyond this one
+		 * will be dynamically init-ed later on file write/trunc ops.
+		 */
+		if (!lsm_entry_inited(lsm, i))
+			continue;
+
 		result = lov_init_raid0(env, dev, lov, i, &le->lle_raid0);
 		if (result < 0)
 			break;
@@ -471,13 +461,15 @@ static int lov_delete_composite(const struct lu_env *env,
 				struct lov_object *lov,
 				union lov_layout_state *state)
 {
+	struct lov_layout_composite *comp = &state->composite;
 	struct lov_layout_entry *entry;
 
 	dump_lsm(D_INODE, lov->lo_lsm);
 
 	lov_layout_wait(env, lov);
-	lov_foreach_layout_entry(lov, entry)
-		lov_delete_raid0(env, lov, &entry->lle_raid0);
+	if (comp->lo_entries)
+		lov_foreach_layout_entry(lov, entry)
+			lov_delete_raid0(env, lov, &entry->lle_raid0);
 
 	return 0;
 }
@@ -565,9 +557,9 @@ static int lov_print_composite(const struct lu_env *env, void *cookie,
 	for (i = 0; i < lsm->lsm_entry_count; i++) {
 		struct lov_stripe_md_entry *lse = lsm->lsm_entries[i];
 
-		(*p)(env, cookie, DEXT ": { 0x%08X, %u, %u, %u, %u }\n",
+		(*p)(env, cookie, DEXT ": { 0x%08X, %u, %u, %#x, %u, %u }\n",
 		     PEXT(&lse->lsme_extent), lse->lsme_magic,
-		     lse->lsme_id, lse->lsme_layout_gen,
+		     lse->lsme_id, lse->lsme_layout_gen, lse->lsme_flags,
 		     lse->lsme_stripe_count, lse->lsme_stripe_size);
 		lov_print_raid0(env, cookie, p, lov_r0(lov, i));
 	}
@@ -664,6 +656,10 @@ static int lov_attr_get_composite(const struct lu_env *env,
 		struct lov_layout_raid0 *r0 = &entry->lle_raid0;
 		struct cl_attr *lov_attr = &r0->lo_attr;
 
+		/* PFL: This component has not been init-ed. */
+		if (!lsm_entry_inited(lov->lo_lsm, index))
+			break;
+
 		result = lov_attr_get_raid0(env, lov, index, r0);
 		if (result != 0)
 			break;
@@ -691,7 +687,6 @@ static const struct lov_layout_operations lov_dispatch[] = {
 		.llo_init      = lov_init_empty,
 		.llo_delete    = lov_delete_empty,
 		.llo_fini      = lov_fini_empty,
-		.llo_install   = lov_install_empty,
 		.llo_print     = lov_print_empty,
 		.llo_page_init = lov_page_init_empty,
 		.llo_lock_init = lov_lock_init_empty,
@@ -702,7 +697,6 @@ static const struct lov_layout_operations lov_dispatch[] = {
 		.llo_init      = lov_init_released,
 		.llo_delete    = lov_delete_empty,
 		.llo_fini      = lov_fini_released,
-		.llo_install   = lov_install_empty,
 		.llo_print     = lov_print_released,
 		.llo_page_init = lov_page_init_empty,
 		.llo_lock_init = lov_lock_init_empty,
@@ -713,7 +707,6 @@ static const struct lov_layout_operations lov_dispatch[] = {
 		.llo_init	= lov_init_composite,
 		.llo_delete	= lov_delete_composite,
 		.llo_fini	= lov_fini_composite,
-		.llo_install	= lov_install_composite,
 		.llo_print	= lov_print_composite,
 		.llo_page_init	= lov_page_init_composite,
 		.llo_lock_init	= lov_lock_init_composite,
@@ -894,7 +887,6 @@ static int lov_layout_change(const struct lu_env *unused,
 		goto out;
 	}
 
-	new_ops->llo_install(env, lov, state);
 	lov->lo_type = llt;
 out:
 	cl_env_put(env, &refcheck);
@@ -937,8 +929,6 @@ int lov_object_init(const struct lu_env *env, struct lu_object *obj,
 	lov->lo_type = lov_type(lsm);
 	ops = &lov_dispatch[lov->lo_type];
 	rc = ops->llo_init(env, dev, lov, lsm, cconf, set);
-	if (!rc)
-		ops->llo_install(env, lov, set);
 
 	lov_lsm_put(lsm);
 
@@ -959,6 +949,7 @@ static int lov_conf_set(const struct lu_env *env, struct cl_object *obj,
 				   conf->u.coc_layout.lb_len);
 		if (IS_ERR(lsm))
 			return PTR_ERR(lsm);
+		dump_lsm(D_INODE, lsm);
 	}
 
 	lov_conf_lock(lov);
@@ -1541,6 +1532,9 @@ static int lov_object_fiemap(const struct lu_env *env, struct cl_object *obj,
 	for (entry = start_entry; entry <= end_entry; entry++) {
 		lsme = lsm->lsm_entries[entry];
 
+		if (!lsme_inited(lsme))
+			break;
+
 		if (entry == start_entry)
 			fs.fs_ext.e_start = whole_start;
 		else
@@ -1751,6 +1745,9 @@ int lov_read_and_clear_async_rc(struct cl_object *clob)
 				int j;
 
 				lse = lsm->lsm_entries[i];
+				if (!lsme_inited(lse))
+					break;
+
 				for (j = 0; j < lse->lsme_stripe_count; j++) {
 					struct lov_oinfo *loi;
 

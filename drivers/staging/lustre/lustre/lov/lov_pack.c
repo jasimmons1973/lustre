@@ -146,6 +146,9 @@ ssize_t lov_lsm_pack_v1v3(const struct lov_stripe_md *lsm, void *buf,
 		lmm_objects = lmmv1->lmm_objects;
 	}
 
+	if (lsm->lsm_is_released)
+		return lmm_size;
+
 	for (i = 0; i < lsm->lsm_entries[0]->lsme_stripe_count; i++) {
 		struct lov_oinfo *loi = lsm->lsm_entries[0]->lsme_oinfo[i];
 
@@ -189,11 +192,13 @@ ssize_t lov_lsm_pack(const struct lov_stripe_md *lsm, void *buf,
 	for (entry = 0; entry < lsm->lsm_entry_count; entry++) {
 		struct lov_stripe_md_entry *lsme;
 		struct lov_mds_md *lmm;
+		u16 stripecnt;
 
 		lsme = lsm->lsm_entries[entry];
 		lcme = &lcmv1->lcm_entries[entry];
 
 		lcme->lcme_id = cpu_to_le32(lsme->lsme_id);
+		lcme->lcme_flags = cpu_to_le32(lsme->lsme_flags);
 		lcme->lcme_extent.e_start =
 			cpu_to_le64(lsme->lsme_extent.e_start);
 		lcme->lcme_extent.e_end =
@@ -220,7 +225,13 @@ ssize_t lov_lsm_pack(const struct lov_stripe_md *lsm, void *buf,
 			lmm_objects = ((struct lov_mds_md_v1 *)lmm)->lmm_objects;
 		}
 
-		for (i = 0; i < lsme->lsme_stripe_count; i++) {
+		if (lsme_inited(lsme) &&
+		    !(lsme->lsme_pattern & LOV_PATTERN_F_RELEASED))
+			stripecnt = lsme->lsme_stripe_count;
+		else
+			stripecnt = 0;
+
+		for (i = 0; i < stripecnt; i++) {
 			struct lov_oinfo *loi = lsme->lsme_oinfo[i];
 
 			ostid_cpu_to_le(&loi->loi_oi, &lmm_objects[i].l_ost_oi);
@@ -230,8 +241,7 @@ ssize_t lov_lsm_pack(const struct lov_stripe_md *lsm, void *buf,
 				cpu_to_le32(loi->loi_ost_idx);
 		}
 
-		size = lov_mds_md_size(lsme->lsme_stripe_count,
-				       lsme->lsme_magic);
+		size = lov_mds_md_size(stripecnt, lsme->lsme_magic);
 		lcme->lcme_size = cpu_to_le32(size);
 		offset += size;
 	} /* for each layout component */
@@ -313,9 +323,6 @@ int lov_getstripe(struct lov_object *obj, struct lov_stripe_md *lsm,
 	ssize_t lmm_size;
 	size_t lmmk_size;
 	int rc = 0;
-
-	if (!lsm)
-		return -ENODATA;
 
 	if (lsm->lsm_magic != LOV_MAGIC_V1 && lsm->lsm_magic != LOV_MAGIC_V3 &&
 	    lsm->lsm_magic != LOV_MAGIC_COMP_V1) {

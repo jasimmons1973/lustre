@@ -214,20 +214,32 @@ static inline void mdc_clear_replay_flag(struct ptlrpc_request *req, int rc)
  * but this is incredibly unlikely, and questionable whether the client
  * could do MDS recovery under OOM anyways...
  */
-static void mdc_realloc_openmsg(struct ptlrpc_request *req,
-				struct mdt_body *body)
+static int mdc_save_lovea(struct ptlrpc_request *req,
+			  const struct req_msg_field *field,
+			  void *data, u32 size)
 {
-	int     rc;
+	struct req_capsule *pill = &req->rq_pill;
+	int rc = 0;
+	void *lmm;
 
-	/* FIXME: remove this explicit offset. */
-	rc = sptlrpc_cli_enlarge_reqbuf(req, DLM_INTENT_REC_OFF + 4,
-					body->mbo_eadatasize);
-	if (rc) {
-		CERROR("Can't enlarge segment %d size to %d\n",
-		       DLM_INTENT_REC_OFF + 4, body->mbo_eadatasize);
-		body->mbo_valid &= ~OBD_MD_FLEASIZE;
-		body->mbo_eadatasize = 0;
+	if (req_capsule_get_size(pill, field, RCL_CLIENT) < size) {
+		rc = sptlrpc_cli_enlarge_reqbuf(req, field, size);
+		if (rc) {
+			CERROR("%s: Can't enlarge ea size to %d: rc = %d\n",
+			       req->rq_export->exp_obd->obd_name,
+			       size, rc);
+			return rc;
+		}
+	} else {
+		req_capsule_shrink(pill, field, size, RCL_CLIENT);
 	}
+
+	req_capsule_set_size(pill, field, RCL_CLIENT, size);
+	lmm = req_capsule_client_get(pill, field);
+	if (lmm)
+		memcpy(lmm, data, size);
+
+	return rc;
 }
 
 static struct ptlrpc_request *
@@ -470,7 +482,7 @@ static struct ptlrpc_request *mdc_intent_getattr_pack(struct obd_export *exp,
 
 static struct ptlrpc_request *mdc_intent_layout_pack(struct obd_export *exp,
 						     struct lookup_intent *it,
-						     struct md_op_data *unused)
+						     struct md_op_data *op_data)
 {
 	struct obd_device     *obd = class_exp2obd(exp);
 	struct ptlrpc_request *req;
@@ -496,10 +508,9 @@ static struct ptlrpc_request *mdc_intent_layout_pack(struct obd_export *exp,
 
 	/* pack the layout intent request */
 	layout = req_capsule_client_get(&req->rq_pill, &RMF_LAYOUT_INTENT);
-	/* LAYOUT_INTENT_ACCESS is generic, specific operation will be
-	 * set for replication
-	 */
-	layout->li_opc = LAYOUT_INTENT_ACCESS;
+	LASSERT(op_data->op_data);
+	LASSERT(op_data->op_data_size == sizeof(*layout));
+	memcpy(layout, op_data->op_data, sizeof(*layout));
 
 	req_capsule_set_size(&req->rq_pill, &RMF_DLM_LVB, RCL_SERVER,
 			     obd->u.cli.cl_default_mds_easize);
@@ -649,24 +660,13 @@ static int mdc_finish_enqueue(struct obd_export *exp,
 			 * (for example error one).
 			 */
 			if ((it->it_op & IT_OPEN) && req->rq_replay) {
-				void *lmm;
-
-				if (req_capsule_get_size(pill, &RMF_EADATA,
-							 RCL_CLIENT) <
-				    body->mbo_eadatasize)
-					mdc_realloc_openmsg(req, body);
-				else
-					req_capsule_shrink(pill, &RMF_EADATA,
-							   body->mbo_eadatasize,
-							   RCL_CLIENT);
-
-				req_capsule_set_size(pill, &RMF_EADATA,
-						     RCL_CLIENT,
-						     body->mbo_eadatasize);
-
-				lmm = req_capsule_client_get(pill, &RMF_EADATA);
-				if (lmm)
-					memcpy(lmm, eadata, body->mbo_eadatasize);
+				rc = mdc_save_lovea(req, &RMF_EADATA, eadata,
+						    body->mbo_eadatasize);
+				if (rc) {
+					body->mbo_valid &= ~OBD_MD_FLEASIZE;
+					body->mbo_eadatasize = 0;
+					rc = 0;
+				}
 			}
 		}
 	} else if (it->it_op & IT_LAYOUT) {
@@ -680,6 +680,15 @@ static int mdc_finish_enqueue(struct obd_export *exp,
 								lvb_len);
 			if (!lvb_data)
 				return -EPROTO;
+
+			/**
+			 * save replied layout data to the request buffer for
+			 * recovery consideration (lest MDS reinitialize
+			 * another set of OST objects).
+			 */
+			if (req->rq_transno)
+				(void)mdc_save_lovea(req, &RMF_EADATA, lvb_data,
+						     lvb_len);
 		}
 	}
 

@@ -117,6 +117,10 @@ static void lsme_free(struct lov_stripe_md_entry *lsme)
 	unsigned int stripe_count = lsme->lsme_stripe_count;
 	unsigned int i;
 
+	if (!lsme_inited(lsme) ||
+	    lsme->lsme_pattern & LOV_PATTERN_F_RELEASED)
+		stripe_count = 0;
+
 	for (i = 0; i < stripe_count; i++)
 		kmem_cache_free(lov_oinfo_slab, lsme->lsme_oinfo[i]);
 
@@ -141,7 +145,7 @@ void lsm_free(struct lov_stripe_md *lsm)
  */
 static struct lov_stripe_md_entry *
 lsme_unpack(struct lov_obd *lov, struct lov_mds_md *lmm, size_t buf_size,
-	    const char *pool_name, struct lov_ost_data_v1 *objects,
+	    const char *pool_name, bool inited, struct lov_ost_data_v1 *objects,
 	    loff_t *maxbytes)
 {
 	struct lov_stripe_md_entry *lsme;
@@ -159,7 +163,7 @@ lsme_unpack(struct lov_obd *lov, struct lov_mds_md *lmm, size_t buf_size,
 		return ERR_PTR(-EINVAL);
 
 	pattern = le32_to_cpu(lmm->lmm_pattern);
-	if (pattern & LOV_PATTERN_F_RELEASED)
+	if (pattern & LOV_PATTERN_F_RELEASED || !inited)
 		stripe_count = 0;
 	else
 		stripe_count = le16_to_cpu(lmm->lmm_stripe_count);
@@ -185,8 +189,10 @@ lsme_unpack(struct lov_obd *lov, struct lov_mds_md *lmm, size_t buf_size,
 
 	lsme->lsme_magic = magic;
 	lsme->lsme_pattern = pattern;
+	lsme->lsme_flags = 0;
 	lsme->lsme_stripe_size = le32_to_cpu(lmm->lmm_stripe_size);
-	lsme->lsme_stripe_count = stripe_count;
+	/* preserve the possible -1 stripe count for uninstantiated component */
+	lsme->lsme_stripe_count = le16_to_cpu(lmm->lmm_stripe_count);
 	lsme->lsme_layout_gen = le16_to_cpu(lmm->lmm_layout_gen);
 
 	if (pool_name) {
@@ -282,10 +288,12 @@ lsm_unpackmd_v1v3(struct lov_obd *lov,
 
 	pattern = le32_to_cpu(lmm->lmm_pattern);
 
-	lsme = lsme_unpack(lov, lmm, buf_size, pool_name, objects, &maxbytes);
+	lsme = lsme_unpack(lov, lmm, buf_size, pool_name, true, objects,
+			   &maxbytes);
 	if (IS_ERR(lsme))
 		return ERR_CAST(lsme);
 
+	lsme->lsme_flags = LCME_FL_INIT;
 	lsme->lsme_extent.e_start = 0;
 	lsme->lsme_extent.e_end = LUSTRE_EOF;
 
@@ -371,7 +379,7 @@ static int lsm_verify_comp_md_v1(struct lov_comp_md_v1 *lcm,
 
 static struct lov_stripe_md_entry *
 lsme_unpack_comp(struct lov_obd *lov, struct lov_mds_md *lmm,
-		 size_t lmm_buf_size, loff_t *maxbytes)
+		 size_t lmm_buf_size, bool inited, loff_t *maxbytes)
 {
 	unsigned int stripe_count;
 	unsigned int magic;
@@ -379,6 +387,10 @@ lsme_unpack_comp(struct lov_obd *lov, struct lov_mds_md *lmm,
 	stripe_count = le16_to_cpu(lmm->lmm_stripe_count);
 	if (stripe_count == 0)
 		return ERR_PTR(-EINVAL);
+
+	/* un-instantiated lmm contains no ost id info, i.e. lov_ost_data_v1 */
+	if (!inited)
+		stripe_count = 0;
 
 	magic = le32_to_cpu(lmm->lmm_magic);
 	if (magic != LOV_MAGIC_V1 && magic != LOV_MAGIC_V3)
@@ -389,12 +401,12 @@ lsme_unpack_comp(struct lov_obd *lov, struct lov_mds_md *lmm,
 
 	if (magic == LOV_MAGIC_V1) {
 		return lsme_unpack(lov, lmm, lmm_buf_size, NULL,
-				   lmm->lmm_objects, maxbytes);
+				   inited, lmm->lmm_objects, maxbytes);
 	} else {
 		struct lov_mds_md_v3 *lmm3 = (struct lov_mds_md_v3 *)lmm;
 
 		return lsme_unpack(lov, lmm, lmm_buf_size, lmm3->lmm_pool_name,
-				   lmm3->lmm_objects, maxbytes);
+				   inited, lmm3->lmm_objects, maxbytes);
 	}
 }
 
@@ -440,6 +452,7 @@ lsm_unpackmd_comp_md_v1(struct lov_obd *lov, void *buf, size_t buf_size)
 		blob = (char *)lcm + blob_offset;
 
 		lsme = lsme_unpack_comp(lov, blob, blob_size,
+					le32_to_cpu(lcme->lcme_flags) & LCME_FL_INIT,
 					(i == entry_count - 1) ? &maxbytes :
 					NULL);
 		if (IS_ERR(lsme)) {
@@ -452,6 +465,7 @@ lsm_unpackmd_comp_md_v1(struct lov_obd *lov, void *buf, size_t buf_size)
 
 		lsm->lsm_entries[i] = lsme;
 		lsme->lsme_id = le32_to_cpu(lcme->lcme_id);
+		lsme->lsme_flags = le32_to_cpu(lcme->lcme_flags);
 		lu_extent_le_to_cpu(&lsme->lsme_extent, &lcme->lcme_extent);
 
 		if (i == entry_count - 1) {
@@ -507,7 +521,7 @@ const struct lsm_operations *lsm_op_find(int magic)
 
 void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm)
 {
-	int i;
+	int i, j;
 
 	CDEBUG(level,
 	       "lsm %p, objid " DOSTID ", maxbytes %#llx, magic 0x%08X, refc: %d, entry: %u, layout_gen %u\n",
@@ -519,10 +533,23 @@ void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm)
 		struct lov_stripe_md_entry *lse = lsm->lsm_entries[i];
 
 		CDEBUG(level,
-		       DEXT ": id: %u, magic 0x%08X, stripe count %u, size %u, layout_gen %u, pool: [" LOV_POOLNAMEF "]\n",
-		       PEXT(&lse->lsme_extent), lse->lsme_id, lse->lsme_magic,
-		       lse->lsme_stripe_count, lse->lsme_stripe_size,
-		       lse->lsme_layout_gen, lse->lsme_pool_name);
+		       DEXT ": id: %u, flags: %x, magic 0x%08X, layout_gen %u, stripe count %u, sstripe size %u, pool: [" LOV_POOLNAMEF "]\n",
+		       PEXT(&lse->lsme_extent), lse->lsme_id, lse->lsme_flags,
+		       lse->lsme_magic, lse->lsme_layout_gen,
+                       lse->lsme_stripe_count, lse->lsme_stripe_size,
+		       lse->lsme_pool_name);
+		if (!lsme_inited(lse) ||
+		    lse->lsme_pattern & LOV_PATTERN_F_RELEASED)
+			continue;
+
+		for (j = 0; j < lse->lsme_stripe_count; j++) {
+			CDEBUG(level,
+			       "   oinfo:%p: ostid: " DOSTID " ost idx: %d gen: %d\n",
+			       lse->lsme_oinfo[j],
+			       POSTID(&lse->lsme_oinfo[j]->loi_oi),
+			       lse->lsme_oinfo[j]->loi_ost_idx,
+			       lse->lsme_oinfo[j]->loi_ost_gen);
+		}
 	}
 }
 

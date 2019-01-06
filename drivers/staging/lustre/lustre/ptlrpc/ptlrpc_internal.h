@@ -88,7 +88,7 @@ int ptlrpc_replay_next(struct obd_import *imp, int *inflight);
 void ptlrpc_initiate_recovery(struct obd_import *imp);
 
 int lustre_unpack_req_ptlrpc_body(struct ptlrpc_request *req, int offset);
-int lustre_unpack_rep_ptlrpc_body(struct ptlrpc_request *req, int offset);
+int lustre_unpack_rep_ptlrpc_body(struct ptlrpc_request *req, int effset);
 
 int ptlrpc_sysfs_register_service(struct kset *parent,
 				  struct ptlrpc_service *svc);
@@ -283,6 +283,11 @@ void sptlrpc_conf_fini(void);
 /* sec.c */
 int  sptlrpc_init(void);
 void sptlrpc_fini(void);
+
+/* layout.c */
+u32 __req_capsule_offset(const struct req_capsule *pill,
+			 const struct req_msg_field *field,
+			 enum req_location loc);
 
 static inline bool ptlrpc_recoverable_error(int rc)
 {
