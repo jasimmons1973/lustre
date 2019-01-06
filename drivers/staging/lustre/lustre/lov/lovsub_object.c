@@ -79,8 +79,8 @@ static void lovsub_object_free(const struct lu_env *env, struct lu_object *obj)
 	 * object handling in lu_object_find.
 	 */
 	if (lov) {
-		int index = 0;
-		int stripe = los->lso_index;
+		int index = lov_comp_entry(los->lso_index);
+		int stripe = lov_comp_stripe(los->lso_index);
 		struct lov_layout_raid0 *r0 = lov_r0(lov, index);
 
 		LASSERT(lov->lo_type == LLT_COMP);
@@ -107,8 +107,9 @@ static int lovsub_attr_update(const struct lu_env *env, struct cl_object *obj,
 			      const struct cl_attr *attr, unsigned int valid)
 {
 	struct lov_object *lov = cl2lovsub(obj)->lso_super;
+	struct lovsub_object *los = cl2lovsub(obj);
 
-	lov_r0(lov, 0)->lo_attr_valid = 0;
+	lov_r0(lov, lov_comp_entry(los->lso_index))->lo_attr_valid = 0;
 	return 0;
 }
 
@@ -137,7 +138,7 @@ static void lovsub_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 	 * There is no OBD_MD_* flag for obdo::o_stripe_idx, so set it
 	 * unconditionally. It never changes anyway.
 	 */
-	attr->cra_oa->o_stripe_idx = subobj->lso_index;
+	attr->cra_oa->o_stripe_idx = lov_comp_stripe(subobj->lso_index);
 }
 
 static const struct cl_object_operations lovsub_ops = {

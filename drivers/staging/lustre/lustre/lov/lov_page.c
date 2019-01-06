@@ -87,10 +87,10 @@ int lov_page_init_composite(const struct lu_env *env, struct cl_object *obj,
 	rc = lov_stripe_offset(loo->lo_lsm, entry, offset, stripe, &suboff);
 	LASSERT(rc == 0);
 
-	lpg->lps_index = stripe;
+	lpg->lps_index = lov_comp_index(entry, stripe);
 	cl_page_slice_add(page, &lpg->lps_cl, obj, index, &lov_comp_page_ops);
 
-	sub = lov_sub_get(env, lio, stripe);
+	sub = lov_sub_get(env, lio, lpg->lps_index);
 	if (IS_ERR(sub))
 		return PTR_ERR(sub);
 

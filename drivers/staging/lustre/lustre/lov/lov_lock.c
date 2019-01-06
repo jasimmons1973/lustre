@@ -168,7 +168,8 @@ static struct lov_lock *lov_lock_sub_init(const struct lu_env *env,
 			descr->cld_mode  = lock->cll_descr.cld_mode;
 			descr->cld_gid   = lock->cll_descr.cld_gid;
 			descr->cld_enq_flags = lock->cll_descr.cld_enq_flags;
-			lls->sub_index = i;
+
+			lls->sub_index = lov_comp_index(index, i);
 
 			/* initialize sub lock */
 			result = lov_sublock_init(env, lock, lls);

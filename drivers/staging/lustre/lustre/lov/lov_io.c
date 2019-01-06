@@ -72,8 +72,8 @@ static int lov_io_sub_init(const struct lu_env *env, struct lov_io *lio,
 	struct cl_io      *sub_io;
 	struct cl_object  *sub_obj;
 	struct cl_io      *io  = lio->lis_cl.cis_io;
-	int stripe = sub->sub_subio_index;
-	int index = 0;
+	int index = lov_comp_entry(sub->sub_subio_index);
+	int stripe = lov_comp_stripe(sub->sub_subio_index);
 	int rc;
 
 	LASSERT(!sub->sub_io);
@@ -286,11 +286,13 @@ static void lov_io_fini(const struct lu_env *env, const struct cl_io_slice *ios)
 		wake_up_all(&lov->lo_waitq);
 }
 
-static void lov_io_sub_inherit(struct cl_io *io, struct lov_io *lio,
+static void lov_io_sub_inherit(struct lov_io_sub *sub, struct lov_io *lio,
 			       int stripe, loff_t start, loff_t end)
 {
+	struct cl_io *io = sub->sub_io;
 	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
 	struct cl_io *parent = lio->lis_cl.cis_io;
+	int index = lov_comp_entry(sub->sub_subio_index);
 
 	switch (io->ci_type) {
 	case CIT_SETATTR: {
@@ -305,7 +307,8 @@ static void lov_io_sub_inherit(struct cl_io *io, struct lov_io *lio,
 		if (cl_io_is_trunc(io)) {
 			loff_t new_size = parent->u.ci_setattr.sa_attr.lvb_size;
 
-			new_size = lov_size_to_stripe(lsm, 0, new_size, stripe);
+			new_size = lov_size_to_stripe(lsm, index, new_size,
+						      stripe);
 			io->u.ci_setattr.sa_attr.lvb_size = new_size;
 		}
 		break;
@@ -321,7 +324,7 @@ static void lov_io_sub_inherit(struct cl_io *io, struct lov_io *lio,
 		loff_t off = cl_offset(obj, parent->u.ci_fault.ft_index);
 
 		io->u.ci_fault = parent->u.ci_fault;
-		off = lov_size_to_stripe(lsm, 0, off, stripe);
+		off = lov_size_to_stripe(lsm, index, off, stripe);
 		io->u.ci_fault.ft_index = cl_index(obj, off);
 		break;
 	}
@@ -401,13 +404,14 @@ static int lov_io_iter_init(const struct lu_env *env,
 			}
 
 			end = lov_offset_mod(end, 1);
-			sub = lov_sub_get(env, lio, stripe);
+			sub = lov_sub_get(env, lio,
+					  lov_comp_index(index - 1, stripe));
 			if (IS_ERR(sub)) {
 				rc = PTR_ERR(sub);
 				break;
 			}
 
-			lov_io_sub_inherit(sub->sub_io, lio, stripe, start, end);
+			lov_io_sub_inherit(sub, lio, stripe, start, end);
 			rc = cl_io_iter_init(sub->sub_env, sub->sub_io);
 			if (rc) {
 				cl_io_iter_fini(sub->sub_env, sub->sub_io);
@@ -588,7 +592,7 @@ static int lov_io_read_ahead(const struct lu_env *env,
 	if (unlikely(!r0->lo_sub[stripe]))
 		return -EIO;
 
-	sub = lov_sub_get(env, lio, stripe);
+	sub = lov_sub_get(env, lio, lov_comp_index(index, stripe));
 	if (IS_ERR(sub))
 		return PTR_ERR(sub);
 

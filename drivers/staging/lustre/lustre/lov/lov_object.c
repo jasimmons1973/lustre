@@ -132,6 +132,8 @@ static int lov_init_sub(const struct lu_env *env, struct lov_object *lov,
 			struct cl_object *subobj, struct lov_layout_raid0 *r0,
 			int idx)
 {
+	int stripe = lov_comp_stripe(idx);
+	int entry = lov_comp_entry(idx);
 	struct cl_object_header *hdr;
 	struct cl_object_header *subhdr;
 	struct cl_object_header *parent;
@@ -154,8 +156,9 @@ static int lov_init_sub(const struct lu_env *env, struct lov_object *lov,
 	subhdr = cl_object_header(subobj);
 
 	oinfo = lov->lo_lsm->lsm_entries[0]->lsme_oinfo[idx];
-	CDEBUG(D_INODE, DFID "@%p[%d] -> " DFID "@%p: ostid: " DOSTID " idx: %d gen: %d\n",
-	       PFID(&subhdr->coh_lu.loh_fid), subhdr, idx,
+	CDEBUG(D_INODE,
+	       DFID "@%p[%d:%d] -> " DFID "@%p: ostid: " DOSTID " ost idx: %d gen: %d\n",
+	       PFID(&subhdr->coh_lu.loh_fid), subhdr, entry, stripe,
 	       PFID(&hdr->coh_lu.loh_fid), hdr, POSTID(&oinfo->loi_oi),
 	       oinfo->loi_ost_idx, oinfo->loi_ost_gen);
 
@@ -167,9 +170,9 @@ static int lov_init_sub(const struct lu_env *env, struct lov_object *lov,
 		spin_unlock(&subhdr->coh_attr_guard);
 		subhdr->coh_nesting = hdr->coh_nesting + 1;
 		lu_object_ref_add(&subobj->co_lu, "lov-parent", lov);
-		r0->lo_sub[idx] = cl2lovsub(subobj);
-		r0->lo_sub[idx]->lso_super = lov;
-		r0->lo_sub[idx]->lso_index = idx;
+		r0->lo_sub[stripe] = cl2lovsub(subobj);
+		r0->lo_sub[stripe]->lso_super = lov;
+		r0->lo_sub[stripe]->lso_index = idx;
 		result = 0;
 	} else {
 		struct lu_object  *old_obj;
@@ -279,7 +282,8 @@ static int lov_init_raid0(const struct lu_env *env, struct lov_device *dev,
 			goto out;
 		}
 
-		result = lov_init_sub(env, lov, stripe, r0, i);
+		result = lov_init_sub(env, lov, stripe, r0,
+				      lov_comp_index(index, i));
 		if (result == -EAGAIN) { /* try again */
 			--i;
 			result = 0;
@@ -354,14 +358,15 @@ static int lov_init_released(const struct lu_env *env, struct lov_device *dev,
 static struct cl_object *lov_find_subobj(const struct lu_env *env,
 					 struct lov_object *lov,
 					 struct lov_stripe_md *lsm,
-					 int stripe_idx)
+					 int index)
 {
 	struct lov_device *dev = lu2lov_dev(lov2lu(lov)->lo_dev);
-	struct lov_oinfo *oinfo = lsm->lsm_entries[0]->lsme_oinfo[stripe_idx];
 	struct lov_thread_info *lti = lov_env_info(env);
 	struct lu_fid *ofid = &lti->lti_fid;
+	int stripe = lov_comp_stripe(index);
 	struct cl_device *subdev;
 	struct cl_object *result;
+	struct lov_oinfo *oinfo;
 	int ost_idx;
 	int rc;
 
@@ -370,6 +375,7 @@ static struct cl_object *lov_find_subobj(const struct lu_env *env,
 		goto out;
 	}
 
+	oinfo = lsm->lsm_entries[0]->lsme_oinfo[stripe];
 	ost_idx = oinfo->loi_ost_idx;
 	rc = ostid_to_fid(ofid, &oinfo->loi_oi, ost_idx);
 	if (rc) {
@@ -1291,7 +1297,8 @@ static int fiemap_for_stripe(const struct lu_env *env, struct cl_object *obj,
 	len_mapped_single_call = 0;
 
 	/* find lobsub object */
-	subobj = lov_find_subobj(env, cl2lov(obj), lsm, stripeno);
+	subobj = lov_find_subobj(env, cl2lov(obj), lsm,
+				 lov_comp_index(index, stripeno));
 	if (IS_ERR(subobj))
 		return PTR_ERR(subobj);
 	/* If the output buffer is very large and the objects have many

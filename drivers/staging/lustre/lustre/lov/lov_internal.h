@@ -79,6 +79,21 @@ static inline bool lsm_has_objects(struct lov_stripe_md *lsm)
 	return lsm && !lsm->lsm_is_released;
 }
 
+static inline unsigned int lov_comp_index(int entry, int stripe)
+{
+	return stripe;
+}
+
+static inline int lov_comp_stripe(int index)
+{
+	return index & 0xffff;
+}
+
+static inline int lov_comp_entry(int index)
+{
+	return 0;
+}
+
 struct lsm_operations {
 	struct lov_stripe_md *(*lsm_unpackmd)(struct lov_obd *obd, void *buf,
 					      size_t buf_len);
