@@ -50,6 +50,8 @@
 # include <linux/version.h>
 #else /* !__KERNEL__ */
 # define NEED_QUOTA_DEFS
+# include <limits.h>
+# include <stdbool.h>
 # include <stdio.h> /* snprintf() */
 # include <string.h>
 # include <sys/quota.h>
@@ -1052,7 +1054,7 @@ enum hsm_progress_states {
 
 #define HPS_NONE	0
 
-static inline char *hsm_progress_state2name(enum hsm_progress_states s)
+static inline const char *hsm_progress_state2name(enum hsm_progress_states s)
 {
 	switch  (s) {
 	case HPS_WAITING:	return "waiting";
@@ -1114,7 +1116,7 @@ enum hsm_user_action {
 	HUA_CANCEL  = 14  /* cancel a request */
 };
 
-static inline char *hsm_user_action2name(enum hsm_user_action  a)
+static inline const char *hsm_user_action2name(enum hsm_user_action  a)
 {
 	switch  (a) {
 	case HUA_NONE:    return "NOOP";
@@ -1201,7 +1203,7 @@ enum hsm_copytool_action {
 	HSMA_CANCEL  = 23
 };
 
-static inline char *hsm_copytool_action2name(enum hsm_copytool_action  a)
+static inline const char *hsm_copytool_action2name(enum hsm_copytool_action  a)
 {
 	switch  (a) {
 	case HSMA_NONE:    return "NOOP";
@@ -1294,9 +1296,10 @@ static inline struct hsm_action_item *hai_next(struct hsm_action_item *hai)
 }
 
 /* Return size of an hsm_action_list */
-static inline int hal_size(struct hsm_action_list *hal)
+static inline size_t hal_size(struct hsm_action_list *hal)
 {
-	int i, sz;
+	__u32 i;
+	size_t sz;
 	struct hsm_action_item *hai;
 
 	sz = sizeof(*hal) + cfs_size_round(strlen(hal->hal_fsname) + 1);
