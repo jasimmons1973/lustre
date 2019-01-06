@@ -110,9 +110,9 @@ static int lov_init_empty(const struct lu_env *env, struct lov_device *dev,
 	return 0;
 }
 
-static void lov_install_raid0(const struct lu_env *env,
-			      struct lov_object *lov,
-			      union lov_layout_state *state)
+static void lov_install_composite(const struct lu_env *env,
+				  struct lov_object *lov,
+				  union lov_layout_state *state)
 {
 }
 
@@ -129,7 +129,7 @@ static struct cl_object *lov_sub_find(const struct lu_env *env,
 }
 
 static int lov_init_sub(const struct lu_env *env, struct lov_object *lov,
-			struct cl_object *stripe, struct lov_layout_raid0 *r0,
+			struct cl_object *subobj, struct lov_layout_raid0 *r0,
 			int idx)
 {
 	struct cl_object_header *hdr;
@@ -145,13 +145,13 @@ static int lov_init_sub(const struct lu_env *env, struct lov_object *lov,
 		 * lov_oinfo of lsm_stripe_data which will be freed due to
 		 * this failure.
 		 */
-		cl_object_kill(env, stripe);
-		cl_object_put(env, stripe);
+		cl_object_kill(env, subobj);
+		cl_object_put(env, subobj);
 		return -EIO;
 	}
 
 	hdr    = cl_object_header(lov2cl(lov));
-	subhdr = cl_object_header(stripe);
+	subhdr = cl_object_header(subobj);
 
 	oinfo = lov->lo_lsm->lsm_entries[0]->lsme_oinfo[idx];
 	CDEBUG(D_INODE, DFID "@%p[%d] -> " DFID "@%p: ostid: " DOSTID " idx: %d gen: %d\n",
@@ -166,8 +166,8 @@ static int lov_init_sub(const struct lu_env *env, struct lov_object *lov,
 		subhdr->coh_parent = hdr;
 		spin_unlock(&subhdr->coh_attr_guard);
 		subhdr->coh_nesting = hdr->coh_nesting + 1;
-		lu_object_ref_add(&stripe->co_lu, "lov-parent", lov);
-		r0->lo_sub[idx] = cl2lovsub(stripe);
+		lu_object_ref_add(&subobj->co_lu, "lov-parent", lov);
+		r0->lo_sub[idx] = cl2lovsub(subobj);
 		r0->lo_sub[idx]->lso_super = lov;
 		r0->lo_sub[idx]->lso_index = idx;
 		result = 0;
@@ -184,18 +184,18 @@ static int lov_init_sub(const struct lu_env *env, struct lov_object *lov,
 			/* the object's layout has already changed but isn't
 			 * refreshed
 			 */
-			lu_object_unhash(env, &stripe->co_lu);
+			lu_object_unhash(env, &subobj->co_lu);
 			result = -EAGAIN;
 		} else {
 			mask = D_ERROR;
 			result = -EIO;
 		}
 
-		LU_OBJECT_DEBUG(mask, env, &stripe->co_lu,
+		LU_OBJECT_DEBUG(mask, env, &subobj->co_lu,
 				"stripe %d is already owned.", idx);
 		LU_OBJECT_DEBUG(mask, env, old_obj, "owned.");
 		LU_OBJECT_HEADER(mask, env, lov2lu(lov), "try to own.\n");
-		cl_object_put(env, stripe);
+		cl_object_put(env, subobj);
 	}
 	return result;
 }
@@ -219,7 +219,7 @@ static int lov_page_slice_fixup(struct lov_object *lov,
 static int lov_init_raid0(const struct lu_env *env, struct lov_device *dev,
 			  struct lov_object *lov, struct lov_stripe_md *lsm,
 			  const struct cl_object_conf *conf,
-			  union  lov_layout_state *state)
+			  struct lov_layout_raid0 *r0)
 {
 	int result;
 	int i;
@@ -228,7 +228,6 @@ static int lov_init_raid0(const struct lu_env *env, struct lov_device *dev,
 	struct lov_thread_info  *lti     = lov_env_info(env);
 	struct cl_object_conf   *subconf = &lti->lti_stripe_conf;
 	struct lu_fid	   *ofid    = &lti->lti_fid;
-	struct lov_layout_raid0 *r0 = &state->composite.lo_entries.lle_raid0;
 
 	if (lsm->lsm_magic != LOV_MAGIC_V1 && lsm->lsm_magic != LOV_MAGIC_V3) {
 		dump_lsm(D_ERROR, lsm);
@@ -310,6 +309,17 @@ out:
 	return result;
 }
 
+static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
+			      struct lov_object *lov, struct lov_stripe_md *lsm,
+			      const struct cl_object_conf *conf,
+			      union lov_layout_state *state)
+{
+	struct lov_layout_composite *comp = &state->composite;
+	struct lov_layout_entry *le = &comp->lo_entries;
+
+	return lov_init_raid0(env, dev, lov, lsm, conf, &le->lle_raid0);
+}
+
 static int lov_init_released(const struct lu_env *env, struct lov_device *dev,
 			     struct lov_object *lov, struct lov_stripe_md *lsm,
 			     const struct cl_object_conf *conf,
@@ -337,7 +347,7 @@ static struct cl_object *lov_find_subobj(const struct lu_env *env,
 	int ost_idx;
 	int rc;
 
-	if (lov->lo_type != LLT_RAID0) {
+	if (lov->lo_type != LLT_COMP) {
 		result = NULL;
 		goto out;
 	}
@@ -367,15 +377,14 @@ static int lov_delete_empty(const struct lu_env *env, struct lov_object *lov,
 }
 
 static void lov_subobject_kill(const struct lu_env *env, struct lov_object *lov,
+			       struct lov_layout_raid0 *r0,
 			       struct lovsub_object *los, int idx)
 {
 	struct cl_object	*sub;
-	struct lov_layout_raid0 *r0;
 	struct lu_site	  *site;
 	wait_queue_head_t *wq;
 	wait_queue_entry_t	  *waiter;
 
-	r0  = &lov->u.composite.lo_entries.lle_raid0;
 	LASSERT(r0->lo_sub[idx] == los);
 
 	sub  = lovsub2cl(los);
@@ -415,17 +424,12 @@ static void lov_subobject_kill(const struct lu_env *env, struct lov_object *lov,
 	LASSERT(!r0->lo_sub[idx]);
 }
 
-static int lov_delete_raid0(const struct lu_env *env, struct lov_object *lov,
-			    union lov_layout_state *state)
+static void lov_delete_raid0(const struct lu_env *env, struct lov_object *lov,
+			     struct lov_layout_raid0 *r0)
 {
-	struct lov_layout_raid0 *r0 = &state->composite.lo_entries.lle_raid0;
-	struct lov_stripe_md    *lsm = lov->lo_lsm;
-	int i;
-
-	dump_lsm(D_INODE, lsm);
-
-	lov_layout_wait(env, lov);
 	if (r0->lo_sub) {
+		int i;
+
 		for (i = 0; i < r0->lo_nr; ++i) {
 			struct lovsub_object *los = r0->lo_sub[i];
 
@@ -435,10 +439,24 @@ static int lov_delete_raid0(const struct lu_env *env, struct lov_object *lov,
 				 * If top-level object is to be evicted from
 				 * the cache, so are its sub-objects.
 				 */
-				lov_subobject_kill(env, lov, los, i);
+				lov_subobject_kill(env, lov, r0, los, i);
 			}
 		}
 	}
+}
+
+static int lov_delete_composite(const struct lu_env *env,
+				struct lov_object *lov,
+				union lov_layout_state *state)
+{
+	struct lov_layout_composite *comp = &state->composite;
+	struct lov_layout_entry *entry = &comp->lo_entries;
+
+	dump_lsm(D_INODE, lov->lo_lsm);
+
+	lov_layout_wait(env, lov);
+	lov_delete_raid0(env, lov, &entry->lle_raid0);
+
 	return 0;
 }
 
@@ -448,15 +466,23 @@ static void lov_fini_empty(const struct lu_env *env, struct lov_object *lov,
 	LASSERT(lov->lo_type == LLT_EMPTY || lov->lo_type == LLT_RELEASED);
 }
 
-static void lov_fini_raid0(const struct lu_env *env, struct lov_object *lov,
-			   union lov_layout_state *state)
+static void lov_fini_raid0(const struct lu_env *env,
+			   struct lov_layout_raid0 *r0)
 {
-	struct lov_layout_raid0 *r0 = &state->composite.lo_entries.lle_raid0;
-
 	if (r0->lo_sub) {
 		kvfree(r0->lo_sub);
 		r0->lo_sub = NULL;
 	}
+}
+
+static void lov_fini_composite(const struct lu_env *env,
+			       struct lov_object *lov,
+			       union lov_layout_state *state)
+{
+	struct lov_layout_composite *comp = &state->composite;
+	struct lov_layout_entry *entry = &comp->lo_entries;
+
+	lov_fini_raid0(env, &entry->lle_raid0);
 
 	dump_lsm(D_INODE, lov->lo_lsm);
 	lov_free_memmd(&lov->lo_lsm);
@@ -477,17 +503,10 @@ static int lov_print_empty(const struct lu_env *env, void *cookie,
 }
 
 static int lov_print_raid0(const struct lu_env *env, void *cookie,
-			   lu_printer_t p, const struct lu_object *o)
+			   lu_printer_t p, struct lov_layout_raid0 *r0)
 {
-	struct lov_object	*lov = lu2lov(o);
-	struct lov_layout_raid0	*r0  = lov_r0(lov);
-	struct lov_stripe_md	*lsm = lov->lo_lsm;
-	int			 i;
+	int i;
 
-	(*p)(env, cookie, "stripes: %d, %s, lsm{%p 0x%08X %d %u %u}:\n",
-	     r0->lo_nr, lov->lo_layout_invalid ? "invalid" : "valid", lsm,
-	     lsm->lsm_magic, atomic_read(&lsm->lsm_refc),
-	     lsm->lsm_entries[0]->lsme_stripe_count, lsm->lsm_layout_gen);
 	for (i = 0; i < r0->lo_nr; ++i) {
 		struct lu_object *sub;
 
@@ -498,6 +517,23 @@ static int lov_print_raid0(const struct lu_env *env, void *cookie,
 			(*p)(env, cookie, "sub %d absent\n", i);
 		}
 	}
+	return 0;
+}
+
+static int lov_print_composite(const struct lu_env *env, void *cookie,
+			       lu_printer_t p, const struct lu_object *o)
+{
+	struct lov_object *lov = lu2lov(o);
+	struct lov_layout_raid0	*r0 = lov_r0(lov);
+	struct lov_stripe_md *lsm = lov->lo_lsm;
+
+	(*p)(env, cookie, "stripes: %d, %s, lsm{%p 0x%08X %d %u %u}:\n",
+	     r0->lo_nr, lov->lo_layout_invalid ? "invalid" : "valid", lsm,
+	     lsm->lsm_magic, atomic_read(&lsm->lsm_refc),
+	     lsm->lsm_entries[0]->lsme_stripe_count, lsm->lsm_layout_gen);
+
+	lov_print_raid0(env, cookie, p, r0);
+
 	return 0;
 }
 
@@ -525,17 +561,13 @@ static int lov_print_released(const struct lu_env *env, void *cookie,
 static int lov_attr_get_empty(const struct lu_env *env, struct cl_object *obj,
 			      struct cl_attr *attr)
 {
-	attr->cat_blocks = 0;
 	return 0;
 }
 
-static int lov_attr_get_raid0(const struct lu_env *env, struct cl_object *obj,
-			      struct cl_attr *attr)
+static int lov_attr_get_raid0(const struct lu_env *env, struct lov_object *lov,
+			      struct cl_attr *attr, struct lov_layout_raid0 *r0)
 {
-	struct lov_object	*lov = cl2lov(obj);
-	struct lov_layout_raid0 *r0 = lov_r0(lov);
-	struct cl_attr		*lov_attr = &r0->lo_attr;
-	int			 result = 0;
+	int result = 0;
 
 	/* this is called w/o holding type guard mutex, so it must be inside
 	 * an on going IO otherwise lsm may be replaced.
@@ -577,22 +609,38 @@ static int lov_attr_get_raid0(const struct lu_env *env, struct cl_object *obj,
 		result = lov_merge_lvb_kms(lsm, lvb, &kms);
 		lov_stripe_unlock(lsm);
 		if (result == 0) {
-			cl_lvb2attr(lov_attr, lvb);
-			lov_attr->cat_kms = kms;
+			cl_lvb2attr(attr, lvb);
+			attr->cat_kms = kms;
 			r0->lo_attr_valid = 1;
 		}
 	}
-	if (result == 0) { /* merge results */
-		attr->cat_blocks = lov_attr->cat_blocks;
-		attr->cat_size = lov_attr->cat_size;
-		attr->cat_kms = lov_attr->cat_kms;
-		if (attr->cat_atime < lov_attr->cat_atime)
-			attr->cat_atime = lov_attr->cat_atime;
-		if (attr->cat_ctime < lov_attr->cat_ctime)
-			attr->cat_ctime = lov_attr->cat_ctime;
-		if (attr->cat_mtime < lov_attr->cat_mtime)
-			attr->cat_mtime = lov_attr->cat_mtime;
-	}
+
+	return result;
+}
+
+static int lov_attr_get_composite(const struct lu_env *env,
+				  struct cl_object *obj,
+				  struct cl_attr *attr)
+{
+	struct lov_object *lov = cl2lov(obj);
+	struct lov_layout_raid0 *r0 = lov_r0(lov);
+	struct cl_attr *lov_attr = &r0->lo_attr;
+	int result;
+
+	result = lov_attr_get_raid0(env, lov, attr, r0);
+	if (result)
+		return result;
+
+	attr->cat_blocks = lov_attr->cat_blocks;
+	attr->cat_size = lov_attr->cat_size;
+	attr->cat_kms = lov_attr->cat_kms;
+	if (attr->cat_atime < lov_attr->cat_atime)
+		attr->cat_atime = lov_attr->cat_atime;
+	if (attr->cat_ctime < lov_attr->cat_ctime)
+		attr->cat_ctime = lov_attr->cat_ctime;
+	if (attr->cat_mtime < lov_attr->cat_mtime)
+		attr->cat_mtime = lov_attr->cat_mtime;
+
 	return result;
 }
 
@@ -608,17 +656,6 @@ static const struct lov_layout_operations lov_dispatch[] = {
 		.llo_io_init   = lov_io_init_empty,
 		.llo_getattr   = lov_attr_get_empty
 	},
-	[LLT_RAID0] = {
-		.llo_init      = lov_init_raid0,
-		.llo_delete    = lov_delete_raid0,
-		.llo_fini      = lov_fini_raid0,
-		.llo_install   = lov_install_raid0,
-		.llo_print     = lov_print_raid0,
-		.llo_page_init = lov_page_init_raid0,
-		.llo_lock_init = lov_lock_init_raid0,
-		.llo_io_init   = lov_io_init_raid0,
-		.llo_getattr   = lov_attr_get_raid0
-	},
 	[LLT_RELEASED] = {
 		.llo_init      = lov_init_released,
 		.llo_delete    = lov_delete_empty,
@@ -629,7 +666,18 @@ static const struct lov_layout_operations lov_dispatch[] = {
 		.llo_lock_init = lov_lock_init_empty,
 		.llo_io_init   = lov_io_init_released,
 		.llo_getattr   = lov_attr_get_empty
-	}
+	},
+	[LLT_COMP] = {
+		.llo_init	= lov_init_composite,
+		.llo_delete	= lov_delete_composite,
+		.llo_fini	= lov_fini_composite,
+		.llo_install	= lov_install_composite,
+		.llo_print	= lov_print_composite,
+		.llo_page_init	= lov_page_init_composite,
+		.llo_lock_init	= lov_lock_init_composite,
+		.llo_io_init	= lov_io_init_composite,
+		.llo_getattr	= lov_attr_get_composite,
+	},
 };
 
 /**
@@ -659,7 +707,7 @@ static enum lov_layout_type lov_type(struct lov_stripe_md *lsm)
 	if (lsm->lsm_is_released)
 		return LLT_RELEASED;
 
-	return LLT_RAID0;
+	return LLT_COMP;
 }
 
 static inline void lov_conf_freeze(struct lov_object *lov)
@@ -1610,7 +1658,7 @@ int lov_read_and_clear_async_rc(struct cl_object *clob)
 
 		lov_conf_freeze(lov);
 		switch (lov->lo_type) {
-		case LLT_RAID0: {
+		case LLT_COMP: {
 			struct lov_stripe_md *lsm;
 			int i;
 

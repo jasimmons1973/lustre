@@ -79,11 +79,14 @@ static void lovsub_object_free(const struct lu_env *env, struct lu_object *obj)
 	 * object handling in lu_object_find.
 	 */
 	if (lov) {
-		LASSERT(lov->lo_type == LLT_RAID0);
-		LASSERT(lov->u.composite.lo_entries.lle_raid0.lo_sub[los->lso_index] == los);
-		spin_lock(&lov->u.composite.lo_entries.lle_raid0.lo_sub_lock);
-		lov->u.composite.lo_entries.lle_raid0.lo_sub[los->lso_index] = NULL;
-		spin_unlock(&lov->u.composite.lo_entries.lle_raid0.lo_sub_lock);
+		int stripe = los->lso_index;
+		struct lov_layout_raid0 *r0 = lov_r0(lov);
+
+		LASSERT(lov->lo_type == LLT_COMP);
+		LASSERT(r0->lo_sub[stripe] == los);
+		spin_lock(&r0->lo_sub_lock);
+		r0->lo_sub[stripe] = NULL;
+		spin_unlock(&r0->lo_sub_lock);
 	}
 
 	lu_object_fini(obj);

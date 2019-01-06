@@ -73,7 +73,7 @@ static struct lov_sublock_env *lov_sublock_env_get(const struct lu_env *env,
 		subenv->lse_env = env;
 		subenv->lse_io  = io;
 	} else {
-		sub = lov_sub_get(env, lio, lls->sub_stripe);
+		sub = lov_sub_get(env, lio, lls->sub_index);
 		if (!IS_ERR(sub)) {
 			subenv->lse_env = sub->sub_env;
 			subenv->lse_io  = sub->sub_io;
@@ -167,7 +167,7 @@ static struct lov_lock *lov_lock_sub_init(const struct lu_env *env,
 			descr->cld_mode  = lock->cll_descr.cld_mode;
 			descr->cld_gid   = lock->cll_descr.cld_gid;
 			descr->cld_enq_flags = lock->cll_descr.cld_enq_flags;
-			lls->sub_stripe = i;
+			lls->sub_index = i;
 
 			/* initialize sub lock */
 			result = lov_sublock_init(env, lock, lls);
@@ -295,8 +295,8 @@ static const struct cl_lock_operations lov_lock_ops = {
 	.clo_print     = lov_lock_print
 };
 
-int lov_lock_init_raid0(const struct lu_env *env, struct cl_object *obj,
-			struct cl_lock *lock, const struct cl_io *io)
+int lov_lock_init_composite(const struct lu_env *env, struct cl_object *obj,
+			    struct cl_lock *lock, const struct cl_io *io)
 {
 	struct lov_lock *lck;
 	int result = 0;

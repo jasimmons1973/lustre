@@ -108,8 +108,8 @@ struct lov_device {
  */
 enum lov_layout_type {
 	LLT_EMPTY,	/** empty file without body (mknod + truncate) */
-	LLT_RAID0,	/** striped file */
 	LLT_RELEASED,	/** file with no objects (data in HSM) */
+	LLT_COMP,	/** support composite layout */
 	LLT_NR
 };
 
@@ -118,10 +118,10 @@ static inline char *llt2str(enum lov_layout_type llt)
 	switch (llt) {
 	case LLT_EMPTY:
 		return "EMPTY";
-	case LLT_RAID0:
-		return "RAID0";
 	case LLT_RELEASED:
 		return "RELEASED";
+	case LLT_COMP:
+		return "COMPOSITE";
 	case LLT_NR:
 		LBUG();
 	}
@@ -242,7 +242,7 @@ struct lov_lock_sub {
 	 */
 	unsigned int		sub_is_enqueued:1,
 				sub_initialized:1;
-	int		  sub_stripe;
+	int			sub_index;
 };
 
 /**
@@ -258,7 +258,8 @@ struct lov_lock {
 
 struct lov_page {
 	struct cl_page_slice	lps_cl;
-	unsigned int		lps_stripe; /* stripe index */
+	/** layout_entry + stripe index, composed using lov_comp_index() */
+	unsigned int		lps_index;
 };
 
 /*
@@ -309,7 +310,6 @@ struct lov_thread_info {
  * State that lov_io maintains for every sub-io.
  */
 struct lov_io_sub {
-	u16		 sub_stripe;
 	/**
 	 * environment's refcheck.
 	 *
@@ -331,6 +331,7 @@ struct lov_io_sub {
 	 * sub-io's active for the current IO iteration.
 	 */
 	struct list_head	 sub_linkage;
+	u16			sub_subio_index;
 	/**
 	 * sub-io for a stripe. Ideally sub-io's can be stopped and resumed
 	 * independently, with lov acting as a scheduler to maximize overall
@@ -425,12 +426,12 @@ int lov_io_init(const struct lu_env *env, struct cl_object *obj,
 int lovsub_lock_init(const struct lu_env *env, struct cl_object *obj,
 		     struct cl_lock *lock, const struct cl_io *io);
 
-int lov_lock_init_raid0(const struct lu_env *env, struct cl_object *obj,
-			struct cl_lock *lock, const struct cl_io *io);
+int lov_lock_init_composite(const struct lu_env *env, struct cl_object *obj,
+			    struct cl_lock *lock, const struct cl_io *io);
 int lov_lock_init_empty(const struct lu_env *env, struct cl_object *obj,
 			struct cl_lock *lock, const struct cl_io *io);
-int lov_io_init_raid0(const struct lu_env *env, struct cl_object *obj,
-		      struct cl_io *io);
+int lov_io_init_composite(const struct lu_env *env, struct cl_object *obj,
+			  struct cl_io *io);
 int lov_io_init_empty(const struct lu_env *env, struct cl_object *obj,
 		      struct cl_io *io);
 int lov_io_init_released(const struct lu_env *env, struct cl_object *obj,
@@ -445,8 +446,8 @@ int lovsub_page_init(const struct lu_env *env, struct cl_object *ob,
 		     struct cl_page *page, pgoff_t index);
 int lov_page_init_empty(const struct lu_env *env, struct cl_object *obj,
 			struct cl_page *page, pgoff_t index);
-int lov_page_init_raid0(const struct lu_env *env, struct cl_object *obj,
-			struct cl_page *page, pgoff_t index);
+int lov_page_init_composite(const struct lu_env *env, struct cl_object *obj,
+			    struct cl_page *page, pgoff_t index);
 struct lu_object *lov_object_alloc(const struct lu_env *env,
 				   const struct lu_object_header *hdr,
 				   struct lu_device *dev);
@@ -455,7 +456,6 @@ struct lu_object *lovsub_object_alloc(const struct lu_env *env,
 				      struct lu_device *dev);
 
 struct lov_stripe_md *lov_lsm_addref(struct lov_object *lov);
-int lov_page_stripe(const struct cl_page *page);
 
 #define lov_foreach_target(lov, var)		    \
 	for (var = 0; var < lov_targets_nr(lov); ++var)
@@ -630,9 +630,10 @@ static inline struct lov_thread_info *lov_env_info(const struct lu_env *env)
 
 static inline struct lov_layout_raid0 *lov_r0(struct lov_object *lov)
 {
-	LASSERT(lov->lo_type == LLT_RAID0);
+	LASSERT(lov->lo_type == LLT_COMP);
 	LASSERT(lov->lo_lsm->lsm_magic == LOV_MAGIC ||
 		lov->lo_lsm->lsm_magic == LOV_MAGIC_V3);
+
 	return &lov->u.composite.lo_entries.lle_raid0;
 }
 

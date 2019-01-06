@@ -50,22 +50,21 @@
  * Lov page operations.
  *
  */
-
-static int lov_raid0_page_print(const struct lu_env *env,
-				const struct cl_page_slice *slice,
-				void *cookie, lu_printer_t printer)
+static int lov_comp_page_print(const struct lu_env *env,
+			       const struct cl_page_slice *slice,
+			       void *cookie, lu_printer_t printer)
 {
 	struct lov_page *lp = cl2lov_page(slice);
 
 	return (*printer)(env, cookie, LUSTRE_LOV_NAME "-page@%p, raid0\n", lp);
 }
 
-static const struct cl_page_operations lov_raid0_page_ops = {
-	.cpo_print  = lov_raid0_page_print
+static const struct cl_page_operations lov_comp_page_ops = {
+	.cpo_print  = lov_comp_page_print
 };
 
-int lov_page_init_raid0(const struct lu_env *env, struct cl_object *obj,
-			struct cl_page *page, pgoff_t index)
+int lov_page_init_composite(const struct lu_env *env, struct cl_object *obj,
+			    struct cl_page *page, pgoff_t index)
 {
 	struct lov_object *loo = cl2lov(obj);
 	struct lov_layout_raid0 *r0 = lov_r0(loo);
@@ -85,8 +84,8 @@ int lov_page_init_raid0(const struct lu_env *env, struct cl_object *obj,
 	rc = lov_stripe_offset(loo->lo_lsm, offset, stripe, &suboff);
 	LASSERT(rc == 0);
 
-	lpg->lps_stripe = stripe;
-	cl_page_slice_add(page, &lpg->lps_cl, obj, index, &lov_raid0_page_ops);
+	lpg->lps_index = stripe;
+	cl_page_slice_add(page, &lpg->lps_cl, obj, index, &lov_comp_page_ops);
 
 	sub = lov_sub_get(env, lio, stripe);
 	if (IS_ERR(sub))
