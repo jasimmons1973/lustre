@@ -600,6 +600,7 @@ static int lov_attr_get_raid0(const struct lu_env *env, struct lov_object *lov,
 		return 0;
 
 	memset(lvb, 0, sizeof(*lvb));
+
 	/* XXX: timestamps can be negative by sanity:test_39m,
 	 * how can it be?
 	 */
@@ -1200,18 +1201,18 @@ static u64 fiemap_calc_fm_end_offset(struct fiemap *fiemap,
 }
 
 struct fiemap_state {
-	struct fiemap	*fs_fm;
-	u64		fs_start;
-	u64		fs_length;
-	u64		fs_end;
-	u64		fs_end_offset;
-	int		fs_cur_extent;
-	int		fs_cnt_need;
-	int		fs_start_stripe;
-	int		fs_last_stripe;
-	bool		fs_device_done;
-	bool		fs_finish;
-	bool		fs_enough;
+	struct fiemap		*fs_fm;
+	u64			fs_start;
+	u64			fs_length;
+	u64			fs_end;
+	u64			fs_end_offset;
+	int			fs_cur_extent;
+	int			fs_cnt_need;
+	int			fs_start_stripe;
+	int			fs_last_stripe;
+	bool			fs_device_done;
+	bool			fs_finish;
+	bool			fs_enough;
 };
 
 static int fiemap_for_stripe(const struct lu_env *env, struct cl_object *obj,

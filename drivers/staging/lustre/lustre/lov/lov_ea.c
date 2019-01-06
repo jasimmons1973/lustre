@@ -338,7 +338,7 @@ lsm_unpackmd_v1(struct lov_obd *lov, void *buf, size_t buf_size)
 const static struct lsm_operations lsm_v1_ops = {
 	.lsm_stripe_by_index    = lsm_stripe_by_index_plain,
 	.lsm_stripe_by_offset   = lsm_stripe_by_offset_plain,
-	.lsm_unpackmd	   = lsm_unpackmd_v1,
+	.lsm_unpackmd		= lsm_unpackmd_v1,
 };
 
 static struct lov_stripe_md *
@@ -531,7 +531,8 @@ const struct lsm_operations *lsm_op_find(int magic)
 
 void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm)
 {
-	CDEBUG(level, "lsm %p, objid " DOSTID ", maxbytes %#llx, magic 0x%08X, stripe_size %u, stripe_count %u, refc: %d, layout_gen %u, pool [" LOV_POOLNAMEF "]\n",
+	CDEBUG(level,
+	       "lsm %p, objid " DOSTID ", maxbytes %#llx, magic 0x%08X, stripe_size %u, stripe_count %u, refc: %d, layout_gen %u, pool [" LOV_POOLNAMEF "]\n",
 	       lsm, POSTID(&lsm->lsm_oi), lsm->lsm_maxbytes, lsm->lsm_magic,
 	       lsm->lsm_entries[0]->lsme_stripe_size,
 	       lsm->lsm_entries[0]->lsme_stripe_count,

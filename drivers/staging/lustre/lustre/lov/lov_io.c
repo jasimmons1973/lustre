@@ -43,7 +43,6 @@
 /** \addtogroup lov
  *  @{
  */
-
 static void lov_io_sub_fini(const struct lu_env *env, struct lov_io *lio,
 			    struct lov_io_sub *sub)
 {
@@ -63,76 +62,6 @@ static void lov_io_sub_fini(const struct lu_env *env, struct lov_io *lio,
 		if (!sub->sub_borrowed)
 			cl_env_put(sub->sub_env, &sub->sub_refcheck);
 		sub->sub_env = NULL;
-	}
-}
-
-static void lov_io_sub_inherit(struct cl_io *io, struct lov_io *lio,
-			       int stripe, loff_t start, loff_t end)
-{
-	struct lov_stripe_md *lsm    = lio->lis_object->lo_lsm;
-	struct cl_io	 *parent = lio->lis_cl.cis_io;
-
-	switch (io->ci_type) {
-	case CIT_SETATTR: {
-		io->u.ci_setattr.sa_attr = parent->u.ci_setattr.sa_attr;
-		io->u.ci_setattr.sa_attr_flags =
-					parent->u.ci_setattr.sa_attr_flags;
-		io->u.ci_setattr.sa_avalid = parent->u.ci_setattr.sa_avalid;
-		io->u.ci_setattr.sa_xvalid = parent->u.ci_setattr.sa_xvalid;
-		io->u.ci_setattr.sa_stripe_index = stripe;
-		io->u.ci_setattr.sa_parent_fid =
-					parent->u.ci_setattr.sa_parent_fid;
-		if (cl_io_is_trunc(io)) {
-			loff_t new_size = parent->u.ci_setattr.sa_attr.lvb_size;
-
-			new_size = lov_size_to_stripe(lsm, 0, new_size, stripe);
-			io->u.ci_setattr.sa_attr.lvb_size = new_size;
-		}
-		break;
-	}
-	case CIT_DATA_VERSION: {
-		io->u.ci_data_version.dv_data_version = 0;
-		io->u.ci_data_version.dv_flags =
-			parent->u.ci_data_version.dv_flags;
-		break;
-	}
-	case CIT_FAULT: {
-		struct cl_object *obj = parent->ci_obj;
-		loff_t off = cl_offset(obj, parent->u.ci_fault.ft_index);
-
-		io->u.ci_fault = parent->u.ci_fault;
-		off = lov_size_to_stripe(lsm, 0, off, stripe);
-		io->u.ci_fault.ft_index = cl_index(obj, off);
-		break;
-	}
-	case CIT_FSYNC: {
-		io->u.ci_fsync.fi_start = start;
-		io->u.ci_fsync.fi_end = end;
-		io->u.ci_fsync.fi_fid = parent->u.ci_fsync.fi_fid;
-		io->u.ci_fsync.fi_mode = parent->u.ci_fsync.fi_mode;
-		break;
-	}
-	case CIT_READ:
-	case CIT_WRITE: {
-		io->u.ci_wr.wr_sync = cl_io_is_sync_write(parent);
-		if (cl_io_is_append(parent)) {
-			io->u.ci_wr.wr_append = 1;
-		} else {
-			io->u.ci_rw.crw_pos = start;
-			io->u.ci_rw.crw_count = end - start;
-		}
-		break;
-	}
-	case CIT_LADVISE: {
-		io->u.ci_ladvise.li_start = start;
-		io->u.ci_ladvise.li_end = end;
-		io->u.ci_ladvise.li_fid = parent->u.ci_ladvise.li_fid;
-		io->u.ci_ladvise.li_advice = parent->u.ci_ladvise.li_advice;
-		io->u.ci_ladvise.li_flags = parent->u.ci_ladvise.li_flags;
-		break;
-	}
-	default:
-		break;
 	}
 }
 
@@ -228,7 +157,6 @@ struct lov_io_sub *lov_sub_get(const struct lu_env *env,
  * Lov io operations.
  *
  */
-
 static int lov_page_index(const struct cl_page *page)
 {
 	const struct cl_page_slice *slice;
@@ -356,6 +284,76 @@ static void lov_io_fini(const struct lu_env *env, const struct cl_io_slice *ios)
 	LASSERT(atomic_read(&lov->lo_active_ios) > 0);
 	if (atomic_dec_and_test(&lov->lo_active_ios))
 		wake_up_all(&lov->lo_waitq);
+}
+
+static void lov_io_sub_inherit(struct cl_io *io, struct lov_io *lio,
+			       int stripe, loff_t start, loff_t end)
+{
+	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
+	struct cl_io *parent = lio->lis_cl.cis_io;
+
+	switch (io->ci_type) {
+	case CIT_SETATTR: {
+		io->u.ci_setattr.sa_attr = parent->u.ci_setattr.sa_attr;
+		io->u.ci_setattr.sa_attr_flags =
+			parent->u.ci_setattr.sa_attr_flags;
+		io->u.ci_setattr.sa_avalid = parent->u.ci_setattr.sa_avalid;
+		io->u.ci_setattr.sa_xvalid = parent->u.ci_setattr.sa_xvalid;
+		io->u.ci_setattr.sa_stripe_index = stripe;
+		io->u.ci_setattr.sa_parent_fid =
+			parent->u.ci_setattr.sa_parent_fid;
+		if (cl_io_is_trunc(io)) {
+			loff_t new_size = parent->u.ci_setattr.sa_attr.lvb_size;
+
+			new_size = lov_size_to_stripe(lsm, 0, new_size, stripe);
+			io->u.ci_setattr.sa_attr.lvb_size = new_size;
+		}
+		break;
+	}
+	case CIT_DATA_VERSION: {
+		io->u.ci_data_version.dv_data_version = 0;
+		io->u.ci_data_version.dv_flags =
+			parent->u.ci_data_version.dv_flags;
+		break;
+	}
+	case CIT_FAULT: {
+		struct cl_object *obj = parent->ci_obj;
+		loff_t off = cl_offset(obj, parent->u.ci_fault.ft_index);
+
+		io->u.ci_fault = parent->u.ci_fault;
+		off = lov_size_to_stripe(lsm, 0, off, stripe);
+		io->u.ci_fault.ft_index = cl_index(obj, off);
+		break;
+	}
+	case CIT_FSYNC: {
+		io->u.ci_fsync.fi_start = start;
+		io->u.ci_fsync.fi_end = end;
+		io->u.ci_fsync.fi_fid = parent->u.ci_fsync.fi_fid;
+		io->u.ci_fsync.fi_mode = parent->u.ci_fsync.fi_mode;
+		break;
+	}
+	case CIT_READ:
+	case CIT_WRITE: {
+		io->u.ci_wr.wr_sync = cl_io_is_sync_write(parent);
+		if (cl_io_is_append(parent)) {
+			io->u.ci_wr.wr_append = 1;
+		} else {
+			io->u.ci_rw.crw_pos = start;
+			io->u.ci_rw.crw_count = end - start;
+		}
+		break;
+	}
+	case CIT_LADVISE: {
+		io->u.ci_ladvise.li_start = start;
+		io->u.ci_ladvise.li_end = end;
+		io->u.ci_ladvise.li_fid = parent->u.ci_ladvise.li_fid;
+		io->u.ci_ladvise.li_advice = parent->u.ci_ladvise.li_advice;
+		io->u.ci_ladvise.li_flags = parent->u.ci_ladvise.li_flags;
+		break;
+	}
+	default:
+		break;
+	}
 }
 
 static u64 lov_offset_mod(u64 val, int delta)
@@ -491,24 +489,6 @@ static int lov_io_end_wrapper(const struct lu_env *env, struct cl_io *io)
 	return 0;
 }
 
-static void
-lov_io_data_version_end(const struct lu_env *env, const struct cl_io_slice *ios)
-{
-	struct lov_io *lio = cl2lov_io(env, ios);
-	struct cl_io *parent = lio->lis_cl.cis_io;
-	struct lov_io_sub *sub;
-
-	list_for_each_entry(sub, &lio->lis_active, sub_linkage) {
-		lov_io_end_wrapper(sub->sub_env, sub->sub_io);
-
-		parent->u.ci_data_version.dv_data_version +=
-			sub->sub_io->u.ci_data_version.dv_data_version;
-
-		if (!parent->ci_result)
-			parent->ci_result = sub->sub_io->ci_result;
-	}
-}
-
 static int lov_io_iter_fini_wrapper(const struct lu_env *env, struct cl_io *io)
 {
 	cl_io_iter_fini(env, io);
@@ -527,6 +507,24 @@ static void lov_io_end(const struct lu_env *env, const struct cl_io_slice *ios)
 
 	rc = lov_io_call(env, cl2lov_io(env, ios), lov_io_end_wrapper);
 	LASSERT(rc == 0);
+}
+
+static void
+lov_io_data_version_end(const struct lu_env *env, const struct cl_io_slice *ios)
+{
+	struct lov_io *lio = cl2lov_io(env, ios);
+	struct cl_io *parent = lio->lis_cl.cis_io;
+	struct lov_io_sub *sub;
+
+	list_for_each_entry(sub, &lio->lis_active, sub_linkage) {
+		lov_io_end_wrapper(sub->sub_env, sub->sub_io);
+
+		parent->u.ci_data_version.dv_data_version +=
+			sub->sub_io->u.ci_data_version.dv_data_version;
+
+		if (!parent->ci_result)
+			parent->ci_result = sub->sub_io->ci_result;
+	}
 }
 
 static void lov_io_iter_fini(const struct lu_env *env,
@@ -602,7 +600,8 @@ static int lov_io_read_ahead(const struct lu_env *env,
 
 	pps = loo->lo_lsm->lsm_entries[0]->lsme_stripe_size >> PAGE_SHIFT;
 
-	CDEBUG(D_READA, DFID " max_index = %lu, pps = %u, stripe_size = %u, stripe no = %u, start index = %lu\n",
+	CDEBUG(D_READA,
+	       DFID " max_index = %lu, pps = %u, stripe_size = %u, stripe no = %u, start index = %lu\n",
 	       PFID(lu_object_fid(lov2lu(loo))), ra_end, pps,
 	       loo->lo_lsm->lsm_entries[0]->lsme_stripe_size, stripe, start);
 

@@ -315,12 +315,6 @@ struct lov_thread_info {
  */
 struct lov_io_sub {
 	/**
-	 * environment's refcheck.
-	 *
-	 * \see cl_env_get()
-	 */
-	u16			 sub_refcheck;
-	/**
 	 * true, iff cl_io_init() was successfully executed against
 	 * lov_io_sub::sub_io.
 	 */
@@ -334,18 +328,24 @@ struct lov_io_sub {
 	 * Linkage into a list (hanging off lov_io::lis_active) of all
 	 * sub-io's active for the current IO iteration.
 	 */
-	struct list_head	 sub_linkage;
-	u16			sub_subio_index;
+	struct list_head	sub_linkage;
+	unsigned int		sub_subio_index;
 	/**
 	 * sub-io for a stripe. Ideally sub-io's can be stopped and resumed
 	 * independently, with lov acting as a scheduler to maximize overall
 	 * throughput.
 	 */
-	struct cl_io	*sub_io;
+	struct cl_io		*sub_io;
 	/**
 	 * environment, in which sub-io executes.
 	 */
-	struct lu_env *sub_env;
+	struct lu_env		*sub_env;
+	/**
+	 * environment's refcheck.
+	 *
+	 * \see cl_env_get()
+	 */
+	u16			sub_refcheck;
 };
 
 /**
@@ -367,37 +367,38 @@ struct lov_io {
 	 *
 	 * This is used only for CIT_READ and CIT_WRITE io's.
 	 */
-	loff_t	     lis_io_endpos;
+	loff_t			lis_io_endpos;
 
 	/**
 	 * starting position within a file, for the current io loop iteration
 	 * (stripe), used by ci_io_loop().
 	 */
-	u64	    lis_pos;
+	u64			lis_pos;
 	/**
 	 * end position with in a file, for the current stripe io. This is
 	 * exclusive (i.e., next offset after last byte affected by io).
 	 */
-	u64	    lis_endpos;
-
-	int		lis_stripe_count;
-	int		lis_active_subios;
+	u64			lis_endpos;
+	int			lis_stripe_count;
+	int			lis_active_subios;
 
 	/**
 	 * the index of ls_single_subio in ls_subios array
 	 */
-	int		lis_single_subio_index;
-	struct cl_io       lis_single_subio;
+	int			lis_single_subio_index;
+	struct cl_io		lis_single_subio;
+
+	/**
+	 * List of active sub-io's. Active sub-io's are under the range
+	 * of [lis_pos, lis_endpos).
+	 */
+	struct list_head	lis_active;
 
 	/**
 	 * size of ls_subios array, actually the highest stripe #
 	 */
 	int		lis_nr_subios;
 	struct lov_io_sub *lis_subs;
-	/**
-	 * List of active sub-io's.
-	 */
-	struct list_head	 lis_active;
 };
 
 struct lov_session {
