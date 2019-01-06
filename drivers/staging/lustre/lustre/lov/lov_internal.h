@@ -96,6 +96,11 @@ static inline bool lsm_entry_inited(const struct lov_stripe_md *lsm, int index)
 	return lsme_inited(lsm->lsm_entries[index]);
 }
 
+static inline bool lsm_is_composite(u32 magic)
+{
+	return magic == LOV_MAGIC_COMP_V1;
+}
+
 static inline size_t lov_comp_md_size(const struct lov_stripe_md *lsm)
 {
 	struct lov_stripe_md_entry *lsme;
@@ -110,7 +115,14 @@ static inline size_t lov_comp_md_size(const struct lov_stripe_md *lsm)
 
 	size = sizeof(struct lov_comp_md_v1);
 	for (entry = 0; entry < lsm->lsm_entry_count; entry++) {
+		u16 stripe_count;
+
 		lsme = lsm->lsm_entries[entry];
+
+		if (lsme_inited(lsme))
+			stripe_count = lsme->lsme_stripe_count;
+		else
+			stripe_count = 0;
 
 		size += sizeof(*lsme);
 		size += lov_mds_md_size(lsme->lsme_stripe_count,
