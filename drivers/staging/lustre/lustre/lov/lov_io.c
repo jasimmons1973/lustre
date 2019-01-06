@@ -85,7 +85,7 @@ static void lov_io_sub_inherit(struct cl_io *io, struct lov_io *lio,
 		if (cl_io_is_trunc(io)) {
 			loff_t new_size = parent->u.ci_setattr.sa_attr.lvb_size;
 
-			new_size = lov_size_to_stripe(lsm, new_size, stripe);
+			new_size = lov_size_to_stripe(lsm, 0, new_size, stripe);
 			io->u.ci_setattr.sa_attr.lvb_size = new_size;
 		}
 		break;
@@ -101,7 +101,7 @@ static void lov_io_sub_inherit(struct cl_io *io, struct lov_io *lio,
 		loff_t off = cl_offset(obj, parent->u.ci_fault.ft_index);
 
 		io->u.ci_fault = parent->u.ci_fault;
-		off = lov_size_to_stripe(lsm, off, stripe);
+		off = lov_size_to_stripe(lsm, 0, off, stripe);
 		io->u.ci_fault.ft_index = cl_index(obj, off);
 		break;
 	}
@@ -144,13 +144,14 @@ static int lov_io_sub_init(const struct lu_env *env, struct lov_io *lio,
 	struct cl_object  *sub_obj;
 	struct cl_io      *io  = lio->lis_cl.cis_io;
 	int stripe = sub->sub_subio_index;
+	int index = 0;
 	int rc;
 
 	LASSERT(!sub->sub_io);
 	LASSERT(!sub->sub_env);
 	LASSERT(sub->sub_subio_index < lio->lis_stripe_count);
 
-	if (unlikely(!lov_r0(lov)->lo_sub[stripe]))
+	if (unlikely(!lov_r0(lov, index)->lo_sub[stripe]))
 		return -EIO;
 
 	sub->sub_io_initialized = 0;
@@ -179,7 +180,7 @@ static int lov_io_sub_init(const struct lu_env *env, struct lov_io *lio,
 		}
 	}
 
-	sub_obj = lovsub2cl(lov_r0(lov)->lo_sub[stripe]);
+	sub_obj = lovsub2cl(lov_r0(lov, index)->lo_sub[stripe]);
 	sub_io = sub->sub_io;
 
 	sub_io->ci_obj = sub_obj;
@@ -375,14 +376,15 @@ static int lov_io_iter_init(const struct lu_env *env,
 	u64 end;
 	int stripe;
 	int rc = 0;
+	int index = 0;
 
 	endpos = lov_offset_mod(lio->lis_endpos, -1);
 	for (stripe = 0; stripe < lio->lis_stripe_count; stripe++) {
-		if (!lov_stripe_intersects(lsm, stripe, lio->lis_pos,
+		if (!lov_stripe_intersects(lsm, index, stripe, lio->lis_pos,
 					   endpos, &start, &end))
 			continue;
 
-		if (unlikely(!lov_r0(lio->lis_object)->lo_sub[stripe])) {
+		if (unlikely(!lov_r0(lio->lis_object, index)->lo_sub[stripe])) {
 			if (ios->cis_io->ci_type == CIT_READ ||
 			    ios->cis_io->ci_type == CIT_WRITE ||
 			    ios->cis_io->ci_type == CIT_FAULT)
@@ -555,15 +557,18 @@ static int lov_io_read_ahead(const struct lu_env *env,
 	struct lov_io *lio = cl2lov_io(env, ios);
 	struct lov_object *loo = lio->lis_object;
 	struct cl_object *obj = lov2cl(loo);
-	struct lov_layout_raid0 *r0 = lov_r0(loo);
+	struct lov_layout_raid0 *r0;
 	unsigned int pps; /* pages per stripe */
 	struct lov_io_sub *sub;
 	pgoff_t ra_end;
-	loff_t suboff;
+	u64 suboff;
 	int stripe;
+	int index = 0;
 	int rc;
 
-	stripe = lov_stripe_number(loo->lo_lsm, cl_offset(obj, start));
+	stripe = lov_stripe_number(loo->lo_lsm, index, cl_offset(obj, start));
+
+	r0 = lov_r0(loo, index);
 	if (unlikely(!r0->lo_sub[stripe]))
 		return -EIO;
 
@@ -571,7 +576,7 @@ static int lov_io_read_ahead(const struct lu_env *env,
 	if (IS_ERR(sub))
 		return PTR_ERR(sub);
 
-	lov_stripe_offset(loo->lo_lsm, cl_offset(obj, start), stripe, &suboff);
+	lov_stripe_offset(loo->lo_lsm, index, cl_offset(obj, start), stripe, &suboff);
 	rc = cl_io_read_ahead(sub->sub_env, sub->sub_io,
 			      cl_index(lovsub2cl(r0->lo_sub[stripe]), suboff),
 			      ra);
@@ -593,7 +598,7 @@ static int lov_io_read_ahead(const struct lu_env *env,
 	/* cra_end is stripe level, convert it into file level */
 	ra_end = ra->cra_end;
 	if (ra_end != CL_PAGE_EOF)
-		ra_end = lov_stripe_pgoff(loo->lo_lsm, ra_end, stripe);
+		ra_end = lov_stripe_pgoff(loo->lo_lsm, index, ra_end, stripe);
 
 	pps = loo->lo_lsm->lsm_entries[0]->lsme_stripe_size >> PAGE_SHIFT;
 

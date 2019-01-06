@@ -79,8 +79,9 @@ static void lovsub_object_free(const struct lu_env *env, struct lu_object *obj)
 	 * object handling in lu_object_find.
 	 */
 	if (lov) {
+		int index = 0;
 		int stripe = los->lso_index;
-		struct lov_layout_raid0 *r0 = lov_r0(lov);
+		struct lov_layout_raid0 *r0 = lov_r0(lov, index);
 
 		LASSERT(lov->lo_type == LLT_COMP);
 		LASSERT(r0->lo_sub[stripe] == los);
@@ -107,7 +108,7 @@ static int lovsub_attr_update(const struct lu_env *env, struct cl_object *obj,
 {
 	struct lov_object *lov = cl2lovsub(obj)->lso_super;
 
-	lov_r0(lov)->lo_attr_valid = 0;
+	lov_r0(lov, 0)->lo_attr_valid = 0;
 	return 0;
 }
 

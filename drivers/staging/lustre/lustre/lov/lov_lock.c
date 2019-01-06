@@ -114,17 +114,17 @@ static struct lov_lock *lov_lock_sub_init(const struct lu_env *env,
 					  const struct cl_object *obj,
 					  struct cl_lock *lock)
 {
+	struct lov_object *loo = cl2lov(obj);
+	struct lov_layout_raid0 *r0;
+	struct lov_lock	*lovlck;
 	int result = 0;
+	int index = 0;
 	int i;
 	int nr;
 	u64 start;
 	u64 end;
 	u64 file_start;
 	u64 file_end;
-
-	struct lov_object       *loo    = cl2lov(obj);
-	struct lov_layout_raid0 *r0     = lov_r0(loo);
-	struct lov_lock		*lovlck;
 
 	CDEBUG(D_INODE, "%p: lock/io FID " DFID "/" DFID ", lock/io clobj %p/%p\n",
 	       loo, PFID(lu_object_fid(lov2lu(loo))),
@@ -134,13 +134,14 @@ static struct lov_lock *lov_lock_sub_init(const struct lu_env *env,
 	file_start = cl_offset(lov2cl(loo), lock->cll_descr.cld_start);
 	file_end   = cl_offset(lov2cl(loo), lock->cll_descr.cld_end + 1) - 1;
 
+	r0 = lov_r0(loo, index);
 	for (i = 0, nr = 0; i < r0->lo_nr; i++) {
 		/*
 		 * XXX for wide striping smarter algorithm is desirable,
 		 * breaking out of the loop, early.
 		 */
 		if (likely(r0->lo_sub[i]) && /* spare layout */
-		    lov_stripe_intersects(loo->lo_lsm, i,
+		    lov_stripe_intersects(loo->lo_lsm, index, i,
 					  file_start, file_end, &start, &end))
 			nr++;
 	}
@@ -153,7 +154,7 @@ static struct lov_lock *lov_lock_sub_init(const struct lu_env *env,
 	lovlck->lls_nr = nr;
 	for (i = 0, nr = 0; i < r0->lo_nr; ++i) {
 		if (likely(r0->lo_sub[i]) &&
-		    lov_stripe_intersects(loo->lo_lsm, i,
+		    lov_stripe_intersects(loo->lo_lsm, index, i,
 					  file_start, file_end, &start, &end)) {
 			struct lov_lock_sub *lls = &lovlck->lls_sub[nr];
 			struct cl_lock_descr *descr;

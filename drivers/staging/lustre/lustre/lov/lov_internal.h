@@ -169,20 +169,22 @@ extern struct lu_kmem_descr lov_caches[];
 	(char *)((lv)->lov_tgts[index]->ltd_uuid.uuid)
 
 /* lov_merge.c */
-int lov_merge_lvb_kms(struct lov_stripe_md *lsm,
+int lov_merge_lvb_kms(struct lov_stripe_md *lsm, int index,
 		      struct ost_lvb *lvb, __u64 *kms_place);
 
 /* lov_offset.c */
-u64 lov_stripe_size(struct lov_stripe_md *lsm, u64 ost_size, int stripeno);
-int lov_stripe_offset(struct lov_stripe_md *lsm, u64 lov_off,
-		      int stripeno, u64 *u64);
-u64 lov_size_to_stripe(struct lov_stripe_md *lsm, u64 file_size, int stripeno);
-int lov_stripe_intersects(struct lov_stripe_md *lsm, int stripeno,
+u64 lov_stripe_size(struct lov_stripe_md *lsm, int index, u64 ost_size,
+		    int stripeno);
+int lov_stripe_offset(struct lov_stripe_md *lsm, int index, u64 lov_off,
+		      int stripeno, u64 *obd_off);
+u64 lov_size_to_stripe(struct lov_stripe_md *lsm, int index, u64 file_size,
+		       int stripeno);
+int lov_stripe_intersects(struct lov_stripe_md *lsm, int index, int stripeno,
 			  u64 start, u64 end,
 			  u64 *obd_start, u64 *obd_end);
-int lov_stripe_number(struct lov_stripe_md *lsm, u64 lov_off);
-pgoff_t lov_stripe_pgoff(struct lov_stripe_md *lsm, pgoff_t stripe_index,
-			 int stripe);
+int lov_stripe_number(struct lov_stripe_md *lsm, int index, u64 lov_off);
+pgoff_t lov_stripe_pgoff(struct lov_stripe_md *lsm, int index,
+			 pgoff_t stripe_index, int stripe);
 
 /* lov_request.c */
 int lov_prep_statfs_set(struct obd_device *obd, struct obd_info *oinfo,

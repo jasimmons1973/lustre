@@ -41,7 +41,7 @@
  * initializes the current atime, mtime, ctime to avoid regressing a more
  * uptodate time on the local client.
  */
-int lov_merge_lvb_kms(struct lov_stripe_md *lsm,
+int lov_merge_lvb_kms(struct lov_stripe_md *lsm, int index,
 		      struct ost_lvb *lvb, __u64 *kms_place)
 {
 	__u64 size = 0;
@@ -69,14 +69,14 @@ int lov_merge_lvb_kms(struct lov_stripe_md *lsm,
 		}
 
 		tmpsize = loi->loi_kms;
-		lov_size = lov_stripe_size(lsm, tmpsize, i);
+		lov_size = lov_stripe_size(lsm, index, tmpsize, i);
 		if (lov_size > kms)
 			kms = lov_size;
 
 		if (loi->loi_lvb.lvb_size > tmpsize)
 			tmpsize = loi->loi_lvb.lvb_size;
 
-		lov_size = lov_stripe_size(lsm, tmpsize, i);
+		lov_size = lov_stripe_size(lsm, index, tmpsize, i);
 		if (lov_size > size)
 			size = lov_size;
 		/* merge blocks, mtime, atime */

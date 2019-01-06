@@ -219,9 +219,13 @@ struct lov_object {
 		struct lov_layout_state_released {
 		} released;
 		struct lov_layout_composite {
+			/**
+			 * Current valid entry count of lo_entries.
+			 */
+			unsigned int lo_entry_count;
 			struct lov_layout_entry {
 				struct lov_layout_raid0 lle_raid0;
-			} lo_entries;
+			} *lo_entries;
 		} composite;
 	} u;
 	/**
@@ -628,13 +632,13 @@ static inline struct lov_thread_info *lov_env_info(const struct lu_env *env)
 	return info;
 }
 
-static inline struct lov_layout_raid0 *lov_r0(struct lov_object *lov)
+static inline struct lov_layout_raid0 *lov_r0(struct lov_object *lov, int i)
 {
 	LASSERT(lov->lo_type == LLT_COMP);
-	LASSERT(lov->lo_lsm->lsm_magic == LOV_MAGIC ||
-		lov->lo_lsm->lsm_magic == LOV_MAGIC_V3);
+	LASSERTF(i < lov->u.composite.lo_entry_count,
+		 "entry %d entry_count %d", i, lov->u.composite.lo_entry_count);
 
-	return &lov->u.composite.lo_entries.lle_raid0;
+	return &lov->u.composite.lo_entries[i].lle_raid0;
 }
 
 /* lov_pack.c */

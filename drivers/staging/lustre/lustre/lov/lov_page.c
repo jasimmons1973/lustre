@@ -67,21 +67,24 @@ int lov_page_init_composite(const struct lu_env *env, struct cl_object *obj,
 			    struct cl_page *page, pgoff_t index)
 {
 	struct lov_object *loo = cl2lov(obj);
-	struct lov_layout_raid0 *r0 = lov_r0(loo);
 	struct lov_io     *lio = lov_env_io(env);
+	struct lov_layout_raid0 *r0;
 	struct cl_object  *subobj;
 	struct cl_object  *o;
 	struct lov_io_sub *sub;
 	struct lov_page   *lpg = cl_object_page_slice(obj, page);
-	loff_t	     offset;
+	u64 offset;
 	u64	    suboff;
 	int		stripe;
+	int entry = 0;
 	int		rc;
 
 	offset = cl_offset(obj, index);
-	stripe = lov_stripe_number(loo->lo_lsm, offset);
+
+	r0 = lov_r0(loo, entry);
+	stripe = lov_stripe_number(loo->lo_lsm, entry, offset);
 	LASSERT(stripe < r0->lo_nr);
-	rc = lov_stripe_offset(loo->lo_lsm, offset, stripe, &suboff);
+	rc = lov_stripe_offset(loo->lo_lsm, entry, offset, stripe, &suboff);
 	LASSERT(rc == 0);
 
 	lpg->lps_index = stripe;
