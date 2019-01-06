@@ -206,6 +206,9 @@ struct lov_stripe_md *lov_unpackmd(struct lov_obd *lov, void *buf,
 	const struct lsm_operations *op;
 	u32 magic;
 
+	if (buf_size < sizeof(magic))
+		return ERR_PTR(-EINVAL);
+
 	magic = le32_to_cpu(*(u32 *)buf);
 	op = lsm_op_find(magic);
 	if (!op)
