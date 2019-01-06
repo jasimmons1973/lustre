@@ -181,37 +181,6 @@ __u16 lov_get_stripecnt(struct lov_obd *lov, __u32 magic, __u16 stripe_count)
 	return stripe_count;
 }
 
-static struct lov_stripe_md *lov_lsm_alloc(u16 stripe_count, u32 pattern,
-					   u32 magic)
-{
-	struct lov_stripe_md *lsm;
-	unsigned int i;
-
-	CDEBUG(D_INFO, "alloc lsm, stripe_count %u\n", stripe_count);
-
-	lsm = lsm_alloc_plain(stripe_count);
-	if (!lsm) {
-		CERROR("cannot allocate LSM stripe_count %u\n", stripe_count);
-		return ERR_PTR(-ENOMEM);
-	}
-
-	atomic_set(&lsm->lsm_refc, 1);
-	spin_lock_init(&lsm->lsm_lock);
-	lsm->lsm_magic = magic;
-	lsm->lsm_stripe_count = stripe_count;
-	lsm->lsm_maxbytes = LUSTRE_EXT3_STRIPE_MAXBYTES * stripe_count;
-	lsm->lsm_pattern = pattern;
-	lsm->lsm_pool_name[0] = '\0';
-	lsm->lsm_layout_gen = 0;
-	if (stripe_count > 0)
-		lsm->lsm_oinfo[0]->loi_ost_idx = ~0;
-
-	for (i = 0; i < stripe_count; i++)
-		loi_init(lsm->lsm_oinfo[i]);
-
-	return lsm;
-}
-
 int lov_free_memmd(struct lov_stripe_md **lsmp)
 {
 	struct lov_stripe_md *lsm = *lsmp;
@@ -229,38 +198,18 @@ int lov_free_memmd(struct lov_stripe_md **lsmp)
 /* Unpack LOV object metadata from disk storage.  It is packed in LE byte
  * order and is opaque to the networking layer.
  */
-struct lov_stripe_md *lov_unpackmd(struct lov_obd *lov, struct lov_mds_md *lmm,
-				   size_t lmm_size)
+struct lov_stripe_md *lov_unpackmd(struct lov_obd *lov, void *buf,
+				   size_t buf_size)
 {
 	const struct lsm_operations *op;
-	struct lov_stripe_md *lsm;
-	u16 stripe_count;
-	u32 pattern;
 	u32 magic;
-	int rc;
 
-	magic = le32_to_cpu(lmm->lmm_magic);
+	magic = le32_to_cpu(*(u32 *)buf);
 	op = lsm_op_find(magic);
 	if (!op)
 		return ERR_PTR(-EINVAL);
 
-	rc = op->lsm_lmm_verify(lmm, lmm_size, &stripe_count);
-	if (rc)
-		return ERR_PTR(rc);
-
-	pattern = le32_to_cpu(lmm->lmm_pattern);
-
-	lsm = lov_lsm_alloc(stripe_count, pattern, magic);
-	if (IS_ERR(lsm))
-		return lsm;
-
-	rc = op->lsm_unpackmd(lov, lsm, lmm);
-	if (rc) {
-		lov_free_memmd(&lsm);
-		return ERR_PTR(rc);
-	}
-
-	return lsm;
+	return op->lsm_unpackmd(lov, buf, buf_size);
 }
 
 /* Retrieve object striping information.

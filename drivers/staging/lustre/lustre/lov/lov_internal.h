@@ -85,10 +85,8 @@ struct lsm_operations {
 				    loff_t *);
 	void (*lsm_stripe_by_offset)(struct lov_stripe_md *, int *, loff_t *,
 				     loff_t *);
-	int (*lsm_lmm_verify)(struct lov_mds_md *lmm, int lmm_bytes,
-			      u16 *stripe_count);
-	int (*lsm_unpackmd)(struct lov_obd *lov, struct lov_stripe_md *lsm,
-			    struct lov_mds_md *lmm);
+	struct lov_stripe_md *(*lsm_unpackmd)(struct lov_obd *obd, void *buf,
+					      size_t buf_len);
 };
 
 const struct lsm_operations *lsm_op_find(int magic);
@@ -214,8 +212,8 @@ int lov_del_target(struct obd_device *obd, __u32 index,
 /* lov_pack.c */
 ssize_t lov_lsm_pack(const struct lov_stripe_md *lsm, void *buf,
 		     size_t buf_size);
-struct lov_stripe_md *lov_unpackmd(struct lov_obd *lov, struct lov_mds_md *lmm,
-				   size_t lmm_size);
+struct lov_stripe_md *lov_unpackmd(struct lov_obd *lov, void *buf,
+				   size_t buf_size);
 int lov_free_memmd(struct lov_stripe_md **lsmp);
 
 void lov_dump_lmm_v1(int level, struct lov_mds_md_v1 *lmm);
@@ -223,7 +221,6 @@ void lov_dump_lmm_v3(int level, struct lov_mds_md_v3 *lmm);
 void lov_dump_lmm_common(int level, void *lmmp);
 
 /* lov_ea.c */
-struct lov_stripe_md *lsm_alloc_plain(u16 stripe_count);
 void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm);
 
 /* lproc_lov.c */
