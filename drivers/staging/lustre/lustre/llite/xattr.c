@@ -140,7 +140,7 @@ static int ll_xattr_set_common(const struct xattr_handler *handler,
 			return -EPERM;
 	}
 
-	fullname = kasprintf(GFP_KERNEL, "%s%s", handler->prefix, name);
+	fullname = kasprintf(GFP_KERNEL, "%s%s", xattr_prefix(handler), name);
 	if (!fullname)
 		return -ENOMEM;
 
@@ -443,7 +443,7 @@ static int ll_xattr_get_common(const struct xattr_handler *handler,
 	if (handler->flags == XATTR_ACL_DEFAULT_T && !S_ISDIR(inode->i_mode))
 		return -ENODATA;
 #endif
-	fullname = kasprintf(GFP_KERNEL, "%s%s", handler->prefix, name);
+	fullname = kasprintf(GFP_KERNEL, "%s%s", xattr_prefix(handler), name);
 	if (!fullname)
 		return -ENOMEM;
 
