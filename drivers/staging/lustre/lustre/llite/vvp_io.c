@@ -925,9 +925,10 @@ static int vvp_io_write_start(const struct lu_env *env,
 	struct cl_object   *obj   = io->ci_obj;
 	struct inode       *inode = vvp_object_inode(obj);
 	struct ll_inode_info *lli = ll_i2info(inode);
-	ssize_t result = 0;
+	bool lock_inode = !inode_is_locked(inode) && !IS_NOSEC(inode);
 	loff_t pos = io->u.ci_wr.wr.crw_pos;
 	size_t cnt = io->u.ci_wr.wr.crw_count;
+	ssize_t result = 0;
 
 	down_read(&lli->lli_trunc_sem);
 
@@ -962,6 +963,13 @@ static int vvp_io_write_start(const struct lu_env *env,
 		       ll_file_maxbytes(inode));
 		return -EFBIG;
 	}
+
+	/* Tests to verify we take the i_mutex correctly */
+	if (OBD_FAIL_CHECK(OBD_FAIL_LLITE_IMUTEX_SEC) && !lock_inode)
+		return -EINVAL;
+
+	if (OBD_FAIL_CHECK(OBD_FAIL_LLITE_IMUTEX_NOSEC) && lock_inode)
+		return -EINVAL;
 
 	if (!vio->vui_iter) {
 		/* from a temp io in ll_cl_init(). */
