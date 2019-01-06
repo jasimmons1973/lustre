@@ -3003,12 +3003,11 @@ int ll_migrate(struct inode *parent, struct file *file, int mdtidx,
 		return PTR_ERR(op_data);
 
 	/* Get child FID first */
-	qstr.hash = full_name_hash(parent, name, namelen);
+	qstr.hash = full_name_hash(file_dentry(file), name, namelen);
 	qstr.name = name;
 	qstr.len = namelen;
 	dchild = d_lookup(file_dentry(file), &qstr);
 	if (dchild) {
-		op_data->op_fid3 = *ll_inode2fid(dchild->d_inode);
 		if (dchild->d_inode)
 			child_inode = igrab(dchild->d_inode);
 		dput(dchild);

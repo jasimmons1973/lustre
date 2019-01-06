@@ -457,7 +457,6 @@ void mdc_rename_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 	/* XXX do something about time, uid, gid */
 	rec->rn_opcode	 = op_data->op_cli_flags & CLI_MIGRATE ?
 				REINT_MIGRATE : REINT_RENAME;
-	rec->rn_opcode   = REINT_RENAME;
 	rec->rn_fsuid    = op_data->op_fsuid;
 	rec->rn_fsgid    = op_data->op_fsgid;
 	rec->rn_cap      = op_data->op_cap.cap[0];
