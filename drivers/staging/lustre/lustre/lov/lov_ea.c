@@ -71,8 +71,8 @@ static loff_t lov_tgt_maxbytes(struct lov_tgt_desc *tgt)
 	return maxbytes;
 }
 
-static int lsm_lmm_verify_common(struct lov_mds_md *lmm, int lmm_bytes,
-				 __u16 stripe_count)
+static int lsm_lmm_verify_v1v3(struct lov_mds_md *lmm, size_t lmm_size,
+			       u16 stripe_count)
 {
 	if (stripe_count > LOV_V1_INSANE_STRIPE_COUNT) {
 		CERROR("bad stripe count %d\n", stripe_count);
@@ -103,7 +103,7 @@ static int lsm_lmm_verify_common(struct lov_mds_md *lmm, int lmm_bytes,
 	return 0;
 }
 
-void lsm_free_plain(struct lov_stripe_md *lsm)
+void lsm_free(struct lov_stripe_md *lsm)
 {
 	__u16 stripe_count = lsm->lsm_stripe_count;
 	int i;
@@ -145,10 +145,11 @@ err:
 	return NULL;
 }
 
-static int lsm_unpackmd_common(struct lov_obd *lov,
-			       struct lov_stripe_md *lsm,
-			       struct lov_mds_md *lmm,
-			       struct lov_ost_data_v1 *objects)
+static int lsm_unpackmd_v1v3(struct lov_obd *lov,
+			     struct lov_stripe_md *lsm,
+			     struct lov_mds_md *lmm,
+			     const char *pool_name,
+			     struct lov_ost_data_v1 *objects)
 {
 	loff_t min_stripe_maxbytes = 0;
 	unsigned int stripe_count;
@@ -167,6 +168,15 @@ static int lsm_unpackmd_common(struct lov_obd *lov,
 	lsm->lsm_pool_name[0] = '\0';
 
 	stripe_count = lsm_is_released(lsm) ? 0 : lsm->lsm_stripe_count;
+
+	if (pool_name) {
+		size_t pool_name_len;
+
+		pool_name_len = strlcpy(lsm->lsm_pool_name, pool_name,
+					sizeof(lsm->lsm_pool_name));
+		if (pool_name_len >= sizeof(lsm->lsm_pool_name))
+			return -E2BIG;
+	}
 
 	for (i = 0; i < stripe_count; i++) {
 		loi = lsm->lsm_oinfo[i];
@@ -248,17 +258,16 @@ static int lsm_lmm_verify_v1(struct lov_mds_md_v1 *lmm, int lmm_bytes,
 		return -EINVAL;
 	}
 
-	return lsm_lmm_verify_common(lmm, lmm_bytes, *stripe_count);
+	return lsm_lmm_verify_v1v3(lmm, lmm_bytes, *stripe_count);
 }
 
 static int lsm_unpackmd_v1(struct lov_obd *lov, struct lov_stripe_md *lsm,
 			   struct lov_mds_md_v1 *lmm)
 {
-	return lsm_unpackmd_common(lov, lsm, lmm, lmm->lmm_objects);
+	return lsm_unpackmd_v1v3(lov, lsm, lmm, NULL, lmm->lmm_objects);
 }
 
-const struct lsm_operations lsm_v1_ops = {
-	.lsm_free	    = lsm_free_plain,
+const static struct lsm_operations lsm_v1_ops = {
 	.lsm_stripe_by_index    = lsm_stripe_by_index_plain,
 	.lsm_stripe_by_offset   = lsm_stripe_by_offset_plain,
 	.lsm_lmm_verify	 = lsm_lmm_verify_v1,
@@ -289,7 +298,7 @@ static int lsm_lmm_verify_v3(struct lov_mds_md *lmmv1, int lmm_bytes,
 		return -EINVAL;
 	}
 
-	return lsm_lmm_verify_common((struct lov_mds_md_v1 *)lmm, lmm_bytes,
+	return lsm_lmm_verify_v1v3((struct lov_mds_md_v1 *)lmm, lmm_bytes,
 				     *stripe_count);
 }
 
@@ -297,27 +306,16 @@ static int lsm_unpackmd_v3(struct lov_obd *lov, struct lov_stripe_md *lsm,
 			   struct lov_mds_md *lmm)
 {
 	struct lov_mds_md_v3 *lmm_v3 = (struct lov_mds_md_v3 *)lmm;
-	size_t cplen = 0;
-	int rc;
 
-	rc = lsm_unpackmd_common(lov, lsm, lmm, lmm_v3->lmm_objects);
-	if (rc)
-		return rc;
-
-	cplen = strlcpy(lsm->lsm_pool_name, lmm_v3->lmm_pool_name,
-			sizeof(lsm->lsm_pool_name));
-	if (cplen >= sizeof(lsm->lsm_pool_name))
-		return -E2BIG;
-
-	return 0;
+	return lsm_unpackmd_v1v3(lov, lsm, lmm, lmm_v3->lmm_pool_name,
+				 lmm_v3->lmm_objects);
 }
 
-const struct lsm_operations lsm_v3_ops = {
-	.lsm_free	    = lsm_free_plain,
-	.lsm_stripe_by_index    = lsm_stripe_by_index_plain,
-	.lsm_stripe_by_offset   = lsm_stripe_by_offset_plain,
-	.lsm_lmm_verify	 = lsm_lmm_verify_v3,
-	.lsm_unpackmd	   = lsm_unpackmd_v3,
+const static struct lsm_operations lsm_v3_ops = {
+	.lsm_stripe_by_index	= lsm_stripe_by_index_plain,
+	.lsm_stripe_by_offset	= lsm_stripe_by_offset_plain,
+	.lsm_lmm_verify		= lsm_lmm_verify_v3,
+	.lsm_unpackmd		= lsm_unpackmd_v3,
 };
 
 const struct lsm_operations *lsm_op_find(int magic)

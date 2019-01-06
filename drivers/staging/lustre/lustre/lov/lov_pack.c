@@ -181,22 +181,6 @@ __u16 lov_get_stripecnt(struct lov_obd *lov, __u32 magic, __u16 stripe_count)
 	return stripe_count;
 }
 
-static int lov_verify_lmm(void *lmm, int lmm_bytes, __u16 *stripe_count)
-{
-	int rc;
-
-	if (!lsm_op_find(le32_to_cpu(*(__u32 *)lmm))) {
-		CERROR("bad disk LOV MAGIC: 0x%08X; dumping LMM (size=%d):\n",
-		       le32_to_cpu(*(__u32 *)lmm), lmm_bytes);
-		CERROR("%*phN\n", lmm_bytes, lmm);
-		return -EINVAL;
-	}
-	rc = lsm_op_find(le32_to_cpu(*(__u32 *)lmm))->lsm_lmm_verify(lmm,
-								     lmm_bytes,
-								  stripe_count);
-	return rc;
-}
-
 static struct lov_stripe_md *lov_lsm_alloc(u16 stripe_count, u32 pattern,
 					   u32 magic)
 {
@@ -237,7 +221,7 @@ int lov_free_memmd(struct lov_stripe_md **lsmp)
 	LASSERT(atomic_read(&lsm->lsm_refc) > 0);
 	refc = atomic_dec_return(&lsm->lsm_refc);
 	if (refc == 0)
-		lsm_op_find(lsm->lsm_magic)->lsm_free(lsm);
+		lsm_free(lsm);
 
 	return refc;
 }
@@ -248,25 +232,29 @@ int lov_free_memmd(struct lov_stripe_md **lsmp)
 struct lov_stripe_md *lov_unpackmd(struct lov_obd *lov, struct lov_mds_md *lmm,
 				   size_t lmm_size)
 {
+	const struct lsm_operations *op;
 	struct lov_stripe_md *lsm;
 	u16 stripe_count;
 	u32 pattern;
 	u32 magic;
 	int rc;
 
-	rc = lov_verify_lmm(lmm, lmm_size, &stripe_count);
+	magic = le32_to_cpu(lmm->lmm_magic);
+	op = lsm_op_find(magic);
+	if (!op)
+		return ERR_PTR(-EINVAL);
+
+	rc = op->lsm_lmm_verify(lmm, lmm_size, &stripe_count);
 	if (rc)
 		return ERR_PTR(rc);
 
-	magic = le32_to_cpu(lmm->lmm_magic);
 	pattern = le32_to_cpu(lmm->lmm_pattern);
 
 	lsm = lov_lsm_alloc(stripe_count, pattern, magic);
 	if (IS_ERR(lsm))
 		return lsm;
 
-	LASSERT(lsm_op_find(magic));
-	rc = lsm_op_find(magic)->lsm_unpackmd(lov, lsm, lmm);
+	rc = op->lsm_unpackmd(lov, lsm, lmm);
 	if (rc) {
 		lov_free_memmd(&lsm);
 		return ERR_PTR(rc);

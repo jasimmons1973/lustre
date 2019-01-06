@@ -81,7 +81,6 @@ static inline bool lsm_has_objects(struct lov_stripe_md *lsm)
 }
 
 struct lsm_operations {
-	void (*lsm_free)(struct lov_stripe_md *);
 	void (*lsm_stripe_by_index)(struct lov_stripe_md *, int *, loff_t *,
 				    loff_t *);
 	void (*lsm_stripe_by_offset)(struct lov_stripe_md *, int *, loff_t *,
@@ -93,6 +92,7 @@ struct lsm_operations {
 };
 
 const struct lsm_operations *lsm_op_find(int magic);
+void lsm_free(struct lov_stripe_md *lsm);
 
 /* lov_do_div64(a, b) returns a % b, and a = a / b.
  * The 32-bit code is LOV-specific due to knowing about stripe limits in
@@ -224,7 +224,6 @@ void lov_dump_lmm_common(int level, void *lmmp);
 
 /* lov_ea.c */
 struct lov_stripe_md *lsm_alloc_plain(u16 stripe_count);
-void lsm_free_plain(struct lov_stripe_md *lsm);
 void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm);
 
 /* lproc_lov.c */
