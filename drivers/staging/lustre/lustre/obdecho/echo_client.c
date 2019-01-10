@@ -910,9 +910,9 @@ static int cl_echo_object_put(struct echo_object *eco)
 	return 0;
 }
 
-static int cl_echo_enqueue0(struct lu_env *env, struct echo_object *eco,
-			    u64 start, u64 end, int mode,
-			    __u64 *cookie, __u32 enqflags)
+static int __cl_echo_enqueue(struct lu_env *env, struct echo_object *eco,
+			     u64 start, u64 end, int mode,
+			     __u64 *cookie, __u32 enqflags)
 {
 	struct cl_io *io;
 	struct cl_lock *lck;
@@ -953,8 +953,8 @@ static int cl_echo_enqueue0(struct lu_env *env, struct echo_object *eco,
 	return rc;
 }
 
-static int cl_echo_cancel0(struct lu_env *env, struct echo_device *ed,
-			   __u64 cookie)
+static int __cl_echo_cancel(struct lu_env *env, struct echo_device *ed,
+			    __u64 cookie)
 {
 	struct echo_client_obd *ec = ed->ed_ec;
 	struct echo_lock       *ecl = NULL;
@@ -1028,10 +1028,10 @@ static int cl_echo_object_brw(struct echo_object *eco, int rw, u64 offset,
 		goto out;
 	LASSERT(rc == 0);
 
-	rc = cl_echo_enqueue0(env, eco, offset,
-			      offset + npages * PAGE_SIZE - 1,
-			      rw == READ ? LCK_PR : LCK_PW, &lh.cookie,
-			      CEF_NEVER);
+	rc = __cl_echo_enqueue(env, eco, offset,
+			       offset + npages * PAGE_SIZE - 1,
+			       rw == READ ? LCK_PR : LCK_PW, &lh.cookie,
+			       CEF_NEVER);
 	if (rc < 0)
 		goto error_lock;
 
@@ -1079,7 +1079,7 @@ static int cl_echo_object_brw(struct echo_object *eco, int rw, u64 offset,
 		       async ? "async" : "sync", rc);
 	}
 
-	cl_echo_cancel0(env, ed, lh.cookie);
+	__cl_echo_cancel(env, ed, lh.cookie);
 error_lock:
 	cl_2queue_discard(env, io, queue);
 	cl_2queue_disown(env, io, queue);

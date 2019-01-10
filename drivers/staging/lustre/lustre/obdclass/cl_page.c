@@ -45,7 +45,7 @@
 #include <cl_object.h>
 #include "cl_internal.h"
 
-static void cl_page_delete0(const struct lu_env *env, struct cl_page *pg);
+static void __cl_page_delete(const struct lu_env *env, struct cl_page *pg);
 
 # define PASSERT(env, page, expr)					   \
 	do {								   \
@@ -156,7 +156,7 @@ struct cl_page *cl_page_alloc(const struct lu_env *env,
 				result = o->co_ops->coo_page_init(env, o, page,
 								  ind);
 				if (result != 0) {
-					cl_page_delete0(env, page);
+					__cl_page_delete(env, page);
 					cl_page_free(env, page);
 					page = ERR_PTR(result);
 					break;
@@ -228,8 +228,8 @@ static inline int cl_page_invariant(const struct cl_page *pg)
 	return cl_page_in_use_noref(pg);
 }
 
-static void cl_page_state_set0(const struct lu_env *env,
-			       struct cl_page *page, enum cl_page_state state)
+static void __cl_page_state_set(const struct lu_env *env,
+				struct cl_page *page, enum cl_page_state state)
 {
 	enum cl_page_state old;
 
@@ -286,7 +286,7 @@ static void cl_page_state_set0(const struct lu_env *env,
 static void cl_page_state_set(const struct lu_env *env,
 			      struct cl_page *page, enum cl_page_state state)
 {
-	cl_page_state_set0(env, page, state);
+	__cl_page_state_set(env, page, state);
 }
 
 /**
@@ -377,7 +377,7 @@ static void cl_page_owner_set(struct cl_page *page)
 	page->cp_owner->ci_owned_nr++;
 }
 
-void cl_page_disown0(const struct lu_env *env,
+void __cl_page_disown(const struct lu_env *env,
 		     struct cl_io *io, struct cl_page *pg)
 {
 	const struct cl_page_slice *slice;
@@ -433,8 +433,8 @@ EXPORT_SYMBOL(cl_page_is_owned);
  * \see cl_page_own_try()
  * \see cl_page_own
  */
-static int cl_page_own0(const struct lu_env *env, struct cl_io *io,
-			struct cl_page *pg, int nonblock)
+static int __cl_page_own(const struct lu_env *env, struct cl_io *io,
+			 struct cl_page *pg, int nonblock)
 {
 	const struct cl_page_slice *slice;
 	int result = 0;
@@ -465,7 +465,7 @@ static int cl_page_own0(const struct lu_env *env, struct cl_io *io,
 		if (pg->cp_state != CPS_FREEING) {
 			cl_page_state_set(env, pg, CPS_OWNED);
 		} else {
-			cl_page_disown0(env, io, pg);
+			__cl_page_disown(env, io, pg);
 			result = -ENOENT;
 		}
 	}
@@ -477,23 +477,23 @@ out:
 /**
  * Own a page, might be blocked.
  *
- * \see cl_page_own0()
+ * \see __cl_page_own()
  */
 int cl_page_own(const struct lu_env *env, struct cl_io *io, struct cl_page *pg)
 {
-	return cl_page_own0(env, io, pg, 0);
+	return __cl_page_own(env, io, pg, 0);
 }
 EXPORT_SYMBOL(cl_page_own);
 
 /**
  * Nonblock version of cl_page_own().
  *
- * \see cl_page_own0()
+ * \see __cl_page_own()
  */
 int cl_page_own_try(const struct lu_env *env, struct cl_io *io,
 		    struct cl_page *pg)
 {
-	return cl_page_own0(env, io, pg, 1);
+	return __cl_page_own(env, io, pg, 1);
 }
 EXPORT_SYMBOL(cl_page_own_try);
 
@@ -576,7 +576,7 @@ void cl_page_disown(const struct lu_env *env,
 		pg->cp_state == CPS_FREEING);
 
 	io = cl_io_top(io);
-	cl_page_disown0(env, io, pg);
+	__cl_page_disown(env, io, pg);
 }
 EXPORT_SYMBOL(cl_page_disown);
 
@@ -607,10 +607,10 @@ EXPORT_SYMBOL(cl_page_discard);
 
 /**
  * Version of cl_page_delete() that can be called for not fully constructed
- * pages, e.g,. in a error handling cl_page_find()->cl_page_delete0()
+ * pages, e.g,. in a error handling cl_page_find()->__cl_page_delete()
  * path. Doesn't check page invariant.
  */
-static void cl_page_delete0(const struct lu_env *env, struct cl_page *pg)
+static void __cl_page_delete(const struct lu_env *env, struct cl_page *pg)
 {
 	const struct cl_page_slice *slice;
 
@@ -620,7 +620,7 @@ static void cl_page_delete0(const struct lu_env *env, struct cl_page *pg)
 	 * Sever all ways to obtain new pointers to @pg.
 	 */
 	cl_page_owner_clear(pg);
-	cl_page_state_set0(env, pg, CPS_FREEING);
+	__cl_page_state_set(env, pg, CPS_FREEING);
 
 	list_for_each_entry_reverse(slice, &pg->cp_layers, cpl_linkage) {
 		if (slice->cpl_ops->cpo_delete)
@@ -655,7 +655,7 @@ static void cl_page_delete0(const struct lu_env *env, struct cl_page *pg)
 void cl_page_delete(const struct lu_env *env, struct cl_page *pg)
 {
 	PINVRNT(env, pg, cl_page_invariant(pg));
-	cl_page_delete0(env, pg);
+	__cl_page_delete(env, pg);
 }
 EXPORT_SYMBOL(cl_page_delete);
 

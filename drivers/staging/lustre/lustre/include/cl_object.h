@@ -803,7 +803,7 @@ struct cl_page_operations {
 	/**
 	 * cl_page<->struct page methods. Only one layer in the stack has to
 	 * implement these. Current code assumes that this functionality is
-	 * provided by the topmost layer, see cl_page_disown0() as an example.
+	 * provided by the topmost layer, see __cl_page_disown() as an example.
 	 */
 
 	/**
@@ -2144,8 +2144,8 @@ void cl_page_unassume(const struct lu_env *env,
 		      struct cl_io *io, struct cl_page *pg);
 void cl_page_disown(const struct lu_env *env,
 		    struct cl_io *io, struct cl_page *page);
-void cl_page_disown0(const struct lu_env *env,
-		     struct cl_io *io, struct cl_page *pg);
+void __cl_page_disown(const struct lu_env *env,
+		      struct cl_io *io, struct cl_page *pg);
 int cl_page_is_owned(const struct cl_page *pg, const struct cl_io *io);
 
 /** @} ownership */
