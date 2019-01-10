@@ -96,7 +96,7 @@ static int nrs_fifo_start(struct ptlrpc_nrs_policy *policy)
  *
  * \param[in] policy The policy to stop
  *
- * \see nrs_policy_stop0()
+ * \see __nrs_policy_stop()
  */
 static void nrs_fifo_stop(struct ptlrpc_nrs_policy *policy)
 {

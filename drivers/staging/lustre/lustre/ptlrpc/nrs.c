@@ -82,7 +82,7 @@ static int nrs_policy_ctl_locked(struct ptlrpc_nrs_policy *policy,
 	       -ENOSYS;
 }
 
-static void nrs_policy_stop0(struct ptlrpc_nrs_policy *policy)
+static void __nrs_policy_stop(struct ptlrpc_nrs_policy *policy)
 {
 	if (policy->pol_desc->pd_ops->op_policy_stop)
 		policy->pol_desc->pd_ops->op_policy_stop(policy);
@@ -126,7 +126,7 @@ static int nrs_policy_stop_locked(struct ptlrpc_nrs_policy *policy)
 
 	/* I have the only refcount */
 	if (policy->pol_ref == 1)
-		nrs_policy_stop0(policy);
+		__nrs_policy_stop(policy);
 
 	return 0;
 }
@@ -151,7 +151,7 @@ static void nrs_policy_stop_primary(struct ptlrpc_nrs *nrs)
 	tmp->pol_state = NRS_POL_STATE_STOPPING;
 
 	if (tmp->pol_ref == 0)
-		nrs_policy_stop0(tmp);
+		__nrs_policy_stop(tmp);
 }
 
 /**
@@ -300,7 +300,7 @@ static void nrs_policy_put_locked(struct ptlrpc_nrs_policy *policy)
 	policy->pol_ref--;
 	if (unlikely(policy->pol_ref == 0 &&
 		     policy->pol_state == NRS_POL_STATE_STOPPING))
-		nrs_policy_stop0(policy);
+		__nrs_policy_stop(policy);
 }
 
 static void nrs_policy_put(struct ptlrpc_nrs_policy *policy)
@@ -888,8 +888,8 @@ static int nrs_register_policies_locked(struct ptlrpc_nrs *nrs)
  *
  * \pre mutex_is_locked(&nrs_core.nrs_mutex)
  */
-static int nrs_svcpt_setup_locked0(struct ptlrpc_nrs *nrs,
-				   struct ptlrpc_service_part *svcpt)
+static int __nrs_svcpt_setup_locked(struct ptlrpc_nrs *nrs,
+				    struct ptlrpc_service_part *svcpt)
 {
 	enum ptlrpc_nrs_queue_type queue;
 
@@ -931,7 +931,7 @@ static int nrs_svcpt_setup_locked(struct ptlrpc_service_part *svcpt)
 	 * Initialize the regular NRS head.
 	 */
 	nrs = nrs_svcpt2nrs(svcpt, false);
-	rc = nrs_svcpt_setup_locked0(nrs, svcpt);
+	rc = __nrs_svcpt_setup_locked(nrs, svcpt);
 	if (rc < 0)
 		goto out;
 
@@ -951,7 +951,7 @@ static int nrs_svcpt_setup_locked(struct ptlrpc_service_part *svcpt)
 	}
 
 	nrs = nrs_svcpt2nrs(svcpt, true);
-	rc = nrs_svcpt_setup_locked0(nrs, svcpt);
+	rc = __nrs_svcpt_setup_locked(nrs, svcpt);
 
 out:
 	return rc;
@@ -1444,8 +1444,8 @@ static void nrs_request_removed(struct ptlrpc_nrs_policy *policy)
  * \retval NULL the head has no requests to serve
  */
 struct ptlrpc_request *
-ptlrpc_nrs_req_get_nolock0(struct ptlrpc_service_part *svcpt, bool hp,
-			   bool peek, bool force)
+__ptlrpc_nrs_req_get_nolock(struct ptlrpc_service_part *svcpt, bool hp,
+			    bool peek, bool force)
 {
 	struct ptlrpc_nrs *nrs = nrs_svcpt2nrs(svcpt, hp);
 	struct ptlrpc_nrs_policy *policy;
