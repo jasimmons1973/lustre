@@ -413,9 +413,9 @@ static int osc_lock_flush(struct osc_object *obj, pgoff_t start, pgoff_t end,
  * Helper for osc_dlm_blocking_ast() handling discrepancies between cl_lock
  * and ldlm_lock caches.
  */
-static int osc_dlm_blocking_ast0(const struct lu_env *env,
-				 struct ldlm_lock *dlmlock,
-				 void *data, int flag)
+static int __osc_dlm_blocking_ast(const struct lu_env *env,
+				  struct ldlm_lock *dlmlock,
+				  void *data, int flag)
 {
 	enum cl_lock_mode mode = CLM_READ;
 	struct cl_object *obj = NULL;
@@ -556,7 +556,7 @@ static int osc_ldlm_blocking_ast(struct ldlm_lock *dlmlock,
 			break;
 		}
 
-		result = osc_dlm_blocking_ast0(env, dlmlock, data, flag);
+		result = __osc_dlm_blocking_ast(env, dlmlock, data, flag);
 		cl_env_put(env, &refcheck);
 		break;
 		}
