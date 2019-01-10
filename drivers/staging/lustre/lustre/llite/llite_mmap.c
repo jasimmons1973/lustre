@@ -143,9 +143,8 @@ restart:
 	return io;
 }
 
-/* Sharing code of page_mkwrite method for rhel5 and rhel6 */
-static int ll_page_mkwrite0(struct vm_area_struct *vma, struct page *vmpage,
-			    bool *retry)
+static int __ll_page_mkwrite(struct vm_area_struct *vma, struct page *vmpage,
+			     bool *retry)
 {
 	struct lu_env	   *env;
 	struct cl_io	    *io;
@@ -262,7 +261,7 @@ static inline vm_fault_t to_fault_error(int result)
  * \retval VM_FAULT_ERROR on general error
  * \retval NOPAGE_OOM not have memory for allocate new page
  */
-static vm_fault_t ll_fault0(struct vm_area_struct *vma, struct vm_fault *vmf)
+static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 {
 	struct lu_env	   *env;
 	struct cl_io	    *io;
@@ -365,7 +364,7 @@ static vm_fault_t ll_fault(struct vm_fault *vmf)
 			   LPROC_LL_FAULT, 1);
 
 restart:
-	result = ll_fault0(vmf->vma, vmf);
+	result = __ll_fault(vmf->vma, vmf);
 	if (!(result & (VM_FAULT_RETRY | VM_FAULT_ERROR | VM_FAULT_LOCKED))) {
 		struct page *vmpage = vmf->page;
 
@@ -406,7 +405,7 @@ static vm_fault_t ll_page_mkwrite(struct vm_fault *vmf)
 	file_update_time(vma->vm_file);
 	do {
 		retry = false;
-		err = ll_page_mkwrite0(vma, vmf->page, &retry);
+		err = __ll_page_mkwrite(vma, vmf->page, &retry);
 
 		if (!printed && ++count > 16) {
 			const struct dentry *de = vma->vm_file->f_path.dentry;

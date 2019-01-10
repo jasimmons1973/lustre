@@ -220,9 +220,9 @@ static const struct cl_object_operations vvp_ops = {
 	.coo_req_attr_set	= vvp_req_attr_set
 };
 
-static int vvp_object_init0(const struct lu_env *env,
-			    struct vvp_object *vob,
-			    const struct cl_object_conf *conf)
+static int __vvp_object_init(const struct lu_env *env,
+			     struct vvp_object *vob,
+			     const struct cl_object_conf *conf)
 {
 	vob->vob_inode = conf->coc_inode;
 	atomic_set(&vob->vob_transient_pages, 0);
@@ -246,7 +246,7 @@ static int vvp_object_init(const struct lu_env *env, struct lu_object *obj,
 
 		cconf = lu2cl_conf(conf);
 		lu_object_add(obj, below);
-		result = vvp_object_init0(env, vob, cconf);
+		result = __vvp_object_init(env, vob, cconf);
 	} else {
 		result = -ENOMEM;
 	}
