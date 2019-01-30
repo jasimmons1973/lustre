@@ -2305,10 +2305,10 @@ static int kiblnd_hdev_get_attr(struct kib_hca_dev *hdev)
 	hdev->ibh_page_size  = 1 << PAGE_SHIFT;
 	hdev->ibh_page_mask  = ~((__u64)hdev->ibh_page_size - 1);
 
-	if (hdev->ibh_ibdev->alloc_fmr &&
-	    hdev->ibh_ibdev->dealloc_fmr &&
-	    hdev->ibh_ibdev->map_phys_fmr &&
-	    hdev->ibh_ibdev->unmap_fmr) {
+	if (hdev->ibh_ibdev->ops.alloc_fmr &&
+	    hdev->ibh_ibdev->ops.dealloc_fmr &&
+	    hdev->ibh_ibdev->ops.map_phys_fmr &&
+	    hdev->ibh_ibdev->ops.unmap_fmr) {
 		LCONSOLE_INFO("Using FMR for registration\n");
 		hdev->ibh_dev->ibd_dev_caps |= IBLND_DEV_CAPS_FMR_ENABLED;
 	} else if (dev_attr->device_cap_flags & IB_DEVICE_MEM_MGT_EXTENSIONS) {
