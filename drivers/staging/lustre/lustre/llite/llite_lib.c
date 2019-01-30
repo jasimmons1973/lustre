@@ -44,6 +44,7 @@
 #include <linux/random.h>
 #include <linux/security.h>
 #include <linux/fs_struct.h>
+#include <uapi/linux/mount.h>
 
 #include <uapi/linux/lustre/lustre_ioctl.h>
 #include <lustre_ha.h>

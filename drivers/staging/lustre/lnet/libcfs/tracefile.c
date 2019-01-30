@@ -1054,7 +1054,7 @@ int cfs_trace_set_debug_mb(int mb)
 	int i;
 	int j;
 	int pages;
-	int total_mb = (totalram_pages >> (20 - PAGE_SHIFT));
+	int total_mb = (totalram_pages() >> (20 - PAGE_SHIFT));
 	int limit = max(512, (total_mb * 80) / 100);
 	struct cfs_trace_cpu_data *tcd;
 
