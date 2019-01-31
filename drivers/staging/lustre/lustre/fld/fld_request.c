@@ -307,10 +307,10 @@ int fld_client_rpc(struct obd_export *exp,
 		   struct ptlrpc_request **reqp)
 {
 	struct ptlrpc_request *req = NULL;
-	struct lu_seq_range   *prange;
-	u32		 *op;
-	int		    rc = 0;
-	struct obd_import     *imp;
+	struct lu_seq_range *prange;
+	u32 *op;
+	int rc = 0;
+	struct obd_import *imp;
 
 	LASSERT(exp);
 

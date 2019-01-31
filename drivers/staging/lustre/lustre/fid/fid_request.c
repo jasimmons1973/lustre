@@ -55,12 +55,12 @@ static int seq_client_rpc(struct lu_client_seq *seq,
 			  struct lu_seq_range *output, u32 opc,
 			  const char *opcname)
 {
-	struct obd_export     *exp = seq->lcs_exp;
+	struct obd_export *exp = seq->lcs_exp;
 	struct ptlrpc_request *req;
-	struct lu_seq_range   *out, *in;
-	u32                 *op;
-	unsigned int           debug_mask;
-	int                    rc;
+	struct lu_seq_range *out, *in;
+	u32 *op;
+	unsigned int debug_mask;
+	int rc;
 
 	LASSERT(exp && !IS_ERR(exp));
 	req = ptlrpc_request_alloc_pack(class_exp2cliimp(exp), &RQF_SEQ_QUERY,

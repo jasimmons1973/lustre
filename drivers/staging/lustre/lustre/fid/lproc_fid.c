@@ -143,7 +143,7 @@ ldebugfs_fid_width_seq_write(struct file *file,
 			     size_t count, loff_t *off)
 {
 	struct lu_client_seq *seq;
-	u64  max;
+	u64 max;
 	int rc, val;
 
 	seq = ((struct seq_file *)file->private_data)->private;
