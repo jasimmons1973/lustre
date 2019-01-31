@@ -173,7 +173,7 @@ ptlrpc_grow_req_bufs(struct ptlrpc_service_part *svcpt, int post)
 	       svc->srv_name, i, svc->srv_buf_size, svcpt->scp_nrqbds_posted,
 	       svcpt->scp_nrqbds_total, rc);
 
- try_post:
+try_post:
 	if (post && rc == 0)
 		rc = ptlrpc_server_post_idle_rqbds(svcpt);
 
@@ -185,8 +185,8 @@ struct ptlrpc_hr_partition;
 struct ptlrpc_hr_thread {
 	int				hrt_id;		/* thread ID */
 	spinlock_t			hrt_lock;
-	wait_queue_head_t			hrt_waitq;
-	struct list_head			hrt_queue;	/* RS queue */
+	wait_queue_head_t		hrt_waitq;
+	struct list_head		hrt_queue;	/* RS queue */
 	struct ptlrpc_hr_partition	*hrt_partition;
 };
 
@@ -212,7 +212,7 @@ struct ptlrpc_hr_service {
 	/* CPU partition table, it's just cfs_cpt_tab for now */
 	struct cfs_cpt_table		*hr_cpt_table;
 	/** controller sleep waitq */
-	wait_queue_head_t			hr_waitq;
+	wait_queue_head_t		hr_waitq;
 	unsigned int			hr_stopping;
 	/** roundrobin rotor for non-affinity service */
 	unsigned int			hr_rotor;
@@ -236,7 +236,6 @@ ptlrpc_hr_select(struct ptlrpc_service_part *svcpt)
 	    svcpt->scp_service->srv_cptable == ptlrpc_hr.hr_cpt_table) {
 		/* directly match partition */
 		hrp = ptlrpc_hr.hr_partitions[svcpt->scp_cpt];
-
 	} else {
 		rotor = ptlrpc_hr.hr_rotor++;
 		rotor %= cfs_cpt_number(ptlrpc_hr.hr_cpt_table);
@@ -440,7 +439,7 @@ ptlrpc_server_nthreads_check(struct ptlrpc_service *svc,
 		nthrs = max(tc->tc_nthrs_base,
 			    tc->tc_nthrs_max / svc->srv_ncpts);
 	}
- out:
+out:
 	nthrs = max(nthrs, tc->tc_nthrs_init);
 	svc->srv_nthrs_cpt_limit = nthrs;
 	svc->srv_nthrs_cpt_init = init;
@@ -459,7 +458,7 @@ static int
 ptlrpc_service_part_init(struct ptlrpc_service *svc,
 			 struct ptlrpc_service_part *svcpt, int cpt)
 {
-	struct ptlrpc_at_array	*array;
+	struct ptlrpc_at_array *array;
 	int size;
 	int index;
 	int rc;
@@ -1125,7 +1124,6 @@ static int ptlrpc_at_send_early_reply(struct ptlrpc_request *req)
 		goto out_put;
 
 	rc = ptlrpc_send_reply(reqcopy, PTLRPC_REPLY_EARLY);
-
 	if (!rc) {
 		/* Adjust our own deadline to what we told the client */
 		req->rq_deadline = newdl;
@@ -1316,7 +1314,7 @@ static void ptlrpc_server_hpreq_fini(struct ptlrpc_request *req)
 static int ptlrpc_server_request_add(struct ptlrpc_service_part *svcpt,
 				     struct ptlrpc_request *req)
 {
-	int	rc;
+	int rc;
 
 	rc = ptlrpc_server_hpreq_init(svcpt, req);
 	if (rc < 0)
@@ -2412,7 +2410,7 @@ int ptlrpc_start_threads(struct ptlrpc_service *svc)
 	}
 
 	return 0;
- failed:
+failed:
 	CERROR("cannot start %s thread #%d_%d: rc %d\n",
 	       svc->srv_thread_name, i, j, rc);
 	ptlrpc_stop_all_threads(svc);
@@ -2432,7 +2430,7 @@ int ptlrpc_start_thread(struct ptlrpc_service_part *svcpt, int wait)
 	       svc->srv_name, svcpt->scp_cpt, svcpt->scp_nthrs_running,
 	       svc->srv_nthrs_cpt_init, svc->srv_nthrs_cpt_limit);
 
- again:
+again:
 	if (unlikely(svc->srv_is_stopping))
 		return -ESRCH;
 

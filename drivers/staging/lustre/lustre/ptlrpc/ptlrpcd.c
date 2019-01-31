@@ -69,13 +69,13 @@
 
 /* One of these per CPT. */
 struct ptlrpcd {
-	int pd_size;
-	int pd_index;
-	int pd_cpt;
-	int pd_cursor;
-	int pd_nthreads;
-	int pd_groupsize;
-	struct ptlrpcd_ctl pd_threads[0];
+	int			pd_size;
+	int			pd_index;
+	int			pd_cpt;
+	int			pd_cursor;
+	int			pd_nthreads;
+	int			pd_groupsize;
+	struct ptlrpcd_ctl	pd_threads[0];
 };
 
 /*
@@ -171,9 +171,9 @@ EXPORT_SYMBOL(ptlrpcd_wake);
 static struct ptlrpcd_ctl *
 ptlrpcd_select_pc(struct ptlrpc_request *req)
 {
-	struct ptlrpcd	*pd;
-	int		cpt;
-	int		idx;
+	struct ptlrpcd *pd;
+	int cpt;
+	int idx;
 
 	if (req && req->rq_send_state != LUSTRE_IMP_FULL)
 		return &ptlrpcd_rcv;

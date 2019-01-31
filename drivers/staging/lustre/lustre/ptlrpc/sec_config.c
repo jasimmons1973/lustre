@@ -408,19 +408,19 @@ static int sptlrpc_rule_set_choose(struct sptlrpc_rule_set *rset,
  **********************************/
 
 struct sptlrpc_conf_tgt {
-	struct list_head	      sct_list;
-	char		    sct_name[MAX_OBD_NAME];
-	struct sptlrpc_rule_set sct_rset;
+	struct list_head		sct_list;
+	char				sct_name[MAX_OBD_NAME];
+	struct sptlrpc_rule_set		sct_rset;
 };
 
 struct sptlrpc_conf {
-	struct list_head	      sc_list;
-	char		    sc_fsname[MTI_NAME_MAXLEN];
-	unsigned int	    sc_modified;  /* modified during updating */
-	unsigned int	    sc_updated:1, /* updated copy from MGS */
-				sc_local:1;   /* local copy from target */
-	struct sptlrpc_rule_set sc_rset;      /* fs general rules */
-	struct list_head	      sc_tgts;      /* target-specific rules */
+	struct list_head		sc_list;
+	char				sc_fsname[MTI_NAME_MAXLEN];
+	unsigned int			sc_modified;	/* modified during updating */
+	unsigned int			sc_updated:1,	/* updated copy from MGS */
+					sc_local:1;	/* local copy from target */
+	struct sptlrpc_rule_set		sc_rset;	/* fs general rules */
+	struct list_head		sc_tgts;	/* target-specific rules */
 };
 
 static struct mutex sptlrpc_conf_lock;
@@ -801,7 +801,7 @@ out:
 	flavor_set_flags(sf, from, to, 1);
 }
 
-#define SEC_ADAPT_DELAY	 (10)
+#define SEC_ADAPT_DELAY		(10)
 
 /**
  * called by client devices, notify the sptlrpc config has changed and

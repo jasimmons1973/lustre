@@ -171,7 +171,7 @@ EXPORT_SYMBOL(sptlrpc_name2flavor_base);
 
 const char *sptlrpc_flavor2name_base(u32 flvr)
 {
-	u32   base = SPTLRPC_FLVR_BASE(flvr);
+	u32 base = SPTLRPC_FLVR_BASE(flvr);
 
 	if (base == SPTLRPC_FLVR_BASE(SPTLRPC_FLVR_NULL))
 		return "null";
@@ -365,7 +365,7 @@ int sptlrpc_req_get_ctx(struct ptlrpc_request *req)
 {
 	struct obd_import *imp = req->rq_import;
 	struct ptlrpc_sec *sec;
-	int		rc;
+	int rc;
 
 	LASSERT(!req->rq_cli_ctx);
 	LASSERT(imp);

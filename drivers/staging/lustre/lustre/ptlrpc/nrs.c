@@ -118,7 +118,6 @@ static int nrs_policy_stop_locked(struct ptlrpc_nrs_policy *policy)
 	/* Immediately make it invisible */
 	if (nrs->nrs_policy_primary == policy) {
 		nrs->nrs_policy_primary = NULL;
-
 	} else {
 		LASSERT(nrs->nrs_policy_fallback == policy);
 		nrs->nrs_policy_fallback = NULL;

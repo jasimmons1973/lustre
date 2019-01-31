@@ -49,14 +49,14 @@
 #include "ptlrpc_internal.h"
 
 const struct ptlrpc_bulk_frag_ops ptlrpc_bulk_kiov_pin_ops = {
-	.add_kiov_frag	= ptlrpc_prep_bulk_page_pin,
-	.release_frags	= ptlrpc_release_bulk_page_pin,
+	.add_kiov_frag		= ptlrpc_prep_bulk_page_pin,
+	.release_frags		= ptlrpc_release_bulk_page_pin,
 };
 EXPORT_SYMBOL(ptlrpc_bulk_kiov_pin_ops);
 
 const struct ptlrpc_bulk_frag_ops ptlrpc_bulk_kiov_nopin_ops = {
-	.add_kiov_frag	= ptlrpc_prep_bulk_page_nopin,
-	.release_frags	= NULL,
+	.add_kiov_frag		= ptlrpc_prep_bulk_page_nopin,
+	.release_frags		= NULL,
 };
 EXPORT_SYMBOL(ptlrpc_bulk_kiov_nopin_ops);
 
@@ -658,15 +658,14 @@ static void __ptlrpc_free_req_to_pool(struct ptlrpc_request *request)
 
 void ptlrpc_add_unreplied(struct ptlrpc_request *req)
 {
-	struct obd_import	*imp = req->rq_import;
-	struct ptlrpc_request	*iter;
+	struct obd_import *imp = req->rq_import;
+	struct ptlrpc_request *iter;
 
 	assert_spin_locked(&imp->imp_lock);
 	LASSERT(list_empty(&req->rq_unreplied_list));
 
 	/* unreplied list is sorted by xid in ascending order */
 	list_for_each_entry_reverse(iter, &imp->imp_unreplied_list, rq_unreplied_list) {
-
 		LASSERT(req->rq_xid != iter->rq_xid);
 		if (req->rq_xid < iter->rq_xid)
 			continue;
@@ -1318,10 +1317,10 @@ static int after_reply(struct ptlrpc_request *req)
 		 * reply).  NB: no need to round up because alloc_repbuf will
 		 * round it up
 		 */
-		req->rq_replen       = req->rq_nob_received;
+		req->rq_replen = req->rq_nob_received;
 		req->rq_nob_received = 0;
 		spin_lock(&req->rq_lock);
-		req->rq_resend       = 1;
+		req->rq_resend = 1;
 		spin_unlock(&req->rq_lock);
 		return 0;
 	}
@@ -1359,7 +1358,7 @@ static int after_reply(struct ptlrpc_request *req)
 		spin_unlock(&req->rq_lock);
 		req->rq_nr_resend++;
 
-		/* Readjust the timeout for current conditions */
+		/* Re-adjust the timeout for current conditions */
 		ptlrpc_at_set_req_timeout(req);
 		/*
 		 * delay resend to give a chance to the server to get ready.
@@ -1620,7 +1619,7 @@ static inline int ptlrpc_set_producer(struct ptlrpc_request_set *set)
 		rc = set->set_producer(set, set->set_producer_arg);
 		if (rc == -ENOENT) {
 			/* no more RPC to produce */
-			set->set_producer     = NULL;
+			set->set_producer = NULL;
 			set->set_producer_arg = NULL;
 			return 0;
 		}
@@ -1654,7 +1653,7 @@ int ptlrpc_check_set(const struct lu_env *env, struct ptlrpc_request_set *set)
 
 		/*
 		 * This schedule point is mainly for the ptlrpcd caller of this
-		 * function.  Most ptlrpc sets are not long-lived and unbounded
+		 * function. Most ptlrpc sets are not long-lived and unbounded
 		 * in length, but at the least the set used by the ptlrpcd is.
 		 * Since the processing time is unbounded, we need to insert an
 		 * explicit schedule point to make the thread well-behaved.
@@ -2130,7 +2129,6 @@ void ptlrpc_expired_set(struct ptlrpc_request_set *set)
 
 	/* A timeout expired. See which reqs it applies to...  */
 	list_for_each_entry(req, &set->set_requests, rq_set_chain) {
-
 		/* don't expire request waiting for context */
 		if (req->rq_wait_ctx)
 			continue;
@@ -2185,7 +2183,6 @@ int ptlrpc_set_next_timeout(struct ptlrpc_request_set *set)
 	time64_t deadline;
 
 	list_for_each_entry(req, &set->set_requests, rq_set_chain) {
-
 		/* Request in-flight? */
 		if (!(((req->rq_phase == RQ_PHASE_RPC) && !req->rq_waiting) ||
 		      (req->rq_phase == RQ_PHASE_BULK) ||
@@ -2568,7 +2565,7 @@ static void ptlrpc_free_request(struct ptlrpc_request *req)
  */
 void ptlrpc_request_committed(struct ptlrpc_request *req, int force)
 {
-	struct obd_import	*imp = req->rq_import;
+	struct obd_import *imp = req->rq_import;
 
 	spin_lock(&imp->imp_lock);
 	if (list_empty(&req->rq_replay_list)) {
@@ -2896,7 +2893,7 @@ static int ptlrpc_replay_interpret(const struct lu_env *env,
 
 	/* continue with recovery */
 	rc = ptlrpc_import_recovery_state_machine(imp);
- out:
+out:
 	req->rq_send_state = aa->praa_old_state;
 
 	if (rc != 0)
@@ -2930,7 +2927,7 @@ int ptlrpc_replay_req(struct ptlrpc_request *req)
 		aa->praa_old_status = lustre_msg_get_status(req->rq_repmsg);
 	req->rq_status = 0;
 	req->rq_interpret_reply = ptlrpc_replay_interpret;
-	/* Readjust the timeout for current conditions */
+	/* Re-adjust the timeout for current conditions */
 	ptlrpc_at_set_req_timeout(req);
 
 	/*
@@ -3031,7 +3028,7 @@ static spinlock_t ptlrpc_last_xid_lock;
 /**
  * Initialize the XID for the node.  This is common among all requests on
  * this node, and only requires the property that it is monotonically
- * increasing.  It does not need to be sequential.  Since this is also used
+ * increasing. It does not need to be sequential.  Since this is also used
  * as the RDMA match bits, it is important that a single client NOT have
  * the same match bits for two different in-flight requests, hence we do
  * NOT want to have an XID per target or similar.
@@ -3198,12 +3195,12 @@ struct ptlrpc_work_async_args {
 static void ptlrpcd_add_work_req(struct ptlrpc_request *req)
 {
 	/* re-initialize the req */
-	req->rq_timeout		= obd_timeout;
-	req->rq_sent		= ktime_get_real_seconds();
-	req->rq_deadline	= req->rq_sent + req->rq_timeout;
-	req->rq_phase		= RQ_PHASE_INTERPRET;
-	req->rq_next_phase	= RQ_PHASE_COMPLETE;
-	req->rq_xid		= ptlrpc_next_xid();
+	req->rq_timeout	= obd_timeout;
+	req->rq_sent = ktime_get_real_seconds();
+	req->rq_deadline = req->rq_sent + req->rq_timeout;
+	req->rq_phase = RQ_PHASE_INTERPRET;
+	req->rq_next_phase = RQ_PHASE_COMPLETE;
+	req->rq_xid = ptlrpc_next_xid();
 	req->rq_import_generation = req->rq_import->imp_generation;
 
 	ptlrpcd_add_req(req);
@@ -3241,7 +3238,7 @@ static int ptlrpcd_check_work(struct ptlrpc_request *req)
 void *ptlrpcd_alloc_work(struct obd_import *imp,
 			 int (*cb)(const struct lu_env *, void *), void *cbdata)
 {
-	struct ptlrpc_request	 *req = NULL;
+	struct ptlrpc_request *req = NULL;
 	struct ptlrpc_work_async_args *args;
 
 	might_sleep();

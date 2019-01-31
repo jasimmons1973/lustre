@@ -1907,9 +1907,7 @@ static void *__req_capsule_get(struct req_capsule *pill,
 	void *value;
 	u32 len;
 	u32 offset;
-
 	void *(*getter)(struct lustre_msg *m, u32 n, u32 minlen);
-
 	static const char *rcl_names[RCL_NR] = {
 		[RCL_CLIENT] = "client",
 		[RCL_SERVER] = "server"
@@ -2176,7 +2174,6 @@ void req_capsule_extend(struct req_capsule *pill, const struct req_format *fmt)
 {
 	int i;
 	size_t j;
-
 	const struct req_format *old;
 
 	LASSERT(pill->rc_fmt);

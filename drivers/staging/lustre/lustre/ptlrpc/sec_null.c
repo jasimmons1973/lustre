@@ -277,8 +277,8 @@ int null_enlarge_reqbuf(struct ptlrpc_sec *sec,
 }
 
 static struct ptlrpc_svc_ctx null_svc_ctx = {
-	.sc_refcount    = ATOMIC_INIT(1),
-	.sc_policy      = &null_policy,
+	.sc_refcount	= ATOMIC_INIT(1),
+	.sc_policy	= &null_policy,
 };
 
 static
@@ -373,33 +373,33 @@ int null_authorize(struct ptlrpc_request *req)
 
 static struct ptlrpc_ctx_ops null_ctx_ops = {
 	.refresh		= null_ctx_refresh,
-	.sign		   = null_ctx_sign,
-	.verify		 = null_ctx_verify,
+	.sign			= null_ctx_sign,
+	.verify			= null_ctx_verify,
 };
 
 static struct ptlrpc_sec_cops null_sec_cops = {
-	.create_sec	     = null_create_sec,
-	.destroy_sec	    = null_destroy_sec,
-	.lookup_ctx	     = null_lookup_ctx,
+	.create_sec		= null_create_sec,
+	.destroy_sec		= null_destroy_sec,
+	.lookup_ctx		= null_lookup_ctx,
 	.flush_ctx_cache	= null_flush_ctx_cache,
-	.alloc_reqbuf	   = null_alloc_reqbuf,
-	.alloc_repbuf	   = null_alloc_repbuf,
-	.free_reqbuf	    = null_free_reqbuf,
-	.free_repbuf	    = null_free_repbuf,
-	.enlarge_reqbuf	 = null_enlarge_reqbuf,
+	.alloc_reqbuf		= null_alloc_reqbuf,
+	.alloc_repbuf		= null_alloc_repbuf,
+	.free_reqbuf		= null_free_reqbuf,
+	.free_repbuf		= null_free_repbuf,
+	.enlarge_reqbuf		= null_enlarge_reqbuf,
 };
 
 static struct ptlrpc_sec_sops null_sec_sops = {
-	.accept		 = null_accept,
-	.alloc_rs	       = null_alloc_rs,
-	.authorize	      = null_authorize,
+	.accept			= null_accept,
+	.alloc_rs		= null_alloc_rs,
+	.authorize		= null_authorize,
 	.free_rs		= null_free_rs,
 };
 
 static struct ptlrpc_sec_policy null_policy = {
-	.sp_owner	       = THIS_MODULE,
+	.sp_owner		= THIS_MODULE,
 	.sp_name		= "sec.null",
-	.sp_policy	      = SPTLRPC_POLICY_NULL,
+	.sp_policy		= SPTLRPC_POLICY_NULL,
 	.sp_cops		= &null_sec_cops,
 	.sp_sops		= &null_sec_sops,
 };

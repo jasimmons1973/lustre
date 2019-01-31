@@ -42,115 +42,115 @@
 #include "ptlrpc_internal.h"
 
 static struct ll_rpc_opcode {
-	u32       opcode;
-	const char *opname;
+	u32				opcode;
+	const char			*opname;
 } ll_rpc_opcode_table[LUSTRE_MAX_OPCODES] = {
-	{ OST_REPLY,	"ost_reply" },
-	{ OST_GETATTR,      "ost_getattr" },
-	{ OST_SETATTR,      "ost_setattr" },
-	{ OST_READ,	 "ost_read" },
-	{ OST_WRITE,	"ost_write" },
-	{ OST_CREATE,       "ost_create" },
-	{ OST_DESTROY,      "ost_destroy" },
-	{ OST_GET_INFO,     "ost_get_info" },
-	{ OST_CONNECT,      "ost_connect" },
-	{ OST_DISCONNECT,   "ost_disconnect" },
-	{ OST_PUNCH,	"ost_punch" },
-	{ OST_OPEN,	 "ost_open" },
-	{ OST_CLOSE,	"ost_close" },
-	{ OST_STATFS,       "ost_statfs" },
-	{ 14,		NULL },    /* formerly OST_SAN_READ */
-	{ 15,		NULL },    /* formerly OST_SAN_WRITE */
-	{ OST_SYNC,	 "ost_sync" },
-	{ OST_SET_INFO,     "ost_set_info" },
-	{ OST_QUOTACHECK,   "ost_quotacheck" },
-	{ OST_QUOTACTL,     "ost_quotactl" },
-	{ OST_QUOTA_ADJUST_QUNIT, "ost_quota_adjust_qunit" },
-	{ OST_LADVISE,			"ost_ladvise" },
-	{ MDS_GETATTR,      "mds_getattr" },
-	{ MDS_GETATTR_NAME, "mds_getattr_lock" },
-	{ MDS_CLOSE,	"mds_close" },
-	{ MDS_REINT,	"mds_reint" },
-	{ MDS_READPAGE,     "mds_readpage" },
-	{ MDS_CONNECT,      "mds_connect" },
-	{ MDS_DISCONNECT,   "mds_disconnect" },
-	{ MDS_GET_ROOT,			"mds_get_root" },
-	{ MDS_STATFS,       "mds_statfs" },
-	{ MDS_PIN,	  "mds_pin" },
-	{ MDS_UNPIN,	"mds_unpin" },
-	{ MDS_SYNC,	 "mds_sync" },
-	{ MDS_DONE_WRITING, "mds_done_writing" },
-	{ MDS_SET_INFO,     "mds_set_info" },
-	{ MDS_QUOTACHECK,   "mds_quotacheck" },
-	{ MDS_QUOTACTL,     "mds_quotactl" },
-	{ MDS_GETXATTR,     "mds_getxattr" },
-	{ MDS_SETXATTR,     "mds_setxattr" },
-	{ MDS_WRITEPAGE,    "mds_writepage" },
-	{ MDS_IS_SUBDIR,    "mds_is_subdir" },
-	{ MDS_GET_INFO,     "mds_get_info" },
-	{ MDS_HSM_STATE_GET, "mds_hsm_state_get" },
-	{ MDS_HSM_STATE_SET, "mds_hsm_state_set" },
-	{ MDS_HSM_ACTION,   "mds_hsm_action" },
-	{ MDS_HSM_PROGRESS, "mds_hsm_progress" },
-	{ MDS_HSM_REQUEST,  "mds_hsm_request" },
-	{ MDS_HSM_CT_REGISTER, "mds_hsm_ct_register" },
-	{ MDS_HSM_CT_UNREGISTER, "mds_hsm_ct_unregister" },
-	{ MDS_SWAP_LAYOUTS,	"mds_swap_layouts" },
-	{ LDLM_ENQUEUE,     "ldlm_enqueue" },
-	{ LDLM_CONVERT,     "ldlm_convert" },
-	{ LDLM_CANCEL,      "ldlm_cancel" },
-	{ LDLM_BL_CALLBACK, "ldlm_bl_callback" },
-	{ LDLM_CP_CALLBACK, "ldlm_cp_callback" },
-	{ LDLM_GL_CALLBACK, "ldlm_gl_callback" },
-	{ LDLM_SET_INFO,    "ldlm_set_info" },
-	{ MGS_CONNECT,      "mgs_connect" },
-	{ MGS_DISCONNECT,   "mgs_disconnect" },
-	{ MGS_EXCEPTION,    "mgs_exception" },
-	{ MGS_TARGET_REG,   "mgs_target_reg" },
-	{ MGS_TARGET_DEL,   "mgs_target_del" },
-	{ MGS_SET_INFO,     "mgs_set_info" },
-	{ MGS_CONFIG_READ,  "mgs_config_read" },
-	{ OBD_PING,	 "obd_ping" },
-	{ OBD_LOG_CANCEL,	"llog_cancel" },
-	{ OBD_QC_CALLBACK,  "obd_quota_callback" },
-	{ OBD_IDX_READ,	    "dt_index_read" },
-	{ LLOG_ORIGIN_HANDLE_CREATE,	 "llog_origin_handle_open" },
-	{ LLOG_ORIGIN_HANDLE_NEXT_BLOCK, "llog_origin_handle_next_block" },
-	{ LLOG_ORIGIN_HANDLE_READ_HEADER, "llog_origin_handle_read_header" },
-	{ LLOG_ORIGIN_HANDLE_WRITE_REC,  "llog_origin_handle_write_rec" },
-	{ LLOG_ORIGIN_HANDLE_CLOSE,      "llog_origin_handle_close" },
-	{ LLOG_ORIGIN_CONNECT,	   "llog_origin_connect" },
-	{ LLOG_CATINFO,		  "llog_catinfo" },
-	{ LLOG_ORIGIN_HANDLE_PREV_BLOCK, "llog_origin_handle_prev_block" },
-	{ LLOG_ORIGIN_HANDLE_DESTROY,    "llog_origin_handle_destroy" },
-	{ QUOTA_DQACQ,      "quota_acquire" },
-	{ QUOTA_DQREL,      "quota_release" },
-	{ SEQ_QUERY,	"seq_query" },
-	{ SEC_CTX_INIT,     "sec_ctx_init" },
-	{ SEC_CTX_INIT_CONT, "sec_ctx_init_cont" },
-	{ SEC_CTX_FINI,     "sec_ctx_fini" },
-	{ FLD_QUERY,	"fld_query" },
-	{ FLD_READ,	"fld_read" },
+	{ OST_REPLY,				"ost_reply" },
+	{ OST_GETATTR,				"ost_getattr" },
+	{ OST_SETATTR,				"ost_setattr" },
+	{ OST_READ,				"ost_read" },
+	{ OST_WRITE,				"ost_write" },
+	{ OST_CREATE,				"ost_create" },
+	{ OST_DESTROY,				"ost_destroy" },
+	{ OST_GET_INFO,				"ost_get_info" },
+	{ OST_CONNECT,				"ost_connect" },
+	{ OST_DISCONNECT,			"ost_disconnect" },
+	{ OST_PUNCH,				"ost_punch" },
+	{ OST_OPEN,				"ost_open" },
+	{ OST_CLOSE,				"ost_close" },
+	{ OST_STATFS,				"ost_statfs" },
+	{ 14,					NULL },	/* formerly OST_SAN_READ */
+	{ 15,					NULL }, /* formerly OST_SAN_WRITE */
+	{ OST_SYNC,				"ost_sync" },
+	{ OST_SET_INFO,				"ost_set_info" },
+	{ OST_QUOTACHECK,			"ost_quotacheck" },
+	{ OST_QUOTACTL,				"ost_quotactl" },
+	{ OST_QUOTA_ADJUST_QUNIT,		"ost_quota_adjust_qunit" },
+	{ OST_LADVISE,				"ost_ladvise" },
+	{ MDS_GETATTR,				"mds_getattr" },
+	{ MDS_GETATTR_NAME,			"mds_getattr_lock" },
+	{ MDS_CLOSE,				"mds_close" },
+	{ MDS_REINT,				"mds_reint" },
+	{ MDS_READPAGE,				"mds_readpage" },
+	{ MDS_CONNECT,				"mds_connect" },
+	{ MDS_DISCONNECT,			"mds_disconnect" },
+	{ MDS_GET_ROOT,				"mds_get_root" },
+	{ MDS_STATFS,				"mds_statfs" },
+	{ MDS_PIN,				"mds_pin" },
+	{ MDS_UNPIN,				"mds_unpin" },
+	{ MDS_SYNC,				"mds_sync" },
+	{ MDS_DONE_WRITING,			"mds_done_writing" },
+	{ MDS_SET_INFO,				"mds_set_info" },
+	{ MDS_QUOTACHECK,			"mds_quotacheck" },
+	{ MDS_QUOTACTL,				"mds_quotactl" },
+	{ MDS_GETXATTR,				"mds_getxattr" },
+	{ MDS_SETXATTR,				"mds_setxattr" },
+	{ MDS_WRITEPAGE,			"mds_writepage" },
+	{ MDS_IS_SUBDIR,			"mds_is_subdir" },
+	{ MDS_GET_INFO,				"mds_get_info" },
+	{ MDS_HSM_STATE_GET,			"mds_hsm_state_get" },
+	{ MDS_HSM_STATE_SET,			"mds_hsm_state_set" },
+	{ MDS_HSM_ACTION,			"mds_hsm_action" },
+	{ MDS_HSM_PROGRESS,			"mds_hsm_progress" },
+	{ MDS_HSM_REQUEST,			"mds_hsm_request" },
+	{ MDS_HSM_CT_REGISTER,			"mds_hsm_ct_register" },
+	{ MDS_HSM_CT_UNREGISTER,		"mds_hsm_ct_unregister" },
+	{ MDS_SWAP_LAYOUTS,			"mds_swap_layouts" },
+	{ LDLM_ENQUEUE,				"ldlm_enqueue" },
+	{ LDLM_CONVERT,				"ldlm_convert" },
+	{ LDLM_CANCEL,				"ldlm_cancel" },
+	{ LDLM_BL_CALLBACK,			"ldlm_bl_callback" },
+	{ LDLM_CP_CALLBACK,			"ldlm_cp_callback" },
+	{ LDLM_GL_CALLBACK,			"ldlm_gl_callback" },
+	{ LDLM_SET_INFO,			"ldlm_set_info" },
+	{ MGS_CONNECT,				"mgs_connect" },
+	{ MGS_DISCONNECT,			"mgs_disconnect" },
+	{ MGS_EXCEPTION,			"mgs_exception" },
+	{ MGS_TARGET_REG,			"mgs_target_reg" },
+	{ MGS_TARGET_DEL,			"mgs_target_del" },
+	{ MGS_SET_INFO,				"mgs_set_info" },
+	{ MGS_CONFIG_READ,			"mgs_config_read" },
+	{ OBD_PING,				"obd_ping" },
+	{ OBD_LOG_CANCEL,			"llog_cancel" },
+	{ OBD_QC_CALLBACK,			"obd_quota_callback" },
+	{ OBD_IDX_READ,				"dt_index_read" },
+	{ LLOG_ORIGIN_HANDLE_CREATE,		 "llog_origin_handle_open" },
+	{ LLOG_ORIGIN_HANDLE_NEXT_BLOCK,	"llog_origin_handle_next_block" },
+	{ LLOG_ORIGIN_HANDLE_READ_HEADER,	"llog_origin_handle_read_header" },
+	{ LLOG_ORIGIN_HANDLE_WRITE_REC,		"llog_origin_handle_write_rec" },
+	{ LLOG_ORIGIN_HANDLE_CLOSE,		"llog_origin_handle_close" },
+	{ LLOG_ORIGIN_CONNECT,			"llog_origin_connect" },
+	{ LLOG_CATINFO,				"llog_catinfo" },
+	{ LLOG_ORIGIN_HANDLE_PREV_BLOCK,	"llog_origin_handle_prev_block" },
+	{ LLOG_ORIGIN_HANDLE_DESTROY,		"llog_origin_handle_destroy" },
+	{ QUOTA_DQACQ,				"quota_acquire" },
+	{ QUOTA_DQREL,				"quota_release" },
+	{ SEQ_QUERY,				"seq_query" },
+	{ SEC_CTX_INIT,				"sec_ctx_init" },
+	{ SEC_CTX_INIT_CONT,			"sec_ctx_init_cont" },
+	{ SEC_CTX_FINI,				"sec_ctx_fini" },
+	{ FLD_QUERY,				"fld_query" },
+	{ FLD_READ,				"fld_read" },
 };
 
 static struct ll_eopcode {
-	u32       opcode;
-	const char *opname;
+	u32			opcode;
+	const char		*opname;
 } ll_eopcode_table[EXTRA_LAST_OPC] = {
-	{ LDLM_GLIMPSE_ENQUEUE, "ldlm_glimpse_enqueue" },
-	{ LDLM_PLAIN_ENQUEUE,   "ldlm_plain_enqueue" },
-	{ LDLM_EXTENT_ENQUEUE,  "ldlm_extent_enqueue" },
-	{ LDLM_FLOCK_ENQUEUE,   "ldlm_flock_enqueue" },
-	{ LDLM_IBITS_ENQUEUE,   "ldlm_ibits_enqueue" },
-	{ MDS_REINT_SETATTR,    "mds_reint_setattr" },
-	{ MDS_REINT_CREATE,     "mds_reint_create" },
-	{ MDS_REINT_LINK,       "mds_reint_link" },
-	{ MDS_REINT_UNLINK,     "mds_reint_unlink" },
-	{ MDS_REINT_RENAME,     "mds_reint_rename" },
-	{ MDS_REINT_OPEN,       "mds_reint_open" },
-	{ MDS_REINT_SETXATTR,   "mds_reint_setxattr" },
-	{ BRW_READ_BYTES,       "read_bytes" },
-	{ BRW_WRITE_BYTES,      "write_bytes" },
+	{ LDLM_GLIMPSE_ENQUEUE,			"ldlm_glimpse_enqueue" },
+	{ LDLM_PLAIN_ENQUEUE,			"ldlm_plain_enqueue" },
+	{ LDLM_EXTENT_ENQUEUE,			"ldlm_extent_enqueue" },
+	{ LDLM_FLOCK_ENQUEUE,			"ldlm_flock_enqueue" },
+	{ LDLM_IBITS_ENQUEUE,			"ldlm_ibits_enqueue" },
+	{ MDS_REINT_SETATTR,			"mds_reint_setattr" },
+	{ MDS_REINT_CREATE,			"mds_reint_create" },
+	{ MDS_REINT_LINK,			"mds_reint_link" },
+	{ MDS_REINT_UNLINK,			"mds_reint_unlink" },
+	{ MDS_REINT_RENAME,			"mds_reint_rename" },
+	{ MDS_REINT_OPEN,			"mds_reint_open" },
+	{ MDS_REINT_SETXATTR,			"mds_reint_setxattr" },
+	{ BRW_READ_BYTES,			"read_bytes" },
+	{ BRW_WRITE_BYTES,			"write_bytes" },
 };
 
 const char *ll_opcode2str(u32 opcode)
@@ -450,13 +450,13 @@ static void nrs_policy_get_info_locked(struct ptlrpc_nrs_policy *policy,
 
 	memcpy(info->pi_name, policy->pol_desc->pd_name, NRS_POL_NAME_MAX);
 
-	info->pi_fallback    = !!(policy->pol_flags & PTLRPC_NRS_FL_FALLBACK);
-	info->pi_state	     = policy->pol_state;
+	info->pi_fallback = !!(policy->pol_flags & PTLRPC_NRS_FL_FALLBACK);
+	info->pi_state = policy->pol_state;
 	/**
 	 * XXX: These are accessed without holding
 	 * ptlrpc_service_part::scp_req_lock.
 	 */
-	info->pi_req_queued  = policy->pol_req_queued;
+	info->pi_req_queued = policy->pol_req_queued;
 	info->pi_req_started = policy->pol_req_started;
 }
 
@@ -788,18 +788,18 @@ ptlrpc_lprocfs_svc_req_history_seek(struct ptlrpc_service_part *svcpt,
 /* convert position to sequence */
 #define PTLRPC_REQ_POS2SEQ(svc, pos)			\
 	((svc)->srv_cpt_bits == 0 ? (pos) :		\
-	 ((u64)(pos) << (svc)->srv_cpt_bits) |	\
+	 ((u64)(pos) << (svc)->srv_cpt_bits) |		\
 	 ((u64)(pos) >> (64 - (svc)->srv_cpt_bits)))
 
 static void *
 ptlrpc_lprocfs_svc_req_history_start(struct seq_file *s, loff_t *pos)
 {
-	struct ptlrpc_service		*svc = s->private;
-	struct ptlrpc_service_part	*svcpt;
-	struct ptlrpc_srh_iterator	*srhi;
-	unsigned int			cpt;
-	int				rc;
-	int				i;
+	struct ptlrpc_service *svc = s->private;
+	struct ptlrpc_service_part *svcpt;
+	struct ptlrpc_srh_iterator *srhi;
+	unsigned int cpt;
+	int rc;
+	int i;
 
 	if (sizeof(loff_t) != sizeof(u64)) { /* can't support */
 		CWARN("Failed to read request history because size of loff_t %d can't match size of u64\n",
@@ -940,10 +940,10 @@ static int
 ptlrpc_lprocfs_svc_req_history_open(struct inode *inode, struct file *file)
 {
 	static const struct seq_operations sops = {
-		.start = ptlrpc_lprocfs_svc_req_history_start,
-		.stop  = ptlrpc_lprocfs_svc_req_history_stop,
-		.next  = ptlrpc_lprocfs_svc_req_history_next,
-		.show  = ptlrpc_lprocfs_svc_req_history_show,
+		.start	= ptlrpc_lprocfs_svc_req_history_start,
+		.stop	= ptlrpc_lprocfs_svc_req_history_stop,
+		.next	= ptlrpc_lprocfs_svc_req_history_next,
+		.show	= ptlrpc_lprocfs_svc_req_history_show,
 	};
 	struct seq_file *seqf;
 	int rc;
@@ -975,9 +975,9 @@ static int ptlrpc_lprocfs_timeouts_seq_show(struct seq_file *m, void *n)
 	}
 
 	ptlrpc_service_for_each_part(svcpt, i, svc) {
-		cur	= at_get(&svcpt->scp_at_estimate);
-		worst	= svcpt->scp_at_estimate.at_worst_ever;
-		worstt	= svcpt->scp_at_estimate.at_worst_time;
+		cur = at_get(&svcpt->scp_at_estimate);
+		worst = svcpt->scp_at_estimate.at_worst_ever;
+		worstt = svcpt->scp_at_estimate.at_worst_time;
 		s2dhms(&ts, ktime_get_real_seconds() - worstt);
 
 		seq_printf(m, "%10s : cur %3u  worst %3u (at %lld, "
@@ -1074,26 +1074,26 @@ void ptlrpc_ldebugfs_register_service(struct dentry *entry,
 				      struct ptlrpc_service *svc)
 {
 	struct lprocfs_vars lproc_vars[] = {
-		{.name       = "req_buffer_history_len",
-		 .fops	     = &ptlrpc_lprocfs_req_history_len_fops,
-		 .data       = svc},
-		{.name       = "req_buffer_history_max",
-		 .fops	     = &ptlrpc_lprocfs_req_history_max_fops,
-		 .data       = svc},
-		{.name       = "timeouts",
-		 .fops	     = &ptlrpc_lprocfs_timeouts_fops,
-		 .data       = svc},
-		{.name       = "nrs_policies",
-		 .fops	     = &ptlrpc_lprocfs_nrs_fops,
-		 .data	     = svc},
-		{NULL}
+		{ .name		= "req_buffer_history_len",
+		  .fops		= &ptlrpc_lprocfs_req_history_len_fops,
+		  .data		= svc },
+		{ .name		= "req_buffer_history_max",
+		  .fops		= &ptlrpc_lprocfs_req_history_max_fops,
+		  .data		= svc },
+		{ .name		= "timeouts",
+		  .fops		= &ptlrpc_lprocfs_timeouts_fops,
+		  .data		= svc },
+		{ .name		= "nrs_policies",
+		  .fops		= &ptlrpc_lprocfs_nrs_fops,
+		  .data		= svc },
+		{ NULL }
 	};
 	static const struct file_operations req_history_fops = {
-		.owner       = THIS_MODULE,
-		.open	= ptlrpc_lprocfs_svc_req_history_open,
-		.read	= seq_read,
-		.llseek      = seq_lseek,
-		.release     = lprocfs_seq_release,
+		.owner		= THIS_MODULE,
+		.open		= ptlrpc_lprocfs_svc_req_history_open,
+		.read		= seq_read,
+		.llseek		= seq_lseek,
+		.release	= lprocfs_seq_release,
 	};
 
 	ptlrpc_ldebugfs_register(entry, svc->srv_name,

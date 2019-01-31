@@ -57,8 +57,8 @@
 #define POINTERS_PER_PAGE	(PAGE_SIZE / sizeof(void *))
 #define PAGES_PER_POOL		(POINTERS_PER_PAGE)
 
-#define IDLE_IDX_MAX	 (100)
-#define IDLE_IDX_WEIGHT	 (3)
+#define IDLE_IDX_MAX		(100)
+#define IDLE_IDX_WEIGHT		(3)
 
 #define CACHE_QUIESCENT_PERIOD  (20)
 
@@ -66,16 +66,16 @@ static struct ptlrpc_enc_page_pool {
 	/*
 	 * constants
 	 */
-	unsigned long    epp_max_pages;   /* maximum pages can hold, const */
-	unsigned int     epp_max_pools;   /* number of pools, const */
+	unsigned long		epp_max_pages;	/* maximum pages can hold, const */
+	unsigned int		epp_max_pools;	/* number of pools, const */
 
 	/*
 	 * wait queue in case of not enough free pages.
 	 */
-	wait_queue_head_t      epp_waitq;       /* waiting threads */
-	unsigned int     epp_waitqlen;    /* wait queue length */
-	unsigned long    epp_pages_short; /* # of pages wanted of in-q users */
-	unsigned int     epp_growing:1;   /* during adding pages */
+	wait_queue_head_t	epp_waitq;	/* waiting threads */
+	unsigned int		epp_waitqlen;	/* wait queue length */
+	unsigned long		epp_pages_short; /* # of pages wanted of in-q users */
+	unsigned int		epp_growing:1;	/* during adding pages */
 
 	/*
 	 * indicating how idle the pools are, from 0 to MAX_IDLE_IDX
@@ -84,36 +84,36 @@ static struct ptlrpc_enc_page_pool {
 	 * is idled for a while but the idle_idx might still be low if no
 	 * activities happened in the pools.
 	 */
-	unsigned long    epp_idle_idx;
+	unsigned long		epp_idle_idx;
 
 	/* last shrink time due to mem tight */
-	time64_t         epp_last_shrink;
-	time64_t         epp_last_access;
+	time64_t		epp_last_shrink;
+	time64_t		epp_last_access;
 
 	/*
 	 * in-pool pages bookkeeping
 	 */
-	spinlock_t	 epp_lock;	   /* protect following fields */
-	unsigned long    epp_total_pages; /* total pages in pools */
-	unsigned long    epp_free_pages;  /* current pages available */
+	spinlock_t		epp_lock;	 /* protect following fields */
+	unsigned long		epp_total_pages; /* total pages in pools */
+	unsigned long		epp_free_pages;	 /* current pages available */
 
 	/*
 	 * statistics
 	 */
-	unsigned long    epp_st_max_pages;      /* # of pages ever reached */
-	unsigned int     epp_st_grows;	  /* # of grows */
-	unsigned int     epp_st_grow_fails;     /* # of add pages failures */
-	unsigned int     epp_st_shrinks;	/* # of shrinks */
-	unsigned long    epp_st_access;	 /* # of access */
-	unsigned long    epp_st_missings;       /* # of cache missing */
-	unsigned long    epp_st_lowfree;	/* lowest free pages reached */
-	unsigned int     epp_st_max_wqlen;      /* highest waitqueue length */
-	unsigned long       epp_st_max_wait;       /* in jiffies */
-	unsigned long	 epp_st_outofmem;	/* # of out of mem requests */
+	unsigned long		epp_st_max_pages;	/* # of pages ever reached */
+	unsigned int		epp_st_grows;		/* # of grows */
+	unsigned int		epp_st_grow_fails;	/* # of add pages failures */
+	unsigned int		epp_st_shrinks;		/* # of shrinks */
+	unsigned long		epp_st_access;		/* # of access */
+	unsigned long		epp_st_missings;	/* # of cache missing */
+	unsigned long		epp_st_lowfree;		/* lowest free pages reached */
+	unsigned int		epp_st_max_wqlen;	/* highest waitqueue length */
+	unsigned long		epp_st_max_wait;	/* in jiffies */
+	unsigned long		epp_st_outofmem;	/* # of out of mem requests */
 	/*
 	 * pointers to pools
 	 */
-	struct page    ***epp_pools;
+	struct page		***epp_pools;
 } page_pools;
 
 /*
@@ -394,9 +394,9 @@ static inline void enc_pools_free(void)
 }
 
 static struct shrinker pools_shrinker = {
-	.count_objects	= enc_pools_shrink_count,
-	.scan_objects	= enc_pools_shrink_scan,
-	.seeks		= DEFAULT_SEEKS,
+	.count_objects		= enc_pools_shrink_count,
+	.scan_objects		= enc_pools_shrink_scan,
+	.seeks			= DEFAULT_SEEKS,
 };
 
 int sptlrpc_enc_pool_init(void)
@@ -475,14 +475,14 @@ void sptlrpc_enc_pool_fini(void)
 }
 
 static int cfs_hash_alg_id[] = {
-	[BULK_HASH_ALG_NULL]	= CFS_HASH_ALG_NULL,
-	[BULK_HASH_ALG_ADLER32]	= CFS_HASH_ALG_ADLER32,
-	[BULK_HASH_ALG_CRC32]	= CFS_HASH_ALG_CRC32,
-	[BULK_HASH_ALG_MD5]	= CFS_HASH_ALG_MD5,
-	[BULK_HASH_ALG_SHA1]	= CFS_HASH_ALG_SHA1,
-	[BULK_HASH_ALG_SHA256]	= CFS_HASH_ALG_SHA256,
-	[BULK_HASH_ALG_SHA384]	= CFS_HASH_ALG_SHA384,
-	[BULK_HASH_ALG_SHA512]	= CFS_HASH_ALG_SHA512,
+	[BULK_HASH_ALG_NULL]		= CFS_HASH_ALG_NULL,
+	[BULK_HASH_ALG_ADLER32]		= CFS_HASH_ALG_ADLER32,
+	[BULK_HASH_ALG_CRC32]		= CFS_HASH_ALG_CRC32,
+	[BULK_HASH_ALG_MD5]		= CFS_HASH_ALG_MD5,
+	[BULK_HASH_ALG_SHA1]		= CFS_HASH_ALG_SHA1,
+	[BULK_HASH_ALG_SHA256]		= CFS_HASH_ALG_SHA256,
+	[BULK_HASH_ALG_SHA384]		= CFS_HASH_ALG_SHA384,
+	[BULK_HASH_ALG_SHA512]		= CFS_HASH_ALG_SHA512,
 };
 
 const char *sptlrpc_get_hash_name(u8 hash_alg)
@@ -498,7 +498,7 @@ u8 sptlrpc_get_hash_alg(const char *algname)
 int bulk_sec_desc_unpack(struct lustre_msg *msg, int offset, int swabbed)
 {
 	struct ptlrpc_bulk_sec_desc *bsd;
-	int			  size = msg->lm_buflens[offset];
+	int size = msg->lm_buflens[offset];
 
 	bsd = lustre_msg_buf(msg, offset, sizeof(*bsd));
 	if (!bsd) {

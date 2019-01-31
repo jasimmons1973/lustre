@@ -46,9 +46,9 @@
 #include "ptlrpc_internal.h"
 
 struct plain_sec {
-	struct ptlrpc_sec       pls_base;
-	rwlock_t	    pls_lock;
-	struct ptlrpc_cli_ctx  *pls_ctx;
+	struct ptlrpc_sec	 pls_base;
+	rwlock_t		 pls_lock;
+	struct ptlrpc_cli_ctx	*pls_ctx;
 };
 
 static inline struct plain_sec *sec2plsec(struct ptlrpc_sec *sec)
@@ -65,15 +65,15 @@ static unsigned int plain_at_offset;
 /*
  * for simplicity, plain policy rpc use fixed layout.
  */
-#define PLAIN_PACK_SEGMENTS	     (4)
+#define PLAIN_PACK_SEGMENTS	(4)
 
-#define PLAIN_PACK_HDR_OFF	      (0)
-#define PLAIN_PACK_MSG_OFF	      (1)
-#define PLAIN_PACK_USER_OFF	     (2)
-#define PLAIN_PACK_BULK_OFF	     (3)
+#define PLAIN_PACK_HDR_OFF	(0)
+#define PLAIN_PACK_MSG_OFF	(1)
+#define PLAIN_PACK_USER_OFF	(2)
+#define PLAIN_PACK_BULK_OFF	(3)
 
-#define PLAIN_FL_USER		   (0x01)
-#define PLAIN_FL_BULK		   (0x02)
+#define PLAIN_FL_USER		(0x01)
+#define PLAIN_FL_BULK		(0x02)
 
 struct plain_header {
 	u8	    ph_ver;	    /* 0 */
@@ -711,8 +711,8 @@ int plain_enlarge_reqbuf(struct ptlrpc_sec *sec,
  ****************************************/
 
 static struct ptlrpc_svc_ctx plain_svc_ctx = {
-	.sc_refcount    = ATOMIC_INIT(1),
-	.sc_policy      = &plain_policy,
+	.sc_refcount	= ATOMIC_INIT(1),
+	.sc_policy	= &plain_policy,
 };
 
 static
@@ -961,40 +961,40 @@ int plain_svc_wrap_bulk(struct ptlrpc_request *req,
 
 static struct ptlrpc_ctx_ops plain_ctx_ops = {
 	.refresh		= plain_ctx_refresh,
-	.validate	       = plain_ctx_validate,
-	.sign		   = plain_ctx_sign,
-	.verify		 = plain_ctx_verify,
-	.wrap_bulk	      = plain_cli_wrap_bulk,
-	.unwrap_bulk	    = plain_cli_unwrap_bulk,
+	.validate		= plain_ctx_validate,
+	.sign			= plain_ctx_sign,
+	.verify			= plain_ctx_verify,
+	.wrap_bulk		= plain_cli_wrap_bulk,
+	.unwrap_bulk		= plain_cli_unwrap_bulk,
 };
 
 static struct ptlrpc_sec_cops plain_sec_cops = {
-	.create_sec	     = plain_create_sec,
-	.destroy_sec	    = plain_destroy_sec,
-	.kill_sec	       = plain_kill_sec,
-	.lookup_ctx	     = plain_lookup_ctx,
-	.release_ctx	    = plain_release_ctx,
+	.create_sec		= plain_create_sec,
+	.destroy_sec		= plain_destroy_sec,
+	.kill_sec		= plain_kill_sec,
+	.lookup_ctx		= plain_lookup_ctx,
+	.release_ctx		= plain_release_ctx,
 	.flush_ctx_cache	= plain_flush_ctx_cache,
-	.alloc_reqbuf	   = plain_alloc_reqbuf,
-	.free_reqbuf	    = plain_free_reqbuf,
-	.alloc_repbuf	   = plain_alloc_repbuf,
-	.free_repbuf	    = plain_free_repbuf,
-	.enlarge_reqbuf	 = plain_enlarge_reqbuf,
+	.alloc_reqbuf		= plain_alloc_reqbuf,
+	.free_reqbuf		= plain_free_reqbuf,
+	.alloc_repbuf		= plain_alloc_repbuf,
+	.free_repbuf		= plain_free_repbuf,
+	.enlarge_reqbuf		= plain_enlarge_reqbuf,
 };
 
 static struct ptlrpc_sec_sops plain_sec_sops = {
-	.accept		 = plain_accept,
-	.alloc_rs	       = plain_alloc_rs,
-	.authorize	      = plain_authorize,
+	.accept			= plain_accept,
+	.alloc_rs		= plain_alloc_rs,
+	.authorize		= plain_authorize,
 	.free_rs		= plain_free_rs,
-	.unwrap_bulk	    = plain_svc_unwrap_bulk,
-	.wrap_bulk	      = plain_svc_wrap_bulk,
+	.unwrap_bulk		= plain_svc_unwrap_bulk,
+	.wrap_bulk		= plain_svc_wrap_bulk,
 };
 
 static struct ptlrpc_sec_policy plain_policy = {
-	.sp_owner	       = THIS_MODULE,
+	.sp_owner		= THIS_MODULE,
 	.sp_name		= "plain",
-	.sp_policy	      = SPTLRPC_POLICY_PLAIN,
+	.sp_policy		= SPTLRPC_POLICY_PLAIN,
 	.sp_cops		= &plain_sec_cops,
 	.sp_sops		= &plain_sec_sops,
 };

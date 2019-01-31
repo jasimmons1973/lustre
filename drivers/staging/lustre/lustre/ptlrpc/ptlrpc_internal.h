@@ -111,12 +111,12 @@ struct nrs_core {
 	 * Protects nrs_core::nrs_policies, serializes external policy
 	 * registration/unregistration, and NRS core lprocfs operations.
 	 */
-	struct mutex nrs_mutex;
+	struct mutex		nrs_mutex;
 	/**
 	 * List of all policy descriptors registered with NRS core; protected
 	 * by nrs_core::nrs_mutex.
 	 */
-	struct list_head nrs_policies;
+	struct list_head	nrs_policies;
 
 };
 
@@ -251,15 +251,15 @@ void ptlrpc_pinger_commit_expected(struct obd_import *imp);
 void ptlrpc_pinger_wake_up(void);
 
 /* sec_null.c */
-int  sptlrpc_null_init(void);
+int sptlrpc_null_init(void);
 void sptlrpc_null_fini(void);
 
 /* sec_plain.c */
-int  sptlrpc_plain_init(void);
+int sptlrpc_plain_init(void);
 void sptlrpc_plain_fini(void);
 
 /* sec_bulk.c */
-int  sptlrpc_enc_pool_init(void);
+int sptlrpc_enc_pool_init(void);
 void sptlrpc_enc_pool_fini(void);
 int sptlrpc_proc_enc_pool_seq_show(struct seq_file *m, void *v);
 
@@ -277,11 +277,11 @@ void sptlrpc_conf_choose_flavor(enum lustre_sec_part from,
 				struct obd_uuid *target,
 				lnet_nid_t nid,
 				struct sptlrpc_flavor *sf);
-int  sptlrpc_conf_init(void);
+int sptlrpc_conf_init(void);
 void sptlrpc_conf_fini(void);
 
 /* sec.c */
-int  sptlrpc_init(void);
+int sptlrpc_init(void);
 void sptlrpc_fini(void);
 
 /* layout.c */

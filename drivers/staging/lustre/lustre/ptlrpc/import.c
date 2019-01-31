@@ -51,7 +51,7 @@
 #include "ptlrpc_internal.h"
 
 struct ptlrpc_connect_async_args {
-	 u64 pcaa_peer_committed;
+	u64 pcaa_peer_committed;
 	int pcaa_initial_connect;
 };
 

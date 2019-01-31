@@ -280,6 +280,7 @@ int ptlrpc_unregister_bulk(struct ptlrpc_request *req, int async)
 		 * timeout lets us CWARN for visibility of sluggish LNDs
 		 */
 		int cnt = 0;
+
 		while (cnt < LONG_UNLINK &&
 		       (rc = wait_event_idle_timeout(*wq,
 						     !ptlrpc_client_bulk_active(req),
@@ -685,7 +686,7 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 	 * add the network latency for our local timeout.
 	 */
 	request->rq_deadline = request->rq_sent + request->rq_timeout +
-		ptlrpc_at_get_net_latency(request);
+			       ptlrpc_at_get_net_latency(request);
 
 	ptlrpc_pinger_sending_on_import(imp);
 
@@ -705,7 +706,7 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 	if (noreply)
 		goto out;
 
- cleanup_me:
+cleanup_me:
 	/* MEUnlink is safe; the PUT didn't even get off the ground, and
 	 * nobody apart from the PUT's target has the right nid+XID to
 	 * access the reply buffer.
@@ -715,7 +716,7 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 	/* UNLINKED callback called synchronously */
 	LASSERT(!request->rq_receiving_reply);
 
- cleanup_bulk:
+cleanup_bulk:
 	/* We do sync unlink here as there was no real transfer here so
 	 * the chance to have long unlink to sluggish net is smaller here.
 	 */

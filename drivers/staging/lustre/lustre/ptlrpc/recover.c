@@ -119,6 +119,7 @@ int ptlrpc_replay_next(struct obd_import *imp, int *inflight)
 	 */
 	if (!req) {
 		struct ptlrpc_request *tmp;
+
 		list_for_each_entry_safe(tmp, pos, &imp->imp_replay_list,
 					 rq_replay_list) {
 			if (tmp->rq_transno > last_transno) {
