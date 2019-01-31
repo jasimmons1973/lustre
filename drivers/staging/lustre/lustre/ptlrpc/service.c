@@ -507,7 +507,7 @@ ptlrpc_service_part_init(struct ptlrpc_service *svc,
 		INIT_LIST_HEAD(&array->paa_reqs_array[index]);
 
 	array->paa_reqs_count =
-		kzalloc_node(sizeof(__u32) * size, GFP_NOFS,
+		kzalloc_node(sizeof(u32) * size, GFP_NOFS,
 			     cfs_cpt_spread_node(svc->srv_cptable, cpt));
 	if (!array->paa_reqs_count)
 		goto free_reqs_array;
@@ -555,7 +555,7 @@ ptlrpc_register_service(struct ptlrpc_service_conf *conf,
 	struct ptlrpc_service *service;
 	struct ptlrpc_service_part *svcpt;
 	struct cfs_cpt_table *cptable;
-	__u32 *cpts = NULL;
+	u32 *cpts = NULL;
 	int ncpts;
 	int cpt;
 	int rc;
@@ -925,7 +925,7 @@ static int ptlrpc_check_req(struct ptlrpc_request *req)
 static void ptlrpc_at_set_timer(struct ptlrpc_service_part *svcpt)
 {
 	struct ptlrpc_at_array *array = &svcpt->scp_at_array;
-	__s32 next;
+	s32 next;
 
 	if (array->paa_count == 0) {
 		del_timer(&svcpt->scp_at_timer);
@@ -933,7 +933,7 @@ static void ptlrpc_at_set_timer(struct ptlrpc_service_part *svcpt)
 	}
 
 	/* Set timer for closest deadline */
-	next = (__s32)(array->paa_deadline - ktime_get_real_seconds() -
+	next = (s32)(array->paa_deadline - ktime_get_real_seconds() -
 		       at_early_margin);
 	if (next <= 0) {
 		ptlrpc_at_timer(&svcpt->scp_at_timer);
@@ -950,7 +950,7 @@ static int ptlrpc_at_add_timed(struct ptlrpc_request *req)
 	struct ptlrpc_service_part *svcpt = req->rq_rqbd->rqbd_svcpt;
 	struct ptlrpc_at_array *array = &svcpt->scp_at_array;
 	struct ptlrpc_request *rq = NULL;
-	__u32 index;
+	u32 index;
 
 	if (AT_OFF)
 		return 0;
@@ -1158,7 +1158,7 @@ static void ptlrpc_at_check_timed(struct ptlrpc_service_part *svcpt)
 	struct ptlrpc_at_array *array = &svcpt->scp_at_array;
 	struct ptlrpc_request *rq, *n;
 	struct list_head work_list;
-	__u32 index, count;
+	u32 index, count;
 	time64_t deadline;
 	time64_t now = ktime_get_real_seconds();
 	long delay;
@@ -1478,7 +1478,7 @@ ptlrpc_server_handle_req_in(struct ptlrpc_service_part *svcpt,
 {
 	struct ptlrpc_service *svc = svcpt->scp_service;
 	struct ptlrpc_request *req;
-	__u32 deadline;
+	u32 deadline;
 	int rc;
 
 	spin_lock(&svcpt->scp_lock);
@@ -1757,7 +1757,7 @@ put_conn:
 	       (request->rq_repmsg ?
 		lustre_msg_get_status(request->rq_repmsg) : -999));
 	if (likely(svc->srv_stats && request->rq_reqmsg)) {
-		__u32 op = lustre_msg_get_opc(request->rq_reqmsg);
+		u32 op = lustre_msg_get_opc(request->rq_reqmsg);
 		int opc = opcode_offset(op);
 
 		if (opc > 0 && !(op == LDLM_ENQUEUE || op == MDS_REINT)) {

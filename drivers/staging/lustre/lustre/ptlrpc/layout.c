@@ -768,7 +768,7 @@ static struct req_format *req_formats[] = {
 };
 
 struct req_msg_field {
-	const __u32 rmf_flags;
+	const u32 rmf_flags;
 	const char  *rmf_name;
 	/**
 	 * Field length. (-1) means "variable length".  If the
@@ -842,7 +842,7 @@ EXPORT_SYMBOL(RMF_MGS_CONFIG_RES);
 
 struct req_msg_field RMF_U32 =
 	DEFINE_MSGF("generic u32", 0,
-		    sizeof(__u32), lustre_swab_generic_32s, NULL);
+		    sizeof(u32), lustre_swab_generic_32s, NULL);
 EXPORT_SYMBOL(RMF_U32);
 
 struct req_msg_field RMF_SETINFO_VAL =
@@ -855,7 +855,7 @@ EXPORT_SYMBOL(RMF_GETINFO_KEY);
 
 struct req_msg_field RMF_GETINFO_VALLEN =
 	DEFINE_MSGF("getinfo_vallen", 0,
-		    sizeof(__u32), lustre_swab_generic_32s, NULL);
+		    sizeof(u32), lustre_swab_generic_32s, NULL);
 EXPORT_SYMBOL(RMF_GETINFO_VALLEN);
 
 struct req_msg_field RMF_GETINFO_VAL =
@@ -864,7 +864,7 @@ EXPORT_SYMBOL(RMF_GETINFO_VAL);
 
 struct req_msg_field RMF_SEQ_OPC =
 	DEFINE_MSGF("seq_query_opc", 0,
-		    sizeof(__u32), lustre_swab_generic_32s, NULL);
+		    sizeof(u32), lustre_swab_generic_32s, NULL);
 EXPORT_SYMBOL(RMF_SEQ_OPC);
 
 struct req_msg_field RMF_SEQ_RANGE =
@@ -875,7 +875,7 @@ EXPORT_SYMBOL(RMF_SEQ_RANGE);
 
 struct req_msg_field RMF_FLD_OPC =
 	DEFINE_MSGF("fld_query_opc", 0,
-		    sizeof(__u32), lustre_swab_generic_32s, NULL);
+		    sizeof(u32), lustre_swab_generic_32s, NULL);
 EXPORT_SYMBOL(RMF_FLD_OPC);
 
 struct req_msg_field RMF_FLD_MDFLD =
@@ -1069,12 +1069,12 @@ struct req_msg_field RMF_NIOBUF_REMOTE =
 EXPORT_SYMBOL(RMF_NIOBUF_REMOTE);
 
 struct req_msg_field RMF_RCS =
-	DEFINE_MSGF("niobuf_remote", RMF_F_STRUCT_ARRAY, sizeof(__u32),
+	DEFINE_MSGF("niobuf_remote", RMF_F_STRUCT_ARRAY, sizeof(u32),
 		    lustre_swab_generic_32s, dump_rcs);
 EXPORT_SYMBOL(RMF_RCS);
 
 struct req_msg_field RMF_EAVALS_LENS =
-	DEFINE_MSGF("eavals_lens", RMF_F_STRUCT_ARRAY, sizeof(__u32),
+	DEFINE_MSGF("eavals_lens", RMF_F_STRUCT_ARRAY, sizeof(u32),
 		    lustre_swab_generic_32s, NULL);
 EXPORT_SYMBOL(RMF_EAVALS_LENS);
 
@@ -1130,7 +1130,7 @@ EXPORT_SYMBOL(RMF_MDS_HSM_USER_ITEM);
 
 struct req_msg_field RMF_MDS_HSM_ARCHIVE =
 	DEFINE_MSGF("hsm_archive", 0,
-		    sizeof(__u32), lustre_swab_generic_32s, NULL);
+		    sizeof(u32), lustre_swab_generic_32s, NULL);
 EXPORT_SYMBOL(RMF_MDS_HSM_ARCHIVE);
 
 struct req_msg_field RMF_MDS_HSM_REQUEST =
@@ -2129,7 +2129,7 @@ u32 req_capsule_msg_size(struct req_capsule *pill, enum req_location loc)
  * This function should not be used for formats which contain variable size
  * fields.
  */
-u32 req_capsule_fmt_size(__u32 magic, const struct req_format *fmt,
+u32 req_capsule_fmt_size(u32 magic, const struct req_format *fmt,
 			 enum req_location loc)
 {
 	size_t i = 0;

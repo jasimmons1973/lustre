@@ -286,7 +286,7 @@ EXPORT_SYMBOL(ptlrpc_free_bulk);
  */
 void ptlrpc_at_set_req_timeout(struct ptlrpc_request *req)
 {
-	__u32 serv_est;
+	u32 serv_est;
 	int idx;
 	struct imp_at *at;
 
@@ -690,12 +690,12 @@ static inline void ptlrpc_assign_next_xid(struct ptlrpc_request *req)
 }
 
 int ptlrpc_request_bufs_pack(struct ptlrpc_request *request,
-			     __u32 version, int opcode, char **bufs,
+			     u32 version, int opcode, char **bufs,
 			     struct ptlrpc_cli_ctx *ctx)
 {
 	int count;
 	struct obd_import *imp;
-	__u32 *lengths;
+	u32 *lengths;
 	int rc;
 
 	count = req_capsule_filled_sizes(&request->rq_pill, RCL_CLIENT);
@@ -785,7 +785,7 @@ EXPORT_SYMBOL(ptlrpc_request_bufs_pack);
  * steps if necessary.
  */
 int ptlrpc_request_pack(struct ptlrpc_request *request,
-			__u32 version, int opcode)
+			u32 version, int opcode)
 {
 	int rc;
 
@@ -917,7 +917,7 @@ EXPORT_SYMBOL(ptlrpc_request_free);
  */
 struct ptlrpc_request *ptlrpc_request_alloc_pack(struct obd_import *imp,
 						 const struct req_format *format,
-						 __u32 version, int opcode)
+						 u32 version, int opcode)
 {
 	struct ptlrpc_request *req = ptlrpc_request_alloc(imp, format);
 	int rc;
@@ -1186,7 +1186,7 @@ static int ptlrpc_import_delay_req(struct obd_import *imp,
  */
 static bool ptlrpc_console_allow(struct ptlrpc_request *req)
 {
-	__u32 opc;
+	u32 opc;
 
 	LASSERT(req->rq_reqmsg);
 	opc = lustre_msg_get_opc(req->rq_reqmsg);
@@ -1226,7 +1226,7 @@ static int ptlrpc_check_status(struct ptlrpc_request *req)
 	if (lustre_msg_get_type(req->rq_repmsg) == PTL_RPC_MSG_ERR) {
 		struct obd_import *imp = req->rq_import;
 		lnet_nid_t nid = imp->imp_connection->c_peer.nid;
-		__u32 opc = lustre_msg_get_opc(req->rq_reqmsg);
+		u32 opc = lustre_msg_get_opc(req->rq_reqmsg);
 
 		/* -EAGAIN is normal when using POSIX flocks */
 		if (ptlrpc_console_allow(req) &&
@@ -1256,7 +1256,7 @@ static void ptlrpc_save_versions(struct ptlrpc_request *req)
 {
 	struct lustre_msg *repmsg = req->rq_repmsg;
 	struct lustre_msg *reqmsg = req->rq_reqmsg;
-	__u64 *versions = lustre_msg_get_versions(repmsg);
+	u64 *versions = lustre_msg_get_versions(repmsg);
 
 	if (lustre_msg_get_flags(req->rq_reqmsg) & MSG_REPLAY)
 		return;
@@ -1267,7 +1267,7 @@ static void ptlrpc_save_versions(struct ptlrpc_request *req)
 	       versions[0], versions[1]);
 }
 
-__u64 ptlrpc_known_replied_xid(struct obd_import *imp)
+u64 ptlrpc_known_replied_xid(struct obd_import *imp)
 {
 	struct ptlrpc_request *req;
 
@@ -2471,7 +2471,7 @@ EXPORT_SYMBOL(ptlrpc_req_finished);
 /**
  * Returns xid of a \a request
  */
-__u64 ptlrpc_req_xid(struct ptlrpc_request *request)
+u64 ptlrpc_req_xid(struct ptlrpc_request *request)
 {
 	return request->rq_xid;
 }
@@ -3025,7 +3025,7 @@ void ptlrpc_abort_set(struct ptlrpc_request_set *set)
 	}
 }
 
-static __u64 ptlrpc_last_xid;
+static u64 ptlrpc_last_xid;
 static spinlock_t ptlrpc_last_xid_lock;
 
 /**
@@ -3054,7 +3054,7 @@ void ptlrpc_init_xid(void)
 		ptlrpc_last_xid >>= 2;
 		ptlrpc_last_xid |= (1ULL << 61);
 	} else {
-		ptlrpc_last_xid = (__u64)now << 20;
+		ptlrpc_last_xid = (u64)now << 20;
 	}
 
 	/* Always need to be aligned to a power-of-two for multi-bulk BRW */
@@ -3074,9 +3074,9 @@ void ptlrpc_init_xid(void)
  * This is assumed to be true due to the initial ptlrpc_last_xid
  * value also being initialized to a power-of-two value. LU-1431
  */
-__u64 ptlrpc_next_xid(void)
+u64 ptlrpc_next_xid(void)
 {
-	__u64 next;
+	u64 next;
 
 	spin_lock(&ptlrpc_last_xid_lock);
 	next = ptlrpc_last_xid + PTLRPC_BULK_OPS_COUNT;
@@ -3155,11 +3155,11 @@ void ptlrpc_set_bulk_mbits(struct ptlrpc_request *req)
  * Get a glimpse at what next xid value might have been.
  * Returns possible next xid.
  */
-__u64 ptlrpc_sample_next_xid(void)
+u64 ptlrpc_sample_next_xid(void)
 {
 #if BITS_PER_LONG == 32
 	/* need to avoid possible word tearing on 32-bit systems */
-	__u64 next;
+	u64 next;
 
 	spin_lock(&ptlrpc_last_xid_lock);
 	next = ptlrpc_last_xid + PTLRPC_BULK_OPS_COUNT;

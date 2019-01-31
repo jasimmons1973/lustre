@@ -76,15 +76,15 @@ static unsigned int plain_at_offset;
 #define PLAIN_FL_BULK		   (0x02)
 
 struct plain_header {
-	__u8	    ph_ver;	    /* 0 */
-	__u8	    ph_flags;
-	__u8	    ph_sp;	     /* source */
-	__u8	    ph_bulk_hash_alg;  /* complete flavor desc */
-	__u8	    ph_pad[4];
+	u8	    ph_ver;	    /* 0 */
+	u8	    ph_flags;
+	u8	    ph_sp;	     /* source */
+	u8	    ph_bulk_hash_alg;  /* complete flavor desc */
+	u8	    ph_pad[4];
 };
 
 struct plain_bulk_token {
-	__u8	    pbt_hash[8];
+	u8	    pbt_hash[8];
 };
 
 #define PLAIN_BSD_SIZE \
@@ -118,7 +118,7 @@ static int plain_unpack_bsd(struct lustre_msg *msg, int swabbed)
 }
 
 static int plain_generate_bulk_csum(struct ptlrpc_bulk_desc *desc,
-				    __u8 hash_alg,
+				    u8 hash_alg,
 				    struct plain_bulk_token *token)
 {
 	if (hash_alg == BULK_HASH_ALG_NULL)
@@ -130,7 +130,7 @@ static int plain_generate_bulk_csum(struct ptlrpc_bulk_desc *desc,
 }
 
 static int plain_verify_bulk_csum(struct ptlrpc_bulk_desc *desc,
-				  __u8 hash_alg,
+				  u8 hash_alg,
 				  struct plain_bulk_token *tokenr)
 {
 	struct plain_bulk_token tokenv;
@@ -216,7 +216,7 @@ int plain_ctx_verify(struct ptlrpc_cli_ctx *ctx, struct ptlrpc_request *req)
 {
 	struct lustre_msg *msg = req->rq_repdata;
 	struct plain_header *phdr;
-	__u32 cksum;
+	u32 cksum;
 	int swabbed;
 
 	if (msg->lm_bufcount != PLAIN_PACK_SEGMENTS) {
@@ -543,7 +543,7 @@ int plain_alloc_reqbuf(struct ptlrpc_sec *sec,
 		       struct ptlrpc_request *req,
 		       int msgsize)
 {
-	__u32 buflens[PLAIN_PACK_SEGMENTS] = { 0, };
+	u32 buflens[PLAIN_PACK_SEGMENTS] = { 0, };
 	int alloc_len;
 
 	buflens[PLAIN_PACK_HDR_OFF] = sizeof(struct plain_header);
@@ -603,7 +603,7 @@ int plain_alloc_repbuf(struct ptlrpc_sec *sec,
 		       struct ptlrpc_request *req,
 		       int msgsize)
 {
-	__u32 buflens[PLAIN_PACK_SEGMENTS] = { 0, };
+	u32 buflens[PLAIN_PACK_SEGMENTS] = { 0, };
 	int alloc_len;
 
 	buflens[PLAIN_PACK_HDR_OFF] = sizeof(struct plain_header);
@@ -790,7 +790,7 @@ static
 int plain_alloc_rs(struct ptlrpc_request *req, int msgsize)
 {
 	struct ptlrpc_reply_state *rs;
-	__u32 buflens[PLAIN_PACK_SEGMENTS] = { 0, };
+	u32 buflens[PLAIN_PACK_SEGMENTS] = { 0, };
 	int rs_size = sizeof(*rs);
 
 	LASSERT(msgsize % 8 == 0);
@@ -1001,7 +1001,7 @@ static struct ptlrpc_sec_policy plain_policy = {
 
 int sptlrpc_plain_init(void)
 {
-	__u32 buflens[PLAIN_PACK_SEGMENTS] = { 0, };
+	u32 buflens[PLAIN_PACK_SEGMENTS] = { 0, };
 	int rc;
 
 	buflens[PLAIN_PACK_MSG_OFF] = lustre_msg_early_size();

@@ -51,7 +51,7 @@
 #include "ptlrpc_internal.h"
 
 struct ptlrpc_connect_async_args {
-	 __u64 pcaa_peer_committed;
+	 u64 pcaa_peer_committed;
 	int pcaa_initial_connect;
 };
 
@@ -154,7 +154,7 @@ static void deuuidify(char *uuid, const char *prefix, char **uuid_start,
  *	     (increasing the import->conn_cnt) the older failure should
  *	     not also cause a reconnection.  If zero it forces a reconnect.
  */
-int ptlrpc_set_import_discon(struct obd_import *imp, __u32 conn_cnt)
+int ptlrpc_set_import_discon(struct obd_import *imp, u32 conn_cnt)
 {
 	int rc = 0;
 
@@ -399,7 +399,7 @@ void ptlrpc_pinger_force(struct obd_import *imp)
 }
 EXPORT_SYMBOL(ptlrpc_pinger_force);
 
-void ptlrpc_fail_import(struct obd_import *imp, __u32 conn_cnt)
+void ptlrpc_fail_import(struct obd_import *imp, u32 conn_cnt)
 {
 	LASSERT(!imp->imp_dlm_fake);
 
@@ -547,7 +547,7 @@ static int import_select_connection(struct obd_import *imp)
 /*
  * must be called under imp_lock
  */
-static int ptlrpc_first_transno(struct obd_import *imp, __u64 *transno)
+static int ptlrpc_first_transno(struct obd_import *imp, u64 *transno)
 {
 	struct ptlrpc_request *req;
 
@@ -589,7 +589,7 @@ int ptlrpc_connect_import(struct obd_import *imp)
 	struct obd_device *obd = imp->imp_obd;
 	int initial_connect = 0;
 	int set_transno = 0;
-	__u64 committed_before_reconnect = 0;
+	u64 committed_before_reconnect = 0;
 	struct ptlrpc_request *request;
 	char *bufs[] = { NULL,
 			 obd2cli_tgt(imp->imp_obd),
@@ -686,7 +686,7 @@ int ptlrpc_connect_import(struct obd_import *imp)
 	/* Allow a slightly larger reply for future growth compatibility */
 	req_capsule_set_size(&request->rq_pill, &RMF_CONNECT_DATA, RCL_SERVER,
 			     sizeof(struct obd_connect_data) +
-			     16 * sizeof(__u64));
+			     16 * sizeof(u64));
 	ptlrpc_request_set_replen(request);
 	request->rq_interpret_reply = ptlrpc_connect_interpret;
 
@@ -936,7 +936,7 @@ static int ptlrpc_connect_interpret(const struct lu_env *env,
 	struct ptlrpc_connect_async_args *aa = data;
 	struct obd_import *imp = request->rq_import;
 	struct lustre_handle old_hdl;
-	__u64 old_connect_flags;
+	u64 old_connect_flags;
 	int msg_flags;
 	struct obd_connect_data *ocd;
 	struct obd_export *exp;

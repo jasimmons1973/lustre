@@ -67,7 +67,7 @@ int ptlrpc_replay_next(struct obd_import *imp, int *inflight)
 {
 	int rc = 0;
 	struct ptlrpc_request *req = NULL, *pos;
-	__u64 last_transno;
+	u64 last_transno;
 
 	*inflight = 0;
 

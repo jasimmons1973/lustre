@@ -672,7 +672,7 @@ static int ptlrpcd_init(void)
 	int j;
 	int rc = 0;
 	struct cfs_cpt_table *cptable;
-	__u32 *cpts = NULL;
+	u32 *cpts = NULL;
 	int ncpts;
 	int cpt;
 	struct ptlrpcd *pd;

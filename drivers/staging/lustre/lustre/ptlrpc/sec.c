@@ -64,7 +64,7 @@ static struct ptlrpc_sec_policy *policies[SPTLRPC_POLICY_MAX] = {
 
 int sptlrpc_register_policy(struct ptlrpc_sec_policy *policy)
 {
-	__u16 number = policy->sp_policy;
+	u16 number = policy->sp_policy;
 
 	LASSERT(policy->sp_name);
 	LASSERT(policy->sp_cops);
@@ -88,7 +88,7 @@ EXPORT_SYMBOL(sptlrpc_register_policy);
 
 int sptlrpc_unregister_policy(struct ptlrpc_sec_policy *policy)
 {
-	__u16 number = policy->sp_policy;
+	u16 number = policy->sp_policy;
 
 	LASSERT(number < SPTLRPC_POLICY_MAX);
 
@@ -109,13 +109,13 @@ int sptlrpc_unregister_policy(struct ptlrpc_sec_policy *policy)
 EXPORT_SYMBOL(sptlrpc_unregister_policy);
 
 static
-struct ptlrpc_sec_policy *sptlrpc_wireflavor2policy(__u32 flavor)
+struct ptlrpc_sec_policy *sptlrpc_wireflavor2policy(u32 flavor)
 {
 	static DEFINE_MUTEX(load_mutex);
 	static atomic_t loaded = ATOMIC_INIT(0);
 	struct ptlrpc_sec_policy *policy;
-	__u16 number = SPTLRPC_FLVR_POLICY(flavor);
-	__u16 flag = 0;
+	u16 number = SPTLRPC_FLVR_POLICY(flavor);
+	u16 flag = 0;
 
 	if (number >= SPTLRPC_POLICY_MAX)
 		return NULL;
@@ -150,7 +150,7 @@ struct ptlrpc_sec_policy *sptlrpc_wireflavor2policy(__u32 flavor)
 	return policy;
 }
 
-__u32 sptlrpc_name2flavor_base(const char *name)
+u32 sptlrpc_name2flavor_base(const char *name)
 {
 	if (!strcmp(name, "null"))
 		return SPTLRPC_FLVR_NULL;
@@ -169,9 +169,9 @@ __u32 sptlrpc_name2flavor_base(const char *name)
 }
 EXPORT_SYMBOL(sptlrpc_name2flavor_base);
 
-const char *sptlrpc_flavor2name_base(__u32 flvr)
+const char *sptlrpc_flavor2name_base(u32 flvr)
 {
-	__u32   base = SPTLRPC_FLVR_BASE(flvr);
+	u32   base = SPTLRPC_FLVR_BASE(flvr);
 
 	if (base == SPTLRPC_FLVR_BASE(SPTLRPC_FLVR_NULL))
 		return "null";
@@ -226,7 +226,7 @@ char *sptlrpc_flavor2name(struct sptlrpc_flavor *sf, char *buf, int bufsize)
 }
 EXPORT_SYMBOL(sptlrpc_flavor2name);
 
-static char *sptlrpc_secflags2str(__u32 flags, char *buf, int bufsize)
+static char *sptlrpc_secflags2str(u32 flags, char *buf, int bufsize)
 {
 	buf[0] = '\0';
 
@@ -2280,7 +2280,7 @@ int sptlrpc_unpack_user_desc(struct lustre_msg *msg, int offset, int swabbed)
 		return -EINVAL;
 	}
 
-	if (sizeof(*pud) + pud->pud_ngroups * sizeof(__u32) >
+	if (sizeof(*pud) + pud->pud_ngroups * sizeof(u32) >
 	    msg->lm_buflens[offset]) {
 		CERROR("%u groups are claimed but bufsize only %u\n",
 		       pud->pud_ngroups, msg->lm_buflens[offset]);

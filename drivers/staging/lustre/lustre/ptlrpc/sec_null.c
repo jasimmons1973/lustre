@@ -57,7 +57,7 @@ static struct ptlrpc_svc_ctx    null_svc_ctx;
 static inline
 void null_encode_sec_part(struct lustre_msg *msg, enum lustre_sec_part sp)
 {
-	msg->lm_secflvr |= (((__u32)sp) & 0xFF) << 24;
+	msg->lm_secflvr |= (((u32)sp) & 0xFF) << 24;
 }
 
 static inline
@@ -91,7 +91,7 @@ int null_ctx_sign(struct ptlrpc_cli_ctx *ctx, struct ptlrpc_request *req)
 static
 int null_ctx_verify(struct ptlrpc_cli_ctx *ctx, struct ptlrpc_request *req)
 {
-	__u32 cksums, cksumc;
+	u32 cksums, cksumc;
 
 	LASSERT(req->rq_repdata);
 
@@ -361,7 +361,7 @@ int null_authorize(struct ptlrpc_request *req)
 		else
 			req->rq_reply_off = 0;
 	} else {
-		__u32 cksum;
+		u32 cksum;
 
 		cksum = lustre_msg_calc_cksum(rs->rs_repbuf);
 		lustre_msg_set_cksum(rs->rs_repbuf, cksum);

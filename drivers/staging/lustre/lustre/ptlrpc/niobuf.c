@@ -48,7 +48,7 @@
 static int ptl_send_buf(struct lnet_handle_md *mdh, void *base, int len,
 			enum lnet_ack_req ack, struct ptlrpc_cb_id *cbid,
 			lnet_nid_t self, struct lnet_process_id peer_id,
-			int portal, __u64 xid, unsigned int offset,
+			int portal, u64 xid, unsigned int offset,
 			struct lnet_handle_md *bulk_cookie)
 {
 	int rc;
@@ -530,7 +530,7 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 	 * from the resend for reply timeout.
 	 */
 	if (request->rq_nr_resend && list_empty(&request->rq_unreplied_list)) {
-		__u64 min_xid = 0;
+		u64 min_xid = 0;
 		/*
 		 * resend for EINPROGRESS, allocate new xid to avoid reply
 		 * reconstruction

@@ -485,12 +485,12 @@ static int cfs_hash_alg_id[] = {
 	[BULK_HASH_ALG_SHA512]	= CFS_HASH_ALG_SHA512,
 };
 
-const char *sptlrpc_get_hash_name(__u8 hash_alg)
+const char *sptlrpc_get_hash_name(u8 hash_alg)
 {
 	return cfs_crypto_hash_name(cfs_hash_alg_id[hash_alg]);
 }
 
-__u8 sptlrpc_get_hash_alg(const char *algname)
+u8 sptlrpc_get_hash_alg(const char *algname)
 {
 	return cfs_crypto_hash_alg(algname);
 }
@@ -532,7 +532,7 @@ int bulk_sec_desc_unpack(struct lustre_msg *msg, int offset, int swabbed)
 }
 EXPORT_SYMBOL(bulk_sec_desc_unpack);
 
-int sptlrpc_get_bulk_checksum(struct ptlrpc_bulk_desc *desc, __u8 alg,
+int sptlrpc_get_bulk_checksum(struct ptlrpc_bulk_desc *desc, u8 alg,
 			      void *buf, int buflen)
 {
 	struct ahash_request *hdesc;

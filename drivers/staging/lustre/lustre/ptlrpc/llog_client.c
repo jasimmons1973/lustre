@@ -142,7 +142,7 @@ out:
 static int llog_client_next_block(const struct lu_env *env,
 				  struct llog_handle *loghandle,
 				  int *cur_idx, int next_idx,
-				  __u64 *cur_offset, void *buf, int len)
+				  u64 *cur_offset, void *buf, int len)
 {
 	struct obd_import *imp;
 	struct ptlrpc_request *req = NULL;

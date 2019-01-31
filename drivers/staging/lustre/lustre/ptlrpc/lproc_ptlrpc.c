@@ -42,7 +42,7 @@
 #include "ptlrpc_internal.h"
 
 static struct ll_rpc_opcode {
-	__u32       opcode;
+	u32       opcode;
 	const char *opname;
 } ll_rpc_opcode_table[LUSTRE_MAX_OPCODES] = {
 	{ OST_REPLY,	"ost_reply" },
@@ -134,7 +134,7 @@ static struct ll_rpc_opcode {
 };
 
 static struct ll_eopcode {
-	__u32       opcode;
+	u32       opcode;
 	const char *opname;
 } ll_eopcode_table[EXTRA_LAST_OPC] = {
 	{ LDLM_GLIMPSE_ENQUEUE, "ldlm_glimpse_enqueue" },
@@ -153,7 +153,7 @@ static struct ll_eopcode {
 	{ BRW_WRITE_BYTES,      "write_bytes" },
 };
 
-const char *ll_opcode2str(__u32 opcode)
+const char *ll_opcode2str(u32 opcode)
 {
 	/* When one of the assertions below fail, chances are that:
 	 *     1) A new opcode was added in include/lustre/lustre_idl.h,
@@ -162,7 +162,7 @@ const char *ll_opcode2str(__u32 opcode)
 	 *	and the opcode_offset() function in
 	 *	ptlrpc_internal.h needs to be modified.
 	 */
-	__u32 offset = opcode_offset(opcode);
+	u32 offset = opcode_offset(opcode);
 
 	LASSERTF(offset < LUSTRE_MAX_OPCODES,
 		 "offset %u >= LUSTRE_MAX_OPCODES %u\n",
@@ -173,7 +173,7 @@ const char *ll_opcode2str(__u32 opcode)
 	return ll_rpc_opcode_table[offset].opname;
 }
 
-static const char *ll_eopcode2str(__u32 opcode)
+static const char *ll_eopcode2str(u32 opcode)
 {
 	LASSERT(ll_eopcode_table[opcode].opcode == opcode);
 	return ll_eopcode_table[opcode].opname;
@@ -231,7 +231,7 @@ ptlrpc_ldebugfs_register(struct dentry *root, char *dir,
 				     ll_eopcode2str(i), units);
 	}
 	for (i = 0; i < LUSTRE_MAX_OPCODES; i++) {
-		__u32 opcode = ll_rpc_opcode_table[i].opcode;
+		u32 opcode = ll_rpc_opcode_table[i].opcode;
 
 		lprocfs_counter_init(svc_stats,
 				     EXTRA_MAX_OPCODES + i, svc_counter_config,
@@ -709,14 +709,14 @@ LPROC_SEQ_FOPS(ptlrpc_lprocfs_nrs);
 
 struct ptlrpc_srh_iterator {
 	int			srhi_idx;
-	__u64			srhi_seq;
+	u64			srhi_seq;
 	struct ptlrpc_request	*srhi_req;
 };
 
 static int
 ptlrpc_lprocfs_svc_req_history_seek(struct ptlrpc_service_part *svcpt,
 				    struct ptlrpc_srh_iterator *srhi,
-				    __u64 seq)
+				    u64 seq)
 {
 	struct list_head *e;
 	struct ptlrpc_request *req;
@@ -772,7 +772,7 @@ ptlrpc_lprocfs_svc_req_history_seek(struct ptlrpc_service_part *svcpt,
 /* convert seq_file pos to cpt */
 #define PTLRPC_REQ_POS2CPT(svc, pos)			\
 	((svc)->srv_cpt_bits == 0 ? 0 :			\
-	 (__u64)(pos) >> (64 - (svc)->srv_cpt_bits))
+	 (u64)(pos) >> (64 - (svc)->srv_cpt_bits))
 
 /* make up seq_file pos from cpt */
 #define PTLRPC_REQ_CPT2POS(svc, cpt)			\
@@ -788,8 +788,8 @@ ptlrpc_lprocfs_svc_req_history_seek(struct ptlrpc_service_part *svcpt,
 /* convert position to sequence */
 #define PTLRPC_REQ_POS2SEQ(svc, pos)			\
 	((svc)->srv_cpt_bits == 0 ? (pos) :		\
-	 ((__u64)(pos) << (svc)->srv_cpt_bits) |	\
-	 ((__u64)(pos) >> (64 - (svc)->srv_cpt_bits)))
+	 ((u64)(pos) << (svc)->srv_cpt_bits) |	\
+	 ((u64)(pos) >> (64 - (svc)->srv_cpt_bits)))
 
 static void *
 ptlrpc_lprocfs_svc_req_history_start(struct seq_file *s, loff_t *pos)
@@ -801,7 +801,7 @@ ptlrpc_lprocfs_svc_req_history_start(struct seq_file *s, loff_t *pos)
 	int				rc;
 	int				i;
 
-	if (sizeof(loff_t) != sizeof(__u64)) { /* can't support */
+	if (sizeof(loff_t) != sizeof(u64)) { /* can't support */
 		CWARN("Failed to read request history because size of loff_t %d can't match size of u64\n",
 		      (int)sizeof(loff_t));
 		return NULL;
@@ -852,7 +852,7 @@ ptlrpc_lprocfs_svc_req_history_next(struct seq_file *s,
 	struct ptlrpc_service *svc = s->private;
 	struct ptlrpc_srh_iterator *srhi = iter;
 	struct ptlrpc_service_part *svcpt;
-	__u64 seq;
+	u64 seq;
 	int rc;
 	int i;
 
@@ -1120,7 +1120,7 @@ EXPORT_SYMBOL(ptlrpc_lprocfs_register_obd);
 void ptlrpc_lprocfs_rpc_sent(struct ptlrpc_request *req, long amount)
 {
 	struct lprocfs_stats *svc_stats;
-	__u32 op = lustre_msg_get_opc(req->rq_reqmsg);
+	u32 op = lustre_msg_get_opc(req->rq_reqmsg);
 	int opc = opcode_offset(op);
 
 	svc_stats = req->rq_import->imp_obd->obd_svc_stats;
@@ -1243,7 +1243,7 @@ int lprocfs_wr_import(struct file *file, const char __user *buffer,
 	uuid = kbuf + prefix_len;
 	ptr = strstr(uuid, "::");
 	if (ptr) {
-		__u32 inst;
+		u32 inst;
 		char *endptr;
 
 		*ptr = 0;

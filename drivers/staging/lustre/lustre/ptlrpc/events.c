@@ -253,9 +253,9 @@ void client_bulk_callback(struct lnet_event *ev)
 static void ptlrpc_req_add_history(struct ptlrpc_service_part *svcpt,
 				   struct ptlrpc_request *req)
 {
-	__u64 sec = req->rq_arrival_time.tv_sec;
-	__u32 usec = req->rq_arrival_time.tv_nsec / NSEC_PER_USEC / 16; /* usec / 16 */
-	__u64 new_seq;
+	u64 sec = req->rq_arrival_time.tv_sec;
+	u32 usec = req->rq_arrival_time.tv_nsec / NSEC_PER_USEC / 16; /* usec / 16 */
+	u64 new_seq;
 
 	/* set sequence ID for request and add it to history list,
 	 * it must be called with hold svcpt::scp_lock
@@ -453,11 +453,11 @@ int ptlrpc_uuid_to_peer(struct obd_uuid *uuid,
 			struct lnet_process_id *peer, lnet_nid_t *self)
 {
 	int best_dist = 0;
-	__u32 best_order = 0;
+	u32 best_order = 0;
 	int count = 0;
 	int rc = -ENOENT;
 	int dist;
-	__u32 order;
+	u32 order;
 	lnet_nid_t dst_nid;
 	lnet_nid_t src_nid;
 
