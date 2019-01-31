@@ -77,32 +77,32 @@ struct ldlm_bl_pool {
 	 * as a priority. It is used for LDLM_FL_DISCARD_DATA requests.
 	 * see bug 13843
 	 */
-	struct list_head	      blp_prio_list;
+	struct list_head	blp_prio_list;
 
 	/*
 	 * blp_list is used for all other callbacks which are likely
 	 * to take longer to process.
 	 */
-	struct list_head	      blp_list;
+	struct list_head	blp_list;
 
-	wait_queue_head_t	     blp_waitq;
+	wait_queue_head_t	blp_waitq;
 	struct completion	blp_comp;
-	atomic_t	    blp_num_threads;
-	atomic_t	    blp_busy_threads;
-	int		     blp_min_threads;
-	int		     blp_max_threads;
+	atomic_t		blp_num_threads;
+	atomic_t		blp_busy_threads;
+	int			blp_min_threads;
+	int			blp_max_threads;
 };
 
 struct ldlm_bl_work_item {
-	struct list_head	      blwi_entry;
+	struct list_head	blwi_entry;
 	struct ldlm_namespace  *blwi_ns;
 	struct ldlm_lock_desc   blwi_ld;
 	struct ldlm_lock       *blwi_lock;
-	struct list_head	      blwi_head;
-	int		     blwi_count;
+	struct list_head	blwi_head;
+	int			blwi_count;
 	struct completion	blwi_comp;
-	enum ldlm_cancel_flags  blwi_flags;
-	int		     blwi_mem_pressure;
+	enum ldlm_cancel_flags	blwi_flags;
+	int			blwi_mem_pressure;
 };
 
 /**
@@ -928,8 +928,8 @@ static const struct attribute_group ldlm_attr_group = {
 
 static int ldlm_setup(void)
 {
-	static struct ptlrpc_service_conf	conf;
-	struct ldlm_bl_pool			*blp = NULL;
+	static struct ptlrpc_service_conf conf;
+	struct ldlm_bl_pool *blp = NULL;
 	int rc = 0;
 	int i;
 

@@ -512,11 +512,11 @@ int client_connect_import(const struct lu_env *env,
 			  struct obd_device *obd, struct obd_uuid *cluuid,
 			  struct obd_connect_data *data, void *localdata)
 {
-	struct client_obd       *cli    = &obd->u.cli;
-	struct obd_import       *imp    = cli->cl_import;
+	struct client_obd *cli = &obd->u.cli;
+	struct obd_import *imp = cli->cl_import;
 	struct obd_connect_data *ocd;
-	struct lustre_handle    conn    = { 0 };
-	int		     rc;
+	struct lustre_handle conn = { 0 };
+	int rc;
 
 	*exp = NULL;
 	down_write(&cli->cl_sem);
@@ -703,9 +703,9 @@ target_send_reply_msg(struct ptlrpc_request *req, int rc, int fail_id)
 void target_send_reply(struct ptlrpc_request *req, int rc, int fail_id)
 {
 	struct ptlrpc_service_part *svcpt;
-	int			netrc;
+	int netrc;
 	struct ptlrpc_reply_state *rs;
-	struct obd_export	 *exp;
+	struct obd_export *exp;
 
 	if (req->rq_no_reply)
 		return;
@@ -736,11 +736,11 @@ void target_send_reply(struct ptlrpc_request *req, int rc, int fail_id)
 
 	/* disable reply scheduling while I'm setting up */
 	rs->rs_scheduled = 1;
-	rs->rs_on_net    = 1;
-	rs->rs_xid       = req->rq_xid;
-	rs->rs_transno   = req->rq_transno;
-	rs->rs_export    = exp;
-	rs->rs_opc       = lustre_msg_get_opc(req->rq_reqmsg);
+	rs->rs_on_net = 1;
+	rs->rs_xid = req->rq_xid;
+	rs->rs_transno = req->rq_transno;
+	rs->rs_export = exp;
+	rs->rs_opc = lustre_msg_get_opc(req->rq_reqmsg);
 
 	spin_lock(&exp->exp_uncommitted_replies_lock);
 	CDEBUG(D_NET, "rs transno = %llu, last committed = %llu\n",

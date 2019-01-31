@@ -465,8 +465,7 @@ static ssize_t grant_speed_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct ldlm_pool *pl = container_of(kobj, struct ldlm_pool,
 					    pl_kobj);
-
-	int	       grant_speed;
+	int grant_speed;
 
 	spin_lock(&pl->pl_lock);
 	/* serialize with ldlm_pool_recalc */
@@ -902,7 +901,7 @@ static void ldlm_pools_recalc(struct work_struct *ws)
 	 * Recalc at least ldlm_namespace_nr_read(client) namespaces.
 	 */
 	for (nr = ldlm_namespace_nr_read(client); nr > 0; nr--) {
-		int     skip;
+		int skip;
 		/*
 		 * Lock the list, get first @ns in the list, getref, move it
 		 * to the tail, unlock and call pool recalc. This way we avoid

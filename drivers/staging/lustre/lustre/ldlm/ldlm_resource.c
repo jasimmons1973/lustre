@@ -132,9 +132,9 @@ static ssize_t resource_count_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct ldlm_namespace *ns = container_of(kobj, struct ldlm_namespace,
 						 ns_kobj);
-	u64		  res = 0;
-	struct cfs_hash_bd	  bd;
-	int		    i;
+	u64 res = 0;
+	struct cfs_hash_bd bd;
+	int i;
 
 	/* result is not strictly consistent */
 	cfs_hash_for_each_bucket(ns->ns_rs_hash, &bd, i)
@@ -148,7 +148,7 @@ static ssize_t lock_count_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct ldlm_namespace *ns = container_of(kobj, struct ldlm_namespace,
 						 ns_kobj);
-	u64		  locks;
+	u64 locks;
 
 	locks = lprocfs_stats_collector(ns->ns_stats, LDLM_NSS_LOCKS,
 					LPROCFS_FIELDS_FLAGS_SUM);
@@ -407,9 +407,9 @@ struct ldlm_resource *ldlm_resource_getref(struct ldlm_resource *res)
 static unsigned int ldlm_res_hop_hash(struct cfs_hash *hs,
 				      const void *key, unsigned int mask)
 {
-	const struct ldlm_res_id     *id  = key;
-	unsigned int		val = 0;
-	unsigned int		i;
+	const struct ldlm_res_id *id  = key;
+	unsigned int val = 0;
+	unsigned int i;
 
 	for (i = 0; i < RES_NAME_SIZE; i++)
 		val += id->name[i];
@@ -420,9 +420,9 @@ static unsigned int ldlm_res_hop_fid_hash(struct cfs_hash *hs,
 					  const void *key, unsigned int mask)
 {
 	const struct ldlm_res_id *id = key;
-	struct lu_fid       fid;
-	u32	       hash;
-	u32	       val;
+	struct lu_fid fid;
+	u32 hash;
+	u32 val;
 
 	fid.f_seq = id->name[LUSTRE_RES_ID_SEQ_OFF];
 	fid.f_oid = (u32)id->name[LUSTRE_RES_ID_VER_OID_OFF];
@@ -448,7 +448,7 @@ static unsigned int ldlm_res_hop_fid_hash(struct cfs_hash *hs,
 
 static void *ldlm_res_hop_key(struct hlist_node *hnode)
 {
-	struct ldlm_resource   *res;
+	struct ldlm_resource *res;
 
 	res = hlist_entry(hnode, struct ldlm_resource, lr_hash);
 	return &res->lr_name;
@@ -456,7 +456,7 @@ static void *ldlm_res_hop_key(struct hlist_node *hnode)
 
 static int ldlm_res_hop_keycmp(const void *key, struct hlist_node *hnode)
 {
-	struct ldlm_resource   *res;
+	struct ldlm_resource *res;
 
 	res = hlist_entry(hnode, struct ldlm_resource, lr_hash);
 	return ldlm_res_eq((const struct ldlm_res_id *)key,
@@ -506,13 +506,13 @@ static struct cfs_hash_ops ldlm_ns_fid_hash_ops = {
 };
 
 struct ldlm_ns_hash_def {
-	enum ldlm_ns_type nsd_type;
+	enum ldlm_ns_type	nsd_type;
 	/** hash bucket bits */
-	unsigned int	nsd_bkt_bits;
+	unsigned int		nsd_bkt_bits;
 	/** hash bits */
-	unsigned int	nsd_all_bits;
+	unsigned int		nsd_all_bits;
 	/** hash operations */
-	struct cfs_hash_ops *nsd_hops;
+	struct cfs_hash_ops	*nsd_hops;
 };
 
 static struct ldlm_ns_hash_def ldlm_ns_hash_defs[] = {
@@ -578,10 +578,10 @@ struct ldlm_namespace *ldlm_namespace_new(struct obd_device *obd, char *name,
 {
 	struct ldlm_namespace *ns = NULL;
 	struct ldlm_ns_bucket *nsb;
-	struct ldlm_ns_hash_def    *nsd;
-	struct cfs_hash_bd	  bd;
-	int		    idx;
-	int		    rc;
+	struct ldlm_ns_hash_def *nsd;
+	struct cfs_hash_bd bd;
+	int idx;
+	int rc;
 
 	LASSERT(obd);
 
@@ -625,10 +625,10 @@ struct ldlm_namespace *ldlm_namespace_new(struct obd_device *obd, char *name,
 		nsb->nsb_namespace = ns;
 	}
 
-	ns->ns_obd      = obd;
+	ns->ns_obd = obd;
 	ns->ns_appetite = apt;
-	ns->ns_client   = client;
-	ns->ns_name     = kstrdup(name, GFP_KERNEL);
+	ns->ns_client = client;
+	ns->ns_name = kstrdup(name, GFP_KERNEL);
 	if (!ns->ns_name)
 		goto out_hash;
 
@@ -638,13 +638,13 @@ struct ldlm_namespace *ldlm_namespace_new(struct obd_device *obd, char *name,
 	atomic_set(&ns->ns_bref, 0);
 	init_waitqueue_head(&ns->ns_waitq);
 
-	ns->ns_max_parallel_ast   = LDLM_DEFAULT_PARALLEL_AST_LIMIT;
-	ns->ns_nr_unused	  = 0;
-	ns->ns_max_unused	 = LDLM_DEFAULT_LRU_SIZE;
-	ns->ns_max_age	    = LDLM_DEFAULT_MAX_ALIVE;
+	ns->ns_max_parallel_ast = LDLM_DEFAULT_PARALLEL_AST_LIMIT;
+	ns->ns_nr_unused = 0;
+	ns->ns_max_unused = LDLM_DEFAULT_LRU_SIZE;
+	ns->ns_max_age = LDLM_DEFAULT_MAX_ALIVE;
 	ns->ns_orig_connect_flags = 0;
-	ns->ns_connect_flags      = 0;
-	ns->ns_stopping	   = 0;
+	ns->ns_connect_flags = 0;
+	ns->ns_stopping = 0;
 
 	rc = ldlm_namespace_sysfs_register(ns);
 	if (rc != 0) {
@@ -775,7 +775,7 @@ static int ldlm_resource_clean(struct cfs_hash *hs, struct cfs_hash_bd *bd,
 static int ldlm_resource_complain(struct cfs_hash *hs, struct cfs_hash_bd *bd,
 				  struct hlist_node *hnode, void *arg)
 {
-	struct ldlm_resource  *res = cfs_hash_object(hs, hnode);
+	struct ldlm_resource *res = cfs_hash_object(hs, hnode);
 
 	lock_res(res);
 	CERROR("%s: namespace resource " DLDLMRES
@@ -1045,11 +1045,11 @@ ldlm_resource_get(struct ldlm_namespace *ns, struct ldlm_resource *parent,
 		  const struct ldlm_res_id *name, enum ldlm_type type,
 		  int create)
 {
-	struct hlist_node     *hnode;
+	struct hlist_node *hnode;
 	struct ldlm_resource *res = NULL;
-	struct cfs_hash_bd	 bd;
-	u64		 version;
-	int		      ns_refcount = 0;
+	struct cfs_hash_bd bd;
+	u64 version;
+	int ns_refcount = 0;
 	int rc;
 
 	LASSERT(!parent);
@@ -1075,9 +1075,9 @@ ldlm_resource_get(struct ldlm_namespace *ns, struct ldlm_resource *parent,
 	if (!res)
 		return ERR_PTR(-ENOMEM);
 
-	res->lr_ns_bucket  = cfs_hash_bd_extra_get(ns->ns_rs_hash, &bd);
-	res->lr_name       = *name;
-	res->lr_type       = type;
+	res->lr_ns_bucket = cfs_hash_bd_extra_get(ns->ns_rs_hash, &bd);
+	res->lr_name = *name;
+	res->lr_type = type;
 
 	cfs_hash_bd_lock(ns->ns_rs_hash, &bd, 1);
 	hnode = (version == cfs_hash_bd_version_get(&bd)) ?  NULL :
@@ -1179,7 +1179,7 @@ static void __ldlm_resource_putref_final(struct cfs_hash_bd *bd,
 void ldlm_resource_putref(struct ldlm_resource *res)
 {
 	struct ldlm_namespace *ns = ldlm_res_to_ns(res);
-	struct cfs_hash_bd   bd;
+	struct cfs_hash_bd bd;
 
 	LASSERT_ATOMIC_GT_LT(&res->lr_refcount, 0, LI_POISON);
 	CDEBUG(D_INFO, "putref res: %p count: %d\n",
@@ -1253,7 +1253,7 @@ static int ldlm_res_hash_dump(struct cfs_hash *hs, struct cfs_hash_bd *bd,
 			      struct hlist_node *hnode, void *arg)
 {
 	struct ldlm_resource *res = cfs_hash_object(hs, hnode);
-	int    level = (int)(unsigned long)arg;
+	int level = (int)(unsigned long)arg;
 
 	lock_res(res);
 	ldlm_resource_dump(level, res);

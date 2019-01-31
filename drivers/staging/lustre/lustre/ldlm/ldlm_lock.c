@@ -682,7 +682,7 @@ void ldlm_lock_addref_internal_nolock(struct ldlm_lock *lock,
 int ldlm_lock_addref_try(const struct lustre_handle *lockh, enum ldlm_mode mode)
 {
 	struct ldlm_lock *lock;
-	int	       result;
+	int result;
 
 	result = -EAGAIN;
 	lock = ldlm_handle2lock(lockh);
@@ -1344,7 +1344,7 @@ out:
 			}
 		}
 	}
- out2:
+out2:
 	if (rc) {
 		LDLM_DEBUG(lock, "matched (%llu %llu)",
 			   (type == LDLM_PLAIN || type == LDLM_IBITS) ?
@@ -1568,8 +1568,6 @@ out:
 	return ERR_PTR(rc);
 }
 
-
-
 /**
  * Enqueue (request) a lock.
  * On the client this is called from ldlm_cli_enqueue_fini
@@ -1629,9 +1627,9 @@ static int
 ldlm_work_bl_ast_lock(struct ptlrpc_request_set *rqset, void *opaq)
 {
 	struct ldlm_cb_set_arg *arg = opaq;
-	struct ldlm_lock_desc   d;
-	int		     rc;
-	struct ldlm_lock       *lock;
+	struct ldlm_lock_desc d;
+	int rc;
+	struct ldlm_lock *lock;
 
 	if (list_empty(arg->list))
 		return -ENOENT;
@@ -1664,9 +1662,9 @@ ldlm_work_bl_ast_lock(struct ptlrpc_request_set *rqset, void *opaq)
 static int
 ldlm_work_cp_ast_lock(struct ptlrpc_request_set *rqset, void *opaq)
 {
-	struct ldlm_cb_set_arg  *arg = opaq;
-	int		      rc = 0;
-	struct ldlm_lock	*lock;
+	struct ldlm_cb_set_arg *arg = opaq;
+	int rc = 0;
+	struct ldlm_lock *lock;
 	ldlm_completion_callback completion_callback;
 
 	if (list_empty(arg->list))
@@ -1711,9 +1709,9 @@ static int
 ldlm_work_revoke_ast_lock(struct ptlrpc_request_set *rqset, void *opaq)
 {
 	struct ldlm_cb_set_arg *arg = opaq;
-	struct ldlm_lock_desc   desc;
-	int		     rc;
-	struct ldlm_lock       *lock;
+	struct ldlm_lock_desc desc;
+	int rc;
+	struct ldlm_lock *lock;
 
 	if (list_empty(arg->list))
 		return -ENOENT;
@@ -1737,10 +1735,10 @@ ldlm_work_revoke_ast_lock(struct ptlrpc_request_set *rqset, void *opaq)
  */
 static int ldlm_work_gl_ast_lock(struct ptlrpc_request_set *rqset, void *opaq)
 {
-	struct ldlm_cb_set_arg		*arg = opaq;
-	struct ldlm_glimpse_work	*gl_work;
-	struct ldlm_lock		*lock;
-	int				 rc = 0;
+	struct ldlm_cb_set_arg *arg = opaq;
+	struct ldlm_glimpse_work *gl_work;
+	struct ldlm_lock *lock;
+	int rc = 0;
 
 	if (list_empty(arg->list))
 		return -ENOENT;
@@ -1776,8 +1774,8 @@ int ldlm_run_ast_work(struct ldlm_namespace *ns, struct list_head *rpc_list,
 		      enum ldlm_desc_ast_t ast_type)
 {
 	struct ldlm_cb_set_arg *arg;
-	set_producer_func       work_ast_lock;
-	int		     rc;
+	set_producer_func work_ast_lock;
+	int rc;
 
 	if (list_empty(rpc_list))
 		return 0;

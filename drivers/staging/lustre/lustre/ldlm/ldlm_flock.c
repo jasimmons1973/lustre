@@ -314,8 +314,8 @@ reprocess:
 int
 ldlm_flock_completion_ast(struct ldlm_lock *lock, u64 flags, void *data)
 {
-	struct file_lock		*getlk = lock->l_ast_data;
-	int				rc = 0;
+	struct file_lock *getlk = lock->l_ast_data;
+	int rc = 0;
 
 	OBD_FAIL_TIMEOUT(OBD_FAIL_LDLM_CP_CB_WAIT2, 4);
 	if (OBD_FAIL_PRECHECK(OBD_FAIL_LDLM_CP_CB_WAIT3)) {

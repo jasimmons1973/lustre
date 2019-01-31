@@ -565,9 +565,9 @@ int ldlm_prep_elc_req(struct obd_export *exp, struct ptlrpc_request *req,
 		      int version, int opc, int canceloff,
 		      struct list_head *cancels, int count)
 {
-	struct ldlm_namespace   *ns = exp->exp_obd->obd_namespace;
-	struct req_capsule      *pill = &req->rq_pill;
-	struct ldlm_request     *dlm = NULL;
+	struct ldlm_namespace *ns = exp->exp_obd->obd_namespace;
+	struct req_capsule *pill = &req->rq_pill;
+	struct ldlm_request *dlm = NULL;
 	int flags, avail, to_free, pack = 0;
 	LIST_HEAD(head);
 	int rc;
@@ -675,11 +675,11 @@ int ldlm_cli_enqueue(struct obd_export *exp, struct ptlrpc_request **reqp,
 		     struct lustre_handle *lockh, int async)
 {
 	struct ldlm_namespace *ns;
-	struct ldlm_lock      *lock;
-	struct ldlm_request   *body;
-	int		    is_replay = *flags & LDLM_FL_REPLAY;
-	int		    req_passed_in = 1;
-	int		    rc, err;
+	struct ldlm_lock *lock;
+	struct ldlm_request *body;
+	int is_replay = *flags & LDLM_FL_REPLAY;
+	int req_passed_in = 1;
+	int rc, err;
 	struct ptlrpc_request *req;
 
 	ns = exp->exp_obd->obd_namespace;
@@ -1718,8 +1718,8 @@ static int ldlm_cli_hash_cancel_unused(struct cfs_hash *hs,
 				       struct cfs_hash_bd *bd,
 				       struct hlist_node *hnode, void *arg)
 {
-	struct ldlm_resource	   *res = cfs_hash_object(hs, hnode);
-	struct ldlm_cli_cancel_arg     *lc = arg;
+	struct ldlm_resource *res = cfs_hash_object(hs, hnode);
+	struct ldlm_cli_cancel_arg *lc = arg;
 
 	ldlm_cli_cancel_unused_resource(ldlm_res_to_ns(res), &res->lr_name,
 					NULL, LCK_MINMODE,
@@ -1878,9 +1878,9 @@ static int replay_lock_interpret(const struct lu_env *env,
 				 struct ptlrpc_request *req,
 				 struct ldlm_async_args *aa, int rc)
 {
-	struct ldlm_lock     *lock;
-	struct ldlm_reply    *reply;
-	struct obd_export    *exp;
+	struct ldlm_lock *lock;
+	struct ldlm_reply *reply;
+	struct obd_export *exp;
 
 	atomic_dec(&req->rq_import->imp_replay_inflight);
 	if (rc != ELDLM_OK)
@@ -1920,7 +1920,7 @@ static int replay_one_lock(struct obd_import *imp, struct ldlm_lock *lock)
 {
 	struct ptlrpc_request *req;
 	struct ldlm_async_args *aa;
-	struct ldlm_request   *body;
+	struct ldlm_request *body;
 	int flags;
 
 	/* Bug 11974: Do not replay a lock which is actively being canceled */
