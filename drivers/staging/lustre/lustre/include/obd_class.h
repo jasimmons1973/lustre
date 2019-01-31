@@ -144,22 +144,22 @@ int class_config_llog_handler(const struct lu_env *env,
 /* obdecho */
 void lprocfs_echo_init_vars(struct lprocfs_static_vars *lvars);
 
-#define CFG_F_START     0x01   /* Set when we start updating from a log */
-#define CFG_F_MARKER    0x02   /* We are within a maker */
-#define CFG_F_SKIP      0x04   /* We should ignore this cfg command */
-#define CFG_F_COMPAT146 0x08   /* Allow old-style logs */
-#define CFG_F_EXCLUDE   0x10   /* OST exclusion list */
+#define CFG_F_START	0x01   /* Set when we start updating from a log */
+#define CFG_F_MARKER	0x02   /* We are within a maker */
+#define CFG_F_SKIP	0x04   /* We should ignore this cfg command */
+#define CFG_F_COMPAT146	0x08   /* Allow old-style logs */
+#define CFG_F_EXCLUDE	0x10   /* OST exclusion list */
 
 /* Passed as data param to class_config_parse_llog */
 struct config_llog_instance {
-	char		   *cfg_obdname;
-	void		   *cfg_instance;
-	struct super_block *cfg_sb;
-	struct obd_uuid     cfg_uuid;
-	llog_cb_t	    cfg_callback;
-	int		    cfg_last_idx; /* for partial llog processing */
-	int		    cfg_flags;
-	u32		    cfg_sub_clds;
+	char		       *cfg_obdname;
+	void		       *cfg_instance;
+	struct super_block     *cfg_sb;
+	struct obd_uuid		cfg_uuid;
+	llog_cb_t		cfg_callback;
+	int			cfg_last_idx; /* for partial llog processing */
+	int			cfg_flags;
+	u32			cfg_sub_clds;
 };
 
 int class_config_parse_llog(const struct lu_env *env, struct llog_ctxt *ctxt,
@@ -181,31 +181,31 @@ int class_config_parse_llog(const struct lu_env *env, struct llog_ctxt *ctxt,
 
 /* list of active configuration logs  */
 struct config_llog_data {
-	struct ldlm_res_id	    cld_resid;
-	struct config_llog_instance cld_cfg;
-	struct list_head	    cld_list_chain;
-	atomic_t		    cld_refcount;
-	struct config_llog_data    *cld_sptlrpc;/* depended sptlrpc log */
-	struct config_llog_data	   *cld_params;	/* common parameters log */
-	struct config_llog_data    *cld_recover;/* imperative recover log */
-	struct obd_export	   *cld_mgcexp;
-	struct mutex		    cld_lock;
-	int			    cld_type;
-	unsigned int		    cld_stopping:1, /*
-						     * we were told to stop
-						     * watching
-						     */
-				    cld_lostlock:1; /* lock not requeued */
-	char			    cld_logname[0];
+	struct ldlm_res_id		cld_resid;
+	struct config_llog_instance	cld_cfg;
+	struct list_head		cld_list_chain;
+	atomic_t			cld_refcount;
+	struct config_llog_data	       *cld_sptlrpc;	/* depended sptlrpc log */
+	struct config_llog_data	       *cld_params;	/* common parameters log */
+	struct config_llog_data	       *cld_recover;	/* imperative recover log */
+	struct obd_export	       *cld_mgcexp;
+	struct mutex			cld_lock;
+	int				cld_type;
+	unsigned int			cld_stopping:1, /*
+							 * we were told to stop
+							 * watching
+							 */
+					cld_lostlock:1; /* lock not requeued */
+	char				cld_logname[0];
 };
 
 struct lustre_profile {
-	struct list_head lp_list;
-	char		*lp_profile;
-	char		*lp_dt;
-	char		*lp_md;
-	int		 lp_refs;
-	bool		 lp_list_deleted;
+	struct list_head		lp_list;
+	char			       *lp_profile;
+	char			       *lp_dt;
+	char			       *lp_md;
+	int				lp_refs;
+	bool				lp_list_deleted;
 };
 
 struct lustre_profile *class_get_profile(const char *prof);
@@ -423,7 +423,7 @@ static inline int obd_setup(struct obd_device *obd, struct lustre_cfg *cfg)
 
 	ldt = obd->obd_type->typ_lu;
 	if (ldt) {
-		struct lu_context  session_ctx;
+		struct lu_context session_ctx;
 		struct lu_env env;
 
 		lu_context_init(&session_ctx, LCT_SESSION | LCT_SERVER_SESSION);
@@ -1642,11 +1642,11 @@ extern struct kmem_cache *obdo_cachep;
 typedef int (*register_lwp_cb)(void *data);
 
 struct lwp_register_item {
-	struct obd_export **lri_exp;
-	register_lwp_cb	    lri_cb_func;
-	void		   *lri_cb_data;
-	struct list_head    lri_list;
-	char		    lri_name[MTI_NAME_MAXLEN];
+	struct obd_export     **lri_exp;
+	register_lwp_cb		lri_cb_func;
+	void		       *lri_cb_data;
+	struct list_head	lri_list;
+	char			lri_name[MTI_NAME_MAXLEN];
 };
 
 /*

@@ -65,8 +65,8 @@ static inline unsigned char cksum_obd2cfs(enum cksum_type cksum_type)
  */
 static inline u32 cksum_type_pack(enum cksum_type cksum_type)
 {
-	unsigned int    performance = 0, tmp;
-	u32		flag = OBD_FL_CKSUM_ADLER;
+	unsigned int performance = 0, tmp;
+	u32 flag = OBD_FL_CKSUM_ADLER;
 
 	if (cksum_type & OBD_CKSUM_CRC32) {
 		tmp = cfs_crypto_hash_speed(cksum_obd2cfs(OBD_CKSUM_CRC32));
