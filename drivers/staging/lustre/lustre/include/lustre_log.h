@@ -66,15 +66,15 @@ enum llog_open_param {
 };
 
 struct plain_handle_data {
-	struct list_head	  phd_entry;
-	struct llog_handle *phd_cat_handle;
-	struct llog_cookie  phd_cookie; /* cookie of this log in its cat */
+	struct list_head	 phd_entry;
+	struct llog_handle	*phd_cat_handle;
+	struct llog_cookie	 phd_cookie; /* cookie of this log in its cat */
 };
 
 struct cat_handle_data {
-	struct list_head	      chd_head;
+	struct list_head	chd_head;
 	struct llog_handle     *chd_current_log; /* currently open log */
-	struct llog_handle	*chd_next_log; /* llog to be used next */
+	struct llog_handle     *chd_next_log; /* llog to be used next */
 };
 
 struct llog_handle;
@@ -101,28 +101,28 @@ struct llog_process_data {
 	 * Any useful data needed while processing catalog. This is
 	 * passed later to process callback.
 	 */
-	void		*lpd_data;
+	void			*lpd_data;
 	/**
 	 * Catalog process callback function, called for each record
 	 * in catalog.
 	 */
-	llog_cb_t	    lpd_cb;
+	llog_cb_t		lpd_cb;
 	/**
 	 * Start processing the catalog from startcat/startidx
 	 */
-	int		  lpd_startcat;
-	int		  lpd_startidx;
+	int			lpd_startcat;
+	int			lpd_startidx;
 };
 
 struct llog_process_cat_data {
 	/**
 	 * Temporary stored first_idx while scanning log.
 	 */
-	int		  lpcd_first_idx;
+	int			lpcd_first_idx;
 	/**
 	 * Temporary stored last_idx while scanning log.
 	 */
-	int		  lpcd_last_idx;
+	int			lpcd_last_idx;
 };
 
 struct thandle;
@@ -234,23 +234,23 @@ struct llog_handle {
 #define LLOG_CTXT_FLAG_STOP		 0x00000002
 
 struct llog_ctxt {
-	int		      loc_idx; /* my index the obd array of ctxt's */
-	struct obd_device       *loc_obd; /* points back to the containing obd*/
-	struct obd_llog_group   *loc_olg; /* group containing that ctxt */
-	struct obd_export       *loc_exp; /* parent "disk" export (e.g. MDS) */
-	struct obd_import       *loc_imp; /* to use in RPC's: can be backward
+	int			 loc_idx; /* my index the obd array of ctxt's */
+	struct obd_device	*loc_obd; /* points back to the containing obd*/
+	struct obd_llog_group	*loc_olg; /* group containing that ctxt */
+	struct obd_export	*loc_exp; /* parent "disk" export (e.g. MDS) */
+	struct obd_import	*loc_imp; /* to use in RPC's: can be backward
 					   * pointing import
 					   */
 	struct llog_operations  *loc_logops;
 	struct llog_handle      *loc_handle;
 	struct mutex		 loc_mutex; /* protect loc_imp */
-	atomic_t	     loc_refcount;
-	long		     loc_flags; /* flags, see above defines */
+	atomic_t		 loc_refcount;
+	long			 loc_flags; /* flags, see above defines */
 	/*
 	 * llog chunk size, and llog record size can not be bigger than
 	 * loc_chunk_size
 	 */
-	u32			loc_chunk_size;
+	u32			 loc_chunk_size;
 };
 
 #define LLOG_PROC_BREAK 0x0001

@@ -50,8 +50,8 @@
 #include <lustre_export.h>
 
 struct mds_group_info {
-	struct obd_uuid *uuid;
-	int group;
+	struct obd_uuid		*uuid;
+	int			group;
 };
 
 #define MDD_OBD_NAME     "mdd_obd"

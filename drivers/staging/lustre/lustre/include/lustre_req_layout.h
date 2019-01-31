@@ -63,10 +63,10 @@ enum req_location {
 #define REQ_MAX_FIELD_NR 10
 
 struct req_capsule {
-	struct ptlrpc_request   *rc_req;
-	const struct req_format *rc_fmt;
-	enum req_location	rc_loc;
-	u32		    rc_area[RCL_NR][REQ_MAX_FIELD_NR];
+	struct ptlrpc_request		*rc_req;
+	const struct req_format		*rc_fmt;
+	enum req_location		 rc_loc;
+	u32				 rc_area[RCL_NR][REQ_MAX_FIELD_NR];
 };
 
 void req_capsule_init(struct req_capsule *pill, struct ptlrpc_request *req,

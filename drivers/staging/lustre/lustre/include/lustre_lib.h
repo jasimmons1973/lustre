@@ -85,8 +85,6 @@ static inline int l_fatal_signal_pending(struct task_struct *p)
 
 /** @} lib */
 
-
-
 /* l_wait_event_abortable() is a bit like wait_event_killable()
  * except there is a fixed set of signals which will abort:
  * LUSTRE_FATAL_SIGS

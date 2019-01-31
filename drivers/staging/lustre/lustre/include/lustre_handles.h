@@ -63,7 +63,7 @@ struct portals_handle_ops {
  * to compute the start of the structure based on the handle field.
  */
 struct portals_handle {
-	struct list_head			h_link;
+	struct list_head		h_link;
 	u64				h_cookie;
 	const void			*h_owner;
 	struct portals_handle_ops	*h_ops;

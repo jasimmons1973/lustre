@@ -106,7 +106,7 @@ static inline void mdc_get_rpc_lock(struct mdc_rpc_lock *lck,
 	 * Only when all fake requests are finished can normal requests
 	 * be sent, to ensure they are recoverable again.
 	 */
- again:
+again:
 	mutex_lock(&lck->rpcl_mutex);
 
 	if (CFS_FAIL_CHECK_QUIET(OBD_FAIL_MDC_RPCS_SEM)) {

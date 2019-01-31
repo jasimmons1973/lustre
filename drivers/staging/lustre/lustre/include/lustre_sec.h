@@ -85,25 +85,25 @@ struct req_msg_field;
  * flavor constants
  */
 enum sptlrpc_policy {
-	SPTLRPC_POLICY_NULL	     = 0,
-	SPTLRPC_POLICY_PLAIN	    = 1,
-	SPTLRPC_POLICY_GSS	      = 2,
+	SPTLRPC_POLICY_NULL		= 0,
+	SPTLRPC_POLICY_PLAIN		= 1,
+	SPTLRPC_POLICY_GSS		= 2,
 	SPTLRPC_POLICY_MAX,
 };
 
 enum sptlrpc_mech_null {
-	SPTLRPC_MECH_NULL	       = 0,
+	SPTLRPC_MECH_NULL		= 0,
 	SPTLRPC_MECH_NULL_MAX,
 };
 
 enum sptlrpc_mech_plain {
-	SPTLRPC_MECH_PLAIN	      = 0,
+	SPTLRPC_MECH_PLAIN		= 0,
 	SPTLRPC_MECH_PLAIN_MAX,
 };
 
 enum sptlrpc_mech_gss {
-	SPTLRPC_MECH_GSS_NULL	   = 0,
-	SPTLRPC_MECH_GSS_KRB5	   = 1,
+	SPTLRPC_MECH_GSS_NULL		= 0,
+	SPTLRPC_MECH_GSS_KRB5		= 1,
 	SPTLRPC_MECH_GSS_MAX,
 };
 
@@ -116,113 +116,113 @@ enum sptlrpc_service_type {
 };
 
 enum sptlrpc_bulk_type {
-	SPTLRPC_BULK_DEFAULT	    = 0,    /**< follow rpc flavor */
-	SPTLRPC_BULK_HASH	       = 1,    /**< hash integrity */
+	SPTLRPC_BULK_DEFAULT		= 0,	/**< follow rpc flavor */
+	SPTLRPC_BULK_HASH		= 1,	/**< hash integrity */
 	SPTLRPC_BULK_MAX,
 };
 
 enum sptlrpc_bulk_service {
-	SPTLRPC_BULK_SVC_NULL	   = 0,    /**< no security */
-	SPTLRPC_BULK_SVC_AUTH	   = 1,    /**< authentication only */
-	SPTLRPC_BULK_SVC_INTG	   = 2,    /**< integrity */
-	SPTLRPC_BULK_SVC_PRIV	   = 3,    /**< privacy */
+	SPTLRPC_BULK_SVC_NULL		= 0,	/**< no security */
+	SPTLRPC_BULK_SVC_AUTH		= 1,	/**< authentication only */
+	SPTLRPC_BULK_SVC_INTG		= 2,	/**< integrity */
+	SPTLRPC_BULK_SVC_PRIV		= 3,	/**< privacy */
 	SPTLRPC_BULK_SVC_MAX,
 };
 
 /*
  * compose/extract macros
  */
-#define FLVR_POLICY_OFFSET	      (0)
+#define FLVR_POLICY_OFFSET		(0)
 #define FLVR_MECH_OFFSET		(4)
-#define FLVR_SVC_OFFSET		 (8)
-#define FLVR_BULK_TYPE_OFFSET	   (12)
-#define FLVR_BULK_SVC_OFFSET	    (16)
+#define FLVR_SVC_OFFSET			(8)
+#define FLVR_BULK_TYPE_OFFSET		(12)
+#define FLVR_BULK_SVC_OFFSET		(16)
 
-#define MAKE_FLVR(policy, mech, svc, btype, bsvc)		       \
-	(((u32)(policy) << FLVR_POLICY_OFFSET) |		      \
-	 ((u32)(mech) << FLVR_MECH_OFFSET) |			  \
-	 ((u32)(svc) << FLVR_SVC_OFFSET) |			    \
-	 ((u32)(btype) << FLVR_BULK_TYPE_OFFSET) |		    \
+#define MAKE_FLVR(policy, mech, svc, btype, bsvc)	\
+	(((u32)(policy) << FLVR_POLICY_OFFSET) |	\
+	 ((u32)(mech) << FLVR_MECH_OFFSET) |		\
+	 ((u32)(svc) << FLVR_SVC_OFFSET) |		\
+	 ((u32)(btype) << FLVR_BULK_TYPE_OFFSET) |	\
 	 ((u32)(bsvc) << FLVR_BULK_SVC_OFFSET))
 
 /*
  * extraction
  */
-#define SPTLRPC_FLVR_POLICY(flavor)				     \
+#define SPTLRPC_FLVR_POLICY(flavor)			\
 	((((u32)(flavor)) >> FLVR_POLICY_OFFSET) & 0xF)
-#define SPTLRPC_FLVR_MECH(flavor)				       \
+#define SPTLRPC_FLVR_MECH(flavor)			\
 	((((u32)(flavor)) >> FLVR_MECH_OFFSET) & 0xF)
-#define SPTLRPC_FLVR_SVC(flavor)					\
+#define SPTLRPC_FLVR_SVC(flavor)			\
 	((((u32)(flavor)) >> FLVR_SVC_OFFSET) & 0xF)
-#define SPTLRPC_FLVR_BULK_TYPE(flavor)				  \
+#define SPTLRPC_FLVR_BULK_TYPE(flavor)			\
 	((((u32)(flavor)) >> FLVR_BULK_TYPE_OFFSET) & 0xF)
-#define SPTLRPC_FLVR_BULK_SVC(flavor)				   \
+#define SPTLRPC_FLVR_BULK_SVC(flavor)			\
 	((((u32)(flavor)) >> FLVR_BULK_SVC_OFFSET) & 0xF)
 
-#define SPTLRPC_FLVR_BASE(flavor)				       \
+#define SPTLRPC_FLVR_BASE(flavor)			\
 	((((u32)(flavor)) >> FLVR_POLICY_OFFSET) & 0xFFF)
-#define SPTLRPC_FLVR_BASE_SUB(flavor)				   \
+#define SPTLRPC_FLVR_BASE_SUB(flavor)			\
 	((((u32)(flavor)) >> FLVR_MECH_OFFSET) & 0xFF)
 
 /*
  * gss subflavors
  */
-#define MAKE_BASE_SUBFLVR(mech, svc)				    \
-	((u32)(mech) |						\
+#define MAKE_BASE_SUBFLVR(mech, svc)			\
+	((u32)(mech) |					\
 	 ((u32)(svc) << (FLVR_SVC_OFFSET - FLVR_MECH_OFFSET)))
 
-#define SPTLRPC_SUBFLVR_KRB5N					   \
+#define SPTLRPC_SUBFLVR_KRB5N				\
 	MAKE_BASE_SUBFLVR(SPTLRPC_MECH_GSS_KRB5, SPTLRPC_SVC_NULL)
-#define SPTLRPC_SUBFLVR_KRB5A					   \
+#define SPTLRPC_SUBFLVR_KRB5A				\
 	MAKE_BASE_SUBFLVR(SPTLRPC_MECH_GSS_KRB5, SPTLRPC_SVC_AUTH)
-#define SPTLRPC_SUBFLVR_KRB5I					   \
+#define SPTLRPC_SUBFLVR_KRB5I				\
 	MAKE_BASE_SUBFLVR(SPTLRPC_MECH_GSS_KRB5, SPTLRPC_SVC_INTG)
-#define SPTLRPC_SUBFLVR_KRB5P					   \
+#define SPTLRPC_SUBFLVR_KRB5P				\
 	MAKE_BASE_SUBFLVR(SPTLRPC_MECH_GSS_KRB5, SPTLRPC_SVC_PRIV)
 
 /*
  * "end user" flavors
  */
-#define SPTLRPC_FLVR_NULL			       \
-	MAKE_FLVR(SPTLRPC_POLICY_NULL,		  \
-		  SPTLRPC_MECH_NULL,		    \
-		  SPTLRPC_SVC_NULL,		     \
-		  SPTLRPC_BULK_DEFAULT,		 \
+#define SPTLRPC_FLVR_NULL				\
+	MAKE_FLVR(SPTLRPC_POLICY_NULL,			\
+		  SPTLRPC_MECH_NULL,			\
+		  SPTLRPC_SVC_NULL,			\
+		  SPTLRPC_BULK_DEFAULT,			\
 		  SPTLRPC_BULK_SVC_NULL)
-#define SPTLRPC_FLVR_PLAIN			      \
-	MAKE_FLVR(SPTLRPC_POLICY_PLAIN,		 \
-		  SPTLRPC_MECH_PLAIN,		   \
-		  SPTLRPC_SVC_NULL,		     \
-		  SPTLRPC_BULK_HASH,		    \
+#define SPTLRPC_FLVR_PLAIN				\
+	MAKE_FLVR(SPTLRPC_POLICY_PLAIN,			\
+		  SPTLRPC_MECH_PLAIN,			\
+		  SPTLRPC_SVC_NULL,			\
+		  SPTLRPC_BULK_HASH,			\
 		  SPTLRPC_BULK_SVC_INTG)
-#define SPTLRPC_FLVR_KRB5N			      \
-	MAKE_FLVR(SPTLRPC_POLICY_GSS,		   \
+#define SPTLRPC_FLVR_KRB5N				\
+	MAKE_FLVR(SPTLRPC_POLICY_GSS,			\
 		  SPTLRPC_MECH_GSS_KRB5,		\
-		  SPTLRPC_SVC_NULL,		     \
-		  SPTLRPC_BULK_DEFAULT,		 \
+		  SPTLRPC_SVC_NULL,			\
+		  SPTLRPC_BULK_DEFAULT,			\
 		  SPTLRPC_BULK_SVC_NULL)
-#define SPTLRPC_FLVR_KRB5A			      \
-	MAKE_FLVR(SPTLRPC_POLICY_GSS,		   \
+#define SPTLRPC_FLVR_KRB5A				\
+	MAKE_FLVR(SPTLRPC_POLICY_GSS,			\
 		  SPTLRPC_MECH_GSS_KRB5,		\
-		  SPTLRPC_SVC_AUTH,		     \
-		  SPTLRPC_BULK_DEFAULT,		 \
+		  SPTLRPC_SVC_AUTH,			\
+		  SPTLRPC_BULK_DEFAULT,			\
 		  SPTLRPC_BULK_SVC_NULL)
-#define SPTLRPC_FLVR_KRB5I			      \
-	MAKE_FLVR(SPTLRPC_POLICY_GSS,		   \
+#define SPTLRPC_FLVR_KRB5I				\
+	MAKE_FLVR(SPTLRPC_POLICY_GSS,			\
 		  SPTLRPC_MECH_GSS_KRB5,		\
-		  SPTLRPC_SVC_INTG,		     \
-		  SPTLRPC_BULK_DEFAULT,		 \
+		  SPTLRPC_SVC_INTG,			\
+		  SPTLRPC_BULK_DEFAULT,			\
 		  SPTLRPC_BULK_SVC_INTG)
-#define SPTLRPC_FLVR_KRB5P			      \
-	MAKE_FLVR(SPTLRPC_POLICY_GSS,		   \
+#define SPTLRPC_FLVR_KRB5P				\
+	MAKE_FLVR(SPTLRPC_POLICY_GSS,			\
 		  SPTLRPC_MECH_GSS_KRB5,		\
-		  SPTLRPC_SVC_PRIV,		     \
-		  SPTLRPC_BULK_DEFAULT,		 \
+		  SPTLRPC_SVC_PRIV,			\
+		  SPTLRPC_BULK_DEFAULT,			\
 		  SPTLRPC_BULK_SVC_PRIV)
 
-#define SPTLRPC_FLVR_DEFAULT	    SPTLRPC_FLVR_NULL
+#define SPTLRPC_FLVR_DEFAULT		SPTLRPC_FLVR_NULL
 
-#define SPTLRPC_FLVR_INVALID	    ((u32)0xFFFFFFFF)
+#define SPTLRPC_FLVR_INVALID		((u32)0xFFFFFFFF)
 #define SPTLRPC_FLVR_ANY		((u32)0xFFF00000)
 
 /**
@@ -253,7 +253,7 @@ static inline void flvr_set_bulk_svc(u32 *flvr, u32 svc)
 }
 
 struct bulk_spec_hash {
-	u8    hash_alg;
+	u8	hash_alg;
 };
 
 /**
@@ -264,11 +264,11 @@ struct sptlrpc_flavor {
 	/**
 	 * wire flavor, should be renamed to sf_wire.
 	 */
-	u32   sf_rpc;
+	u32	sf_rpc;
 	/**
 	 * general flags of PTLRPC_SEC_FL_*
 	 */
-	u32   sf_flags;
+	u32	sf_flags;
 	/**
 	 * rpc flavor specification
 	 */
@@ -288,12 +288,12 @@ struct sptlrpc_flavor {
  * RPC requests and to be checked by ptlrpc service.
  */
 enum lustre_sec_part {
-	LUSTRE_SP_CLI	   = 0,
+	LUSTRE_SP_CLI	= 0,
 	LUSTRE_SP_MDT,
 	LUSTRE_SP_OST,
 	LUSTRE_SP_MGC,
 	LUSTRE_SP_MGS,
-	LUSTRE_SP_ANY	   = 0xFF
+	LUSTRE_SP_ANY	= 0xFF
 };
 
 enum lustre_sec_part sptlrpc_target_sec_part(struct obd_device *obd);
@@ -303,11 +303,11 @@ enum lustre_sec_part sptlrpc_target_sec_part(struct obd_device *obd);
  * two Lustre parts.
  */
 struct sptlrpc_rule {
-	u32		   sr_netid;   /* LNET network ID */
-	u8		    sr_from;    /* sec_part */
-	u8		    sr_to;      /* sec_part */
-	u16		   sr_padding;
-	struct sptlrpc_flavor   sr_flvr;
+	u32			sr_netid;	/* LNET network ID */
+	u8			sr_from;	/* sec_part */
+	u8			sr_to;		/* sec_part */
+	u16			sr_padding;
+	struct sptlrpc_flavor	sr_flvr;
 };
 
 /**
@@ -317,8 +317,8 @@ struct sptlrpc_rule {
  * and client when needed.
  */
 struct sptlrpc_rule_set {
-	int		     srs_nslot;
-	int		     srs_nrule;
+	int			srs_nslot;
+	int			srs_nrule;
 	struct sptlrpc_rule    *srs_rules;
 };
 
@@ -460,37 +460,37 @@ struct ptlrpc_ctx_ops {
 			   struct ptlrpc_bulk_desc *desc);
 };
 
-#define PTLRPC_CTX_NEW_BIT	     (0)  /* newly created */
-#define PTLRPC_CTX_UPTODATE_BIT	(1)  /* uptodate */
-#define PTLRPC_CTX_DEAD_BIT	    (2)  /* mark expired gracefully */
-#define PTLRPC_CTX_ERROR_BIT	   (3)  /* fatal error (refresh, etc.) */
-#define PTLRPC_CTX_CACHED_BIT	  (8)  /* in ctx cache (hash etc.) */
-#define PTLRPC_CTX_ETERNAL_BIT	 (9)  /* always valid */
+#define PTLRPC_CTX_NEW_BIT		(0)  /* newly created */
+#define PTLRPC_CTX_UPTODATE_BIT		(1)  /* uptodate */
+#define PTLRPC_CTX_DEAD_BIT		(2)  /* mark expired gracefully */
+#define PTLRPC_CTX_ERROR_BIT		(3)  /* fatal error (refresh, etc.) */
+#define PTLRPC_CTX_CACHED_BIT		(8)  /* in ctx cache (hash etc.) */
+#define PTLRPC_CTX_ETERNAL_BIT		(9)  /* always valid */
 
-#define PTLRPC_CTX_NEW		 (1 << PTLRPC_CTX_NEW_BIT)
-#define PTLRPC_CTX_UPTODATE	    (1 << PTLRPC_CTX_UPTODATE_BIT)
-#define PTLRPC_CTX_DEAD		(1 << PTLRPC_CTX_DEAD_BIT)
-#define PTLRPC_CTX_ERROR	       (1 << PTLRPC_CTX_ERROR_BIT)
-#define PTLRPC_CTX_CACHED	      (1 << PTLRPC_CTX_CACHED_BIT)
-#define PTLRPC_CTX_ETERNAL	     (1 << PTLRPC_CTX_ETERNAL_BIT)
+#define PTLRPC_CTX_NEW			(1 << PTLRPC_CTX_NEW_BIT)
+#define PTLRPC_CTX_UPTODATE		(1 << PTLRPC_CTX_UPTODATE_BIT)
+#define PTLRPC_CTX_DEAD			(1 << PTLRPC_CTX_DEAD_BIT)
+#define PTLRPC_CTX_ERROR		(1 << PTLRPC_CTX_ERROR_BIT)
+#define PTLRPC_CTX_CACHED		(1 << PTLRPC_CTX_CACHED_BIT)
+#define PTLRPC_CTX_ETERNAL		(1 << PTLRPC_CTX_ETERNAL_BIT)
 
-#define PTLRPC_CTX_STATUS_MASK	 (PTLRPC_CTX_NEW_BIT    |       \
-					PTLRPC_CTX_UPTODATE   |       \
-					PTLRPC_CTX_DEAD       |       \
+#define PTLRPC_CTX_STATUS_MASK	       (PTLRPC_CTX_NEW_BIT	| \
+					PTLRPC_CTX_UPTODATE	| \
+					PTLRPC_CTX_DEAD		| \
 					PTLRPC_CTX_ERROR)
 
 struct ptlrpc_cli_ctx {
-	struct hlist_node	cc_cache;      /* linked into ctx cache */
-	atomic_t	    cc_refcount;
+	struct hlist_node	cc_cache;	/* linked into ctx cache */
+	atomic_t		cc_refcount;
 	struct ptlrpc_sec      *cc_sec;
 	struct ptlrpc_ctx_ops  *cc_ops;
-	unsigned long	      cc_expire;     /* in seconds */
-	unsigned int	    cc_early_expire:1;
-	unsigned long	   cc_flags;
-	struct vfs_cred	 cc_vcred;
+	unsigned long		cc_expire;	/* in seconds */
+	unsigned int		cc_early_expire:1;
+	unsigned long		cc_flags;
+	struct vfs_cred		cc_vcred;
 	spinlock_t		cc_lock;
-	struct list_head	      cc_req_list;   /* waiting reqs linked here */
-	struct list_head	      cc_gc_chain;   /* linked to gc chain */
+	struct list_head	cc_req_list;	/* waiting reqs linked here */
+	struct list_head	cc_gc_chain;	/* linked to gc chain */
 };
 
 /**
@@ -755,18 +755,18 @@ struct ptlrpc_sec_sops {
 };
 
 struct ptlrpc_sec_policy {
-	struct module		   *sp_owner;
-	char			   *sp_name;
-	u16			   sp_policy; /* policy number */
-	struct ptlrpc_sec_cops	 *sp_cops;   /* client ops */
-	struct ptlrpc_sec_sops	 *sp_sops;   /* server ops */
+	struct module			*sp_owner;
+	char				*sp_name;
+	u16				 sp_policy; /* policy number */
+	struct ptlrpc_sec_cops		*sp_cops;   /* client ops */
+	struct ptlrpc_sec_sops		*sp_sops;   /* server ops */
 };
 
-#define PTLRPC_SEC_FL_REVERSE	   0x0001 /* reverse sec */
-#define PTLRPC_SEC_FL_ROOTONLY	  0x0002 /* treat everyone as root */
-#define PTLRPC_SEC_FL_UDESC	     0x0004 /* ship udesc */
-#define PTLRPC_SEC_FL_BULK	      0x0008 /* intensive bulk i/o expected */
-#define PTLRPC_SEC_FL_PAG	       0x0010 /* PAG mode */
+#define PTLRPC_SEC_FL_REVERSE		0x0001 /* reverse sec */
+#define PTLRPC_SEC_FL_ROOTONLY		0x0002 /* treat everyone as root */
+#define PTLRPC_SEC_FL_UDESC		0x0004 /* ship udesc */
+#define PTLRPC_SEC_FL_BULK		0x0008 /* intensive bulk i/o expected */
+#define PTLRPC_SEC_FL_PAG		0x0010 /* PAG mode */
 
 /**
  * The ptlrpc_sec represents the client side ptlrpc security facilities,
@@ -777,25 +777,25 @@ struct ptlrpc_sec_policy {
  */
 struct ptlrpc_sec {
 	struct ptlrpc_sec_policy       *ps_policy;
-	atomic_t		    ps_refcount;
+	atomic_t			ps_refcount;
 	/** statistic only */
-	atomic_t		    ps_nctx;
+	atomic_t			ps_nctx;
 	/** unique identifier */
-	int			     ps_id;
-	struct sptlrpc_flavor	   ps_flvr;
-	enum lustre_sec_part	    ps_part;
+	int				ps_id;
+	struct sptlrpc_flavor		ps_flvr;
+	enum lustre_sec_part		ps_part;
 	/** after set, no more new context will be created */
-	unsigned int		    ps_dying:1;
+	unsigned int			ps_dying:1;
 	/** owning import */
-	struct obd_import	      *ps_import;
+	struct obd_import	       *ps_import;
 	spinlock_t			ps_lock;
 
 	/*
 	 * garbage collection
 	 */
-	struct list_head		      ps_gc_list;
-	unsigned long		      ps_gc_interval; /* in seconds */
-	time64_t		      ps_gc_next;     /* in seconds */
+	struct list_head		ps_gc_list;
+	unsigned long			ps_gc_interval; /* in seconds */
+	time64_t			ps_gc_next;     /* in seconds */
 };
 
 static inline int sec_is_reverse(struct ptlrpc_sec *sec)
@@ -809,30 +809,30 @@ static inline int sec_is_rootonly(struct ptlrpc_sec *sec)
 }
 
 struct ptlrpc_svc_ctx {
-	atomic_t		    sc_refcount;
+	atomic_t			sc_refcount;
 	struct ptlrpc_sec_policy       *sc_policy;
 };
 
 /*
  * user identity descriptor
  */
-#define LUSTRE_MAX_GROUPS	       (128)
+#define LUSTRE_MAX_GROUPS		(128)
 
 struct ptlrpc_user_desc {
-	u32	   pud_uid;
-	u32	   pud_gid;
-	u32	   pud_fsuid;
-	u32	   pud_fsgid;
-	u32	   pud_cap;
-	u32	   pud_ngroups;
-	u32	   pud_groups[0];
+	u32	pud_uid;
+	u32	pud_gid;
+	u32	pud_fsuid;
+	u32	pud_fsgid;
+	u32	pud_cap;
+	u32	pud_ngroups;
+	u32	pud_groups[0];
 };
 
 /*
  * bulk flavors
  */
 enum sptlrpc_bulk_hash_alg {
-	BULK_HASH_ALG_NULL      = 0,
+	BULK_HASH_ALG_NULL	= 0,
 	BULK_HASH_ALG_ADLER32,
 	BULK_HASH_ALG_CRC32,
 	BULK_HASH_ALG_MD5,
@@ -847,16 +847,16 @@ const char *sptlrpc_get_hash_name(u8 hash_alg);
 u8 sptlrpc_get_hash_alg(const char *algname);
 
 enum {
-	BSD_FL_ERR      = 1,
+	BSD_FL_ERR	= 1,
 };
 
 struct ptlrpc_bulk_sec_desc {
-	u8	    bsd_version;    /* 0 */
-	u8	    bsd_type;       /* SPTLRPC_BULK_XXX */
-	u8	    bsd_svc;	/* SPTLRPC_BULK_SVC_XXXX */
-	u8	    bsd_flags;      /* flags */
-	u32	   bsd_nob;	/* nob of bulk data */
-	u8	    bsd_data[0];    /* policy-specific token */
+	u8	bsd_version;	/* 0 */
+	u8	bsd_type;	/* SPTLRPC_BULK_XXX */
+	u8	bsd_svc;	/* SPTLRPC_BULK_SVC_XXXX */
+	u8	bsd_flags;	/* flags */
+	u32	bsd_nob;	/* nob of bulk data */
+	u8	bsd_data[0];	/* policy-specific token */
 };
 
 /*
@@ -979,8 +979,8 @@ void sptlrpc_cli_free_repbuf(struct ptlrpc_request *req);
 int sptlrpc_cli_enlarge_reqbuf(struct ptlrpc_request *req,
 			       const struct req_msg_field *field,
 			       int newsize);
-int  sptlrpc_cli_unwrap_early_reply(struct ptlrpc_request *req,
-				    struct ptlrpc_request **req_ret);
+int sptlrpc_cli_unwrap_early_reply(struct ptlrpc_request *req,
+				   struct ptlrpc_request **req_ret);
 void sptlrpc_cli_finish_early_reply(struct ptlrpc_request *early_req);
 
 void sptlrpc_request_out_callback(struct ptlrpc_request *req);
@@ -994,13 +994,13 @@ int sptlrpc_import_sec_adapt(struct obd_import *imp,
 struct ptlrpc_sec *sptlrpc_import_sec_ref(struct obd_import *imp);
 void sptlrpc_import_sec_put(struct obd_import *imp);
 
-int  sptlrpc_import_check_ctx(struct obd_import *imp);
+int sptlrpc_import_check_ctx(struct obd_import *imp);
 void sptlrpc_import_flush_root_ctx(struct obd_import *imp);
 void sptlrpc_import_flush_my_ctx(struct obd_import *imp);
 void sptlrpc_import_flush_all_ctx(struct obd_import *imp);
-int  sptlrpc_req_get_ctx(struct ptlrpc_request *req);
+int sptlrpc_req_get_ctx(struct ptlrpc_request *req);
 void sptlrpc_req_put_ctx(struct ptlrpc_request *req, int sync);
-int  sptlrpc_req_refresh_ctx(struct ptlrpc_request *req, long timeout);
+int sptlrpc_req_refresh_ctx(struct ptlrpc_request *req, long timeout);
 void sptlrpc_req_set_flavor(struct ptlrpc_request *req, int opcode);
 
 /* gc */
@@ -1023,15 +1023,15 @@ enum secsvc_accept_res {
 	SECSVC_DROP,
 };
 
-int  sptlrpc_svc_unwrap_request(struct ptlrpc_request *req);
-int  sptlrpc_svc_alloc_rs(struct ptlrpc_request *req, int msglen);
-int  sptlrpc_svc_wrap_reply(struct ptlrpc_request *req);
+int sptlrpc_svc_unwrap_request(struct ptlrpc_request *req);
+int sptlrpc_svc_alloc_rs(struct ptlrpc_request *req, int msglen);
+int sptlrpc_svc_wrap_reply(struct ptlrpc_request *req);
 void sptlrpc_svc_free_rs(struct ptlrpc_reply_state *rs);
 void sptlrpc_svc_ctx_addref(struct ptlrpc_request *req);
 void sptlrpc_svc_ctx_decref(struct ptlrpc_request *req);
 
-int  sptlrpc_target_export_check(struct obd_export *exp,
-				 struct ptlrpc_request *req);
+int sptlrpc_target_export_check(struct obd_export *exp,
+				struct ptlrpc_request *req);
 
 /* bulk security api */
 void sptlrpc_enc_pool_put_pages(struct ptlrpc_bulk_desc *desc);
@@ -1063,10 +1063,10 @@ int sptlrpc_pack_user_desc(struct lustre_msg *msg, int offset);
 int sptlrpc_unpack_user_desc(struct lustre_msg *req, int offset, int swabbed);
 
 enum {
-	LUSTRE_SEC_NONE	 = 0,
+	LUSTRE_SEC_NONE		= 0,
 	LUSTRE_SEC_REMOTE       = 1,
 	LUSTRE_SEC_SPECIFY      = 2,
-	LUSTRE_SEC_ALL	  = 3
+	LUSTRE_SEC_ALL		= 3
 };
 
 /** @} sptlrpc */

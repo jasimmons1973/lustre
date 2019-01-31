@@ -59,10 +59,10 @@ enum {
 };
 
 struct lu_fld_target {
-	struct list_head	       ft_chain;
-	struct obd_export       *ft_exp;
-	struct lu_server_fld    *ft_srv;
-	u64		    ft_idx;
+	struct list_head	 ft_chain;
+	struct obd_export	*ft_exp;
+	struct lu_server_fld	*ft_srv;
+	u64			 ft_idx;
 };
 
 struct lu_server_fld {
@@ -79,7 +79,7 @@ struct lu_server_fld {
 	struct mutex		lsf_lock;
 
 	/** Fld service name in form "fld-srv-lustre-MDTXXX" */
-	char		     lsf_name[LUSTRE_MDT_MAXNAMELEN];
+	char			lsf_name[LUSTRE_MDT_MAXNAMELEN];
 
 };
 
@@ -88,13 +88,13 @@ struct lu_client_fld {
 	struct dentry		*lcf_debugfs_entry;
 
 	/** List of exports client FLD knows about. */
-	struct list_head	       lcf_targets;
+	struct list_head	 lcf_targets;
 
 	/** Current hash to be used to chose an export. */
 	struct lu_fld_hash      *lcf_hash;
 
 	/** Exports count. */
-	int		      lcf_count;
+	int			 lcf_count;
 
 	/** Lock protecting exports list and fld_hash. */
 	spinlock_t		 lcf_lock;

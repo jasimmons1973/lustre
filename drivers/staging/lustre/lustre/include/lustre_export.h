@@ -48,9 +48,9 @@
 #include <lustre_dlm.h>
 
 enum obd_option {
-	OBD_OPT_FORCE =	 0x0001,
-	OBD_OPT_FAILOVER =      0x0002,
-	OBD_OPT_ABORT_RECOV =   0x0004,
+	OBD_OPT_FORCE		= 0x0001,
+	OBD_OPT_FAILOVER	= 0x0002,
+	OBD_OPT_ABORT_RECOV	= 0x0004,
 };
 
 /**
@@ -66,77 +66,77 @@ struct obd_export {
 	 * Subsequent client RPCs contain this handle id to identify
 	 * what export they are talking to.
 	 */
-	struct portals_handle     exp_handle;
-	atomic_t	      exp_refcount;
+	struct portals_handle		exp_handle;
+	atomic_t			exp_refcount;
 	/**
 	 * Set of counters below is to track where export references are
 	 * kept. The exp_rpc_count is used for reconnect handling also,
 	 * the cb_count and locks_count are for debug purposes only for now.
 	 * The sum of them should be less than exp_refcount by 3
 	 */
-	atomic_t	      exp_rpc_count; /* RPC references */
-	atomic_t	      exp_cb_count; /* Commit callback references */
+	atomic_t			exp_rpc_count; /* RPC references */
+	atomic_t			exp_cb_count; /* Commit callback references */
 	/** Number of queued replay requests to be processes */
-	atomic_t		  exp_replay_count;
-	atomic_t	      exp_locks_count; /** Lock references */
+	atomic_t			exp_replay_count;
+	atomic_t			exp_locks_count; /** Lock references */
 #if LUSTRE_TRACKS_LOCK_EXP_REFS
 	struct list_head		exp_locks_list;
-	spinlock_t		  exp_locks_list_guard;
+	spinlock_t			exp_locks_list_guard;
 #endif
 	/** UUID of client connected to this export */
-	struct obd_uuid	   exp_client_uuid;
+	struct obd_uuid			exp_client_uuid;
 	/** To link all exports on an obd device */
 	struct list_head		exp_obd_chain;
 	/** work_struct for destruction of export */
-	struct work_struct	exp_zombie_work;
-	struct rhash_head	exp_uuid_hash; /** uuid-export hash*/
+	struct work_struct		exp_zombie_work;
+	struct rhash_head		exp_uuid_hash; /** uuid-export hash*/
 	/** Obd device of this export */
-	struct obd_device	*exp_obd;
+	struct obd_device		*exp_obd;
 	/**
 	 * "reverse" import to send requests (e.g. from ldlm) back to client
 	 * exp_lock protect its change
 	 */
-	struct obd_import	*exp_imp_reverse;
-	struct lprocfs_stats     *exp_md_stats;
+	struct obd_import		*exp_imp_reverse;
+	struct lprocfs_stats		*exp_md_stats;
 	/** Active connection */
-	struct ptlrpc_connection *exp_connection;
+	struct ptlrpc_connection	*exp_connection;
 	/** Connection count value from last successful reconnect rpc */
-	u32		     exp_conn_cnt;
+	u32				exp_conn_cnt;
 	struct list_head		exp_outstanding_replies;
 	struct list_head		exp_uncommitted_replies;
-	spinlock_t		  exp_uncommitted_replies_lock;
+	spinlock_t			exp_uncommitted_replies_lock;
 	/** Last committed transno for this export */
-	u64		     exp_last_committed;
+	u64				exp_last_committed;
 	/** On replay all requests waiting for replay are linked here */
 	struct list_head		exp_req_replay_queue;
 	/**
 	 * protects exp_flags, exp_outstanding_replies and the change
 	 * of exp_imp_reverse
 	 */
-	spinlock_t		  exp_lock;
+	spinlock_t			exp_lock;
 	/** Compatibility flags for this export are embedded into
 	 *  exp_connect_data
 	 */
-	struct obd_connect_data   exp_connect_data;
-	enum obd_option	   exp_flags;
-	unsigned long	     exp_failed:1,
-				  exp_disconnected:1,
-				  exp_connecting:1,
-				  exp_flvr_changed:1,
-				  exp_flvr_adapt:1;
+	struct obd_connect_data		exp_connect_data;
+	enum obd_option			exp_flags;
+	unsigned long			exp_failed:1,
+					exp_disconnected:1,
+					exp_connecting:1,
+					exp_flvr_changed:1,
+					exp_flvr_adapt:1;
 	/* also protected by exp_lock */
-	enum lustre_sec_part      exp_sp_peer;
-	struct sptlrpc_flavor     exp_flvr;	     /* current */
-	struct sptlrpc_flavor     exp_flvr_old[2];      /* about-to-expire */
-	time64_t		  exp_flvr_expire[2];   /* seconds */
+	enum lustre_sec_part		exp_sp_peer;
+	struct sptlrpc_flavor		exp_flvr;	    /* current */
+	struct sptlrpc_flavor		exp_flvr_old[2];    /* about-to-expire */
+	time64_t			exp_flvr_expire[2]; /* seconds */
 
 	/** protects exp_hp_rpcs */
-	spinlock_t		  exp_rpc_lock;
-	struct list_head		  exp_hp_rpcs;	/* (potential) HP RPCs */
+	spinlock_t			exp_rpc_lock;
+	struct list_head		exp_hp_rpcs;	/* (potential) HP RPCs */
 
 	/** blocking dlm lock list, protected by exp_bl_list_lock */
 	struct list_head		exp_bl_list;
-	spinlock_t		  exp_bl_list_lock;
+	spinlock_t			exp_bl_list_lock;
 };
 
 static inline u64 *exp_connect_flags_ptr(struct obd_export *exp)
@@ -239,9 +239,9 @@ struct obd_export *class_conn2export(struct lustre_handle *conn);
 
 #define KKUC_CT_DATA_MAGIC	0x092013cea
 struct kkuc_ct_data {
-	u32		kcd_magic;
-	struct obd_uuid	kcd_uuid;
-	u32		kcd_archive;
+	u32			kcd_magic;
+	struct obd_uuid		kcd_uuid;
+	u32			kcd_archive;
 };
 
 /** @} export */

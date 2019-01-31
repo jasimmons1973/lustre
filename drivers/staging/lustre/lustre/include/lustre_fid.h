@@ -331,13 +331,13 @@ struct lu_client_seq {
 	 * clients, this contains meta-sequence range. And for servers this
 	 * contains super-sequence range.
 	 */
-	struct lu_seq_range	 lcs_space;
+	struct lu_seq_range	lcs_space;
 
 	/* Seq related proc */
 	struct dentry		*lcs_debugfs_entry;
 
 	/* This holds last allocated fid in last obtained seq */
-	struct lu_fid	   lcs_fid;
+	struct lu_fid		lcs_fid;
 
 	/* LUSTRE_SEQ_METADATA or LUSTRE_SEQ_DATA */
 	enum lu_cli_type	lcs_type;
@@ -346,17 +346,17 @@ struct lu_client_seq {
 	 * Service uuid, passed from MDT + seq name to form unique seq name to
 	 * use it with procfs.
 	 */
-	char		    lcs_name[LUSTRE_MDT_MAXNAMELEN];
+	char			lcs_name[LUSTRE_MDT_MAXNAMELEN];
 
 	/*
 	 * Sequence width, that is how many objects may be allocated in one
 	 * sequence. Default value for it is LUSTRE_SEQ_MAX_WIDTH.
 	 */
-	u64		   lcs_width;
+	u64			lcs_width;
 
 	/* wait queue for fid allocation and update indicator */
-	wait_queue_head_t	     lcs_waitq;
-	int		     lcs_update;
+	wait_queue_head_t	lcs_waitq;
+	int			lcs_update;
 };
 
 /* Client methods */

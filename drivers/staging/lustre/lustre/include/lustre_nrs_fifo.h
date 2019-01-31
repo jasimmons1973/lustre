@@ -63,8 +63,8 @@ struct nrs_fifo_head {
 };
 
 struct nrs_fifo_req {
-	struct list_head	fr_list;
-	u64			fr_sequence;
+	struct list_head		fr_list;
+	u64				fr_sequence;
 };
 
 /** @} fifo */
