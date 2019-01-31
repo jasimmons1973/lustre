@@ -64,7 +64,7 @@ ksocknal_alloc_tx(int type, int size)
 }
 
 struct ksock_tx *
-ksocknal_alloc_tx_noop(__u64 cookie, int nonblk)
+ksocknal_alloc_tx_noop(u64 cookie, int nonblk)
 {
 	struct ksock_tx *tx;
 
@@ -1126,7 +1126,7 @@ ksocknal_process_receive(struct ksock_conn *conn)
 		}
 
 		if (conn->ksnc_msg.ksm_zc_cookies[1]) {
-			__u64 cookie = 0;
+			u64 cookie = 0;
 
 			LASSERT(conn->ksnc_proto != &ksocknal_protocol_v1x);
 
@@ -1533,7 +1533,7 @@ void ksocknal_write_callback(struct ksock_conn *conn)
 static struct ksock_proto *
 ksocknal_parse_proto_version(struct ksock_hello_msg *hello)
 {
-	__u32 version = 0;
+	u32 version = 0;
 
 	if (hello->kshm_magic == LNET_PROTO_MAGIC)
 		version = hello->kshm_version;
@@ -1614,7 +1614,7 @@ int
 ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 		    struct ksock_hello_msg *hello,
 		    struct lnet_process_id *peerid,
-		    __u64 *incarnation)
+		    u64 *incarnation)
 {
 	/* Return < 0	fatal error
 	 *	0	  success

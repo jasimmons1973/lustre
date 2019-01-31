@@ -68,7 +68,7 @@ ksocknal_next_tx_carrier(struct ksock_conn *conn)
 
 static int
 ksocknal_queue_tx_zcack_v2(struct ksock_conn *conn,
-			   struct ksock_tx *tx_ack, __u64 cookie)
+			   struct ksock_tx *tx_ack, u64 cookie)
 {
 	struct ksock_tx *tx = conn->ksnc_tx_carrier;
 
@@ -151,7 +151,7 @@ ksocknal_queue_tx_msg_v2(struct ksock_conn *conn, struct ksock_tx *tx_msg)
 
 static int
 ksocknal_queue_tx_zcack_v3(struct ksock_conn *conn,
-			   struct ksock_tx *tx_ack, __u64 cookie)
+			   struct ksock_tx *tx_ack, u64 cookie)
 {
 	struct ksock_tx *tx;
 
@@ -220,7 +220,7 @@ ksocknal_queue_tx_zcack_v3(struct ksock_conn *conn,
 	/* takes two or more cookies already */
 
 	if (tx->tx_msg.ksm_zc_cookies[0] > tx->tx_msg.ksm_zc_cookies[1]) {
-		__u64   tmp = 0;
+		u64   tmp = 0;
 
 		/* two separated cookies: (a+2, a) or (a+1, a) */
 		LASSERT(tx->tx_msg.ksm_zc_cookies[0] -
@@ -365,7 +365,7 @@ ksocknal_match_tx_v3(struct ksock_conn *conn, struct ksock_tx *tx, int nonblk)
 
 /* (Sink) handle incoming ZC request from sender */
 static int
-ksocknal_handle_zcreq(struct ksock_conn *c, __u64 cookie, int remote)
+ksocknal_handle_zcreq(struct ksock_conn *c, u64 cookie, int remote)
 {
 	struct ksock_peer *peer_ni = c->ksnc_peer;
 	struct ksock_conn *conn;
@@ -409,7 +409,7 @@ ksocknal_handle_zcreq(struct ksock_conn *c, __u64 cookie, int remote)
 
 /* (Sender) handle ZC_ACK from sink */
 static int
-ksocknal_handle_zcack(struct ksock_conn *conn, __u64 cookie1, __u64 cookie2)
+ksocknal_handle_zcack(struct ksock_conn *conn, u64 cookie1, u64 cookie2)
 {
 	struct ksock_peer *peer_ni = conn->ksnc_peer;
 	struct ksock_tx *tx;
@@ -432,7 +432,7 @@ ksocknal_handle_zcack(struct ksock_conn *conn, __u64 cookie1, __u64 cookie2)
 
 	list_for_each_entry_safe(tx, tmp, &peer_ni->ksnp_zc_req_list,
 				 tx_zc_list) {
-		__u64 c = tx->tx_msg.ksm_zc_cookies[0];
+		u64 c = tx->tx_msg.ksm_zc_cookies[0];
 
 		if (c == cookie1 || c == cookie2 ||
 		    (cookie1 < c && c < cookie2)) {
@@ -500,7 +500,7 @@ ksocknal_send_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 	hdr->src_nid = cpu_to_le64(hello->kshm_src_nid);
 	hdr->src_pid = cpu_to_le32(hello->kshm_src_pid);
 	hdr->type = cpu_to_le32(LNET_MSG_HELLO);
-	hdr->payload_length = cpu_to_le32(hello->kshm_nips * sizeof(__u32));
+	hdr->payload_length = cpu_to_le32(hello->kshm_nips * sizeof(u32));
 	hdr->msg.hello.type = cpu_to_le32(hello->kshm_ctype);
 	hdr->msg.hello.incarnation = cpu_to_le64(hello->kshm_src_incarnation);
 
@@ -518,7 +518,7 @@ ksocknal_send_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 		hello->kshm_ips[i] = __cpu_to_le32(hello->kshm_ips[i]);
 
 	rc = lnet_sock_write(sock, hello->kshm_ips,
-			     hello->kshm_nips * sizeof(__u32),
+			     hello->kshm_nips * sizeof(u32),
 			     lnet_acceptor_timeout());
 	if (rc) {
 		CNETERR("Error %d sending HELLO payload (%d) to %pI4h/%d\n",
@@ -562,7 +562,7 @@ ksocknal_send_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 		return 0;
 
 	rc = lnet_sock_write(sock, hello->kshm_ips,
-			     hello->kshm_nips * sizeof(__u32),
+			     hello->kshm_nips * sizeof(u32),
 			     lnet_acceptor_timeout());
 	if (rc) {
 		CNETERR("Error %d sending HELLO payload (%d) to %pI4h/%d\n",
@@ -612,7 +612,7 @@ ksocknal_recv_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 	hello->kshm_src_incarnation = le64_to_cpu(hdr->msg.hello.incarnation);
 	hello->kshm_ctype           = le32_to_cpu(hdr->msg.hello.type);
 	hello->kshm_nips            = le32_to_cpu(hdr->payload_length) /
-						  sizeof(__u32);
+						  sizeof(u32);
 
 	if (hello->kshm_nips > LNET_INTERFACES_NUM) {
 		CERROR("Bad nips %d from ip %pI4h\n",
@@ -625,7 +625,7 @@ ksocknal_recv_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 		goto out;
 
 	rc = lnet_sock_read(sock, hello->kshm_ips,
-			    hello->kshm_nips * sizeof(__u32), timeout);
+			    hello->kshm_nips * sizeof(u32), timeout);
 	if (rc) {
 		CERROR("Error %d reading IPs from ip %pI4h\n",
 		       rc, &conn->ksnc_ipaddr);
@@ -694,7 +694,7 @@ ksocknal_recv_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 		return 0;
 
 	rc = lnet_sock_read(sock, hello->kshm_ips,
-			    hello->kshm_nips * sizeof(__u32), timeout);
+			    hello->kshm_nips * sizeof(u32), timeout);
 	if (rc) {
 		CERROR("Error %d reading IPs from ip %pI4h\n",
 		       rc, &conn->ksnc_ipaddr);

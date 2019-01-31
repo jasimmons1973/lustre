@@ -47,7 +47,7 @@ static void kiblnd_init_tx_msg(struct lnet_ni *ni, struct kib_tx *tx,
 			       int type, int body_nob);
 static int kiblnd_init_rdma(struct kib_conn *conn, struct kib_tx *tx, int type,
 			    int resid, struct kib_rdma_desc *dstrd,
-			    __u64 dstcookie);
+			    u64 dstcookie);
 static void kiblnd_queue_tx_locked(struct kib_tx *tx, struct kib_conn *conn);
 static void kiblnd_queue_tx(struct kib_tx *tx, struct kib_conn *conn);
 static void kiblnd_unmap_tx(struct kib_tx *tx);
@@ -223,7 +223,7 @@ out:
 }
 
 static struct kib_tx *
-kiblnd_find_waiting_tx_locked(struct kib_conn *conn, int txtype, __u64 cookie)
+kiblnd_find_waiting_tx_locked(struct kib_conn *conn, int txtype, u64 cookie)
 {
 	struct kib_tx *tx;
 
@@ -246,7 +246,7 @@ kiblnd_find_waiting_tx_locked(struct kib_conn *conn, int txtype, __u64 cookie)
 }
 
 static void
-kiblnd_handle_completion(struct kib_conn *conn, int txtype, int status, __u64 cookie)
+kiblnd_handle_completion(struct kib_conn *conn, int txtype, int status, u64 cookie)
 {
 	struct kib_tx *tx;
 	struct lnet_ni *ni = conn->ibc_peer->ibp_ni;
@@ -284,7 +284,7 @@ kiblnd_handle_completion(struct kib_conn *conn, int txtype, int status, __u64 co
 }
 
 static void
-kiblnd_send_completion(struct kib_conn *conn, int type, int status, __u64 cookie)
+kiblnd_send_completion(struct kib_conn *conn, int type, int status, u64 cookie)
 {
 	struct lnet_ni *ni = conn->ibc_peer->ibp_ni;
 	struct kib_tx *tx = kiblnd_get_idle_tx(ni, conn->ibc_peer->ibp_nid);
@@ -536,7 +536,7 @@ kiblnd_rx_complete(struct kib_rx *rx, int status, int nob)
 }
 
 static int
-kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *rd, __u32 nob)
+kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *rd, u32 nob)
 {
 	struct kib_hca_dev *hdev;
 	struct kib_fmr_poolset *fps;
@@ -637,7 +637,7 @@ static int kiblnd_map_tx(struct lnet_ni *ni, struct kib_tx *tx,
 {
 	struct kib_net *net = ni->ni_data;
 	struct kib_hca_dev *hdev = net->ibn_dev->ibd_hdev;
-	__u32 nob;
+	u32 nob;
 	int i;
 
 	/*
@@ -1086,7 +1086,7 @@ kiblnd_init_tx_msg(struct lnet_ni *ni, struct kib_tx *tx, int type,
 
 static int
 kiblnd_init_rdma(struct kib_conn *conn, struct kib_tx *tx, int type,
-		 int resid, struct kib_rdma_desc *dstrd, __u64 dstcookie)
+		 int resid, struct kib_rdma_desc *dstrd, u64 dstcookie)
 {
 	struct kib_msg *ibmsg = tx->tx_msg;
 	struct kib_rdma_desc *srcrd = tx->tx_rd;
@@ -2296,7 +2296,7 @@ kiblnd_passive_connect(struct rdma_cm_id *cmid, void *priv, int priv_nob)
 	peer_addr = (struct sockaddr_in *)&cmid->route.addr.dst_addr;
 	if (*kiblnd_tunables.kib_require_priv_port &&
 	    ntohs(peer_addr->sin_port) >= PROT_SOCK) {
-		__u32 ip = ntohl(peer_addr->sin_addr.s_addr);
+		u32 ip = ntohl(peer_addr->sin_addr.s_addr);
 
 		CERROR("peer_ni's port (%pI4h:%hu) is not privileged\n",
 		       &ip, ntohs(peer_addr->sin_port));
@@ -2589,7 +2589,7 @@ kiblnd_passive_connect(struct rdma_cm_id *cmid, void *priv, int priv_nob)
 
 static void
 kiblnd_check_reconnect(struct kib_conn *conn, int version,
-		       __u64 incarnation, int why, struct kib_connparams *cp)
+		       u64 incarnation, int why, struct kib_connparams *cp)
 {
 	rwlock_t *glock = &kiblnd_data.kib_global_lock;
 	struct kib_peer_ni *peer_ni = conn->ibc_peer;
@@ -2734,7 +2734,7 @@ kiblnd_rejected(struct kib_conn *conn, int reason, void *priv, int priv_nob)
 			struct kib_rej *rej = priv;
 			struct kib_connparams *cp = NULL;
 			int flip = 0;
-			__u64 incarnation = -1;
+			u64 incarnation = -1;
 
 			/* NB. default incarnation is -1 because:
 			 * a) V1 will ignore dst incarnation in connreq.
@@ -2947,7 +2947,7 @@ kiblnd_active_connect(struct rdma_cm_id *cmid)
 	struct kib_msg *msg;
 	struct rdma_conn_param cp;
 	int version;
-	__u64 incarnation;
+	u64 incarnation;
 	unsigned long flags;
 	int rc;
 

@@ -101,8 +101,8 @@ struct ksock_sched_info {
 #define KSOCK_THREAD_SID(id)      ((id) & ((1UL << KSOCK_CPT_SHIFT) - 1))
 
 struct ksock_interface {			/* in-use interface */
-	__u32		ksni_ipaddr;		/* interface's IP address */
-	__u32		ksni_netmask;		/* interface's network mask */
+	u32		ksni_ipaddr;		/* interface's IP address */
+	u32		ksni_netmask;		/* interface's network mask */
 	int		ksni_nroutes;		/* # routes using (active) */
 	int		ksni_npeers;		/* # peers using (passive) */
 	char		ksni_name[IFNAMSIZ];	/* interface name */
@@ -167,7 +167,7 @@ struct ksock_tunables {
 };
 
 struct ksock_net {
-	__u64		  ksnn_incarnation;	/* my epoch */
+	u64		  ksnn_incarnation;	/* my epoch */
 	spinlock_t	  ksnn_lock;		/* serialise */
 	struct list_head	  ksnn_list;		/* chain on global list */
 	int		  ksnn_npeers;		/* # peers */
@@ -326,8 +326,8 @@ struct ksock_conn {
 	atomic_t           ksnc_sock_refcount;/* sock refcount */
 	struct ksock_sched *ksnc_scheduler;	/* who schedules this connection
 						 */
-	__u32              ksnc_myipaddr;     /* my IP */
-	__u32              ksnc_ipaddr;       /* peer_ni's IP */
+	u32              ksnc_myipaddr;     /* my IP */
+	u32              ksnc_ipaddr;       /* peer_ni's IP */
 	int                ksnc_port;         /* peer_ni's port */
 	signed int         ksnc_type:3;       /* type of connection, should be
 					       * signed value
@@ -344,14 +344,14 @@ struct ksock_conn {
 	time64_t	   ksnc_rx_deadline;  /* when (in secs) receive times
 					       * out
 					       */
-	__u8               ksnc_rx_started;   /* started receiving a message */
-	__u8               ksnc_rx_ready;     /* data ready to read */
-	__u8               ksnc_rx_scheduled; /* being progressed */
-	__u8               ksnc_rx_state;     /* what is being read */
+	u8               ksnc_rx_started;   /* started receiving a message */
+	u8               ksnc_rx_ready;     /* data ready to read */
+	u8               ksnc_rx_scheduled; /* being progressed */
+	u8               ksnc_rx_state;     /* what is being read */
 	int                ksnc_rx_nob_left;  /* # bytes to next hdr/body */
 	struct iov_iter    ksnc_rx_to;		/* copy destination */
 	struct kvec        ksnc_rx_iov_space[LNET_MAX_IOV]; /* space for frag descriptors */
-	__u32              ksnc_rx_csum;      /* partial checksum for incoming
+	u32              ksnc_rx_csum;      /* partial checksum for incoming
 					       * data
 					       */
 	void               *ksnc_cookie;      /* rx lnet_finalize passthru arg
@@ -391,8 +391,8 @@ struct ksock_route {
 						* can happen next
 						*/
 	time64_t	  ksnr_retry_interval; /* how long between retries */
-	__u32             ksnr_myipaddr;       /* my IP */
-	__u32             ksnr_ipaddr;         /* IP address to connect to */
+	u32             ksnr_myipaddr;       /* my IP */
+	u32             ksnr_ipaddr;         /* IP address to connect to */
 	int               ksnr_port;           /* port to connect to */
 	unsigned int      ksnr_scheduled:1;    /* scheduled for attention */
 	unsigned int      ksnr_connecting:1;   /* connection establishment in
@@ -422,8 +422,8 @@ struct ksock_peer {
 	int                ksnp_accepting;      /* # passive connections pending
 						 */
 	int                ksnp_error;          /* errno on closing last conn */
-	__u64              ksnp_zc_next_cookie; /* ZC completion cookie */
-	__u64              ksnp_incarnation;    /* latest known peer_ni
+	u64              ksnp_zc_next_cookie; /* ZC completion cookie */
+	u64              ksnp_incarnation;    /* latest known peer_ni
 						 * incarnation
 						 */
 	struct ksock_proto *ksnp_proto;         /* latest known peer_ni
@@ -479,13 +479,13 @@ struct ksock_proto {
 	struct ksock_tx *(*pro_queue_tx_msg)(struct ksock_conn *, struct ksock_tx *);
 
 	/* queue ZC ack on the connection */
-	int        (*pro_queue_tx_zcack)(struct ksock_conn *, struct ksock_tx *, __u64);
+	int        (*pro_queue_tx_zcack)(struct ksock_conn *, struct ksock_tx *, u64);
 
 	/* handle ZC request */
-	int        (*pro_handle_zcreq)(struct ksock_conn *, __u64, int);
+	int        (*pro_handle_zcreq)(struct ksock_conn *, u64, int);
 
 	/* handle ZC ACK */
-	int        (*pro_handle_zcack)(struct ksock_conn *, __u64, __u64);
+	int        (*pro_handle_zcack)(struct ksock_conn *, u64, u64);
 
 	/*
 	 * msg type matches the connection type:
@@ -634,7 +634,7 @@ int ksocknal_recv(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg,
 		  int delayed, struct iov_iter *to, unsigned int rlen);
 int ksocknal_accept(struct lnet_ni *ni, struct socket *sock);
 
-int ksocknal_add_peer(struct lnet_ni *ni, struct lnet_process_id id, __u32 ip,
+int ksocknal_add_peer(struct lnet_ni *ni, struct lnet_process_id id, u32 ip,
 		      int port);
 struct ksock_peer *ksocknal_find_peer_locked(struct lnet_ni *ni,
 					     struct lnet_process_id id);
@@ -647,9 +647,9 @@ void ksocknal_close_conn_locked(struct ksock_conn *conn, int why);
 void ksocknal_terminate_conn(struct ksock_conn *conn);
 void ksocknal_destroy_conn(struct ksock_conn *conn);
 int  ksocknal_close_peer_conns_locked(struct ksock_peer *peer_ni,
-				      __u32 ipaddr, int why);
+				      u32 ipaddr, int why);
 int ksocknal_close_conn_and_siblings(struct ksock_conn *conn, int why);
-int ksocknal_close_matching_conns(struct lnet_process_id id, __u32 ipaddr);
+int ksocknal_close_matching_conns(struct lnet_process_id id, u32 ipaddr);
 struct ksock_conn *ksocknal_find_conn_locked(struct ksock_peer *peer_ni,
 					     struct ksock_tx *tx, int nonblk);
 
@@ -657,7 +657,7 @@ int  ksocknal_launch_packet(struct lnet_ni *ni, struct ksock_tx *tx,
 			    struct lnet_process_id id);
 struct ksock_tx *ksocknal_alloc_tx(int type, int size);
 void ksocknal_free_tx(struct ksock_tx *tx);
-struct ksock_tx *ksocknal_alloc_tx_noop(__u64 cookie, int nonblk);
+struct ksock_tx *ksocknal_alloc_tx_noop(u64 cookie, int nonblk);
 void ksocknal_next_tx_carrier(struct ksock_conn *conn);
 void ksocknal_queue_tx_locked(struct ksock_tx *tx, struct ksock_conn *conn);
 void ksocknal_txlist_done(struct lnet_ni *ni, struct list_head *txlist, int error);
@@ -679,7 +679,7 @@ int ksocknal_send_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 int ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 			struct ksock_hello_msg *hello,
 			struct lnet_process_id *id,
-			__u64 *incarnation);
+			u64 *incarnation);
 void ksocknal_read_callback(struct ksock_conn *conn);
 void ksocknal_write_callback(struct ksock_conn *conn);
 

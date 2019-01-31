@@ -175,7 +175,7 @@ int
 ksocknal_lib_recv(struct ksock_conn *conn)
 {
 	struct msghdr msg = { .msg_iter = conn->ksnc_rx_to };
-	__u32 saved_csum;
+	u32 saved_csum;
 	int rc;
 
 	rc = sock_recvmsg(conn->ksnc_sock, &msg, MSG_DONTWAIT);
@@ -203,7 +203,7 @@ void
 ksocknal_lib_csum_tx(struct ksock_tx *tx)
 {
 	int i;
-	__u32 csum;
+	u32 csum;
 	void *base;
 
 	LASSERT(tx->tx_iov[0].iov_base == &tx->tx_msg);

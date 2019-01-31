@@ -44,10 +44,10 @@ static struct lnet_lnd the_o2iblnd;
 
 struct kib_data kiblnd_data;
 
-static __u32 kiblnd_cksum(void *ptr, int nob)
+static u32 kiblnd_cksum(void *ptr, int nob)
 {
 	char *c = ptr;
-	__u32 sum = 0;
+	u32 sum = 0;
 
 	while (nob-- > 0)
 		sum = ((sum << 1) | (sum >> 31)) + *c++;
@@ -175,7 +175,7 @@ static int kiblnd_unpack_rd(struct kib_msg *msg, int flip)
 }
 
 void kiblnd_pack_msg(struct lnet_ni *ni, struct kib_msg *msg, int version,
-		     int credits, lnet_nid_t dstnid, __u64 dststamp)
+		     int credits, lnet_nid_t dstnid, u64 dststamp)
 {
 	struct kib_net *net = ni->ni_data;
 
@@ -203,8 +203,8 @@ void kiblnd_pack_msg(struct lnet_ni *ni, struct kib_msg *msg, int version,
 int kiblnd_unpack_msg(struct kib_msg *msg, int nob)
 {
 	const int hdr_size = offsetof(struct kib_msg, ibm_u);
-	__u32 msg_cksum;
-	__u16 version;
+	u32 msg_cksum;
+	u16 version;
 	int msg_nob;
 	int flip;
 
@@ -994,7 +994,7 @@ int kiblnd_close_peer_conns_locked(struct kib_peer_ni *peer_ni, int why)
 }
 
 int kiblnd_close_stale_conns_locked(struct kib_peer_ni *peer_ni,
-				    int version, __u64 incarnation)
+				    int version, u64 incarnation)
 {
 	struct kib_conn *conn;
 	struct list_head *ctmp;
@@ -1240,7 +1240,7 @@ void kiblnd_map_rx_descs(struct kib_conn *conn)
 
 		CDEBUG(D_NET, "rx %d: %p %#llx(%#llx)\n",
 		       i, rx->rx_msg, rx->rx_msgaddr,
-		       (__u64)(page_to_phys(pg) + pg_off));
+		       (u64)(page_to_phys(pg) + pg_off));
 
 		pg_off += IBLND_MSG_SIZE;
 		LASSERT(pg_off <= PAGE_SIZE);
@@ -1610,7 +1610,7 @@ static int kiblnd_fmr_pool_is_idle(struct kib_fmr_pool *fpo, time64_t now)
 static int
 kiblnd_map_tx_pages(struct kib_tx *tx, struct kib_rdma_desc *rd)
 {
-	__u64 *pages = tx->tx_pages;
+	u64 *pages = tx->tx_pages;
 	struct kib_hca_dev *hdev;
 	int npages;
 	int size;
@@ -1685,15 +1685,15 @@ void kiblnd_fmr_pool_unmap(struct kib_fmr *fmr, int status)
 }
 
 int kiblnd_fmr_pool_map(struct kib_fmr_poolset *fps, struct kib_tx *tx,
-			struct kib_rdma_desc *rd, __u32 nob, __u64 iov,
+			struct kib_rdma_desc *rd, u32 nob, u64 iov,
 			struct kib_fmr *fmr)
 {
-	__u64 *pages = tx->tx_pages;
+	u64 *pages = tx->tx_pages;
 	bool is_rx = (rd != tx->tx_rd);
 	bool tx_pages_mapped = false;
 	struct kib_fmr_pool *fpo;
 	int npages = 0;
-	__u64 version;
+	u64 version;
 	int rc;
 
  again:
@@ -1740,7 +1740,7 @@ int kiblnd_fmr_pool_map(struct kib_fmr_poolset *fps, struct kib_tx *tx,
 				mr = frd->frd_mr;
 
 				if (!frd->frd_valid) {
-					__u32 key = is_rx ? mr->rkey : mr->lkey;
+					u32 key = is_rx ? mr->rkey : mr->lkey;
 					struct ib_send_wr *inv_wr;
 
 					inv_wr = &frd->frd_inv_wr;
@@ -2204,7 +2204,7 @@ static void kiblnd_net_fini_pools(struct kib_net *net)
 }
 
 static int kiblnd_net_init_pools(struct kib_net *net, struct lnet_ni *ni,
-				 __u32 *cpts, int ncpts)
+				 u32 *cpts, int ncpts)
 {
 	struct lnet_ioctl_config_o2iblnd_tunables *tunables;
 	int cpt;
@@ -2303,7 +2303,7 @@ static int kiblnd_hdev_get_attr(struct kib_hca_dev *hdev)
 	 */
 	hdev->ibh_page_shift = PAGE_SHIFT;
 	hdev->ibh_page_size  = 1 << PAGE_SHIFT;
-	hdev->ibh_page_mask  = ~((__u64)hdev->ibh_page_size - 1);
+	hdev->ibh_page_mask  = ~((u64)hdev->ibh_page_size - 1);
 
 	if (hdev->ibh_ibdev->ops.alloc_fmr &&
 	    hdev->ibh_ibdev->ops.dealloc_fmr &&
@@ -2878,7 +2878,7 @@ static int kiblnd_start_schedulers(struct kib_sched_info *sched)
 	return rc;
 }
 
-static int kiblnd_dev_start_threads(struct kib_dev *dev, int newdev, __u32 *cpts,
+static int kiblnd_dev_start_threads(struct kib_dev *dev, int newdev, u32 *cpts,
 				    int ncpts)
 {
 	int cpt;
