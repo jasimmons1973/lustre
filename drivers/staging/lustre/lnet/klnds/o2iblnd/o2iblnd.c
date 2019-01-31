@@ -183,15 +183,15 @@ void kiblnd_pack_msg(struct lnet_ni *ni, struct kib_msg *msg, int version,
 	 * CAVEAT EMPTOR! all message fields not set here should have been
 	 * initialised previously.
 	 */
-	msg->ibm_magic    = IBLND_MSG_MAGIC;
-	msg->ibm_version  = version;
+	msg->ibm_magic = IBLND_MSG_MAGIC;
+	msg->ibm_version = version;
 	/*   ibm_type */
-	msg->ibm_credits  = credits;
+	msg->ibm_credits = credits;
 	/*   ibm_nob */
-	msg->ibm_cksum    = 0;
-	msg->ibm_srcnid   = ni->ni_nid;
+	msg->ibm_cksum = 0;
+	msg->ibm_srcnid = ni->ni_nid;
 	msg->ibm_srcstamp = net->ibn_incarnation;
-	msg->ibm_dstnid   = dstnid;
+	msg->ibm_dstnid = dstnid;
 	msg->ibm_dststamp = dststamp;
 
 	if (*kiblnd_tunables.kib_cksum) {
@@ -260,7 +260,7 @@ int kiblnd_unpack_msg(struct kib_msg *msg, int nob)
 		msg->ibm_version = version;
 		BUILD_BUG_ON(sizeof(msg->ibm_type) != 1);
 		BUILD_BUG_ON(sizeof(msg->ibm_credits) != 1);
-		msg->ibm_nob     = msg_nob;
+		msg->ibm_nob = msg_nob;
 		__swab64s(&msg->ibm_srcnid);
 		__swab64s(&msg->ibm_srcstamp);
 		__swab64s(&msg->ibm_dstnid);
@@ -903,12 +903,12 @@ struct kib_conn *kiblnd_create_conn(struct kib_peer_ni *peer_ni,
 	atomic_inc(&net->ibn_nconns);
 	return conn;
 
- failed_2:
+failed_2:
 	kiblnd_destroy_conn(conn);
 	kfree(conn);
- failed_1:
+failed_1:
 	kfree(init_qp_attr);
- failed_0:
+failed_0:
 	return NULL;
 }
 
@@ -1004,7 +1004,7 @@ int kiblnd_close_stale_conns_locked(struct kib_peer_ni *peer_ni,
 	list_for_each_safe(ctmp, cnxt, &peer_ni->ibp_conns) {
 		conn = list_entry(ctmp, struct kib_conn, ibc_list);
 
-		if (conn->ibc_version     == version &&
+		if (conn->ibc_version == version &&
 		    conn->ibc_incarnation == incarnation)
 			continue;
 
@@ -1077,7 +1077,7 @@ static int kiblnd_ctl(struct lnet_ni *ni, unsigned int cmd, void *arg)
 
 		rc = kiblnd_get_peer_info(ni, data->ioc_count,
 					  &nid, &count);
-		data->ioc_nid   = nid;
+		data->ioc_nid = nid;
 		data->ioc_count = count;
 		break;
 	}
@@ -1414,15 +1414,16 @@ kiblnd_fmr_flush_trigger(struct lnet_ioctl_config_o2iblnd_tunables *tunables,
 static int kiblnd_alloc_fmr_pool(struct kib_fmr_poolset *fps, struct kib_fmr_pool *fpo)
 {
 	struct ib_fmr_pool_param param = {
-		.max_pages_per_fmr = LNET_MAX_IOV,
-		.page_shift        = PAGE_SHIFT,
-		.access            = (IB_ACCESS_LOCAL_WRITE |
-				      IB_ACCESS_REMOTE_WRITE),
-		.pool_size         = fps->fps_pool_size,
-		.dirty_watermark   = fps->fps_flush_trigger,
-		.flush_function    = NULL,
-		.flush_arg         = NULL,
-		.cache             = !!fps->fps_cache };
+		.max_pages_per_fmr	= LNET_MAX_IOV,
+		.page_shift		= PAGE_SHIFT,
+		.access			= (IB_ACCESS_LOCAL_WRITE |
+					   IB_ACCESS_REMOTE_WRITE),
+		.pool_size		= fps->fps_pool_size,
+		.dirty_watermark	= fps->fps_flush_trigger,
+		.flush_function		= NULL,
+		.flush_arg		= NULL,
+		.cache			= !!fps->fps_cache
+	};
 	int rc = 0;
 
 	fpo->fmr.fpo_fmr_pool = ib_create_fmr_pool(fpo->fpo_hdev->ibh_pd,
@@ -1696,7 +1697,7 @@ int kiblnd_fmr_pool_map(struct kib_fmr_poolset *fps, struct kib_tx *tx,
 	u64 version;
 	int rc;
 
- again:
+again:
 	spin_lock(&fps->fps_lock);
 	version = fps->fps_version;
 	list_for_each_entry(fpo, &fps->fps_pool_list, fpo_list) {
@@ -1844,8 +1845,8 @@ static void kiblnd_init_pool(struct kib_poolset *ps, struct kib_pool *pool, int 
 	memset(pool, 0, sizeof(*pool));
 	INIT_LIST_HEAD(&pool->po_free_list);
 	pool->po_deadline = ktime_get_seconds() + IBLND_POOL_DEADLINE;
-	pool->po_owner    = ps;
-	pool->po_size     = size;
+	pool->po_owner = ps;
+	pool->po_size = size;
 }
 
 static void kiblnd_destroy_pool_list(struct list_head *head)
@@ -1900,13 +1901,13 @@ static int kiblnd_init_poolset(struct kib_poolset *ps, int cpt,
 
 	memset(ps, 0, sizeof(*ps));
 
-	ps->ps_cpt          = cpt;
-	ps->ps_net          = net;
+	ps->ps_cpt = cpt;
+	ps->ps_net = net;
 	ps->ps_pool_create  = po_create;
 	ps->ps_pool_destroy = po_destroy;
-	ps->ps_node_init    = nd_init;
-	ps->ps_node_fini    = nd_fini;
-	ps->ps_pool_size    = size;
+	ps->ps_node_init = nd_init;
+	ps->ps_node_fini = nd_fini;
+	ps->ps_pool_size = size;
 	if (strlcpy(ps->ps_name, name, sizeof(ps->ps_name))
 	    >= sizeof(ps->ps_name))
 		return -E2BIG;
@@ -1971,7 +1972,7 @@ struct list_head *kiblnd_pool_alloc_node(struct kib_poolset *ps)
 	unsigned int trips = 0;
 	int rc;
 
- again:
+again:
 	spin_lock(&ps->ps_lock);
 	list_for_each_entry(pool, &ps->ps_pool_list, po_list) {
 		if (list_empty(&pool->po_free_list))
@@ -2286,7 +2287,7 @@ static int kiblnd_net_init_pools(struct kib_net *net, struct lnet_ni *ni,
 	}
 
 	return 0;
- failed:
+failed:
 	kiblnd_net_fini_pools(net);
 	LASSERT(rc);
 	return rc;
@@ -2302,8 +2303,8 @@ static int kiblnd_hdev_get_attr(struct kib_hca_dev *hdev)
 	 * matching that of the native system
 	 */
 	hdev->ibh_page_shift = PAGE_SHIFT;
-	hdev->ibh_page_size  = 1 << PAGE_SHIFT;
-	hdev->ibh_page_mask  = ~((u64)hdev->ibh_page_size - 1);
+	hdev->ibh_page_size = 1 << PAGE_SHIFT;
+	hdev->ibh_page_mask = ~((u64)hdev->ibh_page_size - 1);
 
 	if (hdev->ibh_ibdev->ops.alloc_fmr &&
 	    hdev->ibh_ibdev->ops.dealloc_fmr &&
@@ -2455,9 +2456,9 @@ int kiblnd_dev_failover(struct kib_dev *dev)
 	}
 
 	memset(&addr, 0, sizeof(addr));
-	addr.sin_family      = AF_INET;
+	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = htonl(dev->ibd_ifip);
-	addr.sin_port	= htons(*kiblnd_tunables.kib_service);
+	addr.sin_port = htons(*kiblnd_tunables.kib_service);
 
 	/* Bind to failover device or port */
 	rc = rdma_bind_addr(cmid, (struct sockaddr *)&addr);
@@ -2478,8 +2479,8 @@ int kiblnd_dev_failover(struct kib_dev *dev)
 	}
 
 	atomic_set(&hdev->ibh_ref, 1);
-	hdev->ibh_dev   = dev;
-	hdev->ibh_cmid  = cmid;
+	hdev->ibh_dev = dev;
+	hdev->ibh_cmid = cmid;
 	hdev->ibh_ibdev = cmid->device;
 
 	pd = ib_alloc_pd(cmid->device, 0);
@@ -2519,7 +2520,7 @@ int kiblnd_dev_failover(struct kib_dev *dev)
 	}
 
 	write_unlock_irqrestore(&kiblnd_data.kib_global_lock, flags);
- out:
+out:
 	if (!list_empty(&zombie_tpo))
 		kiblnd_destroy_pool_list(&zombie_tpo);
 	if (!list_empty(&zombie_ppo))
@@ -2832,7 +2833,7 @@ static int kiblnd_base_startup(void)
 
 	return 0;
 
- failed:
+failed:
 	kiblnd_base_shutdown();
 	return -ENETDOWN;
 }
