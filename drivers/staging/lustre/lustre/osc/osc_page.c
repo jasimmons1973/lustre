@@ -227,10 +227,10 @@ static int osc_page_flush(const struct lu_env *env,
 }
 
 static const struct cl_page_operations osc_page_ops = {
-	.cpo_print	 = osc_page_print,
+	.cpo_print	= osc_page_print,
 	.cpo_delete	= osc_page_delete,
-	.cpo_clip	   = osc_page_clip,
-	.cpo_flush	  = osc_page_flush
+	.cpo_clip	= osc_page_clip,
+	.cpo_flush	= osc_page_flush
 };
 
 int osc_page_init(const struct lu_env *env, struct cl_object *obj,
@@ -931,7 +931,7 @@ void osc_dec_unstable_pages(struct ptlrpc_request *req)
  */
 void osc_inc_unstable_pages(struct ptlrpc_request *req)
 {
-	struct client_obd *cli  = &req->rq_import->imp_obd->u.cli;
+	struct client_obd *cli = &req->rq_import->imp_obd->u.cli;
 	struct ptlrpc_bulk_desc *desc = req->rq_bulk;
 	long page_count = desc->bd_iov_count;
 

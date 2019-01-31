@@ -501,7 +501,7 @@ static ssize_t contention_seconds_show(struct kobject *kobj,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct osc_device *od  = obd2osc_dev(obd);
+	struct osc_device *od = obd2osc_dev(obd);
 
 	return sprintf(buf, "%u\n", od->od_contention_time);
 }
@@ -513,7 +513,7 @@ static ssize_t contention_seconds_store(struct kobject *kobj,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct osc_device *od  = obd2osc_dev(obd);
+	struct osc_device *od = obd2osc_dev(obd);
 	unsigned int val;
 	int rc;
 
@@ -533,7 +533,7 @@ static ssize_t lockless_truncate_show(struct kobject *kobj,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct osc_device *od  = obd2osc_dev(obd);
+	struct osc_device *od = obd2osc_dev(obd);
 
 	return sprintf(buf, "%u\n", od->od_lockless_truncate);
 }
@@ -545,7 +545,7 @@ static ssize_t lockless_truncate_store(struct kobject *kobj,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct osc_device *od  = obd2osc_dev(obd);
+	struct osc_device *od = obd2osc_dev(obd);
 	bool val;
 	int rc;
 

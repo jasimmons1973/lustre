@@ -935,21 +935,21 @@ static const struct cl_io_operations osc_io_ops = {
 		[CIT_READ] = {
 			.cio_iter_init	= osc_io_iter_init,
 			.cio_iter_fini	= osc_io_iter_fini,
-			.cio_start  = osc_io_read_start,
-			.cio_fini   = osc_io_fini
+			.cio_start	= osc_io_read_start,
+			.cio_fini	= osc_io_fini
 		},
 		[CIT_WRITE] = {
 			.cio_iter_init	= osc_io_write_iter_init,
 			.cio_iter_fini	= osc_io_write_iter_fini,
-			.cio_start  = osc_io_write_start,
-			.cio_end    = osc_io_end,
-			.cio_fini   = osc_io_fini
+			.cio_start	= osc_io_write_start,
+			.cio_end	= osc_io_end,
+			.cio_fini	= osc_io_fini
 		},
 		[CIT_SETATTR] = {
 			.cio_iter_init	= osc_io_iter_init,
 			.cio_iter_fini	= osc_io_iter_fini,
-			.cio_start  = osc_io_setattr_start,
-			.cio_end    = osc_io_setattr_end
+			.cio_start	= osc_io_setattr_start,
+			.cio_end	= osc_io_setattr_end
 		},
 		[CIT_DATA_VERSION] = {
 			.cio_start	= osc_io_data_version_start,
@@ -958,14 +958,14 @@ static const struct cl_io_operations osc_io_ops = {
 		[CIT_FAULT] = {
 			.cio_iter_init	= osc_io_iter_init,
 			.cio_iter_fini	= osc_io_iter_fini,
-			.cio_start  = osc_io_fault_start,
-			.cio_end    = osc_io_end,
-			.cio_fini   = osc_io_fini
+			.cio_start	= osc_io_fault_start,
+			.cio_end	= osc_io_end,
+			.cio_fini	= osc_io_fini
 		},
 		[CIT_FSYNC] = {
-			.cio_start  = osc_io_fsync_start,
-			.cio_end    = osc_io_fsync_end,
-			.cio_fini   = osc_io_fini
+			.cio_start	= osc_io_fsync_start,
+			.cio_end	= osc_io_fsync_end,
+			.cio_fini	= osc_io_fini
 		},
 		[CIT_LADVISE] = {
 			.cio_start	= osc_io_ladvise_start,
@@ -973,12 +973,12 @@ static const struct cl_io_operations osc_io_ops = {
 			.cio_fini	= osc_io_fini
 		},
 		[CIT_MISC] = {
-			.cio_fini   = osc_io_fini
+			.cio_fini	= osc_io_fini
 		}
 	},
 	.cio_read_ahead			= osc_io_read_ahead,
-	.cio_submit                 = osc_io_submit,
-	.cio_commit_async           = osc_io_commit_async
+	.cio_submit			= osc_io_submit,
+	.cio_commit_async		= osc_io_commit_async
 };
 
 /*****************************************************************************

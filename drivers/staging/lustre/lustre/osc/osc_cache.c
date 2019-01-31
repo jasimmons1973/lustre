@@ -1304,7 +1304,7 @@ static int osc_make_ready(const struct lu_env *env, struct osc_async_page *oap,
 			  int cmd)
 {
 	struct osc_page *opg = oap2osc_page(oap);
-	struct cl_page  *page = oap2cl_page(oap);
+	struct cl_page *page = oap2cl_page(oap);
 	int result;
 
 	LASSERT(cmd == OBD_BRW_WRITE); /* no cached reads */
@@ -1323,7 +1323,6 @@ static int osc_refresh_count(const struct lu_env *env,
 	pgoff_t index = osc_index(oap2osc(oap));
 	struct cl_object *obj;
 	struct cl_attr *attr = &osc_env_info(env)->oti_attr;
-
 	int result;
 	loff_t kms;
 
@@ -1395,21 +1394,21 @@ static int osc_completion(const struct lu_env *env, struct osc_async_page *oap,
 	return 0;
 }
 
-#define OSC_DUMP_GRANT(lvl, cli, fmt, args...) do {			      \
-	struct client_obd *__tmp = (cli);				      \
+#define OSC_DUMP_GRANT(lvl, cli, fmt, args...) do {			\
+	struct client_obd *__tmp = (cli);				\
 	CDEBUG(lvl, "%s: grant { dirty: %ld/%ld dirty_pages: %ld/%lu "	\
 	       "dropped: %ld avail: %ld, dirty_grant: %ld, "		\
 	       "reserved: %ld, flight: %d } lru {in list: %ld, "	\
 	       "left: %ld, waiters: %d }" fmt "\n",			\
-	       cli_name(__tmp),						      \
-	       __tmp->cl_dirty_pages, __tmp->cl_dirty_max_pages,	      \
-	       atomic_long_read(&obd_dirty_pages), obd_max_dirty_pages,	      \
-	       __tmp->cl_lost_grant, __tmp->cl_avail_grant,		      \
+	       cli_name(__tmp),						\
+	       __tmp->cl_dirty_pages, __tmp->cl_dirty_max_pages,	\
+	       atomic_long_read(&obd_dirty_pages), obd_max_dirty_pages,	\
+	       __tmp->cl_lost_grant, __tmp->cl_avail_grant,		\
 	       __tmp->cl_dirty_grant,					\
-	       __tmp->cl_reserved_grant, __tmp->cl_w_in_flight,		      \
-	       atomic_long_read(&__tmp->cl_lru_in_list),		      \
-	       atomic_long_read(&__tmp->cl_lru_busy),			      \
-	       atomic_read(&__tmp->cl_lru_shrinkers), ##args);		      \
+	       __tmp->cl_reserved_grant, __tmp->cl_w_in_flight,		\
+	       atomic_long_read(&__tmp->cl_lru_in_list),		\
+	       atomic_long_read(&__tmp->cl_lru_busy),			\
+	       atomic_read(&__tmp->cl_lru_shrinkers), ##args);		\
 } while (0)
 
 /* caller must hold loi_list_lock */
@@ -1471,7 +1470,7 @@ static void __osc_unreserve_grant(struct client_obd *cli,
 	cli->cl_reserved_grant -= reserved;
 	if (unused > reserved) {
 		cli->cl_avail_grant += reserved;
-		cli->cl_lost_grant  += unused - reserved;
+		cli->cl_lost_grant += unused - reserved;
 		cli->cl_dirty_grant -= unused - reserved;
 	} else {
 		cli->cl_avail_grant += unused;
@@ -1984,11 +1983,11 @@ static unsigned int get_write_extents(struct osc_object *obj,
 	struct client_obd *cli = osc_cli(obj);
 	struct osc_extent *ext;
 	struct extent_rpc_data data = {
-		.erd_rpc_list = rpclist,
-		.erd_page_count = 0,
-		.erd_max_pages = cli->cl_max_pages_per_rpc,
-		.erd_max_chunks = osc_max_write_chunks(cli),
-		.erd_max_extents = 256,
+		.erd_rpc_list		= rpclist,
+		.erd_page_count		= 0,
+		.erd_max_pages		= cli->cl_max_pages_per_rpc,
+		.erd_max_chunks		= osc_max_write_chunks(cli),
+		.erd_max_extents	= 256,
 	};
 
 	assert_osc_object_is_locked(obj);
@@ -2121,11 +2120,11 @@ osc_send_read_rpc(const struct lu_env *env, struct client_obd *cli,
 	struct osc_extent *next;
 	LIST_HEAD(rpclist);
 	struct extent_rpc_data data = {
-		.erd_rpc_list = &rpclist,
-		.erd_page_count = 0,
-		.erd_max_pages = cli->cl_max_pages_per_rpc,
-		.erd_max_chunks = UINT_MAX,
-		.erd_max_extents = UINT_MAX,
+		.erd_rpc_list		= &rpclist,
+		.erd_page_count		= 0,
+		.erd_max_pages		= cli->cl_max_pages_per_rpc,
+		.erd_max_chunks		= UINT_MAX,
+		.erd_max_extents	= UINT_MAX,
 	};
 	int rc = 0;
 
@@ -2545,7 +2544,7 @@ int osc_flush_async_page(const struct lu_env *env, struct cl_io *io,
 	struct osc_extent *ext = NULL;
 	struct osc_object *obj = cl2osc(ops->ops_cl.cpl_obj);
 	struct cl_page *cp = ops->ops_cl.cpl_page;
-	pgoff_t            index = osc_index(ops);
+	pgoff_t index = osc_index(ops);
 	struct osc_async_page *oap = &ops->ops_oap;
 	bool unplug = false;
 	int rc = 0;
@@ -3033,13 +3032,13 @@ bool osc_page_gang_lookup(const struct lu_env *env, struct cl_io *io,
 			  osc_page_gang_cbt cb, void *cbdata)
 {
 	struct osc_page *ops;
-	void            **pvec;
-	pgoff_t         idx;
-	unsigned int    nr;
-	unsigned int    i;
-	unsigned int    j;
-	bool            res = true;
-	bool            tree_lock = true;
+	void **pvec;
+	pgoff_t idx;
+	unsigned int nr;
+	unsigned int i;
+	unsigned int j;
+	bool res = true;
+	bool tree_lock = true;
 
 	idx = start;
 	pvec = osc_env_info(env)->oti_pvec;

@@ -676,11 +676,11 @@ static unsigned long osc_lock_weight(const struct lu_env *env,
  */
 unsigned long osc_ldlm_weigh_ast(struct ldlm_lock *dlmlock)
 {
-	struct lu_env           *env;
-	struct osc_object	*obj;
-	struct osc_lock		*oscl;
-	unsigned long            weight;
-	bool			 found = false;
+	struct lu_env *env;
+	struct osc_object *obj;
+	struct osc_lock	*oscl;
+	unsigned long weight;
+	bool found = false;
 	u16 refcheck;
 
 	might_sleep();
@@ -739,9 +739,9 @@ static void osc_lock_build_einfo(const struct lu_env *env,
 				 struct ldlm_enqueue_info *einfo)
 {
 	einfo->ei_type = LDLM_EXTENT;
-	einfo->ei_mode   = osc_cl_lock2ldlm(lock->cll_descr.cld_mode);
+	einfo->ei_mode = osc_cl_lock2ldlm(lock->cll_descr.cld_mode);
 	einfo->ei_cb_bl = osc_ldlm_blocking_ast;
-	einfo->ei_cb_cp  = ldlm_completion_ast;
+	einfo->ei_cb_cp = ldlm_completion_ast;
 	einfo->ei_cb_gl = osc_ldlm_glimpse_ast;
 	einfo->ei_cbdata = osc; /* value to be put into ->l_ast_data */
 }
@@ -814,9 +814,9 @@ static bool osc_lock_compatible(const struct osc_lock *qing,
 	if (qed->ols_state < OLS_GRANTED)
 		return true;
 
-	if (qed_descr->cld_mode  >= qing_descr->cld_mode &&
+	if (qed_descr->cld_mode >= qing_descr->cld_mode &&
 	    qed_descr->cld_start <= qing_descr->cld_start &&
-	    qed_descr->cld_end   >= qing_descr->cld_end)
+	    qed_descr->cld_end >= qing_descr->cld_end)
 		return true;
 
 	return false;
@@ -865,7 +865,7 @@ restart:
 
 		descr = &tmp_oscl->ols_cl.cls_lock->cll_descr;
 		if (descr->cld_start > need->cld_end ||
-		    descr->cld_end   < need->cld_start)
+		    descr->cld_end < need->cld_start)
 			continue;
 
 		/* We're not supposed to give up group lock */
@@ -1053,7 +1053,7 @@ static void osc_lock_detach(const struct lu_env *env, struct osc_lock *olck)
 static void osc_lock_cancel(const struct lu_env *env,
 			    const struct cl_lock_slice *slice)
 {
-	struct osc_object *obj  = cl2osc(slice->cls_obj);
+	struct osc_object *obj = cl2osc(slice->cls_obj);
 	struct osc_lock *oscl = cl2osc_lock(slice);
 
 	LINVRNT(osc_lock_invariant(oscl));
@@ -1078,10 +1078,10 @@ static int osc_lock_print(const struct lu_env *env, void *cookie,
 }
 
 static const struct cl_lock_operations osc_lock_ops = {
-	.clo_fini    = osc_lock_fini,
-	.clo_enqueue = osc_lock_enqueue,
-	.clo_cancel  = osc_lock_cancel,
-	.clo_print   = osc_lock_print,
+	.clo_fini	= osc_lock_fini,
+	.clo_enqueue	= osc_lock_enqueue,
+	.clo_cancel	= osc_lock_cancel,
+	.clo_print	= osc_lock_print,
 };
 
 static void osc_lock_lockless_cancel(const struct lu_env *env,

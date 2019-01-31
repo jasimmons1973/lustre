@@ -162,7 +162,7 @@ static int osc_getattr(const struct lu_env *env, struct obd_export *exp,
 	oa->o_blksize = cli_brw_size(exp->exp_obd);
 	oa->o_valid |= OBD_MD_FLBLKSZ;
 
- out:
+out:
 	ptlrpc_req_finished(req);
 	return rc;
 }
@@ -1322,7 +1322,7 @@ static int osc_brw_prep_request(int cmd, struct client_obd *cli,
 
 	return 0;
 
- out:
+out:
 	ptlrpc_req_finished(req);
 	return rc;
 }
@@ -1753,7 +1753,7 @@ static int brw_interpret(const struct lu_env *env,
 
 	if (rc == 0) {
 		struct obdo *oa = aa->aa_oa;
-		struct cl_attr *attr  = &osc_env_info(env)->oti_attr;
+		struct cl_attr *attr = &osc_env_info(env)->oti_attr;
 		unsigned long valid = 0;
 		struct cl_object *obj;
 		struct osc_async_page *last;
@@ -2260,7 +2260,7 @@ no_match:
 			lustre_handle_copy(&aa->oa_lockh, &lockh);
 			aa->oa_upcall = upcall;
 			aa->oa_cookie = cookie;
-			aa->oa_agl    = !!agl;
+			aa->oa_agl = !!agl;
 			if (!agl) {
 				aa->oa_flags = flags;
 				aa->oa_lvb = lvb;
@@ -2474,7 +2474,7 @@ static int osc_statfs(const struct lu_env *env, struct obd_export *exp,
 
 	*osfs = *msfs;
 
- out:
+out:
 	ptlrpc_req_finished(req);
 	return rc;
 }

@@ -407,9 +407,9 @@ int lru_queue_work(const struct lu_env *env, void *data);
 
 void osc_object_set_contended(struct osc_object *obj);
 void osc_object_clear_contended(struct osc_object *obj);
-int  osc_object_is_contended(struct osc_object *obj);
+int osc_object_is_contended(struct osc_object *obj);
 
-int  osc_lock_is_lockless(const struct osc_lock *olck);
+int osc_lock_is_lockless(const struct osc_lock *olck);
 
 /****************************************************************************
  *
