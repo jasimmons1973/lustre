@@ -57,7 +57,7 @@ static struct smoketest_rpc {
 	struct lnet_handle_eq	 rpc_lnet_eq;	/* _the_ LNet event queue */
 	enum srpc_state	 rpc_state;
 	struct srpc_counters	 rpc_counters;
-	__u64		 rpc_matchbits;	/* matchbits counter */
+	u64		 rpc_matchbits;	/* matchbits counter */
 } srpc_data;
 
 static inline int
@@ -159,10 +159,10 @@ srpc_alloc_bulk(int cpt, unsigned int bulk_off, unsigned int bulk_npg,
 	return bk;
 }
 
-static inline __u64
+static inline u64
 srpc_next_id(void)
 {
-	__u64 id;
+	u64 id;
 
 	spin_lock(&srpc_data.rpc_glock);
 	id = srpc_data.rpc_matchbits++;
@@ -354,7 +354,7 @@ srpc_remove_service(struct srpc_service *sv)
 }
 
 static int
-srpc_post_passive_rdma(int portal, int local, __u64 matchbits, void *buf,
+srpc_post_passive_rdma(int portal, int local, u64 matchbits, void *buf,
 		       int len, int options, struct lnet_process_id peer,
 		       struct lnet_handle_md *mdh, struct srpc_event *ev)
 {
@@ -393,7 +393,7 @@ srpc_post_passive_rdma(int portal, int local, __u64 matchbits, void *buf,
 }
 
 static int
-srpc_post_active_rdma(int portal, __u64 matchbits, void *buf, int len,
+srpc_post_active_rdma(int portal, u64 matchbits, void *buf, int len,
 		      int options, struct lnet_process_id peer,
 		      lnet_nid_t self, struct lnet_handle_md *mdh,
 		      struct srpc_event *ev)
@@ -813,7 +813,7 @@ static int
 srpc_prepare_reply(struct srpc_client_rpc *rpc)
 {
 	struct srpc_event *ev = &rpc->crpc_replyev;
-	__u64 *id = &rpc->crpc_reqstmsg.msg_body.reqst.rpyid;
+	u64 *id = &rpc->crpc_reqstmsg.msg_body.reqst.rpyid;
 	int rc;
 
 	ev->ev_fired = 0;
@@ -839,7 +839,7 @@ srpc_prepare_bulk(struct srpc_client_rpc *rpc)
 {
 	struct srpc_bulk *bk = &rpc->crpc_bulk;
 	struct srpc_event *ev = &rpc->crpc_bulkev;
-	__u64 *id = &rpc->crpc_reqstmsg.msg_body.reqst.bulkid;
+	u64 *id = &rpc->crpc_reqstmsg.msg_body.reqst.bulkid;
 	int rc;
 	int opt;
 
@@ -872,7 +872,7 @@ srpc_do_bulk(struct srpc_server_rpc *rpc)
 {
 	struct srpc_event *ev = &rpc->srpc_ev;
 	struct srpc_bulk *bk = rpc->srpc_bulk;
-	__u64 id = rpc->srpc_reqstbuf->buf_msg.msg_body.reqst.bulkid;
+	u64 id = rpc->srpc_reqstbuf->buf_msg.msg_body.reqst.bulkid;
 	int rc;
 	int opt;
 
@@ -1362,7 +1362,7 @@ srpc_send_reply(struct srpc_server_rpc *rpc)
 	struct srpc_buffer *buffer = rpc->srpc_reqstbuf;
 	struct srpc_service_cd *scd = rpc->srpc_scd;
 	struct srpc_service *sv = scd->scd_svc;
-	__u64 rpyid;
+	u64 rpyid;
 	int rc;
 
 	LASSERT(buffer);
@@ -1415,7 +1415,7 @@ srpc_lnet_ev_handler(struct lnet_event *ev)
 	LASSERT(!in_interrupt());
 
 	if (ev->status) {
-		__u32 errors;
+		u32 errors;
 
 		spin_lock(&srpc_data.rpc_glock);
 		if (ev->status != -ECANCELED) /* cancellation is not error */
@@ -1604,7 +1604,7 @@ srpc_startup(void)
 
 	/* 1 second pause to avoid timestamp reuse */
 	schedule_timeout_uninterruptible(HZ);
-	srpc_data.rpc_matchbits = ((__u64)ktime_get_real_seconds()) << 48;
+	srpc_data.rpc_matchbits = ((u64)ktime_get_real_seconds()) << 48;
 
 	srpc_data.rpc_state = SRPC_STATE_NONE;
 

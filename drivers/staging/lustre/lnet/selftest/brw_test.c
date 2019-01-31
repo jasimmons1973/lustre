@@ -153,7 +153,7 @@ static int brw_inject_one_error(void)
 }
 
 static void
-brw_fill_page(struct page *pg, int off, int len, int pattern, __u64 magic)
+brw_fill_page(struct page *pg, int off, int len, int pattern, u64 magic)
 {
 	char *addr = page_address(pg) + off;
 	int i;
@@ -186,10 +186,10 @@ brw_fill_page(struct page *pg, int off, int len, int pattern, __u64 magic)
 }
 
 static int
-brw_check_page(struct page *pg, int off, int len, int pattern, __u64 magic)
+brw_check_page(struct page *pg, int off, int len, int pattern, u64 magic)
 {
 	char *addr = page_address(pg) + off;
-	__u64 data = 0; /* make compiler happy */
+	u64 data = 0; /* make compiler happy */
 	int i;
 
 	LASSERT(addr);
@@ -199,13 +199,13 @@ brw_check_page(struct page *pg, int off, int len, int pattern, __u64 magic)
 		return 0;
 
 	if (pattern == LST_BRW_CHECK_SIMPLE) {
-		data = *((__u64 *)addr);
+		data = *((u64 *)addr);
 		if (data != magic)
 			goto bad_data;
 
 		if (len > BRW_MSIZE) {
 			addr += PAGE_SIZE - BRW_MSIZE;
-			data = *((__u64 *)addr);
+			data = *((u64 *)addr);
 			if (data != magic)
 				goto bad_data;
 		}
@@ -230,7 +230,7 @@ bad_data:
 }
 
 static void
-brw_fill_bulk(struct srpc_bulk *bk, int pattern, __u64 magic)
+brw_fill_bulk(struct srpc_bulk *bk, int pattern, u64 magic)
 {
 	int i;
 	struct page *pg;
@@ -246,7 +246,7 @@ brw_fill_bulk(struct srpc_bulk *bk, int pattern, __u64 magic)
 }
 
 static int
-brw_check_bulk(struct srpc_bulk *bk, int pattern, __u64 magic)
+brw_check_bulk(struct srpc_bulk *bk, int pattern, u64 magic)
 {
 	int i;
 	struct page *pg;
@@ -331,7 +331,7 @@ brw_client_prep_rpc(struct sfw_test_unit *tsu, struct lnet_process_id dest,
 static void
 brw_client_done_rpc(struct sfw_test_unit *tsu, struct srpc_client_rpc *rpc)
 {
-	__u64 magic = BRW_MAGIC;
+	u64 magic = BRW_MAGIC;
 	struct sfw_test_instance *tsi = tsu->tsu_instance;
 	struct sfw_session *sn = tsi->tsi_batch->bat_session;
 	struct srpc_msg *msg = &rpc->crpc_replymsg;
@@ -397,7 +397,7 @@ brw_server_rpc_done(struct srpc_server_rpc *rpc)
 static int
 brw_bulk_ready(struct srpc_server_rpc *rpc, int status)
 {
-	__u64 magic = BRW_MAGIC;
+	u64 magic = BRW_MAGIC;
 	struct srpc_brw_reply *reply = &rpc->srpc_replymsg.msg_body.brw_reply;
 	struct srpc_brw_reqst *reqst;
 	struct srpc_msg *reqstmsg;
@@ -452,7 +452,7 @@ brw_server_handle(struct srpc_server_rpc *rpc)
 		__swab64s(&reqst->brw_rpyid);
 		__swab64s(&reqst->brw_bulkid);
 	}
-	LASSERT(reqstmsg->msg_type == (__u32)srpc_service2request(sv->sv_id));
+	LASSERT(reqstmsg->msg_type == (u32)srpc_service2request(sv->sv_id));
 
 	reply->brw_status = 0;
 	rpc->srpc_done = brw_server_rpc_done;

@@ -153,7 +153,7 @@ struct lstcon_session {
 	unsigned int	    ses_force:1;      /* force creating */
 	unsigned int	    ses_shutdown:1;   /* session is shutting down */
 	unsigned int	    ses_expired:1;    /* console is timedout */
-	__u64		    ses_id_cookie;    /* batch id cookie */
+	u64		    ses_id_cookie;    /* batch id cookie */
 	char		    ses_name[LST_NAME_SIZE];/* session name */
 	struct lstcon_rpc_trans	*ses_ping;		/* session pinger */
 	struct stt_timer	 ses_ping_timer;   /* timer for pinger */
