@@ -37,23 +37,23 @@
 #include <lustre_log.h>
 
 struct llog_process_info {
-	struct llog_handle *lpi_loghandle;
-	llog_cb_t	   lpi_cb;
-	void	       *lpi_cbdata;
-	void	       *lpi_catdata;
-	int		 lpi_rc;
+	struct llog_handle     *lpi_loghandle;
+	llog_cb_t		lpi_cb;
+	void		       *lpi_cbdata;
+	void		       *lpi_catdata;
+	int			lpi_rc;
 	struct completion	lpi_completion;
-	const struct lu_env	*lpi_env;
+	const struct lu_env    *lpi_env;
 
 };
 
 struct llog_thread_info {
-	struct lu_attr			 lgi_attr;
-	struct lu_fid			 lgi_fid;
-	struct lu_buf			 lgi_buf;
-	loff_t				 lgi_off;
-	struct llog_rec_hdr		 lgi_lrh;
-	struct llog_rec_tail		 lgi_tail;
+	struct lu_attr		lgi_attr;
+	struct lu_fid		lgi_fid;
+	struct lu_buf		lgi_buf;
+	loff_t			lgi_off;
+	struct llog_rec_hdr	lgi_lrh;
+	struct llog_rec_tail	lgi_tail;
 };
 
 extern struct lu_context_key llog_thread_key;

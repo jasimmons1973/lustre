@@ -95,8 +95,8 @@ EXPORT_SYMBOL(linkea_init_with_rec);
 int linkea_entry_pack(struct link_ea_entry *lee, const struct lu_name *lname,
 		      const struct lu_fid *pfid)
 {
-	struct lu_fid   tmpfid;
-	int             reclen;
+	struct lu_fid tmpfid;
+	int reclen;
 
 	tmpfid = *pfid;
 	if (OBD_FAIL_CHECK(OBD_FAIL_LFSCK_LINKEA_CRASH))
@@ -216,7 +216,7 @@ int linkea_links_find(struct linkea_data *ldata, const struct lu_name *lname,
 		      const struct lu_fid  *pfid)
 {
 	struct lu_name tmpname;
-	struct lu_fid  tmpfid;
+	struct lu_fid tmpfid;
 	int count;
 
 	LASSERT(ldata->ld_leh);

@@ -151,8 +151,8 @@ int llog_init_handle(const struct lu_env *env, struct llog_handle *handle,
 {
 	int chunk_size = handle->lgh_ctxt->loc_chunk_size;
 	enum llog_flag fmt = flags & LLOG_F_EXT_MASK;
-	struct llog_log_hdr	*llh;
-	int			 rc;
+	struct llog_log_hdr *llh;
+	int rc;
 
 	LASSERT(!handle->lgh_hdr);
 
@@ -223,16 +223,16 @@ EXPORT_SYMBOL(llog_init_handle);
 
 static int llog_process_thread(void *arg)
 {
-	struct llog_process_info	*lpi = arg;
-	struct llog_handle		*loghandle = lpi->lpi_loghandle;
-	struct llog_log_hdr		*llh = loghandle->lgh_hdr;
-	struct llog_process_cat_data	*cd  = lpi->lpi_catdata;
-	char				*buf;
+	struct llog_process_info *lpi = arg;
+	struct llog_handle *loghandle = lpi->lpi_loghandle;
+	struct llog_log_hdr *llh = loghandle->lgh_hdr;
+	struct llog_process_cat_data *cd  = lpi->lpi_catdata;
+	char *buf;
 	u64 cur_offset, tmp_offset;
 	int chunk_size;
-	int				 rc = 0, index = 1, last_index;
-	int				 saved_index = 0;
-	int				 last_called_index = 0;
+	int rc = 0, index = 1, last_index;
+	int saved_index = 0;
+	int last_called_index = 0;
 
 	if (!llh)
 		return -EINVAL;
@@ -394,9 +394,9 @@ out:
 
 static int llog_process_thread_daemonize(void *arg)
 {
-	struct llog_process_info	*lpi = arg;
-	struct lu_env			 env;
-	int				 rc;
+	struct llog_process_info *lpi = arg;
+	struct lu_env env;
+	int rc;
 
 	unshare_fs_struct();
 
@@ -419,15 +419,15 @@ int llog_process_or_fork(const struct lu_env *env,
 			 llog_cb_t cb, void *data, void *catdata, bool fork)
 {
 	struct llog_process_info *lpi;
-	int		      rc;
+	int rc;
 
 	lpi = kzalloc(sizeof(*lpi), GFP_KERNEL);
 	if (!lpi)
 		return -ENOMEM;
 	lpi->lpi_loghandle = loghandle;
-	lpi->lpi_cb	= cb;
-	lpi->lpi_cbdata    = data;
-	lpi->lpi_catdata   = catdata;
+	lpi->lpi_cb = cb;
+	lpi->lpi_cbdata = data;
+	lpi->lpi_catdata = catdata;
 
 	if (fork) {
 		struct task_struct *task;
@@ -469,7 +469,7 @@ int llog_open(const struct lu_env *env, struct llog_ctxt *ctxt,
 	      char *name, enum llog_open_param open_param)
 {
 	const struct cred *old_cred = NULL;
-	int	 rc;
+	int rc;
 
 	LASSERT(ctxt);
 	LASSERT(ctxt->loc_logops);
@@ -507,8 +507,8 @@ EXPORT_SYMBOL(llog_open);
 
 int llog_close(const struct lu_env *env, struct llog_handle *loghandle)
 {
-	struct llog_operations	*lop;
-	int			 rc;
+	struct llog_operations *lop;
+	int rc;
 
 	rc = llog_handle2ops(loghandle, &lop);
 	if (rc)

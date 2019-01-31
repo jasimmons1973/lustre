@@ -44,7 +44,7 @@ struct cl_thread_info {
 	/**
 	 * Used for submitting a sync I/O.
 	 */
-	struct cl_sync_io    clt_anchor;
+	struct cl_sync_io	clt_anchor;
 };
 
 struct cl_thread_info *cl_env_info(const struct lu_env *env);

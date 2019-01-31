@@ -44,10 +44,10 @@
 #define NIDS_MAX	32
 
 struct uuid_nid_data {
-	struct list_head       un_list;
-	struct obd_uuid  un_uuid;
-	int	      un_nid_count;
-	lnet_nid_t       un_nids[NIDS_MAX];
+	struct list_head	un_list;
+	struct obd_uuid		un_uuid;
+	int			un_nid_count;
+	lnet_nid_t		un_nids[NIDS_MAX];
 };
 
 /* FIXME: This should probably become more elegant than a global linked list */

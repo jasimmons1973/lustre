@@ -89,10 +89,10 @@ EXPORT_SYMBOL(libcfs_kkuc_msg_put);
  */
 /** A single group registration has a uid and a file pointer */
 struct kkuc_reg {
-	struct list_head kr_chain;
-	int		 kr_uid;
-	struct file	*kr_fp;
-	char		 kr_data[0];
+	struct list_head	kr_chain;
+	int			kr_uid;
+	struct file	       *kr_fp;
+	char			kr_data[0];
 };
 
 static struct list_head kkuc_groups[KUC_GRP_MAX + 1];

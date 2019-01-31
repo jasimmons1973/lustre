@@ -189,8 +189,8 @@ static int class_parse_value(char *buf, int opc, void *value, char **endh,
 			     int quiet)
 {
 	char *endp;
-	char  tmp;
-	int   rc = 0;
+	char tmp;
+	int rc = 0;
 
 	if (!buf)
 		return 1;
@@ -249,7 +249,7 @@ char *lustre_cfg_string(struct lustre_cfg *lcfg, u32 index)
 
 	/*
 	 * make sure it's NULL terminated, even if this kills a char
-	 * of data.  Try to use the padding first though.
+	 * of data. Try to use the padding first though.
 	 */
 	if (s[lcfg->lcfg_buflens[index] - 1] != '\0') {
 		size_t last = ALIGN(lcfg->lcfg_buflens[index], 8) - 1;
@@ -388,7 +388,6 @@ static int class_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 
 	/* create an uuid-export lustre hash */
 	err = rhashtable_init(&obd->obd_uuid_hash, &uuid_hash_params);
-
 	if (err)
 		goto err_hash;
 
@@ -1407,7 +1406,7 @@ int class_config_llog_handler(const struct lu_env *env,
 		}
 
 		lustre_cfg_init(lcfg_new, lcfg->lcfg_command, &bufs);
-		lcfg_new->lcfg_num   = lcfg->lcfg_num;
+		lcfg_new->lcfg_num = lcfg->lcfg_num;
 		lcfg_new->lcfg_flags = lcfg->lcfg_flags;
 
 		/* XXX Hack to try to remain binary compatible with
@@ -1454,9 +1453,9 @@ int class_config_parse_llog(const struct lu_env *env, struct llog_ctxt *ctxt,
 	struct llog_process_cat_data cd = {
 		.lpcd_first_idx = 0,
 	};
-	struct llog_handle		*llh;
-	llog_cb_t			 callback;
-	int				 rc;
+	struct llog_handle *llh;
+	llog_cb_t callback;
+	int rc;
 
 	CDEBUG(D_INFO, "looking up llog %s\n", name);
 	rc = llog_open(env, ctxt, &llh, NULL, name, LLOG_OPEN_EXISTS);
@@ -1499,10 +1498,10 @@ EXPORT_SYMBOL(class_config_parse_llog);
 static int class_config_parse_rec(struct llog_rec_hdr *rec, char *buf,
 				  int size)
 {
-	struct lustre_cfg	*lcfg = (struct lustre_cfg *)(rec + 1);
-	char			*ptr = buf;
-	char			*end = buf + size;
-	int			 rc = 0;
+	struct lustre_cfg *lcfg = (struct lustre_cfg *)(rec + 1);
+	char *ptr = buf;
+	char *end = buf + size;
+	int rc = 0;
 
 	LASSERT(rec->lrh_type == OBD_CFG_REC);
 	rc = lustre_cfg_sanity_check(lcfg, rec->lrh_len);
@@ -1549,8 +1548,8 @@ int class_config_dump_handler(const struct lu_env *env,
 			      struct llog_handle *handle,
 			      struct llog_rec_hdr *rec, void *data)
 {
-	char	*outstr;
-	int	 rc = 0;
+	char *outstr;
+	int rc = 0;
 
 	outstr = kzalloc(256, GFP_NOFS);
 	if (!outstr)
@@ -1573,10 +1572,10 @@ int class_config_dump_handler(const struct lu_env *env,
  */
 int class_manual_cleanup(struct obd_device *obd)
 {
-	char		    flags[3] = "";
-	struct lustre_cfg      *lcfg;
-	struct lustre_cfg_bufs  bufs;
-	int		     rc;
+	char flags[3] = "";
+	struct lustre_cfg *lcfg;
+	struct lustre_cfg_bufs bufs;
+	int rc;
 
 	if (!obd) {
 		CERROR("empty cleanup\n");

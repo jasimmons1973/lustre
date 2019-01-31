@@ -622,9 +622,9 @@ EXPORT_SYMBOL(class_devices_in_group);
  */
 int class_notify_sptlrpc_conf(const char *fsname, int namelen)
 {
-	struct obd_device  *obd;
-	const char	 *type;
-	int		 i, rc = 0, rc2;
+	struct obd_device *obd;
+	const char *type;
+	int i, rc = 0, rc2;
 
 	LASSERT(namelen > 0);
 
@@ -693,7 +693,7 @@ int obd_init_caches(void)
 		goto out;
 
 	return 0;
- out:
+out:
 	obd_cleanup_caches();
 	return -ENOMEM;
 }
@@ -772,8 +772,8 @@ static void export_handle_addref(void *export)
 }
 
 static struct portals_handle_ops export_handle_ops = {
-	.hop_addref = export_handle_addref,
-	.hop_free   = NULL,
+	.hop_addref	= export_handle_addref,
+	.hop_free	= NULL,
 };
 
 struct obd_export *class_export_get(struct obd_export *exp)
@@ -967,8 +967,8 @@ static void import_handle_addref(void *import)
 }
 
 static struct portals_handle_ops import_handle_ops = {
-	.hop_addref = import_handle_addref,
-	.hop_free   = NULL,
+	.hop_addref	= import_handle_addref,
+	.hop_free	= NULL,
 };
 
 struct obd_import *class_import_get(struct obd_import *import)

@@ -86,7 +86,7 @@ static int cl_io_invariant(const struct cl_io *io)
  */
 void cl_io_fini(const struct lu_env *env, struct cl_io *io)
 {
-	struct cl_io_slice    *slice;
+	struct cl_io_slice *slice;
 
 	LINVRNT(cl_io_type_is_valid(io->ci_type));
 	LINVRNT(cl_io_invariant(io));
@@ -207,8 +207,8 @@ int cl_io_rw_init(const struct lu_env *env, struct cl_io *io,
 			 "io range: %u [%llu, %llu) %u %u\n",
 			 iot, (u64)pos, (u64)pos + count,
 			 io->u.ci_rw.crw_nonblock, io->u.ci_wr.wr_append);
-	io->u.ci_rw.crw_pos    = pos;
-	io->u.ci_rw.crw_count  = count;
+	io->u.ci_rw.crw_pos = pos;
+	io->u.ci_rw.crw_count = count;
 	return cl_io_init(env, io, iot, io->ci_obj);
 }
 EXPORT_SYMBOL(cl_io_rw_init);
@@ -363,9 +363,9 @@ EXPORT_SYMBOL(cl_io_lock);
  */
 void cl_io_unlock(const struct lu_env *env, struct cl_io *io)
 {
-	struct cl_lockset	*set;
-	struct cl_io_lock_link   *link;
-	struct cl_io_lock_link   *temp;
+	struct cl_lockset *set;
+	struct cl_io_lock_link *link;
+	struct cl_io_lock_link *temp;
 	const struct cl_io_slice *scan;
 
 	LASSERT(cl_io_is_loopable(io));
@@ -460,7 +460,7 @@ static void cl_io_rw_advance(const struct lu_env *env, struct cl_io *io,
 	LINVRNT(cl_io_is_loopable(io));
 	LINVRNT(cl_io_invariant(io));
 
-	io->u.ci_rw.crw_pos   += nob;
+	io->u.ci_rw.crw_pos += nob;
 	io->u.ci_rw.crw_count -= nob;
 
 	/* layers have to be notified. */
@@ -506,8 +506,8 @@ int cl_io_lock_alloc_add(const struct lu_env *env, struct cl_io *io,
 
 	link = kzalloc(sizeof(*link), GFP_NOFS);
 	if (link) {
-		link->cill_descr     = *descr;
-		link->cill_fini      = cl_free_io_lock_link;
+		link->cill_descr = *descr;
+		link->cill_fini = cl_free_io_lock_link;
 		result = cl_io_lock_add(env, io, link);
 		if (result) /* lock match */
 			link->cill_fini(env, link);
@@ -575,7 +575,7 @@ int cl_io_read_ahead(const struct lu_env *env, struct cl_io *io,
 		     pgoff_t start, struct cl_read_ahead *ra)
 {
 	const struct cl_io_slice *scan;
-	int		       result = 0;
+	int result = 0;
 
 	LINVRNT(io->ci_type == CIT_READ || io->ci_type == CIT_FAULT);
 	LINVRNT(cl_io_invariant(io));
@@ -715,7 +715,7 @@ EXPORT_SYMBOL(cl_io_submit_sync);
  */
 int cl_io_loop(const struct lu_env *env, struct cl_io *io)
 {
-	int result   = 0;
+	int result = 0;
 
 	LINVRNT(cl_io_is_loopable(io));
 
@@ -725,7 +725,7 @@ int cl_io_loop(const struct lu_env *env, struct cl_io *io)
 		io->ci_continue = 0;
 		result = cl_io_iter_init(env, io);
 		if (result == 0) {
-			nob    = io->ci_nob;
+			nob = io->ci_nob;
 			result = cl_io_lock(env, io);
 			if (result == 0) {
 				/*
@@ -774,7 +774,7 @@ void cl_io_slice_add(struct cl_io *io, struct cl_io_slice *slice,
 		list_empty(linkage));
 
 	list_add_tail(linkage, &io->ci_layers);
-	slice->cis_io  = io;
+	slice->cis_io = io;
 	slice->cis_obj = obj;
 	slice->cis_iop = ops;
 }
@@ -878,7 +878,6 @@ void cl_page_list_splice(struct cl_page_list *list, struct cl_page_list *head)
 		cl_page_list_move(head, list, page);
 }
 EXPORT_SYMBOL(cl_page_list_splice);
-
 
 /**
  * Disowns pages in a queue.
@@ -1101,7 +1100,6 @@ int cl_sync_io_wait(const struct lu_env *env, struct cl_sync_io *anchor,
 	/* wait until cl_sync_io_note() has done wakeup */
 	while (unlikely(atomic_read(&anchor->csi_barrier) != 0))
 		cpu_relax();
-
 
 	return rc;
 }

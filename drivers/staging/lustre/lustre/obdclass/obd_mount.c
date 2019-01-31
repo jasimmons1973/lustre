@@ -150,7 +150,7 @@ static int do_lcfg(char *cfgname, lnet_nid_t nid, int cmd,
 		   char *s1, char *s2, char *s3, char *s4)
 {
 	struct lustre_cfg_bufs bufs;
-	struct lustre_cfg     *lcfg = NULL;
+	struct lustre_cfg *lcfg = NULL;
 	int rc;
 
 	CDEBUG(D_TRACE, "lcfg %s %#x %s %s %s %s\n", cfgname,
@@ -801,8 +801,8 @@ static int lmd_make_exclusion(struct lustre_mount_data *lmd, const char *ptr)
 
 static int lmd_parse_mgssec(struct lustre_mount_data *lmd, char *ptr)
 {
-	char   *tail;
-	int     length;
+	char *tail;
+	int length;
 
 	kfree(lmd->lmd_mgssec);
 	lmd->lmd_mgssec = NULL;
@@ -845,8 +845,8 @@ static int lmd_parse_network(struct lustre_mount_data *lmd, char *ptr)
 
 static int lmd_parse_string(char **handle, char *ptr)
 {
-	char   *tail;
-	int     length;
+	char *tail;
+	int length;
 
 	if (!handle || !ptr)
 		return -EINVAL;
@@ -876,8 +876,8 @@ static int lmd_parse_mgs(struct lustre_mount_data *lmd, char **ptr)
 	lnet_nid_t nid;
 	char *tail = *ptr;
 	char *mgsnid;
-	int   length;
-	int   oldlen = 0;
+	int length;
+	int oldlen = 0;
 
 	/* Find end of nidlist */
 	while (class_parse_nid_quiet(tail, &nid, &tail) == 0)
@@ -1252,4 +1252,3 @@ invalid:
 	return -EINVAL;
 }
 EXPORT_SYMBOL(lmd_parse);
-

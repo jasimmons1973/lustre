@@ -87,15 +87,15 @@ enum {
 #define LU_CACHE_NR_LDISKFS_LIMIT	LU_CACHE_NR_UNLIMITED
 #define LU_CACHE_NR_ZFS_LIMIT		256
 
-#define LU_SITE_BITS_MIN	12
-#define LU_SITE_BITS_MAX	24
-#define LU_SITE_BITS_MAX_CL	19
+#define LU_SITE_BITS_MIN		12
+#define LU_SITE_BITS_MAX		24
+#define LU_SITE_BITS_MAX_CL		19
 /**
  * total 256 buckets, we don't want too many buckets because:
  * - consume too much memory
  * - avoid unbalanced LRU list
  */
-#define LU_SITE_BKT_BITS	8
+#define LU_SITE_BKT_BITS		8
 
 static unsigned int lu_cache_percent = LU_CACHE_PERCENT_DEFAULT;
 module_param(lu_cache_percent, int, 0644);
@@ -129,10 +129,10 @@ void lu_object_put(const struct lu_env *env, struct lu_object *o)
 {
 	struct lu_site_bkt_data *bkt;
 	struct lu_object_header *top;
-	struct lu_site	  *site;
-	struct lu_object	*orig;
-	struct cfs_hash_bd	    bd;
-	const struct lu_fid     *fid;
+	struct lu_site *site;
+	struct lu_object *orig;
+	struct cfs_hash_bd bd;
+	const struct lu_fid *fid;
 
 	top  = o->lo_header;
 	site = o->lo_dev->ld_site;
@@ -319,14 +319,14 @@ next:
 static void lu_object_free(const struct lu_env *env, struct lu_object *o)
 {
 	wait_queue_head_t *wq;
-	struct lu_site	  *site;
-	struct lu_object	*scan;
-	struct list_head	      *layers;
-	struct list_head	       splice;
+	struct lu_site *site;
+	struct lu_object *scan;
+	struct list_head *layers;
+	struct list_head splice;
 
-	site   = o->lo_dev->ld_site;
+	site = o->lo_dev->ld_site;
 	layers = &o->lo_header->loh_layers;
-	wq     = lu_site_wq_from_fid(site, &o->lo_header->loh_fid);
+	wq = lu_site_wq_from_fid(site, &o->lo_header->loh_fid);
 	/*
 	 * First call ->loo_object_delete() method to release all resources.
 	 */
@@ -369,13 +369,13 @@ int lu_site_purge_objects(const struct lu_env *env, struct lu_site *s,
 	struct lu_object_header *h;
 	struct lu_object_header *temp;
 	struct lu_site_bkt_data *bkt;
-	struct cfs_hash_bd	    bd;
-	struct cfs_hash_bd	    bd2;
-	struct list_head	       dispose;
-	int		      did_sth;
+	struct cfs_hash_bd bd;
+	struct cfs_hash_bd bd2;
+	struct list_head dispose;
+	int did_sth;
 	unsigned int start = 0;
-	int		      count;
-	int		      bnr;
+	int count;
+	int bnr;
 	unsigned int i;
 
 	if (OBD_FAIL_CHECK(OBD_FAIL_OBD_NO_LRU))
@@ -389,7 +389,7 @@ int lu_site_purge_objects(const struct lu_env *env, struct lu_site *s,
 	if (nr != ~0)
 		start = s->ls_purge_start;
 	bnr = (nr == ~0) ? -1 : nr / (int)CFS_HASH_NBKT(s->ls_obj_hash) + 1;
- again:
+again:
 	/*
 	 * It doesn't make any sense to make purge threads parallel, that can
 	 * only bring troubles to us. See LU-5331.
@@ -496,10 +496,10 @@ LU_KEY_INIT_FINI(lu_global, struct lu_cdebug_data);
  * lu_global_init().
  */
 static struct lu_context_key lu_global_key = {
-	.lct_tags = LCT_MD_THREAD | LCT_DT_THREAD |
-		    LCT_MG_THREAD | LCT_CL_THREAD | LCT_LOCAL,
-	.lct_init = lu_global_key_init,
-	.lct_fini = lu_global_key_fini
+	.lct_tags	= LCT_MD_THREAD | LCT_DT_THREAD |
+			  LCT_MG_THREAD | LCT_CL_THREAD | LCT_LOCAL,
+	.lct_init	= lu_global_key_init,
+	.lct_fini	= lu_global_key_fini
 };
 
 /**
@@ -509,7 +509,7 @@ int lu_cdebug_printer(const struct lu_env *env,
 		      void *cookie, const char *format, ...)
 {
 	struct libcfs_debug_msg_data *msgdata = cookie;
-	struct lu_cdebug_data	*key;
+	struct lu_cdebug_data *key;
 	int used;
 	int complete;
 	va_list args;
@@ -594,7 +594,7 @@ static struct lu_object *htable_lookup(struct lu_site *s,
 {
 	struct lu_site_bkt_data *bkt;
 	struct lu_object_header *h;
-	struct hlist_node	*hnode;
+	struct hlist_node *hnode;
 	u64 ver = cfs_hash_bd_version_get(bd);
 
 	if (*version == ver)
@@ -670,12 +670,12 @@ struct lu_object *lu_object_find_at(const struct lu_env *env,
 				    const struct lu_fid *f,
 				    const struct lu_object_conf *conf)
 {
-	struct lu_object      *o;
-	struct lu_object      *shadow;
-	struct lu_site	*s;
-	struct cfs_hash	    *hs;
-	struct cfs_hash_bd	  bd;
-	u64		  version = 0;
+	struct lu_object *o;
+	struct lu_object *shadow;
+	struct lu_site *s;
+	struct cfs_hash	*hs;
+	struct cfs_hash_bd bd;
+	u64 version = 0;
 
 	/*
 	 * This uses standard index maintenance protocol:
@@ -795,9 +795,9 @@ static DECLARE_RWSEM(lu_sites_guard);
 static struct lu_env lu_shrink_env;
 
 struct lu_site_print_arg {
-	struct lu_env   *lsp_env;
-	void	    *lsp_cookie;
-	lu_printer_t     lsp_printer;
+	struct lu_env		*lsp_env;
+	void			*lsp_cookie;
+	lu_printer_t		 lsp_printer;
 };
 
 static int
@@ -805,7 +805,7 @@ lu_site_obj_print(struct cfs_hash *hs, struct cfs_hash_bd *bd,
 		  struct hlist_node *hnode, void *data)
 {
 	struct lu_site_print_arg *arg = (struct lu_site_print_arg *)data;
-	struct lu_object_header  *h;
+	struct lu_object_header *h;
 
 	h = hlist_entry(hnode, struct lu_object_header, loh_hash);
 	if (!list_empty(&h->loh_layers)) {
@@ -828,9 +828,9 @@ void lu_site_print(const struct lu_env *env, struct lu_site *s, void *cookie,
 		   lu_printer_t printer)
 {
 	struct lu_site_print_arg arg = {
-		.lsp_env     = (struct lu_env *)env,
-		.lsp_cookie  = cookie,
-		.lsp_printer = printer,
+		.lsp_env	= (struct lu_env *)env,
+		.lsp_cookie	= cookie,
+		.lsp_printer	= printer,
 	};
 
 	cfs_hash_for_each(s->ls_obj_hash, lu_site_obj_print, &arg);
@@ -883,8 +883,8 @@ static unsigned long lu_htable_order(struct lu_device *top)
 static unsigned int lu_obj_hop_hash(struct cfs_hash *hs,
 				    const void *key, unsigned int mask)
 {
-	struct lu_fid  *fid = (struct lu_fid *)key;
-	u32	   hash;
+	struct lu_fid *fid = (struct lu_fid *)key;
+	u32 hash;
 
 	hash = fid_flatten32(fid);
 	hash += (hash >> 4) + (hash << 12); /* mixing oid and seq */
@@ -1247,7 +1247,7 @@ EXPORT_SYMBOL(lu_object_locate);
  */
 void lu_stack_fini(const struct lu_env *env, struct lu_device *top)
 {
-	struct lu_site   *site = top->ld_site;
+	struct lu_site *site = top->ld_site;
 	struct lu_device *scan;
 	struct lu_device *next;
 
@@ -1263,7 +1263,7 @@ void lu_stack_fini(const struct lu_env *env, struct lu_device *top)
 
 	for (scan = top; scan; scan = next) {
 		const struct lu_device_type *ldt = scan->ld_type;
-		struct obd_type	     *type;
+		struct obd_type *type;
 
 		next = ldt->ldt_ops->ldto_device_free(env, scan);
 		type = ldt->ldt_obd_type;
@@ -1595,7 +1595,7 @@ static int keys_init(struct lu_context *ctx)
  */
 int lu_context_init(struct lu_context *ctx, u32 tags)
 {
-	int	rc;
+	int rc;
 
 	memset(ctx, 0, sizeof(*ctx));
 	ctx->lc_state = LCS_INITIALIZED;
@@ -1761,7 +1761,7 @@ static void lu_site_stats_get(const struct lu_site *s,
 	stats->lss_busy += cfs_hash_size_get(hs) -
 		percpu_counter_sum_positive(&s2->ls_lru_len_counter);
 	cfs_hash_for_each_bucket(hs, &bd, i) {
-		struct hlist_head	*hhead;
+		struct hlist_head *hhead;
 
 		cfs_hash_bd_lock(hs, &bd, 1);
 		stats->lss_total += cfs_hash_bd_count_get(&bd);
@@ -1860,9 +1860,9 @@ static unsigned long lu_cache_shrink_scan(struct shrinker *sk,
  * Debugging printer function using printk().
  */
 static struct shrinker lu_site_shrinker = {
-	.count_objects	= lu_cache_shrink_count,
-	.scan_objects	= lu_cache_shrink_scan,
-	.seeks 		= DEFAULT_SEEKS,
+	.count_objects		= lu_cache_shrink_count,
+	.scan_objects		= lu_cache_shrink_scan,
+	.seeks			= DEFAULT_SEEKS,
 };
 
 /**

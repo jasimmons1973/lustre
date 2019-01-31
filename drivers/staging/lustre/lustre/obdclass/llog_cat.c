@@ -63,9 +63,9 @@ static int llog_cat_id2handle(const struct lu_env *env,
 			      struct llog_handle **res,
 			      struct llog_logid *logid)
 {
-	struct llog_handle	*loghandle;
+	struct llog_handle *loghandle;
 	enum llog_flag fmt;
-	int			 rc = 0;
+	int rc = 0;
 
 	if (!cathandle)
 		return -EBADF;
@@ -125,7 +125,7 @@ out:
 
 int llog_cat_close(const struct lu_env *env, struct llog_handle *cathandle)
 {
-	struct llog_handle	*loghandle, *n;
+	struct llog_handle *loghandle, *n;
 
 	list_for_each_entry_safe(loghandle, n, &cathandle->u.chd.chd_head,
 				 u.phd.phd_entry) {

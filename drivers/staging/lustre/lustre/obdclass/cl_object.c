@@ -483,8 +483,8 @@ void cl_site_fini(struct cl_site *s)
 EXPORT_SYMBOL(cl_site_fini);
 
 static struct cache_stats cl_env_stats = {
-	.cs_name    = "envs",
-	.cs_stats = { ATOMIC_INIT(0), }
+	.cs_name	= "envs",
+	.cs_stats	= { ATOMIC_INIT(0), }
 };
 
 /**
@@ -495,11 +495,11 @@ int cl_site_stats_print(const struct cl_site *site, struct seq_file *m)
 {
 	size_t i;
 	static const char * const pstate[] = {
-		[CPS_CACHED]  = "c",
-		[CPS_OWNED]   = "o",
-		[CPS_PAGEOUT] = "w",
-		[CPS_PAGEIN]  = "r",
-		[CPS_FREEING] = "f"
+		[CPS_CACHED]	= "c",
+		[CPS_OWNED]	= "o",
+		[CPS_PAGEOUT]	= "w",
+		[CPS_PAGEIN]	= "r",
+		[CPS_FREEING]	= "f"
 	};
 /*
        lookup    hit  total   busy create
@@ -553,9 +553,9 @@ static struct cl_env_cache {
 } *cl_envs = NULL;
 
 struct cl_env {
-	void	     *ce_magic;
-	struct lu_env     ce_lu;
-	struct lu_context ce_ses;
+	void		       *ce_magic;
+	struct lu_env		ce_lu;
+	struct lu_context	ce_ses;
 
 	/*
 	 * Linkage into global list of all client environments. Used for
@@ -565,12 +565,12 @@ struct cl_env {
 	/*
 	 *
 	 */
-	int	       ce_ref;
+	int			ce_ref;
 	/*
 	 * Debugging field: address of the caller who made original
 	 * allocation.
 	 */
-	void	     *ce_debug;
+	void		       *ce_debug;
 };
 
 static void cl_env_inc(enum cache_stats_item item)
@@ -818,10 +818,10 @@ EXPORT_SYMBOL(cl_env_put);
  */
 void cl_lvb2attr(struct cl_attr *attr, const struct ost_lvb *lvb)
 {
-	attr->cat_size   = lvb->lvb_size;
-	attr->cat_mtime  = lvb->lvb_mtime;
-	attr->cat_atime  = lvb->lvb_atime;
-	attr->cat_ctime  = lvb->lvb_ctime;
+	attr->cat_size = lvb->lvb_size;
+	attr->cat_mtime = lvb->lvb_mtime;
+	attr->cat_atime = lvb->lvb_atime;
+	attr->cat_ctime = lvb->lvb_ctime;
 	attr->cat_blocks = lvb->lvb_blocks;
 }
 EXPORT_SYMBOL(cl_lvb2attr);
@@ -936,7 +936,7 @@ struct cl_device *cl_type_setup(const struct lu_env *env, struct lu_site *site,
 				struct lu_device_type *ldt,
 				struct lu_device *next)
 {
-	const char       *typename;
+	const char *typename;
 	struct lu_device *d;
 
 	typename = ldt->ldt_name;
@@ -983,9 +983,9 @@ struct cl_thread_info *cl_env_info(const struct lu_env *env)
 LU_KEY_INIT_FINI(cl, struct cl_thread_info);
 
 static struct lu_context_key cl_key = {
-	.lct_tags = LCT_CL_THREAD,
-	.lct_init = cl_key_init,
-	.lct_fini = cl_key_fini,
+	.lct_tags	= LCT_CL_THREAD,
+	.lct_init	= cl_key_init,
+	.lct_fini	= cl_key_fini,
 };
 
 static struct lu_kmem_descr cl_object_caches[] = {

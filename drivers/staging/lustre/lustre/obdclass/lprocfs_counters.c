@@ -45,10 +45,10 @@
 
 void lprocfs_counter_add(struct lprocfs_stats *stats, int idx, long amount)
 {
-	struct lprocfs_counter		*percpu_cntr;
-	struct lprocfs_counter_header	*header;
-	int				smp_id;
-	unsigned long			flags = 0;
+	struct lprocfs_counter *percpu_cntr;
+	struct lprocfs_counter_header *header;
+	int smp_id;
+	unsigned long flags = 0;
 
 	if (!stats)
 		return;
@@ -94,10 +94,10 @@ EXPORT_SYMBOL(lprocfs_counter_add);
 
 void lprocfs_counter_sub(struct lprocfs_stats *stats, int idx, long amount)
 {
-	struct lprocfs_counter		*percpu_cntr;
-	struct lprocfs_counter_header	*header;
-	int				smp_id;
-	unsigned long			flags = 0;
+	struct lprocfs_counter *percpu_cntr;
+	struct lprocfs_counter_header *header;
+	int smp_id;
+	unsigned long flags = 0;
 
 	if (!stats)
 		return;

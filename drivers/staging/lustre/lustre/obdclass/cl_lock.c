@@ -243,7 +243,7 @@ void cl_lock_descr_print(const struct lu_env *env, void *cookie,
 			 lu_printer_t printer,
 			 const struct cl_lock_descr *descr)
 {
-	const struct lu_fid  *fid;
+	const struct lu_fid *fid;
 
 	fid = lu_object_fid(&descr->cld_obj->co_lu);
 	(*printer)(env, cookie, DDESCR "@" DFID, PDESCR(descr), PFID(fid));

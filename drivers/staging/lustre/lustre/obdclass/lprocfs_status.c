@@ -364,7 +364,7 @@ static ssize_t blocksize_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct obd_statfs  osfs;
+	struct obd_statfs osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 			    OBD_STATFS_NODELAY);
@@ -380,7 +380,7 @@ static ssize_t kbytestotal_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct obd_statfs  osfs;
+	struct obd_statfs osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 			    OBD_STATFS_NODELAY);
@@ -403,7 +403,7 @@ static ssize_t kbytesfree_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct obd_statfs  osfs;
+	struct obd_statfs osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 			    OBD_STATFS_NODELAY);
@@ -426,7 +426,7 @@ static ssize_t kbytesavail_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct obd_statfs  osfs;
+	struct obd_statfs osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 			    OBD_STATFS_NODELAY);
@@ -449,7 +449,7 @@ static ssize_t filestotal_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct obd_statfs  osfs;
+	struct obd_statfs osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 			    OBD_STATFS_NODELAY);
@@ -465,7 +465,7 @@ static ssize_t filesfree_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct obd_statfs  osfs;
+	struct obd_statfs osfs;
 	int rc = obd_statfs(NULL, obd->obd_self_export, &osfs,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 			    OBD_STATFS_NODELAY);
@@ -638,10 +638,10 @@ void lprocfs_stats_unlock(struct lprocfs_stats *stats,
 void lprocfs_stats_collect(struct lprocfs_stats *stats, int idx,
 			   struct lprocfs_counter *cnt)
 {
-	unsigned int			num_entry;
-	struct lprocfs_counter		*percpu_cntr;
-	int				i;
-	unsigned long			flags = 0;
+	unsigned int num_entry;
+	struct lprocfs_counter *percpu_cntr;
+	int i;
+	unsigned long flags = 0;
 
 	memset(cnt, 0, sizeof(*cnt));
 
@@ -740,17 +740,17 @@ static void obd_connect_seq_flags2str(struct seq_file *m, u64 flags,
 
 int lprocfs_rd_import(struct seq_file *m, void *data)
 {
-	char				nidstr[LNET_NIDSTR_SIZE];
-	struct lprocfs_counter		ret;
-	struct lprocfs_counter_header	*header;
-	struct obd_device		*obd	= data;
-	struct obd_import		*imp;
-	struct obd_import_conn		*conn;
+	char nidstr[LNET_NIDSTR_SIZE];
+	struct lprocfs_counter ret;
+	struct lprocfs_counter_header *header;
+	struct obd_device *obd = data;
+	struct obd_import *imp;
+	struct obd_import_conn *conn;
 	struct obd_connect_data *ocd;
-	int				j;
-	int				k;
-	int				rw	= 0;
-	int				rc;
+	int j;
+	int k;
+	int rw = 0;
+	int rc;
 
 	LASSERT(obd);
 	rc = lprocfs_climp_check(obd);
@@ -1101,11 +1101,11 @@ EXPORT_SYMBOL_GPL(lprocfs_obd_cleanup);
 
 int lprocfs_stats_alloc_one(struct lprocfs_stats *stats, unsigned int cpuid)
 {
-	struct lprocfs_counter  *cntr;
-	unsigned int            percpusize;
-	int                     rc = -ENOMEM;
-	unsigned long           flags = 0;
-	int                     i;
+	struct lprocfs_counter *cntr;
+	unsigned int percpusize;
+	int rc = -ENOMEM;
+	unsigned long flags = 0;
+	int i;
 
 	LASSERT(!stats->ls_percpu[cpuid]);
 	LASSERT((stats->ls_flags & LPROCFS_STATS_FLAG_NOPERCPU) == 0);
@@ -1138,10 +1138,10 @@ int lprocfs_stats_alloc_one(struct lprocfs_stats *stats, unsigned int cpuid)
 struct lprocfs_stats *lprocfs_alloc_stats(unsigned int num,
 					  enum lprocfs_stats_flags flags)
 {
-	struct lprocfs_stats	*stats;
-	unsigned int		num_entry;
-	unsigned int		percpusize = 0;
-	int			i;
+	struct lprocfs_stats *stats;
+	unsigned int num_entry;
+	unsigned int percpusize = 0;
+	int i;
 
 	if (num == 0)
 		return NULL;
@@ -1221,9 +1221,9 @@ u64 lprocfs_stats_collector(struct lprocfs_stats *stats, int idx,
 			      enum lprocfs_fields_flags field)
 {
 	unsigned int i;
-	unsigned int  num_cpu;
-	unsigned long flags     = 0;
-	u64         ret       = 0;
+	unsigned int num_cpu;
+	unsigned long flags = 0;
+	u64 ret = 0;
 
 	LASSERT(stats);
 
@@ -1243,11 +1243,11 @@ EXPORT_SYMBOL(lprocfs_stats_collector);
 
 void lprocfs_clear_stats(struct lprocfs_stats *stats)
 {
-	struct lprocfs_counter		*percpu_cntr;
-	int				i;
-	int				j;
-	unsigned int			num_entry;
-	unsigned long			flags = 0;
+	struct lprocfs_counter *percpu_cntr;
+	int i;
+	int j;
+	unsigned int num_entry;
+	unsigned long flags = 0;
 
 	num_entry = lprocfs_stats_lock(stats, LPROCFS_GET_NUM_CPU, &flags);
 
@@ -1256,11 +1256,11 @@ void lprocfs_clear_stats(struct lprocfs_stats *stats)
 			continue;
 		for (j = 0; j < stats->ls_num; j++) {
 			percpu_cntr = lprocfs_stats_counter_get(stats, i, j);
-			percpu_cntr->lc_count		= 0;
-			percpu_cntr->lc_min		= LC_MIN_INIT;
-			percpu_cntr->lc_max		= 0;
-			percpu_cntr->lc_sumsquare	= 0;
-			percpu_cntr->lc_sum		= 0;
+			percpu_cntr->lc_count = 0;
+			percpu_cntr->lc_min = LC_MIN_INIT;
+			percpu_cntr->lc_max = 0;
+			percpu_cntr->lc_sumsquare = 0;
+			percpu_cntr->lc_sum = 0;
 			if (stats->ls_flags & LPROCFS_STATS_FLAG_IRQ_SAFE)
 				percpu_cntr->lc_sum_irq	= 0;
 		}
@@ -1302,10 +1302,10 @@ static void *lprocfs_stats_seq_next(struct seq_file *p, void *v, loff_t *pos)
 /* seq file export of one lprocfs counter */
 static int lprocfs_stats_seq_show(struct seq_file *p, void *v)
 {
-	struct lprocfs_stats		*stats	= p->private;
-	struct lprocfs_counter_header   *hdr;
-	struct lprocfs_counter           ctr;
-	int                              idx    = *(loff_t *)v;
+	struct lprocfs_stats *stats = p->private;
+	struct lprocfs_counter_header *hdr;
+	struct lprocfs_counter ctr;
+	int idx = *(loff_t *)v;
 
 	if (idx == 0) {
 		struct timespec64 now;
@@ -1337,10 +1337,10 @@ static int lprocfs_stats_seq_show(struct seq_file *p, void *v)
 }
 
 static const struct seq_operations lprocfs_stats_seq_sops = {
-	.start	= lprocfs_stats_seq_start,
-	.stop	= lprocfs_stats_seq_stop,
-	.next	= lprocfs_stats_seq_next,
-	.show	= lprocfs_stats_seq_show,
+	.start		= lprocfs_stats_seq_start,
+	.stop		= lprocfs_stats_seq_stop,
+	.next		= lprocfs_stats_seq_next,
+	.show		= lprocfs_stats_seq_show,
 };
 
 static int lprocfs_stats_seq_open(struct inode *inode, struct file *file)
@@ -1359,12 +1359,12 @@ static int lprocfs_stats_seq_open(struct inode *inode, struct file *file)
 }
 
 const struct file_operations lprocfs_stats_seq_fops = {
-	.owner   = THIS_MODULE,
-	.open    = lprocfs_stats_seq_open,
-	.read    = seq_read,
-	.write   = lprocfs_stats_seq_write,
-	.llseek  = seq_lseek,
-	.release = lprocfs_seq_release,
+	.owner		= THIS_MODULE,
+	.open		= lprocfs_stats_seq_open,
+	.read		= seq_read,
+	.write		= lprocfs_stats_seq_write,
+	.llseek		= seq_lseek,
+	.release	= lprocfs_seq_release,
 };
 EXPORT_SYMBOL_GPL(lprocfs_stats_seq_fops);
 
@@ -1372,30 +1372,30 @@ void lprocfs_counter_init(struct lprocfs_stats *stats, int index,
 			  unsigned int conf, const char *name,
 			  const char *units)
 {
-	struct lprocfs_counter_header	*header;
-	struct lprocfs_counter		*percpu_cntr;
-	unsigned long			flags = 0;
-	unsigned int			i;
-	unsigned int			num_cpu;
+	struct lprocfs_counter_header *header;
+	struct lprocfs_counter *percpu_cntr;
+	unsigned long flags = 0;
+	unsigned int i;
+	unsigned int num_cpu;
 
 	header = &stats->ls_cnt_header[index];
 	LASSERTF(header, "Failed to allocate stats header:[%d]%s/%s\n",
 		 index, name, units);
 
 	header->lc_config = conf;
-	header->lc_name   = name;
-	header->lc_units  = units;
+	header->lc_name = name;
+	header->lc_units = units;
 
 	num_cpu = lprocfs_stats_lock(stats, LPROCFS_GET_NUM_CPU, &flags);
 	for (i = 0; i < num_cpu; ++i) {
 		if (!stats->ls_percpu[i])
 			continue;
 		percpu_cntr = lprocfs_stats_counter_get(stats, i, index);
-		percpu_cntr->lc_count		= 0;
-		percpu_cntr->lc_min		= LC_MIN_INIT;
-		percpu_cntr->lc_max		= 0;
-		percpu_cntr->lc_sumsquare	= 0;
-		percpu_cntr->lc_sum		= 0;
+		percpu_cntr->lc_count = 0;
+		percpu_cntr->lc_min = LC_MIN_INIT;
+		percpu_cntr->lc_max = 0;
+		percpu_cntr->lc_sumsquare = 0;
+		percpu_cntr->lc_sum = 0;
 		if ((stats->ls_flags & LPROCFS_STATS_FLAG_IRQ_SAFE) != 0)
 			percpu_cntr->lc_sum_irq	= 0;
 	}
@@ -1843,8 +1843,8 @@ ssize_t lustre_attr_store(struct kobject *kobj, struct attribute *attr,
 EXPORT_SYMBOL_GPL(lustre_attr_store);
 
 const struct sysfs_ops lustre_sysfs_ops = {
-	.show  = lustre_attr_show,
-	.store = lustre_attr_store,
+	.show		= lustre_attr_show,
+	.store		= lustre_attr_store,
 };
 EXPORT_SYMBOL_GPL(lustre_sysfs_ops);
 

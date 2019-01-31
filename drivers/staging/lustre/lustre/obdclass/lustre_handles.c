@@ -47,7 +47,7 @@ static u64 handle_base;
 static spinlock_t handle_base_lock;
 
 static struct handle_bucket {
-	spinlock_t	lock;
+	spinlock_t		lock;
 	struct list_head	head;
 } *handle_hash;
 

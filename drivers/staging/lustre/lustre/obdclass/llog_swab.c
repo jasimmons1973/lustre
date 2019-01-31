@@ -358,14 +358,14 @@ void lustre_swab_lustre_cfg(struct lustre_cfg *lcfg)
 
 /* used only for compatibility with old on-disk cfg_marker data */
 struct cfg_marker32 {
-	u32   cm_step;
-	u32   cm_flags;
-	u32   cm_vers;
-	u32   padding;
-	u32   cm_createtime;
-	u32   cm_canceltime;
-	char    cm_tgtname[MTI_NAME_MAXLEN];
-	char    cm_comment[MTI_NAME_MAXLEN];
+	u32	cm_step;
+	u32	cm_flags;
+	u32	cm_vers;
+	u32	padding;
+	u32	cm_createtime;
+	u32	cm_canceltime;
+	char	cm_tgtname[MTI_NAME_MAXLEN];
+	char	cm_comment[MTI_NAME_MAXLEN];
 };
 
 #define MTI_NAMELEN32    (MTI_NAME_MAXLEN - \

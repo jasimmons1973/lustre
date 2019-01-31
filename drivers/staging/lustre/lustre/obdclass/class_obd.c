@@ -587,9 +587,9 @@ static const struct file_operations obd_psdev_fops = {
 
 /* modules setup */
 static struct miscdevice obd_psdev = {
-	.minor	= MISC_DYNAMIC_MINOR,
-	.name	= OBD_DEV_NAME,
-	.fops	= &obd_psdev_fops,
+	.minor		= MISC_DYNAMIC_MINOR,
+	.name		= OBD_DEV_NAME,
+	.fops		= &obd_psdev_fops,
 };
 
 static int obd_init_checks(void)

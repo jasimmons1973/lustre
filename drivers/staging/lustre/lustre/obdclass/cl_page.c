@@ -95,7 +95,7 @@ cl_page_at_trusted(const struct cl_page *page,
 
 static void cl_page_free(const struct lu_env *env, struct cl_page *page)
 {
-	struct cl_object *obj  = page->cp_obj;
+	struct cl_object *obj = page->cp_obj;
 
 	PASSERT(env, page, list_empty(&page->cp_batch));
 	PASSERT(env, page, !page->cp_owner);
@@ -132,7 +132,7 @@ struct cl_page *cl_page_alloc(const struct lu_env *env,
 			      struct page *vmpage,
 			      enum cl_page_type type)
 {
-	struct cl_page	  *page;
+	struct cl_page *page;
 	struct lu_object_header *head;
 
 	page = kzalloc(cl_object_header(o)->coh_page_bufsize, GFP_NOFS);
@@ -185,7 +185,7 @@ struct cl_page *cl_page_find(const struct lu_env *env,
 			     pgoff_t idx, struct page *vmpage,
 			     enum cl_page_type type)
 {
-	struct cl_page	  *page = NULL;
+	struct cl_page *page = NULL;
 	struct cl_object_header *hdr;
 
 	LASSERT(type == CPT_CACHEABLE || type == CPT_TRANSIENT);
@@ -239,39 +239,39 @@ static void __cl_page_state_set(const struct lu_env *env,
 	 */
 	static const int allowed_transitions[CPS_NR][CPS_NR] = {
 		[CPS_CACHED] = {
-			[CPS_CACHED]  = 0,
-			[CPS_OWNED]   = 1, /* io finds existing cached page */
-			[CPS_PAGEIN]  = 0,
-			[CPS_PAGEOUT] = 1, /* write-out from the cache */
-			[CPS_FREEING] = 1, /* eviction on the memory pressure */
+			[CPS_CACHED]	= 0,
+			[CPS_OWNED]	= 1, /* io finds existing cached page */
+			[CPS_PAGEIN]	= 0,
+			[CPS_PAGEOUT]	= 1, /* write-out from the cache */
+			[CPS_FREEING]	= 1, /* eviction on the memory pressure */
 		},
 		[CPS_OWNED] = {
-			[CPS_CACHED]  = 1, /* release to the cache */
-			[CPS_OWNED]   = 0,
-			[CPS_PAGEIN]  = 1, /* start read immediately */
-			[CPS_PAGEOUT] = 1, /* start write immediately */
-			[CPS_FREEING] = 1, /* lock invalidation or truncate */
+			[CPS_CACHED]	= 1, /* release to the cache */
+			[CPS_OWNED]	= 0,
+			[CPS_PAGEIN]	= 1, /* start read immediately */
+			[CPS_PAGEOUT]	= 1, /* start write immediately */
+			[CPS_FREEING]	= 1, /* lock invalidation or truncate */
 		},
 		[CPS_PAGEIN] = {
-			[CPS_CACHED]  = 1, /* io completion */
-			[CPS_OWNED]   = 0,
-			[CPS_PAGEIN]  = 0,
-			[CPS_PAGEOUT] = 0,
-			[CPS_FREEING] = 0,
+			[CPS_CACHED]	= 1, /* io completion */
+			[CPS_OWNED]	= 0,
+			[CPS_PAGEIN]	= 0,
+			[CPS_PAGEOUT]	= 0,
+			[CPS_FREEING]	= 0,
 		},
 		[CPS_PAGEOUT] = {
-			[CPS_CACHED]  = 1, /* io completion */
-			[CPS_OWNED]   = 0,
-			[CPS_PAGEIN]  = 0,
-			[CPS_PAGEOUT] = 0,
-			[CPS_FREEING] = 0,
+			[CPS_CACHED]	= 1, /* io completion */
+			[CPS_OWNED]	= 0,
+			[CPS_PAGEIN]	= 0,
+			[CPS_PAGEOUT]	= 0,
+			[CPS_FREEING]	= 0,
 		},
 		[CPS_FREEING] = {
-			[CPS_CACHED]  = 0,
-			[CPS_OWNED]   = 0,
-			[CPS_PAGEIN]  = 0,
-			[CPS_PAGEOUT] = 0,
-			[CPS_FREEING] = 0,
+			[CPS_CACHED]	= 0,
+			[CPS_OWNED]	= 0,
+			[CPS_PAGEIN]	= 0,
+			[CPS_PAGEOUT]	= 0,
+			[CPS_FREEING]	= 0,
 		}
 	};
 
@@ -976,9 +976,9 @@ void cl_page_slice_add(struct cl_page *page, struct cl_page_slice *slice,
 		       const struct cl_page_operations *ops)
 {
 	list_add_tail(&slice->cpl_linkage, &page->cp_layers);
-	slice->cpl_obj  = obj;
+	slice->cpl_obj = obj;
 	slice->cpl_index = index;
-	slice->cpl_ops  = ops;
+	slice->cpl_ops = ops;
 	slice->cpl_page = page;
 }
 EXPORT_SYMBOL(cl_page_slice_add);
@@ -988,7 +988,7 @@ EXPORT_SYMBOL(cl_page_slice_add);
  */
 struct cl_client_cache *cl_cache_init(unsigned long lru_page_max)
 {
-	struct cl_client_cache	*cache = NULL;
+	struct cl_client_cache *cache = NULL;
 
 	cache = kzalloc(sizeof(*cache), GFP_KERNEL);
 	if (!cache)
