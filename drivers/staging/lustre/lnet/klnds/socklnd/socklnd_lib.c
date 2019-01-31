@@ -75,14 +75,14 @@ ksocknal_lib_zc_capable(struct ksock_conn *conn)
 int
 ksocknal_lib_send_iov(struct ksock_conn *conn, struct ksock_tx *tx)
 {
-	struct msghdr msg = {.msg_flags = MSG_DONTWAIT};
+	struct msghdr msg = { .msg_flags = MSG_DONTWAIT };
 	struct socket *sock = conn->ksnc_sock;
 	int nob, i;
 
-	if (*ksocknal_tunables.ksnd_enable_csum	&& /* checksum enabled */
-	    conn->ksnc_proto == &ksocknal_protocol_v2x && /* V2.x connection  */
-	    tx->tx_nob == tx->tx_resid		 && /* frist sending    */
-	    !tx->tx_msg.ksm_csum)		     /* not checksummed  */
+	if (*ksocknal_tunables.ksnd_enable_csum	&&		/* checksum enabled */
+	    conn->ksnc_proto == &ksocknal_protocol_v2x &&	/* V2.x connection */
+	    tx->tx_nob == tx->tx_resid &&			/* first sending */
+	    !tx->tx_msg.ksm_csum)				/* not checksummed */
 		ksocknal_lib_csum_tx(tx);
 
 	for (nob = i = 0; i < tx->tx_niov; i++)
@@ -130,7 +130,7 @@ ksocknal_lib_send_kiov(struct ksock_conn *conn, struct ksock_tx *tx)
 			rc = tcp_sendpage(sk, page, offset, fragsize, msgflg);
 		}
 	} else {
-		struct msghdr msg = {.msg_flags = MSG_DONTWAIT};
+		struct msghdr msg = { .msg_flags = MSG_DONTWAIT };
 		int i;
 
 		for (nob = i = 0; i < tx->tx_nkiov; i++)
@@ -144,6 +144,7 @@ ksocknal_lib_send_kiov(struct ksock_conn *conn, struct ksock_tx *tx)
 			      kiov, tx->tx_nkiov, nob);
 		rc = sock_sendmsg(sock, &msg);
 	}
+
 	return rc;
 }
 
@@ -166,6 +167,7 @@ ksocknal_lib_eager_ack(struct ksock_conn *conn)
 static int lustre_csum(struct kvec *v, void *context)
 {
 	struct ksock_conn *conn = context;
+
 	conn->ksnc_rx_csum = crc32_le(conn->ksnc_rx_csum,
 				      v->iov_base, v->iov_len);
 	return 0;
@@ -325,7 +327,7 @@ ksocknal_lib_setup_sock(struct socket *sock)
 		return rc;
 	}
 
-/* TCP_BACKOFF_* sockopt tunables unsupported in stock kernels */
+	/* TCP_BACKOFF_* sockopt tunables unsupported in stock kernels */
 
 	/* snapshot tunables */
 	keep_idle  = *ksocknal_tunables.ksnd_keepalive_idle;

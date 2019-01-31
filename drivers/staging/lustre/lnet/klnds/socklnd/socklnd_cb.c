@@ -56,7 +56,7 @@ ksocknal_alloc_tx(int type, int size)
 	tx->tx_zc_aborted = 0;
 	tx->tx_zc_capable = 0;
 	tx->tx_zc_checked = 0;
-	tx->tx_desc_size  = size;
+	tx->tx_desc_size = size;
 
 	atomic_inc(&ksocknal_data.ksnd_nactive_txs);
 
@@ -74,13 +74,13 @@ ksocknal_alloc_tx_noop(u64 cookie, int nonblk)
 		return NULL;
 	}
 
-	tx->tx_conn    = NULL;
+	tx->tx_conn = NULL;
 	tx->tx_lnetmsg = NULL;
-	tx->tx_kiov    = NULL;
-	tx->tx_nkiov   = 0;
-	tx->tx_iov     = tx->tx_frags.virt.iov;
-	tx->tx_niov    = 1;
-	tx->tx_nonblk  = nonblk;
+	tx->tx_kiov = NULL;
+	tx->tx_nkiov = 0;
+	tx->tx_iov = tx->tx_frags.virt.iov;
+	tx->tx_niov = 1;
+	tx->tx_nonblk = nonblk;
 
 	tx->tx_msg.ksm_csum = 0;
 	tx->tx_msg.ksm_type = KSOCK_MSG_NOOP;
@@ -228,7 +228,6 @@ ksocknal_transmit(struct ksock_conn *conn, struct ksock_tx *tx)
 		}
 
 		if (rc <= 0) { /* Didn't write anything? */
-
 			if (!rc) /* some stacks return 0 instead of -EAGAIN */
 				rc = -EAGAIN;
 
@@ -260,7 +259,6 @@ ksocknal_recv_iter(struct ksock_conn *conn)
 	 * status inside ksocknal_lib_recv
 	 */
 	rc = ksocknal_lib_recv(conn);
-
 	if (rc <= 0)
 		return rc;
 
@@ -316,7 +314,6 @@ ksocknal_receive(struct ksock_conn *conn)
 		}
 
 		/* Completed a fragment */
-
 		if (!iov_iter_count(&conn->ksnc_rx_to)) {
 			rc = 1;
 			break;
@@ -521,7 +518,6 @@ static void
 ksocknal_launch_connection_locked(struct ksock_route *route)
 {
 	/* called holding write lock on ksnd_global_lock */
-
 	LASSERT(!route->ksnr_scheduled);
 	LASSERT(!route->ksnr_connecting);
 	LASSERT(ksocknal_route_mask() & ~route->ksnr_connected);
@@ -588,7 +584,7 @@ ksocknal_find_conn_locked(struct ksock_peer *peer_ni, struct ksock_tx *tx,
 			    (tnob == nob && *ksocknal_tunables.ksnd_round_robin &&
 			     typed->ksnc_tx_last_post > c->ksnc_tx_last_post)) {
 				typed = c;
-				tnob  = nob;
+				tnob = nob;
 			}
 			break;
 
@@ -760,7 +756,6 @@ ksocknal_find_connecting_route_locked(struct ksock_peer *peer_ni)
 	struct ksock_route *route;
 
 	list_for_each_entry(route, &peer_ni->ksnp_routes, ksnr_list) {
-
 		LASSERT(!route->ksnr_connecting || route->ksnr_scheduled);
 
 		if (route->ksnr_scheduled)
@@ -978,7 +973,6 @@ ksocknal_new_packet(struct ksock_conn *conn, int nob_to_skip)
 {
 	static char ksocknal_slop_buffer[4096];
 	struct kvec *kvec = conn->ksnc_rx_iov_space;
-
 	int nob;
 	unsigned int niov;
 	int skipped;
@@ -1001,8 +995,8 @@ ksocknal_new_packet(struct ksock_conn *conn, int nob_to_skip)
 			kvec->iov_base = &conn->ksnc_msg;
 			kvec->iov_len = offsetof(struct ksock_msg, ksm_u);
 			conn->ksnc_rx_nob_left = offsetof(struct ksock_msg, ksm_u);
-			iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec,
-					1, offsetof(struct ksock_msg, ksm_u));
+			iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec, 1,
+				      offsetof(struct ksock_msg, ksm_u));
 			break;
 
 		case KSOCK_PROTO_V1:
@@ -1011,8 +1005,8 @@ ksocknal_new_packet(struct ksock_conn *conn, int nob_to_skip)
 			kvec->iov_base = &conn->ksnc_msg.ksm_u.lnetmsg;
 			kvec->iov_len = sizeof(struct lnet_hdr);
 			conn->ksnc_rx_nob_left = sizeof(struct lnet_hdr);
-			iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec,
-					1, sizeof(struct lnet_hdr));
+			iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec, 1,
+				      sizeof(struct lnet_hdr));
 			break;
 
 		default:
@@ -1035,7 +1029,7 @@ ksocknal_new_packet(struct ksock_conn *conn, int nob_to_skip)
 		nob = min_t(int, nob_to_skip, sizeof(ksocknal_slop_buffer));
 
 		kvec[niov].iov_base = ksocknal_slop_buffer;
-		kvec[niov].iov_len  = nob;
+		kvec[niov].iov_len = nob;
 		niov++;
 		skipped += nob;
 		nob_to_skip -= nob;
@@ -1063,7 +1057,7 @@ ksocknal_process_receive(struct ksock_conn *conn)
 		conn->ksnc_rx_state == SOCKNAL_RX_LNET_PAYLOAD ||
 		conn->ksnc_rx_state == SOCKNAL_RX_LNET_HEADER ||
 		conn->ksnc_rx_state == SOCKNAL_RX_SLOP);
- again:
+again:
 	if (iov_iter_count(&conn->ksnc_rx_to)) {
 		rc = ksocknal_receive(conn);
 
@@ -1157,8 +1151,8 @@ ksocknal_process_receive(struct ksock_conn *conn)
 		kvec->iov_base = &conn->ksnc_msg.ksm_u.lnetmsg;
 		kvec->iov_len = sizeof(struct ksock_lnet_msg);
 
-		iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec,
-				1, sizeof(struct ksock_lnet_msg));
+		iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec, 1,
+			      sizeof(struct ksock_lnet_msg));
 
 		goto again;     /* read lnet header now */
 
@@ -1295,8 +1289,8 @@ ksocknal_sched_cansleep(struct ksock_sched *sched)
 	spin_lock_bh(&sched->kss_lock);
 
 	rc = !ksocknal_data.ksnd_shuttingdown &&
-	      list_empty(&sched->kss_rx_conns) &&
-	      list_empty(&sched->kss_tx_conns);
+	     list_empty(&sched->kss_rx_conns) &&
+	     list_empty(&sched->kss_tx_conns);
 
 	spin_unlock_bh(&sched->kss_lock);
 	return rc;
@@ -1419,7 +1413,6 @@ int ksocknal_scheduler(void *arg)
 			}
 
 			rc = ksocknal_process_transmit(conn, tx);
-
 			if (rc == -ENOMEM || rc == -EAGAIN) {
 				/*
 				 * Incomplete send: replace tx on HEAD of
@@ -1879,7 +1872,7 @@ ksocknal_connect(struct ksock_route *route)
 	write_unlock_bh(&ksocknal_data.ksnd_global_lock);
 	return retry_later;
 
- failed:
+failed:
 	write_lock_bh(&ksocknal_data.ksnd_global_lock);
 
 	route->ksnr_scheduled = 0;
@@ -2026,7 +2019,6 @@ ksocknal_connd_check_stop(time64_t sec, long *timeout)
 		return 0;
 
 	/* no creating in past 120 seconds */
-
 	return ksocknal_data.ksnd_connd_running >
 	       ksocknal_data.ksnd_connd_connecting + SOCKNAL_CONND_RESV;
 }
@@ -2341,7 +2333,7 @@ ksocknal_check_peer_timeouts(int idx)
 	struct ksock_conn *conn;
 	struct ksock_tx *tx;
 
- again:
+again:
 	/*
 	 * NB. We expect to have a look at all the peers and not find any
 	 * connections to time out, so we just use a shared lock while we

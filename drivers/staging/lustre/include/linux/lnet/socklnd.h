@@ -64,9 +64,9 @@ struct ksock_lnet_msg {
 } __packed;
 
 struct ksock_msg {
-	u32	ksm_type;		/* type of socklnd message */
-	u32	ksm_csum;		/* checksum if != 0 */
-	u64	ksm_zc_cookies[2];	/* Zero-Copy request/ACK cookie */
+	u32		ksm_type;		/* type of socklnd message */
+	u32		ksm_csum;		/* checksum if != 0 */
+	u64		ksm_zc_cookies[2];	/* Zero-Copy request/ACK cookie */
 	union {
 		struct ksock_lnet_msg lnetmsg; /* lnet message, it's empty if
 						* it's NOOP

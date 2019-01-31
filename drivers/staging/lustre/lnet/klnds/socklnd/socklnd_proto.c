@@ -116,7 +116,7 @@ ksocknal_queue_tx_zcack_v2(struct ksock_conn *conn,
 static struct ksock_tx *
 ksocknal_queue_tx_msg_v2(struct ksock_conn *conn, struct ksock_tx *tx_msg)
 {
-	struct ksock_tx *tx  = conn->ksnc_tx_carrier;
+	struct ksock_tx *tx = conn->ksnc_tx_carrier;
 
 	/*
 	 * Enqueue tx_msg:
@@ -220,7 +220,7 @@ ksocknal_queue_tx_zcack_v3(struct ksock_conn *conn,
 	/* takes two or more cookies already */
 
 	if (tx->tx_msg.ksm_zc_cookies[0] > tx->tx_msg.ksm_zc_cookies[1]) {
-		u64   tmp = 0;
+		u64 tmp = 0;
 
 		/* two separated cookies: (a+2, a) or (a+1, a) */
 		LASSERT(tx->tx_msg.ksm_zc_cookies[0] -
@@ -479,7 +479,7 @@ ksocknal_send_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 	 * Re-organize V2.x message header to V1.x (struct lnet_hdr)
 	 * header and send out
 	 */
-	hmv->magic         = cpu_to_le32(LNET_PROTO_TCP_MAGIC);
+	hmv->magic = cpu_to_le32(LNET_PROTO_TCP_MAGIC);
 	hmv->version_major = cpu_to_le16(KSOCK_PROTO_V1_MAJOR);
 	hmv->version_minor = cpu_to_le16(KSOCK_PROTO_V1_MINOR);
 
@@ -537,7 +537,7 @@ ksocknal_send_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 	struct socket *sock = conn->ksnc_sock;
 	int rc;
 
-	hello->kshm_magic   = LNET_PROTO_MAGIC;
+	hello->kshm_magic = LNET_PROTO_MAGIC;
 	hello->kshm_version = conn->ksnc_proto->pro_version;
 
 	if (the_lnet.ln_testprotocompat) {
@@ -607,12 +607,11 @@ ksocknal_recv_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 		goto out;
 	}
 
-	hello->kshm_src_nid         = le64_to_cpu(hdr->src_nid);
-	hello->kshm_src_pid         = le32_to_cpu(hdr->src_pid);
+	hello->kshm_src_nid = le64_to_cpu(hdr->src_nid);
+	hello->kshm_src_pid = le32_to_cpu(hdr->src_pid);
 	hello->kshm_src_incarnation = le64_to_cpu(hdr->msg.hello.incarnation);
-	hello->kshm_ctype           = le32_to_cpu(hdr->msg.hello.type);
-	hello->kshm_nips            = le32_to_cpu(hdr->payload_length) /
-						  sizeof(u32);
+	hello->kshm_ctype = le32_to_cpu(hdr->msg.hello.type);
+	hello->kshm_nips = le32_to_cpu(hdr->payload_length) / sizeof(u32);
 
 	if (hello->kshm_nips > LNET_INTERFACES_NUM) {
 		CERROR("Bad nips %d from ip %pI4h\n",
@@ -724,7 +723,7 @@ ksocknal_pack_msg_v1(struct ksock_tx *tx)
 	LASSERT(tx->tx_lnetmsg);
 
 	tx->tx_iov[0].iov_base = &tx->tx_lnetmsg->msg_hdr;
-	tx->tx_iov[0].iov_len  = sizeof(struct lnet_hdr);
+	tx->tx_iov[0].iov_len = sizeof(struct lnet_hdr);
 
 	tx->tx_nob = tx->tx_lnetmsg->msg_len + sizeof(struct lnet_hdr);
 	tx->tx_resid = tx->tx_lnetmsg->msg_len + sizeof(struct lnet_hdr);
@@ -771,40 +770,40 @@ ksocknal_unpack_msg_v2(struct ksock_msg *msg)
 }
 
 struct ksock_proto ksocknal_protocol_v1x = {
-	.pro_version        = KSOCK_PROTO_V1,
-	.pro_send_hello     = ksocknal_send_hello_v1,
-	.pro_recv_hello     = ksocknal_recv_hello_v1,
-	.pro_pack           = ksocknal_pack_msg_v1,
-	.pro_unpack         = ksocknal_unpack_msg_v1,
-	.pro_queue_tx_msg   = ksocknal_queue_tx_msg_v1,
-	.pro_handle_zcreq   = NULL,
-	.pro_handle_zcack   = NULL,
-	.pro_queue_tx_zcack = NULL,
-	.pro_match_tx       = ksocknal_match_tx
+	.pro_version		= KSOCK_PROTO_V1,
+	.pro_send_hello		= ksocknal_send_hello_v1,
+	.pro_recv_hello		= ksocknal_recv_hello_v1,
+	.pro_pack		= ksocknal_pack_msg_v1,
+	.pro_unpack		= ksocknal_unpack_msg_v1,
+	.pro_queue_tx_msg	= ksocknal_queue_tx_msg_v1,
+	.pro_handle_zcreq	= NULL,
+	.pro_handle_zcack	= NULL,
+	.pro_queue_tx_zcack	= NULL,
+	.pro_match_tx		= ksocknal_match_tx
 };
 
 struct ksock_proto ksocknal_protocol_v2x = {
-	.pro_version        = KSOCK_PROTO_V2,
-	.pro_send_hello     = ksocknal_send_hello_v2,
-	.pro_recv_hello     = ksocknal_recv_hello_v2,
-	.pro_pack           = ksocknal_pack_msg_v2,
-	.pro_unpack         = ksocknal_unpack_msg_v2,
-	.pro_queue_tx_msg   = ksocknal_queue_tx_msg_v2,
-	.pro_queue_tx_zcack = ksocknal_queue_tx_zcack_v2,
-	.pro_handle_zcreq   = ksocknal_handle_zcreq,
-	.pro_handle_zcack   = ksocknal_handle_zcack,
-	.pro_match_tx       = ksocknal_match_tx
+	.pro_version		= KSOCK_PROTO_V2,
+	.pro_send_hello		= ksocknal_send_hello_v2,
+	.pro_recv_hello		= ksocknal_recv_hello_v2,
+	.pro_pack		= ksocknal_pack_msg_v2,
+	.pro_unpack		= ksocknal_unpack_msg_v2,
+	.pro_queue_tx_msg	= ksocknal_queue_tx_msg_v2,
+	.pro_queue_tx_zcack	= ksocknal_queue_tx_zcack_v2,
+	.pro_handle_zcreq	= ksocknal_handle_zcreq,
+	.pro_handle_zcack	= ksocknal_handle_zcack,
+	.pro_match_tx		= ksocknal_match_tx
 };
 
 struct ksock_proto ksocknal_protocol_v3x = {
-	.pro_version        = KSOCK_PROTO_V3,
-	.pro_send_hello     = ksocknal_send_hello_v2,
-	.pro_recv_hello     = ksocknal_recv_hello_v2,
-	.pro_pack           = ksocknal_pack_msg_v2,
-	.pro_unpack         = ksocknal_unpack_msg_v2,
-	.pro_queue_tx_msg   = ksocknal_queue_tx_msg_v2,
-	.pro_queue_tx_zcack = ksocknal_queue_tx_zcack_v3,
-	.pro_handle_zcreq   = ksocknal_handle_zcreq,
-	.pro_handle_zcack   = ksocknal_handle_zcack,
-	.pro_match_tx       = ksocknal_match_tx_v3
+	.pro_version		= KSOCK_PROTO_V3,
+	.pro_send_hello		= ksocknal_send_hello_v2,
+	.pro_recv_hello		= ksocknal_recv_hello_v2,
+	.pro_pack		= ksocknal_pack_msg_v2,
+	.pro_unpack		= ksocknal_unpack_msg_v2,
+	.pro_queue_tx_msg	= ksocknal_queue_tx_msg_v2,
+	.pro_queue_tx_zcack	= ksocknal_queue_tx_zcack_v3,
+	.pro_handle_zcreq	= ksocknal_handle_zcreq,
+	.pro_handle_zcack	= ksocknal_handle_zcack,
+	.pro_match_tx		= ksocknal_match_tx_v3
 };

@@ -309,7 +309,7 @@ ksocknal_get_peer_info(struct lnet_ni *ni, int index,
 			}
 		}
 	}
- out:
+out:
 	read_unlock(&ksocknal_data.ksnd_global_lock);
 	return rc;
 }
@@ -713,8 +713,8 @@ static int
 ksocknal_match_peerip(struct ksock_interface *iface, u32 *ips, int nips)
 {
 	int best_netmatch = 0;
-	int best_xor      = 0;
-	int best	  = -1;
+	int best_xor = 0;
+	int best = -1;
 	int this_xor;
 	int this_netmatch;
 	int i;
@@ -944,7 +944,8 @@ ksocknal_create_routes(struct ksock_peer *peer_ni, int port,
 			best_iface = iface;
 			best_netmatch = this_netmatch;
 			best_nroutes = iface->ksni_nroutes;
-		next_iface:;
+next_iface:
+			;
 		}
 
 		if (!best_iface)
@@ -955,7 +956,8 @@ ksocknal_create_routes(struct ksock_peer *peer_ni, int port,
 
 		ksocknal_add_route_locked(peer_ni, newroute);
 		newroute = NULL;
-	next_ipaddr:;
+next_ipaddr:
+		;
 	}
 
 	write_unlock_bh(global_lock);
@@ -982,7 +984,7 @@ ksocknal_accept(struct lnet_ni *ni, struct socket *sock)
 	}
 
 	lnet_ni_addref(ni);
-	cr->ksncr_ni   = ni;
+	cr->ksncr_ni = ni;
 	cr->ksncr_sock = sock;
 
 	spin_lock_bh(&ksocknal_data.ksnd_connd_lock);
@@ -1215,7 +1217,6 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	 */
 	if (conn->ksnc_ipaddr != conn->ksnc_myipaddr) {
 		list_for_each_entry(conn2, &peer_ni->ksnp_conns, ksnc_list) {
-
 			if (conn2->ksnc_ipaddr != conn->ksnc_ipaddr ||
 			    conn2->ksnc_myipaddr != conn->ksnc_myipaddr ||
 			    conn2->ksnc_type != conn->ksnc_type)
@@ -1249,7 +1250,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 
 	/*
 	 * Search for a route corresponding to the new connection and
-	 * create an association.  This allows incoming connections created
+	 * create an association. This allows incoming connections created
 	 * by routes in my peer_ni to match my own route entries so I don't
 	 * continually create duplicate routes.
 	 */
@@ -1371,7 +1372,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_route *route,
 	ksocknal_conn_decref(conn);
 	return rc;
 
- failed_2:
+failed_2:
 	if (!peer_ni->ksnp_closing &&
 	    list_empty(&peer_ni->ksnp_conns) &&
 	    list_empty(&peer_ni->ksnp_routes)) {
@@ -1457,7 +1458,7 @@ ksocknal_close_conn_locked(struct ksock_conn *conn, int error)
 				goto conn2_found;
 		}
 		route->ksnr_connected &= ~(1 << conn->ksnc_type);
-	conn2_found:
+conn2_found:
 		conn->ksnc_route = NULL;
 
 		ksocknal_route_decref(route);     /* drop conn's ref on route */
@@ -2121,7 +2122,7 @@ ksocknal_ctl(struct lnet_ni *ni, unsigned int cmd, void *arg)
 
 	switch (cmd) {
 	case IOC_LIBCFS_GET_INTERFACE: {
-		struct ksock_net       *net = ni->ni_data;
+		struct ksock_net *net = ni->ni_data;
 		struct ksock_interface *iface;
 
 		read_lock(&ksocknal_data.ksnd_global_lock);
@@ -2164,8 +2165,8 @@ ksocknal_ctl(struct lnet_ni *ni, unsigned int cmd, void *arg)
 		if (rc)
 			return rc;
 
-		data->ioc_nid    = id.nid;
-		data->ioc_count  = share_count;
+		data->ioc_nid  = id.nid;
+		data->ioc_count = share_count;
 		data->ioc_u32[0] = ip;
 		data->ioc_u32[1] = port;
 		data->ioc_u32[2] = myip;
@@ -2178,14 +2179,14 @@ ksocknal_ctl(struct lnet_ni *ni, unsigned int cmd, void *arg)
 		id.nid = data->ioc_nid;
 		id.pid = LNET_PID_LUSTRE;
 		return ksocknal_add_peer(ni, id,
-					  data->ioc_u32[0], /* IP */
-					  data->ioc_u32[1]); /* port */
+					 data->ioc_u32[0], /* IP */
+					 data->ioc_u32[1]); /* port */
 
 	case IOC_LIBCFS_DEL_PEER:
 		id.nid = data->ioc_nid;
 		id.pid = LNET_PID_ANY;
 		return ksocknal_del_peer(ni, id,
-					  data->ioc_u32[0]); /* IP */
+					 data->ioc_u32[0]); /* IP */
 
 	case IOC_LIBCFS_GET_CONN: {
 		int txmem;
@@ -2199,9 +2200,9 @@ ksocknal_ctl(struct lnet_ni *ni, unsigned int cmd, void *arg)
 
 		ksocknal_lib_get_conn_tunables(conn, &txmem, &rxmem, &nagle);
 
-		data->ioc_count  = txmem;
-		data->ioc_nid    = conn->ksnc_peer->ksnp_id.nid;
-		data->ioc_flags  = nagle;
+		data->ioc_count = txmem;
+		data->ioc_nid = conn->ksnc_peer->ksnp_id.nid;
+		data->ioc_flags = nagle;
 		data->ioc_u32[0] = conn->ksnc_ipaddr;
 		data->ioc_u32[1] = conn->ksnc_port;
 		data->ioc_u32[2] = conn->ksnc_myipaddr;
@@ -2217,7 +2218,7 @@ ksocknal_ctl(struct lnet_ni *ni, unsigned int cmd, void *arg)
 		id.nid = data->ioc_nid;
 		id.pid = LNET_PID_ANY;
 		return ksocknal_close_matching_conns(id,
-						      data->ioc_u32[0]);
+						     data->ioc_u32[0]);
 
 	case IOC_LIBCFS_REGISTER_MYNID:
 		/* Ignore if this is a noop */
@@ -2449,8 +2450,8 @@ ksocknal_base_startup(void)
 		}
 	}
 
-	ksocknal_data.ksnd_connd_starting       = 0;
-	ksocknal_data.ksnd_connd_failed_stamp   = 0;
+	ksocknal_data.ksnd_connd_starting = 0;
+	ksocknal_data.ksnd_connd_failed_stamp = 0;
 	ksocknal_data.ksnd_connd_starting_stamp = ktime_get_real_seconds();
 	/*
 	 * must have at least 2 connds to remain responsive to accepts while
@@ -2495,7 +2496,7 @@ ksocknal_base_startup(void)
 
 	return 0;
 
- failed:
+failed:
 	ksocknal_base_shutdown();
 	return -ENETDOWN;
 }
@@ -2512,7 +2513,7 @@ ksocknal_debug_peerhash(struct lnet_ni *ni)
 		list_for_each_entry(peer_ni, &ksocknal_data.ksnd_peers[i],
 				    ksnp_list) {
 			struct ksock_route *route;
-			struct ksock_conn  *conn;
+			struct ksock_conn *conn;
 
 			if (peer_ni->ksnp_ni != ni)
 				continue;
@@ -2555,7 +2556,7 @@ ksocknal_shutdown(struct lnet_ni *ni)
 {
 	struct ksock_net *net = ni->ni_data;
 	int i;
-	struct lnet_process_id anyid = {0};
+	struct lnet_process_id anyid = { 0 };
 
 	anyid.nid = LNET_NID_ANY;
 	anyid.pid = LNET_PID_ANY;
@@ -2846,9 +2847,9 @@ ksocknal_startup(struct lnet_ni *ni)
 
 	return 0;
 
- fail_1:
+fail_1:
 	kfree(net);
- fail_0:
+fail_0:
 	if (!ksocknal_data.ksnd_nnets)
 		ksocknal_base_shutdown();
 
@@ -2869,15 +2870,15 @@ static int __init ksocklnd_init(void)
 	BUILD_BUG_ON(SOCKLND_CONN_ACK != SOCKLND_CONN_BULK_IN);
 
 	/* initialize the_ksocklnd */
-	the_ksocklnd.lnd_type     = SOCKLND;
-	the_ksocklnd.lnd_startup  = ksocknal_startup;
+	the_ksocklnd.lnd_type = SOCKLND;
+	the_ksocklnd.lnd_startup = ksocknal_startup;
 	the_ksocklnd.lnd_shutdown = ksocknal_shutdown;
-	the_ksocklnd.lnd_ctl      = ksocknal_ctl;
-	the_ksocklnd.lnd_send     = ksocknal_send;
-	the_ksocklnd.lnd_recv     = ksocknal_recv;
-	the_ksocklnd.lnd_notify   = ksocknal_notify;
-	the_ksocklnd.lnd_query    = ksocknal_query;
-	the_ksocklnd.lnd_accept   = ksocknal_accept;
+	the_ksocklnd.lnd_ctl = ksocknal_ctl;
+	the_ksocklnd.lnd_send = ksocknal_send;
+	the_ksocklnd.lnd_recv = ksocknal_recv;
+	the_ksocklnd.lnd_notify = ksocknal_notify;
+	the_ksocklnd.lnd_query = ksocknal_query;
+	the_ksocklnd.lnd_accept = ksocknal_accept;
 
 	rc = ksocknal_tunables_init();
 	if (rc)
