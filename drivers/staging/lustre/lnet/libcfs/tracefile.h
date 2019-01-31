@@ -165,12 +165,12 @@ do {									\
 	}								\
 } while (0)
 
-#define __LASSERT_TAGE_INVARIANT(tage)			\
-do {							\
-	__LASSERT(tage);				\
-	__LASSERT(tage->page);				\
-	__LASSERT(tage->used <= PAGE_SIZE);		\
-	__LASSERT(page_count(tage->page) > 0);		\
+#define __LASSERT_TAGE_INVARIANT(tage)					\
+do {									\
+	__LASSERT(tage);						\
+	__LASSERT(tage->page);						\
+	__LASSERT(tage->used <= PAGE_SIZE);				\
+	__LASSERT(page_count(tage->page) > 0);				\
 } while (0)
 
 #endif /* __LIBCFS_TRACEFILE_H__ */

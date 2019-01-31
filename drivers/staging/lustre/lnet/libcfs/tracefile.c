@@ -331,7 +331,6 @@ static struct cfs_trace_page *cfs_trace_get_tage(struct cfs_trace_cpu_data *tcd,
 	 * XXX nikita: do NOT call portals_debug_msg() (CDEBUG/ENTRY/EXIT)
 	 * from here: this will lead to infinite recursion.
 	 */
-
 	if (len > PAGE_SIZE) {
 		pr_err("cowardly refusing to write %lu bytes in a page\n", len);
 		return NULL;
@@ -489,7 +488,7 @@ int libcfs_debug_vmsg2(struct libcfs_debug_msg_data *msgdata,
 		}
 
 		string_buf = (char *)page_address(tage->page) +
-					tage->used + known_size;
+			     tage->used + known_size;
 
 		max_nob = PAGE_SIZE - tage->used - known_size;
 		if (max_nob <= 0) {
@@ -746,7 +745,7 @@ static void put_pages_back(struct page_collection *pc)
 		put_pages_back_on_all_cpus(pc);
 }
 
-/* Add pages to a per-cpu debug daemon ringbuffer.  This buffer makes sure that
+/* Add pages to a per-cpu debug daemon ringbuffer. This buffer makes sure that
  * we have a good amount of data at all times for dumping during an LBUG, even
  * if we have been steadily writing (and otherwise discarding) pages via the
  * debug daemon.

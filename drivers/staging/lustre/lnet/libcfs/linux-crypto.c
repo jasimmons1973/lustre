@@ -205,7 +205,6 @@ cfs_crypto_hash_init(enum cfs_crypto_hash_alg hash_alg,
 	const struct cfs_crypto_hash_type *type;
 
 	err = cfs_crypto_hash_alloc(hash_alg, &type, &req, key, key_len);
-
 	if (err)
 		return ERR_PTR(err);
 	return req;

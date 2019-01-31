@@ -67,28 +67,28 @@ extern unsigned int libcfs_panic_on_lbug;
 /* Enable debug-checks on stack size - except on x86_64 */
 #if !defined(__x86_64__)
 # ifdef __ia64__
-#  define CDEBUG_STACK() (THREAD_SIZE -				 \
+#  define CDEBUG_STACK() (THREAD_SIZE -					\
 			  ((unsigned long)__builtin_dwarf_cfa() &       \
 			   (THREAD_SIZE - 1)))
 # else
-#  define CDEBUG_STACK() (THREAD_SIZE -				 \
+#  define CDEBUG_STACK() (THREAD_SIZE -					\
 			  ((unsigned long)__builtin_frame_address(0) &  \
 			   (THREAD_SIZE - 1)))
 # endif /* __ia64__ */
 
-#define __CHECK_STACK(msgdata, mask, cdls)			      \
-do {								    \
-	if (unlikely(CDEBUG_STACK() > libcfs_stack)) {		  \
+#define __CHECK_STACK(msgdata, mask, cdls)				\
+do {									\
+	if (unlikely(CDEBUG_STACK() > libcfs_stack)) {			\
 		LIBCFS_DEBUG_MSG_DATA_INIT(msgdata, D_WARNING, NULL);   \
-		libcfs_stack = CDEBUG_STACK();			  \
-		libcfs_debug_msg(msgdata,			       \
-				 "maximum lustre stack %lu\n",	  \
-				 CDEBUG_STACK());		       \
-		(msgdata)->msg_mask = mask;			     \
-		(msgdata)->msg_cdls = cdls;			     \
-		dump_stack();					   \
+		libcfs_stack = CDEBUG_STACK();				\
+		libcfs_debug_msg(msgdata,				\
+				 "maximum lustre stack %lu\n",		\
+				 CDEBUG_STACK());			\
+		(msgdata)->msg_mask = mask;				\
+		(msgdata)->msg_cdls = cdls;				\
+		dump_stack();						\
 	      /*panic("LBUG");*/					\
-	}							       \
+	}								\
 } while (0)
 #define CFS_CHECK_STACK(msgdata, mask, cdls)  __CHECK_STACK(msgdata, mask, cdls)
 #else /* __x86_64__ */
@@ -104,37 +104,37 @@ do {								    \
 #define CDEBUG_DEFAULT_MIN_DELAY ((HZ + 1) / 2) /* jiffies */
 #define CDEBUG_DEFAULT_BACKOFF   2
 struct cfs_debug_limit_state {
-	unsigned long   cdls_next;
-	unsigned int cdls_delay;
-	int	     cdls_count;
+	unsigned long			cdls_next;
+	unsigned int			cdls_delay;
+	int				cdls_count;
 };
 
 struct libcfs_debug_msg_data {
-	const char *msg_file;
-	const char *msg_fn;
-	int	    msg_subsys;
-	int	    msg_line;
-	int	    msg_mask;
-	struct cfs_debug_limit_state *msg_cdls;
+	const char		       *msg_file;
+	const char		       *msg_fn;
+	int				msg_subsys;
+	int				msg_line;
+	int				msg_mask;
+	struct cfs_debug_limit_state   *msg_cdls;
 };
 
-#define LIBCFS_DEBUG_MSG_DATA_INIT(data, mask, cdls)		\
-do {								\
-	(data)->msg_subsys = DEBUG_SUBSYSTEM;			\
-	(data)->msg_file   = __FILE__;				\
-	(data)->msg_fn     = __func__;				\
-	(data)->msg_line   = __LINE__;				\
-	(data)->msg_cdls   = (cdls);				\
-	(data)->msg_mask   = (mask);				\
+#define LIBCFS_DEBUG_MSG_DATA_INIT(data, mask, cdls)			\
+do {									\
+	(data)->msg_subsys = DEBUG_SUBSYSTEM;				\
+	(data)->msg_file   = __FILE__;					\
+	(data)->msg_fn     = __func__;					\
+	(data)->msg_line   = __LINE__;					\
+	(data)->msg_cdls   = (cdls);					\
+	(data)->msg_mask   = (mask);					\
 } while (0)
 
-#define LIBCFS_DEBUG_MSG_DATA_DECL(dataname, mask, cdls)	\
-	static struct libcfs_debug_msg_data dataname = {	\
-	       .msg_subsys = DEBUG_SUBSYSTEM,			\
-	       .msg_file   = __FILE__,				\
-	       .msg_fn     = __func__,				\
-	       .msg_line   = __LINE__,				\
-	       .msg_cdls   = (cdls)	 };			\
+#define LIBCFS_DEBUG_MSG_DATA_DECL(dataname, mask, cdls)		\
+	static struct libcfs_debug_msg_data dataname = {		\
+	       .msg_subsys = DEBUG_SUBSYSTEM,				\
+	       .msg_file   = __FILE__,					\
+	       .msg_fn     = __func__,					\
+	       .msg_line   = __LINE__,					\
+	       .msg_cdls   = (cdls)	 };				\
 	dataname.msg_mask   = (mask)
 
 /**

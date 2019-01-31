@@ -104,7 +104,7 @@ static int adler32_digest(struct shash_desc *desc, const u8 *data,
 			  unsigned int len, u8 *out)
 {
 	return __adler32_finup(crypto_shash_ctx(desc->tfm), data, len,
-				    out);
+			       out);
 }
 
 static struct shash_alg alg = {

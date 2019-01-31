@@ -60,8 +60,8 @@
 #include "tracefile.h"
 
 struct lnet_debugfs_symlink_def {
-	const char *name;
-	const char *target;
+	const char	*name;
+	const char	*target;
 };
 
 static struct dentry *lnet_debugfs_root;
@@ -281,14 +281,14 @@ libcfs_psdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 }
 
 static const struct file_operations libcfs_fops = {
-	.owner		= THIS_MODULE,
-	.unlocked_ioctl	= libcfs_psdev_ioctl,
+	.owner			= THIS_MODULE,
+	.unlocked_ioctl		= libcfs_psdev_ioctl,
 };
 
 static struct miscdevice libcfs_dev = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name = "lnet",
-	.fops = &libcfs_fops,
+	.minor			= MISC_DYNAMIC_MINOR,
+	.name			= "lnet",
+	.fops			= &libcfs_fops,
 };
 
 static int libcfs_dev_registered;
@@ -423,7 +423,7 @@ static int proc_cpt_table(struct ctl_table *table, int write,
 	}
 
 	rc = cfs_trace_copyout_string(buffer, nob, buf + pos, NULL);
- out:
+out:
 	kfree(buf);
 	return rc;
 }
@@ -472,84 +472,84 @@ out:
 
 static struct ctl_table lnet_table[] = {
 	{
-		.procname = "debug",
-		.data     = &libcfs_debug,
-		.maxlen   = sizeof(int),
-		.mode     = 0644,
-		.proc_handler = &proc_dobitmasks,
+		.procname	= "debug",
+		.data		= &libcfs_debug,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= &proc_dobitmasks,
 	},
 	{
-		.procname = "subsystem_debug",
-		.data     = &libcfs_subsystem_debug,
-		.maxlen   = sizeof(int),
-		.mode     = 0644,
-		.proc_handler = &proc_dobitmasks,
+		.procname	= "subsystem_debug",
+		.data		= &libcfs_subsystem_debug,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= &proc_dobitmasks,
 	},
 	{
-		.procname = "printk",
-		.data     = &libcfs_printk,
-		.maxlen   = sizeof(int),
-		.mode     = 0644,
-		.proc_handler = &proc_dobitmasks,
+		.procname	= "printk",
+		.data		= &libcfs_printk,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= &proc_dobitmasks,
 	},
 	{
-		.procname = "cpu_partition_table",
-		.maxlen   = 128,
-		.mode     = 0444,
-		.proc_handler = &proc_cpt_table,
+		.procname	= "cpu_partition_table",
+		.maxlen		= 128,
+		.mode		= 0444,
+		.proc_handler	= &proc_cpt_table,
 	},
 	{
-		.procname = "cpu_partition_distance",
-		.maxlen	  = 128,
-		.mode	  = 0444,
-		.proc_handler = &proc_cpt_distance,
+		.procname	= "cpu_partition_distance",
+		.maxlen		= 128,
+		.mode		= 0444,
+		.proc_handler	= &proc_cpt_distance,
 	},
 	{
-		.procname = "debug_log_upcall",
-		.data     = lnet_debug_log_upcall,
-		.maxlen   = sizeof(lnet_debug_log_upcall),
-		.mode     = 0644,
-		.proc_handler = &proc_dostring,
+		.procname	= "debug_log_upcall",
+		.data		= lnet_debug_log_upcall,
+		.maxlen		= sizeof(lnet_debug_log_upcall),
+		.mode		= 0644,
+		.proc_handler	= &proc_dostring,
 	},
 	{
-		.procname = "catastrophe",
-		.data     = &libcfs_catastrophe,
-		.maxlen   = sizeof(int),
-		.mode     = 0444,
-		.proc_handler = &proc_dointvec,
+		.procname	= "catastrophe",
+		.data		= &libcfs_catastrophe,
+		.maxlen		= sizeof(int),
+		.mode		= 0444,
+		.proc_handler	= &proc_dointvec,
 	},
 	{
-		.procname = "dump_kernel",
-		.maxlen   = 256,
-		.mode     = 0200,
-		.proc_handler = &proc_dump_kernel,
+		.procname	= "dump_kernel",
+		.maxlen		= 256,
+		.mode		= 0200,
+		.proc_handler	= &proc_dump_kernel,
 	},
 	{
-		.procname = "daemon_file",
-		.mode     = 0644,
-		.maxlen   = 256,
-		.proc_handler = &proc_daemon_file,
+		.procname	= "daemon_file",
+		.mode		= 0644,
+		.maxlen		= 256,
+		.proc_handler	= &proc_daemon_file,
 	},
 	{
-		.procname = "force_lbug",
-		.data     = NULL,
-		.maxlen   = 0,
-		.mode     = 0200,
-		.proc_handler = &libcfs_force_lbug
+		.procname	= "force_lbug",
+		.data		= NULL,
+		.maxlen		= 0,
+		.mode		= 0200,
+		.proc_handler	= &libcfs_force_lbug
 	},
 	{
-		.procname = "fail_loc",
-		.data     = &cfs_fail_loc,
-		.maxlen   = sizeof(cfs_fail_loc),
-		.mode     = 0644,
-		.proc_handler = &proc_fail_loc
+		.procname	= "fail_loc",
+		.data		= &cfs_fail_loc,
+		.maxlen		= sizeof(cfs_fail_loc),
+		.mode		= 0644,
+		.proc_handler	= &proc_fail_loc
 	},
 	{
-		.procname = "fail_val",
-		.data     = &cfs_fail_val,
-		.maxlen   = sizeof(int),
-		.mode     = 0644,
-		.proc_handler = &proc_dointvec
+		.procname	= "fail_val",
+		.data		= &cfs_fail_val,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= &proc_dointvec
 	},
 	{
 		.procname	= "fail_err",

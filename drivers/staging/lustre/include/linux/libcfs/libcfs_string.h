@@ -53,8 +53,8 @@ char *cfs_firststr(char *str, size_t size);
  * Structure to represent NULL-less strings.
  */
 struct cfs_lstr {
-	char		*ls_str;
-	int		ls_len;
+	char			*ls_str;
+	int			ls_len;
 };
 
 /*
@@ -65,9 +65,9 @@ struct cfs_range_expr {
 	 * Link to cfs_expr_list::el_exprs.
 	 */
 	struct list_head	re_link;
-	u32		re_lo;
-	u32		re_hi;
-	u32		re_stride;
+	u32			re_lo;
+	u32			re_hi;
+	u32			re_stride;
 };
 
 struct cfs_expr_list {

@@ -85,8 +85,8 @@ static int libcfs_param_debug_mb_set(const char *val,
  * debug_mb parameter type with corresponding methods to handle this case
  */
 static const struct kernel_param_ops param_ops_debug_mb = {
-	.set = libcfs_param_debug_mb_set,
-	.get = param_get_uint,
+	.set		= libcfs_param_debug_mb_set,
+	.get		= param_get_uint,
 };
 
 #define param_check_debug_mb(name, p) \
@@ -143,8 +143,8 @@ static int param_set_console_max_delay(const char *val,
 }
 
 static const struct kernel_param_ops param_ops_console_max_delay = {
-	.set = param_set_console_max_delay,
-	.get = param_get_delay,
+	.set		= param_set_console_max_delay,
+	.get		= param_get_delay,
 };
 
 #define param_check_console_max_delay(name, p) \
@@ -161,8 +161,8 @@ static int param_set_console_min_delay(const char *val,
 }
 
 static const struct kernel_param_ops param_ops_console_min_delay = {
-	.set = param_set_console_min_delay,
-	.get = param_get_delay,
+	.set		= param_set_console_min_delay,
+	.get		= param_get_delay,
 };
 
 #define param_check_console_min_delay(name, p) \
@@ -195,8 +195,8 @@ static int param_set_uintpos(const char *val, const struct kernel_param *kp)
 }
 
 static const struct kernel_param_ops param_ops_uintpos = {
-	.set = param_set_uintpos,
-	.get = param_get_uint,
+	.set		= param_set_uintpos,
+	.get		= param_get_uint,
 };
 
 #define param_check_uintpos(name, p) \
@@ -499,9 +499,9 @@ static int panic_notifier(struct notifier_block *self, unsigned long unused1,
 }
 
 static struct notifier_block libcfs_panic_notifier = {
-	.notifier_call	= panic_notifier,
-	.next		= NULL,
-	.priority	= 10000,
+	.notifier_call		= panic_notifier,
+	.next			= NULL,
+	.priority		= 10000,
 };
 
 static void libcfs_register_panic_notifier(void)

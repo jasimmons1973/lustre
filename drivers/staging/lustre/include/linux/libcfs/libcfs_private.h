@@ -69,9 +69,9 @@ do {									\
 
 void __noreturn lbug_with_loc(struct libcfs_debug_msg_data *msg);
 
-#define LBUG()							  \
-do {								    \
-	LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, D_EMERG, NULL);	     \
+#define LBUG()								\
+do {									\
+	LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, D_EMERG, NULL);		\
 	lbug_with_loc(&msgdata);					\
 } while (0)
 
@@ -86,7 +86,7 @@ do {								    \
 	kmalloc_node(size, flags | __GFP_ZERO,				\
 		     cfs_cpt_spread_node(lnet_cpt_table(), cpt))
 
-#define kvmalloc_cpt(size, flags, cpt) \
+#define kvmalloc_cpt(size, flags, cpt)					\
 	kvmalloc_node(size, flags,					\
 		      cfs_cpt_spread_node(lnet_cpt_table(), cpt))
 
@@ -138,50 +138,50 @@ void  cfs_array_free(void *vars);
 	LASSERTF(atomic_read(a) >= v, "value: %d\n", atomic_read((a)))
 
 /** assert value of @a is great than @v1 and little than @v2 */
-#define LASSERT_ATOMIC_GT_LT(a, v1, v2)			 \
-do {							    \
-	int __v = atomic_read(a);			   \
+#define LASSERT_ATOMIC_GT_LT(a, v1, v2)				\
+do {								\
+	int __v = atomic_read(a);				\
 	LASSERTF(__v > v1 && __v < v2, "value: %d\n", __v);     \
 } while (0)
 
 /** assert value of @a is great than @v1 and little/equal to @v2 */
-#define LASSERT_ATOMIC_GT_LE(a, v1, v2)			 \
-do {							    \
-	int __v = atomic_read(a);			   \
+#define LASSERT_ATOMIC_GT_LE(a, v1, v2)				\
+do {								\
+	int __v = atomic_read(a);				\
 	LASSERTF(__v > v1 && __v <= v2, "value: %d\n", __v);    \
 } while (0)
 
 /** assert value of @a is great/equal to @v1 and little than @v2 */
-#define LASSERT_ATOMIC_GE_LT(a, v1, v2)			 \
-do {							    \
-	int __v = atomic_read(a);			   \
+#define LASSERT_ATOMIC_GE_LT(a, v1, v2)				\
+do {								\
+	int __v = atomic_read(a);				\
 	LASSERTF(__v >= v1 && __v < v2, "value: %d\n", __v);    \
 } while (0)
 
 /** assert value of @a is great/equal to @v1 and little/equal to @v2 */
-#define LASSERT_ATOMIC_GE_LE(a, v1, v2)			 \
-do {							    \
-	int __v = atomic_read(a);			   \
+#define LASSERT_ATOMIC_GE_LE(a, v1, v2)				\
+do {								\
+	int __v = atomic_read(a);				\
 	LASSERTF(__v >= v1 && __v <= v2, "value: %d\n", __v);   \
 } while (0)
 
 #else /* !LASSERT_ATOMIC_ENABLED */
 
-#define LASSERT_ATOMIC_EQ(a, v)		 do {} while (0)
-#define LASSERT_ATOMIC_NE(a, v)		 do {} while (0)
-#define LASSERT_ATOMIC_LT(a, v)		 do {} while (0)
-#define LASSERT_ATOMIC_LE(a, v)		 do {} while (0)
-#define LASSERT_ATOMIC_GT(a, v)		 do {} while (0)
-#define LASSERT_ATOMIC_GE(a, v)		 do {} while (0)
-#define LASSERT_ATOMIC_GT_LT(a, v1, v2)	 do {} while (0)
-#define LASSERT_ATOMIC_GT_LE(a, v1, v2)	 do {} while (0)
-#define LASSERT_ATOMIC_GE_LT(a, v1, v2)	 do {} while (0)
-#define LASSERT_ATOMIC_GE_LE(a, v1, v2)	 do {} while (0)
+#define LASSERT_ATOMIC_EQ(a, v)		do {} while (0)
+#define LASSERT_ATOMIC_NE(a, v)		do {} while (0)
+#define LASSERT_ATOMIC_LT(a, v)		do {} while (0)
+#define LASSERT_ATOMIC_LE(a, v)		do {} while (0)
+#define LASSERT_ATOMIC_GT(a, v)		do {} while (0)
+#define LASSERT_ATOMIC_GE(a, v)		do {} while (0)
+#define LASSERT_ATOMIC_GT_LT(a, v1, v2)	do {} while (0)
+#define LASSERT_ATOMIC_GT_LE(a, v1, v2)	do {} while (0)
+#define LASSERT_ATOMIC_GE_LT(a, v1, v2)	do {} while (0)
+#define LASSERT_ATOMIC_GE_LE(a, v1, v2)	do {} while (0)
 
 #endif /* LASSERT_ATOMIC_ENABLED */
 
-#define LASSERT_ATOMIC_ZERO(a)		  LASSERT_ATOMIC_EQ(a, 0)
-#define LASSERT_ATOMIC_POS(a)		   LASSERT_ATOMIC_GT(a, 0)
+#define LASSERT_ATOMIC_ZERO(a)		LASSERT_ATOMIC_EQ(a, 0)
+#define LASSERT_ATOMIC_POS(a)		LASSERT_ATOMIC_GT(a, 0)
 
 /* implication */
 #define ergo(a, b) (!(a) || (b))

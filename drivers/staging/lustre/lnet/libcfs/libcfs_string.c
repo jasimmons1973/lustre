@@ -314,11 +314,11 @@ cfs_range_expr_parse(struct cfs_lstr *src, unsigned int min, unsigned int max,
 		}
 	}
 
- out:
+out:
 	*expr = re;
 	return 0;
 
- failed:
+failed:
 	kfree(re);
 	return -EINVAL;
 }

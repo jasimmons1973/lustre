@@ -76,7 +76,7 @@ struct cfs_cpt_table {
 };
 
 /** Global CPU partition table */
-struct cfs_cpt_table   *cfs_cpt_tab __read_mostly;
+struct cfs_cpt_table *cfs_cpt_tab __read_mostly;
 EXPORT_SYMBOL(cfs_cpt_tab);
 
 /**
@@ -86,7 +86,7 @@ EXPORT_SYMBOL(cfs_cpt_tab);
  *  1 : disable multiple partitions
  * >1 : specify number of partitions
  */
-static int	cpu_npartitions;
+static int cpu_npartitions;
 module_param(cpu_npartitions, int, 0444);
 MODULE_PARM_DESC(cpu_npartitions, "# of CPU partitions");
 
@@ -103,7 +103,7 @@ MODULE_PARM_DESC(cpu_npartitions, "# of CPU partitions");
  *
  * NB: If user specified cpu_pattern, cpu_npartitions will be ignored
  */
-static char	*cpu_pattern = "N";
+static char *cpu_pattern = "N";
 module_param(cpu_pattern, charp, 0444);
 MODULE_PARM_DESC(cpu_pattern, "CPU partitions pattern");
 
@@ -167,7 +167,7 @@ struct cfs_cpt_table *cfs_cpt_table_alloc(unsigned int ncpt)
 						    GFP_KERNEL);
 		if (!part->cpt_distance) {
 			kfree(part->cpt_nodemask);
-		failed_setting_one_part:
+failed_setting_one_part:
 			free_cpumask_var(part->cpt_cpumask);
 			goto failed_setting_ctb_parts;
 		}
