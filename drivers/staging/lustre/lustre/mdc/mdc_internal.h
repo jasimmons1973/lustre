@@ -39,20 +39,20 @@
 int mdc_tunables_init(struct obd_device *obd);
 
 void mdc_pack_body(struct ptlrpc_request *req, const struct lu_fid *fid,
-		   __u64 valid, size_t ea_size, __u32 suppgid, u32 flags);
+		   u64 valid, size_t ea_size, u32 suppgid, u32 flags);
 void mdc_swap_layouts_pack(struct ptlrpc_request *req,
 			   struct md_op_data *op_data);
-void mdc_readdir_pack(struct ptlrpc_request *req, __u64 pgoff, size_t size,
+void mdc_readdir_pack(struct ptlrpc_request *req, u64 pgoff, size_t size,
 		      const struct lu_fid *fid);
-void mdc_getattr_pack(struct ptlrpc_request *req, __u64 valid, u32 flags,
+void mdc_getattr_pack(struct ptlrpc_request *req, u64 valid, u32 flags,
 		      struct md_op_data *data, size_t ea_size);
 void mdc_setattr_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 		      void *ea, size_t ealen);
 void mdc_create_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 		     const void *data, size_t datalen, umode_t mode, uid_t uid,
-		     gid_t gid, kernel_cap_t capability, __u64 rdev);
+		     gid_t gid, kernel_cap_t capability, u64 rdev);
 void mdc_open_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
-		   umode_t mode, __u64 rdev, __u64 flags, const void *data,
+		   umode_t mode, u64 rdev, u64 flags, const void *data,
 		   size_t datalen);
 void mdc_file_secctx_pack(struct ptlrpc_request *req,
 			  const char *secctx_name,
@@ -68,7 +68,7 @@ void mdc_close_pack(struct ptlrpc_request *req, struct md_op_data *op_data);
 /* mdc/mdc_locks.c */
 int mdc_set_lock_data(struct obd_export *exp,
 		      const struct lustre_handle *lockh,
-		      void *data, __u64 *bits);
+		      void *data, u64 *bits);
 
 int mdc_null_inode(struct obd_export *exp, const struct lu_fid *fid);
 
@@ -77,7 +77,7 @@ int mdc_intent_lock(struct obd_export *exp,
 		    struct lookup_intent *it,
 		    struct ptlrpc_request **reqp,
 		    ldlm_blocking_callback cb_blocking,
-		    __u64 extra_lock_flags);
+		    u64 extra_lock_flags);
 
 int mdc_enqueue(struct obd_export *exp, struct ldlm_enqueue_info *einfo,
 		const union ldlm_policy_data *policy,
@@ -86,7 +86,7 @@ int mdc_enqueue(struct obd_export *exp, struct ldlm_enqueue_info *einfo,
 
 int mdc_resource_get_unused(struct obd_export *exp, const struct lu_fid *fid,
 			    struct list_head *cancels, enum ldlm_mode  mode,
-			    __u64 bits);
+			    u64 bits);
 /* mdc/mdc_request.c */
 int mdc_fid_alloc(const struct lu_env *env, struct obd_export *exp,
 		  struct lu_fid *fid, struct md_op_data *op_data);
@@ -101,7 +101,7 @@ void mdc_replay_open(struct ptlrpc_request *req);
 
 int mdc_create(struct obd_export *exp, struct md_op_data *op_data,
 	       const void *data, size_t datalen, umode_t mode, uid_t uid,
-	       gid_t gid, kernel_cap_t capability, __u64 rdev,
+	       gid_t gid, kernel_cap_t capability, u64 rdev,
 	       struct ptlrpc_request **request);
 int mdc_link(struct obd_export *exp, struct md_op_data *op_data,
 	     struct ptlrpc_request **request);
@@ -118,12 +118,12 @@ int mdc_cancel_unused(struct obd_export *exp, const struct lu_fid *fid,
 		      enum ldlm_cancel_flags flags, void *opaque);
 
 int mdc_revalidate_lock(struct obd_export *exp, struct lookup_intent *it,
-			struct lu_fid *fid, __u64 *bits);
+			struct lu_fid *fid, u64 *bits);
 
 int mdc_intent_getattr_async(struct obd_export *exp,
 			     struct md_enqueue_info *minfo);
 
-enum ldlm_mode mdc_lock_match(struct obd_export *exp, __u64 flags,
+enum ldlm_mode mdc_lock_match(struct obd_export *exp, u64 flags,
 			      const struct lu_fid *fid, enum ldlm_type type,
 			      union ldlm_policy_data *policy,
 			      enum ldlm_mode mode,
@@ -141,7 +141,7 @@ static inline int mdc_prep_elc_req(struct obd_export *exp,
 				 count);
 }
 
-static inline unsigned long hash_x_index(__u64 hash, int hash64)
+static inline unsigned long hash_x_index(u64 hash, int hash64)
 {
 	if (BITS_PER_LONG == 32 && hash64)
 		hash >>= 32;

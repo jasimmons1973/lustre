@@ -191,7 +191,7 @@ int ll_md_blocking_ast(struct ldlm_lock *lock, struct ldlm_lock_desc *desc,
 		break;
 	case LDLM_CB_CANCELING: {
 		struct inode *inode = ll_inode_from_resource_lock(lock);
-		__u64 bits = lock->l_policy_data.l_inodebits.bits;
+		u64 bits = lock->l_policy_data.l_inodebits.bits;
 
 		/* Inode is set to lock->l_resource->lr_lvb_inode
 		 * for mdc - bug 24555
@@ -348,12 +348,12 @@ int ll_md_blocking_ast(struct ldlm_lock *lock, struct ldlm_lock_desc *desc,
 	return 0;
 }
 
-__u32 ll_i2suppgid(struct inode *i)
+u32 ll_i2suppgid(struct inode *i)
 {
 	if (in_group_p(i->i_gid))
-		return (__u32)from_kgid(&init_user_ns, i->i_gid);
+		return (u32)from_kgid(&init_user_ns, i->i_gid);
 	else
-		return (__u32)(-1);
+		return (u32)(-1);
 }
 
 /* Pack the required supplementary groups into the supplied groups array.
@@ -361,7 +361,7 @@ __u32 ll_i2suppgid(struct inode *i)
  * instead pack one or more groups from the user's supplementary group
  * array in case it might be useful.  Not needed if doing an MDS-side upcall.
  */
-void ll_i2gids(__u32 *suppgids, struct inode *i1, struct inode *i2)
+void ll_i2gids(u32 *suppgids, struct inode *i1, struct inode *i2)
 {
 	LASSERT(i1);
 
@@ -454,7 +454,7 @@ static int ll_lookup_it_finish(struct ptlrpc_request *request,
 			       struct inode *parent, struct dentry **de)
 {
 	struct inode *inode = NULL;
-	__u64 bits = 0;
+	u64 bits = 0;
 	int rc = 0;
 	struct dentry *alias;
 
@@ -536,7 +536,7 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 	struct ptlrpc_request *req = NULL;
 	struct md_op_data *op_data = NULL;
 	struct inode *inode;
-	__u32 opc;
+	u32 opc;
 	int rc;
 
 	if (dentry->d_name.len > ll_i2sbi(parent)->ll_namelen)
@@ -901,7 +901,7 @@ void ll_update_times(struct ptlrpc_request *request, struct inode *inode)
 
 static int ll_new_node(struct inode *dir, struct dentry *dentry,
 		       const char *tgt, umode_t mode, int rdev,
-		       __u32 opc)
+		       u32 opc)
 {
 	struct ptlrpc_request *request = NULL;
 	struct md_op_data *op_data;

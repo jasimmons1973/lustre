@@ -240,7 +240,7 @@ static void osc_page_touch_at(const struct lu_env *env,
 	struct lov_oinfo *loi = cl2osc(obj)->oo_oinfo;
 	struct cl_attr *attr = &osc_env_info(env)->oti_attr;
 	int valid;
-	__u64 kms;
+	u64 kms;
 
 	/* offset within stripe */
 	kms = cl_offset(obj, idx) + to;
@@ -454,7 +454,7 @@ static bool trunc_check_cb(const struct lu_env *env, struct cl_io *io,
 {
 	struct cl_page *page = ops->ops_cl.cpl_page;
 	struct osc_async_page *oap;
-	__u64 start = *(__u64 *)cbdata;
+	u64 start = *(u64 *)cbdata;
 
 	oap = &ops->ops_oap;
 	if (oap->oap_cmd & OBD_BRW_WRITE &&
@@ -470,7 +470,7 @@ static bool trunc_check_cb(const struct lu_env *env, struct cl_io *io,
 }
 
 static void osc_trunc_check(const struct lu_env *env, struct cl_io *io,
-			    struct osc_io *oio, __u64 size)
+			    struct osc_io *oio, u64 size)
 {
 	struct cl_object *clob;
 	int partial;
@@ -498,7 +498,7 @@ static int osc_io_setattr_start(const struct lu_env *env,
 	struct cl_attr *attr = &osc_env_info(env)->oti_attr;
 	struct obdo *oa = &oio->oi_oa;
 	struct osc_async_cbargs *cbargs = &oio->oi_cbarg;
-	__u64 size = io->u.ci_setattr.sa_attr.lvb_size;
+	u64 size = io->u.ci_setattr.sa_attr.lvb_size;
 	unsigned int ia_avalid = io->u.ci_setattr.sa_avalid;
 	enum op_xvalid ia_xvalid = io->u.ci_setattr.sa_xvalid;
 	int result = 0;
@@ -615,7 +615,7 @@ static void osc_io_setattr_end(const struct lu_env *env,
 	}
 
 	if (cl_io_is_trunc(io)) {
-		__u64 size = io->u.ci_setattr.sa_attr.lvb_size;
+		u64 size = io->u.ci_setattr.sa_attr.lvb_size;
 
 		osc_trunc_check(env, io, oio, size);
 		osc_cache_truncate_end(env, oio->oi_trunc);

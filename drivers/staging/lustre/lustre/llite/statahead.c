@@ -65,9 +65,9 @@ struct sa_entry {
 	/* link into sai hash table locally */
 	struct list_head	      se_hash;
 	/* entry index in the sai */
-	__u64		   se_index;
+	u64		   se_index;
 	/* low layer ldlm lock handle */
-	__u64		   se_handle;
+	u64		   se_handle;
 	/* entry status */
 	enum se_stat		se_state;
 	/* entry size, contains name */
@@ -163,15 +163,15 @@ static inline int sa_low_hit(struct ll_statahead_info *sai)
  * if the given index is behind of statahead window more than
  * SA_OMITTED_ENTRY_MAX, then it is old.
  */
-static inline int is_omitted_entry(struct ll_statahead_info *sai, __u64 index)
+static inline int is_omitted_entry(struct ll_statahead_info *sai, u64 index)
 {
-	return ((__u64)sai->sai_max + index + SA_OMITTED_ENTRY_MAX <
+	return ((u64)sai->sai_max + index + SA_OMITTED_ENTRY_MAX <
 		 sai->sai_index);
 }
 
 /* allocate sa_entry and hash it to allow scanner process to find it */
 static struct sa_entry *
-sa_alloc(struct dentry *parent, struct ll_statahead_info *sai, __u64 index,
+sa_alloc(struct dentry *parent, struct ll_statahead_info *sai, u64 index,
 	 const char *name, int len, const struct lu_fid *fid)
 {
 	struct ll_inode_info *lli;
@@ -309,7 +309,7 @@ static bool
 __sa_make_ready(struct ll_statahead_info *sai, struct sa_entry *entry, int ret)
 {
 	struct list_head *pos = &sai->sai_entries;
-	__u64 index = entry->se_index;
+	u64 index = entry->se_index;
 	struct sa_entry *se;
 
 	LASSERT(!sa_ready(entry));
@@ -492,7 +492,7 @@ static void ll_sai_put(struct ll_statahead_info *sai)
 static void ll_agl_trigger(struct inode *inode, struct ll_statahead_info *sai)
 {
 	struct ll_inode_info *lli   = ll_i2info(inode);
-	__u64		 index = lli->lli_agl_index;
+	u64		 index = lli->lli_agl_index;
 	int		   rc;
 
 	LASSERT(list_empty(&lli->lli_agl_list));
@@ -665,7 +665,7 @@ static int ll_statahead_interpret(struct ptlrpc_request *req,
 	struct ll_inode_info     *lli = ll_i2info(dir);
 	struct ll_statahead_info *sai = lli->lli_sai;
 	struct sa_entry *entry = (struct sa_entry *)minfo->mi_cbdata;
-	__u64 handle = 0;
+	u64 handle = 0;
 
 	if (it_disposition(it, DISP_LOOKUP_NEG))
 		rc = -ENOENT;
@@ -963,7 +963,7 @@ static int ll_statahead_thread(void *arg)
 	struct ll_sb_info	*sbi    = ll_i2sbi(dir);
 	struct ll_statahead_info *sai = lli->lli_sai;
 	struct page	      *page = NULL;
-	__u64		     pos    = 0;
+	u64		     pos    = 0;
 	int		       first  = 0;
 	int		       rc     = 0;
 	struct md_op_data *op_data;
@@ -998,7 +998,7 @@ static int ll_statahead_thread(void *arg)
 		     ent && sai->sai_task && !sa_low_hit(sai);
 		     ent = lu_dirent_next(ent)) {
 			struct lu_fid fid;
-			__u64 hash;
+			u64 hash;
 			int namelen;
 			char *name;
 
@@ -1228,7 +1228,7 @@ static int is_first_dirent(struct inode *dir, struct dentry *dentry)
 	const struct qstr  *target = &dentry->d_name;
 	struct md_op_data *op_data;
 	struct page	  *page;
-	__u64		 pos    = 0;
+	u64		 pos    = 0;
 	int		   dot_de;
 	int rc = LS_NOT_FIRST_DE;
 
@@ -1259,7 +1259,7 @@ static int is_first_dirent(struct inode *dir, struct dentry *dentry)
 		dp = page_address(page);
 		for (ent = lu_dirent_start(dp); ent;
 		     ent = lu_dirent_next(ent)) {
-			__u64 hash;
+			u64 hash;
 			int namelen;
 			char *name;
 
@@ -1425,7 +1425,7 @@ static int revalidate_statahead_dentry(struct inode *dir,
 		struct inode *inode = entry->se_inode;
 		struct lookup_intent it = { .it_op = IT_GETATTR,
 					    .it_lock_handle = entry->se_handle };
-		__u64 bits;
+		u64 bits;
 
 		rc = md_revalidate_lock(ll_i2mdexp(dir), &it,
 					ll_inode2fid(inode), &bits);

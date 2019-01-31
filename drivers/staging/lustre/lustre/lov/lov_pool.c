@@ -273,7 +273,7 @@ int lov_ost_pool_extend(struct ost_pool *op, unsigned int min_count)
 	return 0;
 }
 
-int lov_ost_pool_add(struct ost_pool *op, __u32 idx, unsigned int min_count)
+int lov_ost_pool_add(struct ost_pool *op, u32 idx, unsigned int min_count)
 {
 	int rc = 0, i;
 
@@ -298,7 +298,7 @@ out:
 	return rc;
 }
 
-int lov_ost_pool_remove(struct ost_pool *op, __u32 idx)
+int lov_ost_pool_remove(struct ost_pool *op, u32 idx)
 {
 	int i;
 

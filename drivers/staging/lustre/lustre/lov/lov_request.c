@@ -136,7 +136,7 @@ out:
 	return rc;
 }
 
-#define LOV_U64_MAX ((__u64)~0ULL)
+#define LOV_U64_MAX ((u64)~0ULL)
 #define LOV_SUM_MAX(tot, add)					   \
 	do {							    \
 		if ((tot) + (add) < (tot))			      \
@@ -188,7 +188,7 @@ static void lov_update_statfs(struct obd_statfs *osfs,
 			      int success)
 {
 	int shift = 0, quit = 0;
-	__u64 tmp;
+	u64 tmp;
 
 	if (success == 0) {
 		memcpy(osfs, lov_sfs, sizeof(*lov_sfs));

@@ -2142,7 +2142,7 @@ int ll_remount_fs(struct super_block *sb, int *flags, char *data)
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	char *profilenm = get_profile_name(sb);
 	int err;
-	__u32 read_only;
+	u32 read_only;
 
 	if ((bool)(*flags & SB_RDONLY) != sb_rdonly(sb)) {
 		read_only = *flags & SB_RDONLY;
@@ -2297,7 +2297,7 @@ int ll_obd_statfs(struct inode *inode, void __user *arg)
 	struct obd_export *exp;
 	char *buf = NULL;
 	struct obd_ioctl_data *data = NULL;
-	__u32 type;
+	u32 type;
 	int len = 0, rc;
 
 	if (!inode) {
@@ -2322,15 +2322,15 @@ int ll_obd_statfs(struct inode *inode, void __user *arg)
 		goto out_statfs;
 	}
 
-	if (data->ioc_inllen1 != sizeof(__u32) ||
-	    data->ioc_inllen2 != sizeof(__u32) ||
+	if (data->ioc_inllen1 != sizeof(u32) ||
+	    data->ioc_inllen2 != sizeof(u32) ||
 	    data->ioc_plen1 != sizeof(struct obd_statfs) ||
 	    data->ioc_plen2 != sizeof(struct obd_uuid)) {
 		rc = -EINVAL;
 		goto out_statfs;
 	}
 
-	memcpy(&type, data->ioc_inlbuf1, sizeof(__u32));
+	memcpy(&type, data->ioc_inlbuf1, sizeof(u32));
 	if (type & LL_STATFS_LMV) {
 		exp = sbi->ll_md_exp;
 	} else if (type & LL_STATFS_LOV) {
@@ -2352,7 +2352,7 @@ out_statfs:
 struct md_op_data *ll_prep_md_op_data(struct md_op_data *op_data,
 				      struct inode *i1, struct inode *i2,
 				      const char *name, size_t namelen,
-				      u32 mode, __u32 opc, void *data)
+				      u32 mode, u32 opc, void *data)
 {
 	if (!name) {
 		/* Do not reuse namelen for something else. */

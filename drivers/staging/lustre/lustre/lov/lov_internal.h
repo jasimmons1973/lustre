@@ -241,7 +241,7 @@ extern struct lu_kmem_descr lov_caches[];
 
 /* lov_merge.c */
 int lov_merge_lvb_kms(struct lov_stripe_md *lsm, int index,
-		      struct ost_lvb *lvb, __u64 *kms_place);
+		      struct ost_lvb *lvb, u64 *kms_place);
 
 /* lov_offset.c */
 u64 lov_stripe_size(struct lov_stripe_md *lsm, int index, u64 ost_size,
@@ -267,17 +267,17 @@ void lov_tgts_putref(struct obd_device *obd);
 void lov_stripe_lock(struct lov_stripe_md *md);
 void lov_stripe_unlock(struct lov_stripe_md *md);
 void lov_fix_desc(struct lov_desc *desc);
-void lov_fix_desc_stripe_size(__u64 *val);
-void lov_fix_desc_stripe_count(__u32 *val);
-void lov_fix_desc_pattern(__u32 *val);
-void lov_fix_desc_qos_maxage(__u32 *val);
+void lov_fix_desc_stripe_size(u64 *val);
+void lov_fix_desc_stripe_count(u32 *val);
+void lov_fix_desc_pattern(u32 *val);
+void lov_fix_desc_qos_maxage(u32 *val);
 u16 lov_get_stripe_count(struct lov_obd *lov, u32 magic, u16 stripe_count);
-int lov_connect_obd(struct obd_device *obd, __u32 index, int activate,
+int lov_connect_obd(struct obd_device *obd, u32 index, int activate,
 		    struct obd_connect_data *data);
 int lov_setup(struct obd_device *obd, struct lustre_cfg *lcfg);
 int lov_process_config_base(struct obd_device *obd, struct lustre_cfg *lcfg,
-			    __u32 *indexp, int *genp);
-int lov_del_target(struct obd_device *obd, __u32 index,
+			    u32 *indexp, int *genp);
+int lov_del_target(struct obd_device *obd, u32 index,
 		   struct obd_uuid *uuidp, int gen);
 
 /* lov_pack.c */
@@ -303,8 +303,8 @@ extern struct lu_device_type lov_device_type;
 /* ost_pool methods */
 int lov_ost_pool_init(struct ost_pool *op, unsigned int count);
 int lov_ost_pool_extend(struct ost_pool *op, unsigned int min_count);
-int lov_ost_pool_add(struct ost_pool *op, __u32 idx, unsigned int min_count);
-int lov_ost_pool_remove(struct ost_pool *op, __u32 idx);
+int lov_ost_pool_add(struct ost_pool *op, u32 idx, unsigned int min_count);
+int lov_ost_pool_remove(struct ost_pool *op, u32 idx);
 int lov_ost_pool_free(struct ost_pool *op);
 
 /* high level pool methods */

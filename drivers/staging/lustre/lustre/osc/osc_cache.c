@@ -880,7 +880,7 @@ int osc_extent_finish(const struct lu_env *env, struct osc_extent *ext,
 	int nr_pages = ext->oe_nr_pages;
 	int lost_grant = 0;
 	int blocksize = cli->cl_import->imp_obd->obd_osfs.os_bsize ? : 4096;
-	__u64 last_off = 0;
+	u64 last_off = 0;
 	int last_count = -1;
 
 	OSC_EXTENT_DUMP(D_CACHE, ext, "extent finished.\n");
@@ -991,7 +991,7 @@ static int osc_extent_truncate(struct osc_extent *ext, pgoff_t trunc_index,
 	struct osc_async_page *tmp;
 	int pages_in_chunk = 0;
 	int ppc_bits = cli->cl_chunkbits - PAGE_SHIFT;
-	__u64 trunc_chunk = trunc_index >> ppc_bits;
+	u64 trunc_chunk = trunc_index >> ppc_bits;
 	int grants = 0;
 	int nr_pages = 0;
 	int rc = 0;
@@ -1799,7 +1799,7 @@ static int osc_list_maint(struct client_obd *cli, struct osc_object *osc)
  * sync so that the app can get a sync error and break the cycle of queueing
  * pages for which writeback will fail.
  */
-static void osc_process_ar(struct osc_async_rc *ar, __u64 xid,
+static void osc_process_ar(struct osc_async_rc *ar, u64 xid,
 			   int rc)
 {
 	if (rc) {
@@ -1824,7 +1824,7 @@ static void osc_ap_completion(const struct lu_env *env, struct client_obd *cli,
 {
 	struct osc_object *osc = oap->oap_obj;
 	struct lov_oinfo *loi = osc->oo_oinfo;
-	__u64 xid = 0;
+	u64 xid = 0;
 
 	if (oap->oap_request) {
 		xid = ptlrpc_req_xid(oap->oap_request);
@@ -3127,7 +3127,7 @@ static bool check_and_discard_cb(const struct lu_env *env, struct cl_io *io,
 		tmp = osc_dlmlock_at_pgoff(env, osc, index,
 					   OSC_DAP_FL_TEST_LOCK);
 		if (tmp) {
-			__u64 end = tmp->l_policy_data.l_extent.end;
+			u64 end = tmp->l_policy_data.l_extent.end;
 			/* Cache the first-non-overlapped index so as to skip
 			 * all pages within [index, oti_fn_index). This is safe
 			 * because if tmp lock is canceled, it will discard

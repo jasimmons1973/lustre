@@ -466,7 +466,7 @@ static void ll_vm_close(struct vm_area_struct *vma)
 /* XXX put nice comment here.  talk about __free_pte -> dirty pages and
  * nopage's reference passing to the pte
  */
-int ll_teardown_mmaps(struct address_space *mapping, __u64 first, __u64 last)
+int ll_teardown_mmaps(struct address_space *mapping, u64 first, u64 last)
 {
 	int rc = -ENOENT;
 

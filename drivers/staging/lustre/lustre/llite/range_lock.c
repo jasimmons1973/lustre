@@ -42,7 +42,7 @@
 #define START(node) ((node)->rl_start)
 #define LAST(node)  ((node)->rl_last)
 
-INTERVAL_TREE_DEFINE(struct range_lock, rl_rb, __u64, __subtree_last,
+INTERVAL_TREE_DEFINE(struct range_lock, rl_rb, u64, __subtree_last,
 		     START, LAST, static, range);
 /**
  * Initialize a range lock tree
@@ -69,7 +69,7 @@ void range_lock_tree_init(struct range_lock_tree *tree)
  * Pre:  Caller should have allocated the range lock node.
  * Post: The range lock node is meant to cover [start, end] region
  */
-int range_lock_init(struct range_lock *lock, __u64 start, __u64 end)
+int range_lock_init(struct range_lock *lock, u64 start, u64 end)
 {
 	RB_CLEAR_NODE(&lock->rl_rb);
 

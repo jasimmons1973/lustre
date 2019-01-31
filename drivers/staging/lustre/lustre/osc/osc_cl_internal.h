@@ -255,7 +255,7 @@ struct osc_lock {
 	/* underlying DLM lock */
 	struct ldlm_lock		*ols_dlmlock;
 	/* DLM flags with which osc_lock::ols_lock was enqueued */
-	__u64				ols_flags;
+	u64				ols_flags;
 	/* osc_lock::ols_lock handle */
 	struct lustre_handle		ols_handle;
 	struct ldlm_enqueue_info	ols_einfo;

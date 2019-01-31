@@ -158,7 +158,7 @@ static int ll_close_inode_openhandle(struct inode *inode,
 	case MDS_HSM_RELEASE:
 		LASSERT(data);
 		op_data->op_bias |= MDS_HSM_RELEASE;
-		op_data->op_data_version = *(__u64 *)data;
+		op_data->op_data_version = *(u64 *)data;
 		op_data->op_lease_handle = och->och_lease_handle;
 		op_data->op_attr.ia_valid |= ATTR_SIZE;
 		op_data->op_xvalid |= OP_XVALID_BLOCKS;
@@ -200,7 +200,7 @@ int ll_md_real_close(struct inode *inode, fmode_t fmode)
 	struct ll_inode_info *lli = ll_i2info(inode);
 	struct obd_client_handle **och_p;
 	struct obd_client_handle *och;
-	__u64 *och_usecount;
+	u64 *och_usecount;
 	int rc = 0;
 
 	if (fmode & FMODE_WRITE) {
@@ -243,7 +243,7 @@ static int ll_md_close(struct inode *inode, struct file *file)
 	struct ll_file_data *fd = LUSTRE_FPRIVATE(file);
 	struct ll_inode_info *lli = ll_i2info(inode);
 	int lockmode;
-	__u64 flags = LDLM_FL_BLOCK_GRANTED | LDLM_FL_TEST_LOCK;
+	u64 flags = LDLM_FL_BLOCK_GRANTED | LDLM_FL_TEST_LOCK;
 	struct lustre_handle lockh;
 	union ldlm_policy_data policy = {
 		.l_inodebits = { MDS_INODELOCK_OPEN }
@@ -491,7 +491,7 @@ int ll_file_open(struct inode *inode, struct file *file)
 	struct lookup_intent *it, oit = { .it_op = IT_OPEN,
 					  .it_flags = file->f_flags };
 	struct obd_client_handle **och_p = NULL;
-	__u64 *och_usecount = NULL;
+	u64 *och_usecount = NULL;
 	struct ll_file_data *fd;
 	int rc = 0;
 
@@ -813,7 +813,7 @@ static int ll_lease_och_release(struct inode *inode, struct file *file)
  */
 static struct obd_client_handle *
 ll_lease_open(struct inode *inode, struct file *file, fmode_t fmode,
-	      __u64 open_flags)
+	      u64 open_flags)
 {
 	struct lookup_intent it = { .it_op = IT_OPEN };
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
@@ -1366,7 +1366,7 @@ static ssize_t ll_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 }
 
 int ll_lov_setstripe_ea_info(struct inode *inode, struct dentry *dentry,
-			     __u64 flags, struct lov_user_md *lum,
+			     u64 flags, struct lov_user_md *lum,
 			     int lum_size)
 {
 	struct lookup_intent oit = {
@@ -1483,7 +1483,7 @@ out:
 static int ll_lov_setea(struct inode *inode, struct file *file,
 			void __user *arg)
 {
-	__u64			 flags = MDS_OPEN_HAS_OBJS | FMODE_WRITE;
+	u64			 flags = MDS_OPEN_HAS_OBJS | FMODE_WRITE;
 	struct lov_user_md	*lump;
 	int			 lum_size = sizeof(struct lov_user_md) +
 					    sizeof(struct lov_user_ost_data);
@@ -1530,7 +1530,7 @@ static int ll_lov_setstripe(struct inode *inode, struct file *file,
 	struct lov_user_md __user *lum = (struct lov_user_md __user *)arg;
 	struct lov_user_md *klum;
 	int lum_size, rc;
-	__u64 flags = FMODE_WRITE;
+	u64 flags = FMODE_WRITE;
 
 	rc = ll_copy_user_md(lum, &klum);
 	if (rc < 0)
@@ -1828,7 +1828,7 @@ gf_free:
  *		LL_DV_RD_FLUSH: flush dirty pages, LCK_PR on OSTs
  *		LL_DV_WR_FLUSH: drop all caching pages, LCK_PW on OSTs
  */
-int ll_data_version(struct inode *inode, __u64 *data_version, int flags)
+int ll_data_version(struct inode *inode, u64 *data_version, int flags)
 {
 	struct cl_object *obj = ll_i2info(inode)->lli_clob;
 	struct lu_env *env;
@@ -1876,7 +1876,7 @@ int ll_hsm_release(struct inode *inode)
 {
 	struct lu_env *env;
 	struct obd_client_handle *och = NULL;
-	__u64 data_version = 0;
+	u64 data_version = 0;
 	int rc;
 	u16 refcheck;
 
@@ -1933,8 +1933,8 @@ static int ll_swap_layouts(struct file *file1, struct file *file2,
 {
 	struct mdc_swap_layouts	 msl;
 	struct md_op_data	*op_data;
-	__u32			 gid;
-	__u64			 dv;
+	u32			 gid;
+	u64			 dv;
 	struct ll_swap_stack	*llss = NULL;
 	int			 rc;
 
@@ -2186,7 +2186,7 @@ static int ll_file_futimes_3(struct file *file, const struct ll_futimes_3 *lfu)
  * all that data into each client cache with fadvise() may not be, due to
  * much more data being sent to the client.
  */
-static int ll_ladvise(struct inode *inode, struct file *file, __u64 flags,
+static int ll_ladvise(struct inode *inode, struct file *file, u64 flags,
 		      struct llapi_lu_ladvise *ladvise)
 {
 	struct cl_ladvise_io *lio;
@@ -2869,7 +2869,7 @@ ll_file_flock(struct file *file, int cmd, struct file_lock *file_lock)
 	struct lustre_handle lockh = {0};
 	union ldlm_policy_data flock = { { 0 } };
 	int fl_type = file_lock->fl_type;
-	__u64 flags = 0;
+	u64 flags = 0;
 	int rc;
 	int rc2 = 0;
 
@@ -3179,7 +3179,7 @@ ll_file_noflock(struct file *file, int cmd, struct file_lock *file_lock)
  * \param l_req_mode [IN] searched lock mode
  * \retval boolean, true iff all bits are found
  */
-int ll_have_md_lock(struct inode *inode, __u64 *bits,
+int ll_have_md_lock(struct inode *inode, u64 *bits,
 		    enum ldlm_mode l_req_mode)
 {
 	struct lustre_handle lockh;
@@ -3187,7 +3187,7 @@ int ll_have_md_lock(struct inode *inode, __u64 *bits,
 	enum ldlm_mode mode = (l_req_mode == LCK_MINMODE) ?
 			      (LCK_CR | LCK_CW | LCK_PR | LCK_PW) : l_req_mode;
 	struct lu_fid *fid;
-	__u64 flags;
+	u64 flags;
 	int i;
 
 	if (!inode)
@@ -3220,8 +3220,8 @@ int ll_have_md_lock(struct inode *inode, __u64 *bits,
 	return *bits == 0;
 }
 
-enum ldlm_mode ll_take_md_lock(struct inode *inode, __u64 bits,
-			       struct lustre_handle *lockh, __u64 flags,
+enum ldlm_mode ll_take_md_lock(struct inode *inode, u64 bits,
+			       struct lustre_handle *lockh, u64 flags,
 			       enum ldlm_mode mode)
 {
 	union ldlm_policy_data policy = { .l_inodebits = { bits } };
@@ -3261,7 +3261,7 @@ static int ll_inode_revalidate_fini(struct inode *inode, int rc)
 	return rc;
 }
 
-static int __ll_inode_revalidate(struct dentry *dentry, __u64 ibits)
+static int __ll_inode_revalidate(struct dentry *dentry, u64 ibits)
 {
 	struct inode *inode = d_inode(dentry);
 	struct ptlrpc_request *req = NULL;
@@ -3371,7 +3371,7 @@ static int ll_merge_md_attr(struct inode *inode)
 	return 0;
 }
 
-static int ll_inode_revalidate(struct dentry *dentry, __u64 ibits)
+static int ll_inode_revalidate(struct dentry *dentry, u64 ibits)
 {
 	struct inode *inode = d_inode(dentry);
 	int rc;
@@ -3453,7 +3453,7 @@ int ll_getattr(const struct path *path, struct kstat *stat,
 }
 
 static int ll_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		     __u64 start, __u64 len)
+		     u64 start, u64 len)
 {
 	int rc;
 	size_t num_bytes;
@@ -3888,7 +3888,7 @@ static int ll_layout_intent(struct inode *inode, struct layout_intent *intent)
  * is finished, this function should be called again to verify that layout
  * is not changed during IO time.
  */
-int ll_layout_refresh(struct inode *inode, __u32 *gen)
+int ll_layout_refresh(struct inode *inode, u32 *gen)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
@@ -3963,7 +3963,7 @@ int ll_layout_write_intent(struct inode *inode, u64 start, u64 end)
 /**
  *  This function send a restore request to the MDT
  */
-int ll_layout_restore(struct inode *inode, loff_t offset, __u64 length)
+int ll_layout_restore(struct inode *inode, loff_t offset, u64 length)
 {
 	struct hsm_user_request	*hur;
 	int			 len, rc;

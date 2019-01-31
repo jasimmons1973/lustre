@@ -91,7 +91,7 @@ static inline void osc_wake_cache_waiters(struct client_obd *cli)
 	wake_up(&cli->cl_cache_waiters);
 }
 
-int osc_shrink_grant_to_target(struct client_obd *cli, __u64 target_bytes);
+int osc_shrink_grant_to_target(struct client_obd *cli, u64 target_bytes);
 void osc_update_next_shrink(struct client_obd *cli);
 
 /*
@@ -103,7 +103,7 @@ typedef int (*osc_enqueue_upcall_f)(void *cookie, struct lustre_handle *lockh,
 				    int rc);
 
 int osc_enqueue_base(struct obd_export *exp, struct ldlm_res_id *res_id,
-		     __u64 *flags, union ldlm_policy_data *policy,
+		     u64 *flags, union ldlm_policy_data *policy,
 		     struct ost_lvb *lvb, int kms_valid,
 		     osc_enqueue_upcall_f upcall,
 		     void *cookie, struct ldlm_enqueue_info *einfo,
@@ -111,7 +111,7 @@ int osc_enqueue_base(struct obd_export *exp, struct ldlm_res_id *res_id,
 
 int osc_match_base(struct obd_export *exp, struct ldlm_res_id *res_id,
 		   enum ldlm_type type, union ldlm_policy_data *policy,
-		   enum ldlm_mode mode, __u64 *flags, void *data,
+		   enum ldlm_mode mode, u64 *flags, void *data,
 		   struct lustre_handle *lockh, int unref);
 
 int osc_setattr_async(struct obd_export *exp, struct obdo *oa,

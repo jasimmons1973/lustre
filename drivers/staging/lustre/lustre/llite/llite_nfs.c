@@ -42,12 +42,12 @@
 #include "llite_internal.h"
 #include <linux/exportfs.h>
 
-__u32 get_uuid2int(const char *name, int len)
+u32 get_uuid2int(const char *name, int len)
 {
-	__u32 key0 = 0x12a3fe2d, key1 = 0x37abe8f9;
+	u32 key0 = 0x12a3fe2d, key1 = 0x37abe8f9;
 
 	while (len--) {
-		__u32 key = key1 + (key0 ^ (*name++ * 7152373));
+		u32 key = key1 + (key0 ^ (*name++ * 7152373));
 
 		if (key & 0x80000000)
 			key -= 0x7fffffff;
@@ -59,7 +59,7 @@ __u32 get_uuid2int(const char *name, int len)
 
 void get_uuid2fsid(const char *name, int len, __kernel_fsid_t *fsid)
 {
-	__u64 key = 0, key0 = 0x12a3fe2d, key1 = 0x37abe8f9;
+	u64 key = 0, key0 = 0x12a3fe2d, key1 = 0x37abe8f9;
 
 	while (len--) {
 		key = key1 + (key0 ^ (*name++ * 7152373));
@@ -186,7 +186,7 @@ ll_iget_for_nfs(struct super_block *sb,
  * 2 -- contains child file handle and parent file handle;
  * 255 -- error.
  */
-static int ll_encode_fh(struct inode *inode, __u32 *fh, int *plen,
+static int ll_encode_fh(struct inode *inode, u32 *fh, int *plen,
 			struct inode *parent)
 {
 	int fileid_len = sizeof(struct lustre_nfs_fid) / 4;
@@ -243,7 +243,7 @@ static int ll_get_name(struct dentry *dentry, char *name,
 		.ctx.actor = ll_nfs_get_name_filldir,
 	};
 	struct md_op_data *op_data;
-	__u64 pos = 0;
+	u64 pos = 0;
 
 	if (!dir || !S_ISDIR(dir->i_mode)) {
 		rc = -ENOTDIR;

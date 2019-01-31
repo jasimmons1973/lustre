@@ -218,7 +218,7 @@ static struct lu_device *lov_device_free(const struct lu_env *env,
 }
 
 static void lov_cl_del_target(const struct lu_env *env, struct lu_device *dev,
-			      __u32 index)
+			      u32 index)
 {
 	struct lov_device *ld = lu2lov_dev(dev);
 
@@ -231,8 +231,8 @@ static void lov_cl_del_target(const struct lu_env *env, struct lu_device *dev,
 static int lov_expand_targets(const struct lu_env *env, struct lov_device *dev)
 {
 	int   result;
-	__u32 tgt_size;
-	__u32 sub_size;
+	u32 tgt_size;
+	u32 sub_size;
 
 	result = 0;
 	tgt_size = dev->ld_lov->lov_tgt_size;
@@ -257,7 +257,7 @@ static int lov_expand_targets(const struct lu_env *env, struct lov_device *dev)
 }
 
 static int lov_cl_add_target(const struct lu_env *env, struct lu_device *dev,
-			     __u32 index)
+			     u32 index)
 {
 	struct obd_device    *obd = dev->ld_obd;
 	struct lov_device    *ld  = lu2lov_dev(dev);
@@ -304,7 +304,7 @@ static int lov_process_config(const struct lu_env *env,
 	int cmd;
 	int rc;
 	int gen;
-	__u32 index;
+	u32 index;
 
 	lov_tgts_getref(obd);
 

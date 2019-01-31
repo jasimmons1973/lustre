@@ -96,7 +96,7 @@ EXPORT_SYMBOL(it_open_error);
 
 /* this must be called on a lockh that is known to have a referenced lock */
 int mdc_set_lock_data(struct obd_export *exp, const struct lustre_handle *lockh,
-		      void *data, __u64 *bits)
+		      void *data, u64 *bits)
 {
 	struct ldlm_lock *lock;
 	struct inode *new_inode = data;
@@ -131,7 +131,7 @@ int mdc_set_lock_data(struct obd_export *exp, const struct lustre_handle *lockh,
 	return 0;
 }
 
-enum ldlm_mode mdc_lock_match(struct obd_export *exp, __u64 flags,
+enum ldlm_mode mdc_lock_match(struct obd_export *exp, u64 flags,
 			      const struct lu_fid *fid, enum ldlm_type type,
 			      union ldlm_policy_data *policy,
 			      enum ldlm_mode mode,
@@ -319,7 +319,7 @@ mdc_intent_open_pack(struct obd_export *exp, struct lookup_intent *it,
 
 	/* pack the intent */
 	lit = req_capsule_client_get(&req->rq_pill, &RMF_LDLM_INTENT);
-	lit->opc = (__u64)it->it_op;
+	lit->opc = (u64)it->it_op;
 
 	/* pack the intended request */
 	mdc_open_pack(req, op_data, it->it_create_mode, 0, it->it_flags, lmm,
@@ -423,7 +423,7 @@ static struct ptlrpc_request *mdc_intent_unlink_pack(struct obd_export *exp,
 
 	/* pack the intent */
 	lit = req_capsule_client_get(&req->rq_pill, &RMF_LDLM_INTENT);
-	lit->opc = (__u64)it->it_op;
+	lit->opc = (u64)it->it_op;
 
 	/* pack the intended request */
 	mdc_unlink_pack(req, op_data);
@@ -463,7 +463,7 @@ static struct ptlrpc_request *mdc_intent_getattr_pack(struct obd_export *exp,
 
 	/* pack the intent */
 	lit = req_capsule_client_get(&req->rq_pill, &RMF_LDLM_INTENT);
-	lit->opc = (__u64)it->it_op;
+	lit->opc = (u64)it->it_op;
 
 	if (obddev->u.cli.cl_default_mds_easize > 0)
 		easize = obddev->u.cli.cl_default_mds_easize;
@@ -504,7 +504,7 @@ static struct ptlrpc_request *mdc_intent_layout_pack(struct obd_export *exp,
 
 	/* pack the intent */
 	lit = req_capsule_client_get(&req->rq_pill, &RMF_LDLM_INTENT);
-	lit->opc = (__u64)it->it_op;
+	lit->opc = (u64)it->it_op;
 
 	/* pack the layout intent request */
 	layout = req_capsule_client_get(&req->rq_pill, &RMF_LAYOUT_INTENT);
@@ -1031,7 +1031,7 @@ out:
 }
 
 int mdc_revalidate_lock(struct obd_export *exp, struct lookup_intent *it,
-			struct lu_fid *fid, __u64 *bits)
+			struct lu_fid *fid, u64 *bits)
 {
 	/* We could just return 1 immediately, but since we should only
 	 * be called in revalidate_it if we already have a lock, let's
@@ -1126,7 +1126,7 @@ int mdc_revalidate_lock(struct obd_export *exp, struct lookup_intent *it,
  */
 int mdc_intent_lock(struct obd_export *exp, struct md_op_data *op_data,
 		    struct lookup_intent *it, struct ptlrpc_request **reqp,
-		    ldlm_blocking_callback cb_blocking, __u64 extra_lock_flags)
+		    ldlm_blocking_callback cb_blocking, u64 extra_lock_flags)
 {
 	struct ldlm_enqueue_info einfo = {
 		.ei_type	= LDLM_IBITS,
@@ -1192,7 +1192,7 @@ static int mdc_intent_getattr_async_interpret(const struct lu_env *env,
 	struct lustre_handle     *lockh;
 	struct obd_device	*obddev;
 	struct ldlm_reply	 *lockrep;
-	__u64		     flags = LDLM_FL_HAS_INTENT;
+	u64		     flags = LDLM_FL_HAS_INTENT;
 
 	it    = &minfo->mi_it;
 	lockh = &minfo->mi_lockh;
@@ -1240,7 +1240,7 @@ int mdc_intent_getattr_async(struct obd_export *exp,
 		.l_inodebits = { MDS_INODELOCK_LOOKUP | MDS_INODELOCK_UPDATE }
 	};
 	int		      rc = 0;
-	__u64		    flags = LDLM_FL_HAS_INTENT;
+	u64		    flags = LDLM_FL_HAS_INTENT;
 
 	CDEBUG(D_DLMTRACE,
 	       "name: %.*s in inode " DFID ", intent: %s flags %#Lo\n",

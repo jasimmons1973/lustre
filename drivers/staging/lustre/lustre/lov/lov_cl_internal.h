@@ -98,9 +98,9 @@ struct lov_device {
 	struct cl_device	  ld_cl;
 	struct lov_obd	   *ld_lov;
 	/** size of lov_device::ld_target[] array */
-	__u32		     ld_target_nr;
+	u32		     ld_target_nr;
 	struct lovsub_device    **ld_target;
-	__u32		     ld_flags;
+	u32		     ld_flags;
 };
 
 /**

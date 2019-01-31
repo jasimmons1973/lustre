@@ -50,7 +50,7 @@
 #include "fid_internal.h"
 
 /* Format: [0x64BIT_INT - 0x64BIT_INT] + 32 bytes just in case */
-#define MAX_FID_RANGE_STRLEN (32 + 2 * 2 * sizeof(__u64))
+#define MAX_FID_RANGE_STRLEN (32 + 2 * 2 * sizeof(u64))
 /*
  * Note: this function is only used for testing, it is no safe for production
  * use.
@@ -143,7 +143,7 @@ ldebugfs_fid_width_seq_write(struct file *file,
 			     size_t count, loff_t *off)
 {
 	struct lu_client_seq *seq;
-	__u64  max;
+	u64  max;
 	int rc, val;
 
 	seq = ((struct seq_file *)file->private_data)->private;

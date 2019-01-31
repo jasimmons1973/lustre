@@ -338,7 +338,7 @@ static int ll_xattr_cache_refill(struct inode *inode)
 	const char *xdata, *xval, *xtail, *xvtail;
 	struct ll_inode_info *lli = ll_i2info(inode);
 	struct mdt_body *body;
-	__u32 *xsizes;
+	u32 *xsizes;
 	int rc, i;
 
 	rc = ll_xattr_find_get_lock(inode, &oit, &req);
@@ -373,7 +373,7 @@ static int ll_xattr_cache_refill(struct inode *inode)
 	xval = req_capsule_server_sized_get(&req->rq_pill, &RMF_EAVALS,
 					    body->mbo_aclsize);
 	xsizes = req_capsule_server_sized_get(&req->rq_pill, &RMF_EAVALS_LENS,
-					      body->mbo_max_mdsize * sizeof(__u32));
+					      body->mbo_max_mdsize * sizeof(u32));
 	if (!xdata || !xval || !xsizes) {
 		CERROR("wrong setxattr reply\n");
 		rc = -EPROTO;
@@ -458,7 +458,7 @@ err_req:
  * \retval -ENODATA no such attr or the list is empty
  */
 int ll_xattr_cache_get(struct inode *inode, const char *name, char *buffer,
-		       size_t size, __u64 valid)
+		       size_t size, u64 valid)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
 	int rc = 0;

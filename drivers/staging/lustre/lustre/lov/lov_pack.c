@@ -252,7 +252,7 @@ ssize_t lov_lsm_pack(const struct lov_stripe_md *lsm, void *buf,
 /* Find the max stripecount we should use */
 u16 lov_get_stripe_count(struct lov_obd *lov, u32 magic, u16 stripe_count)
 {
-	__u32 max_stripes = LOV_MAX_STRIPE_COUNT_OLD;
+	u32 max_stripes = LOV_MAX_STRIPE_COUNT_OLD;
 
 	if (!stripe_count)
 		stripe_count = lov->desc.ld_default_stripe_count;

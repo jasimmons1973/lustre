@@ -85,7 +85,7 @@ int cl_ocd_update(struct obd_device *host, struct obd_device *watched,
 {
 	struct lustre_client_ocd *lco;
 	struct client_obd	*cli;
-	__u64 flags;
+	u64 flags;
 	int   result;
 
 	if (!strcmp(watched->obd_type->typ_name, LUSTRE_OSC_NAME) &&
@@ -122,7 +122,7 @@ int cl_get_grouplock(struct cl_object *obj, unsigned long gid, int nonblock,
 	struct cl_io	   *io;
 	struct cl_lock	 *lock;
 	struct cl_lock_descr   *descr;
-	__u32		   enqflags;
+	u32		   enqflags;
 	u16 refcheck;
 	int		     rc;
 

@@ -272,8 +272,8 @@ static unsigned long
 stride_pg_count(pgoff_t st_off, unsigned long st_len, unsigned long st_pgs,
 		unsigned long off, unsigned long length)
 {
-	__u64 start = off > st_off ? off - st_off : 0;
-	__u64 end = off + length > st_off ? off + length - st_off : 0;
+	u64 start = off > st_off ? off - st_off : 0;
+	u64 end = off + length > st_off ? off + length - st_off : 0;
 	unsigned long start_left = 0;
 	unsigned long end_left = 0;
 	unsigned long pg_count;
@@ -308,7 +308,7 @@ stride_pg_count(pgoff_t st_off, unsigned long st_len, unsigned long st_pgs,
 
 static int ria_page_count(struct ra_io_arg *ria)
 {
-	__u64 length = ria->ria_end >= ria->ria_start ?
+	u64 length = ria->ria_end >= ria->ria_start ?
 		       ria->ria_end - ria->ria_start + 1 : 0;
 
 	return stride_pg_count(ria->ria_stoff, ria->ria_length,
@@ -445,7 +445,7 @@ static int ll_readahead(const struct lu_env *env, struct cl_io *io,
 	struct ra_io_arg *ria = &lti->lti_ria;
 	struct cl_object *clob;
 	int ret = 0;
-	__u64 kms;
+	u64 kms;
 
 	clob = io->ci_obj;
 	inode = vvp_object_inode(clob);
@@ -764,7 +764,7 @@ static void ras_update(struct ll_sb_info *sbi, struct inode *inode,
 	 * ras_requests and thus can never trigger this behavior.
 	 */
 	if (ras->ras_requests >= 2 && !ras->ras_request_index) {
-		__u64 kms_pages;
+		u64 kms_pages;
 
 		kms_pages = (i_size_read(inode) + PAGE_SIZE - 1) >>
 			    PAGE_SHIFT;

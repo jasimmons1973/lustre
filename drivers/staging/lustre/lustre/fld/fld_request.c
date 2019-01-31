@@ -193,7 +193,7 @@ int fld_client_add_target(struct lu_client_fld *fld,
 EXPORT_SYMBOL(fld_client_add_target);
 
 /* Remove export from FLD */
-int fld_client_del_target(struct lu_client_fld *fld, __u64 idx)
+int fld_client_del_target(struct lu_client_fld *fld, u64 idx)
 {
 	struct lu_fld_target *target, *tmp;
 
@@ -303,12 +303,12 @@ void fld_client_fini(struct lu_client_fld *fld)
 EXPORT_SYMBOL(fld_client_fini);
 
 int fld_client_rpc(struct obd_export *exp,
-		   struct lu_seq_range *range, __u32 fld_op,
+		   struct lu_seq_range *range, u32 fld_op,
 		   struct ptlrpc_request **reqp)
 {
 	struct ptlrpc_request *req = NULL;
 	struct lu_seq_range   *prange;
-	__u32		 *op;
+	u32		 *op;
 	int		    rc = 0;
 	struct obd_import     *imp;
 
@@ -383,7 +383,7 @@ out_req:
 }
 
 int fld_client_lookup(struct lu_client_fld *fld, u64 seq, u32 *mds,
-		      __u32 flags, const struct lu_env *env)
+		      u32 flags, const struct lu_env *env)
 {
 	struct lu_seq_range res = { 0 };
 	struct lu_fld_target *target;

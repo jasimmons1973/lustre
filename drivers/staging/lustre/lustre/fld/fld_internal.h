@@ -63,15 +63,15 @@
 #include <lustre_fld.h>
 
 struct fld_stats {
-	__u64   fst_count;
-	__u64   fst_cache;
-	__u64   fst_inflight;
+	u64   fst_count;
+	u64   fst_cache;
+	u64   fst_inflight;
 };
 
 struct lu_fld_hash {
 	const char	      *fh_name;
-	int (*fh_hash_func)(struct lu_client_fld *, __u64);
-	struct lu_fld_target *(*fh_scan_func)(struct lu_client_fld *, __u64);
+	int (*fh_hash_func)(struct lu_client_fld *, u64);
+	struct lu_fld_target *(*fh_scan_func)(struct lu_client_fld *, u64);
 };
 
 struct fld_cache_entry {
@@ -130,7 +130,7 @@ enum {
 extern struct lu_fld_hash fld_hash[];
 
 int fld_client_rpc(struct obd_export *exp,
-		   struct lu_seq_range *range, __u32 fld_op,
+		   struct lu_seq_range *range, u32 fld_op,
 		   struct ptlrpc_request **reqp);
 
 extern struct lprocfs_vars fld_client_debugfs_list[];

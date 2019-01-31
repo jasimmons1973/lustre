@@ -101,7 +101,7 @@ struct osc_enqueue_args {
 	struct obd_export	*oa_exp;
 	enum ldlm_type		oa_type;
 	enum ldlm_mode		oa_mode;
-	__u64			*oa_flags;
+	u64			*oa_flags;
 	osc_enqueue_upcall_f	oa_upcall;
 	void			*oa_cookie;
 	struct ost_lvb		*oa_lvb;
@@ -535,7 +535,7 @@ int osc_sync_base(struct osc_object *obj, struct obdo *oa,
  */
 static int osc_resource_get_unused(struct obd_export *exp, struct obdo *oa,
 				   struct list_head *cancels,
-				   enum ldlm_mode mode, __u64 lock_flags)
+				   enum ldlm_mode mode, u64 lock_flags)
 {
 	struct ldlm_namespace *ns = exp->exp_obd->obd_namespace;
 	struct ldlm_res_id res_id;
@@ -783,7 +783,7 @@ static void osc_shrink_grant_local(struct client_obd *cli, struct obdo *oa)
  */
 static int osc_shrink_grant(struct client_obd *cli)
 {
-	__u64 target_bytes = (cli->cl_max_rpcs_in_flight + 1) *
+	u64 target_bytes = (cli->cl_max_rpcs_in_flight + 1) *
 			     (cli->cl_max_pages_per_rpc << PAGE_SHIFT);
 
 	spin_lock(&cli->cl_loi_list_lock);
@@ -794,7 +794,7 @@ static int osc_shrink_grant(struct client_obd *cli)
 	return osc_shrink_grant_to_target(cli, target_bytes);
 }
 
-int osc_shrink_grant_to_target(struct client_obd *cli, __u64 target_bytes)
+int osc_shrink_grant_to_target(struct client_obd *cli, u64 target_bytes)
 {
 	int rc = 0;
 	struct ost_body	*body;
@@ -1000,7 +1000,7 @@ static int check_write_rcs(struct ptlrpc_request *req,
 			   u32 page_count, struct brw_page **pga)
 {
 	int i;
-	__u32 *remote_rcs;
+	u32 *remote_rcs;
 
 	remote_rcs = req_capsule_server_sized_get(&req->rq_pill, &RMF_RCS,
 						  sizeof(*remote_rcs) *
@@ -1055,7 +1055,7 @@ static u32 osc_checksum_bulk(int nob, u32 pg_count,
 			     struct brw_page **pga, int opc,
 			     enum cksum_type cksum_type)
 {
-	__u32 cksum;
+	u32 cksum;
 	int i = 0;
 	struct ahash_request *hdesc;
 	unsigned int bufsize;
@@ -1285,7 +1285,7 @@ static int osc_brw_prep_request(int cmd, struct client_obd *cli,
 		oa->o_cksum = body->oa.o_cksum;
 		/* 1 RC per niobuf */
 		req_capsule_set_size(pill, &RMF_RCS, RCL_SERVER,
-				     sizeof(__u32) * niocount);
+				     sizeof(u32) * niocount);
 	} else {
 		if (cli->cl_checksum &&
 		    !sptlrpc_flavor_has_bulk(&req->rq_flvr)) {
@@ -1395,7 +1395,7 @@ static int check_write_checksum(struct obdo *oa,
 				u32 client_cksum, u32 server_cksum,
 				struct osc_brw_async_args *aa)
 {
-	__u32 new_cksum;
+	u32 new_cksum;
 	char *msg;
 	enum cksum_type cksum_type;
 
@@ -1452,7 +1452,7 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 			&req->rq_import->imp_connection->c_peer;
 	struct client_obd *cli = aa->aa_cli;
 	struct ost_body *body;
-	__u32 client_cksum = 0;
+	u32 client_cksum = 0;
 
 	if (rc < 0 && rc != -EDQUOT) {
 		DEBUG_REQ(D_INFO, req, "Failed request with rc = %d\n", rc);
@@ -1534,7 +1534,7 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 
 	if (body->oa.o_valid & OBD_MD_FLCKSUM) {
 		static int cksum_counter;
-		__u32 server_cksum = body->oa.o_cksum;
+		u32 server_cksum = body->oa.o_cksum;
 		char *via = "";
 		char *router = "";
 		enum cksum_type cksum_type;
@@ -2050,7 +2050,7 @@ static int osc_set_lock_data(struct ldlm_lock *lock, void *data)
 static int osc_enqueue_fini(struct ptlrpc_request *req,
 			    osc_enqueue_upcall_f upcall, void *cookie,
 			    struct lustre_handle *lockh, enum ldlm_mode mode,
-			    __u64 *flags, int agl, int errcode)
+			    u64 *flags, int agl, int errcode)
 {
 	bool intent = *flags & LDLM_FL_HAS_INTENT;
 	int rc;
@@ -2090,8 +2090,8 @@ static int osc_enqueue_interpret(const struct lu_env *env,
 	struct lustre_handle *lockh = &aa->oa_lockh;
 	enum ldlm_mode mode = aa->oa_mode;
 	struct ost_lvb *lvb = aa->oa_lvb;
-	__u32 lvb_len = sizeof(*lvb);
-	__u64 flags = 0;
+	u32 lvb_len = sizeof(*lvb);
+	u64 flags = 0;
 
 	/* ldlm_cli_enqueue is holding a reference on the lock, so it must
 	 * be valid.
@@ -2143,7 +2143,7 @@ static int osc_enqueue_interpret(const struct lu_env *env,
  * release locks just after they are obtained.
  */
 int osc_enqueue_base(struct obd_export *exp, struct ldlm_res_id *res_id,
-		     __u64 *flags, union ldlm_policy_data *policy,
+		     u64 *flags, union ldlm_policy_data *policy,
 		     struct ost_lvb *lvb, int kms_valid,
 		     osc_enqueue_upcall_f upcall, void *cookie,
 		     struct ldlm_enqueue_info *einfo,
@@ -2153,7 +2153,7 @@ int osc_enqueue_base(struct obd_export *exp, struct ldlm_res_id *res_id,
 	struct lustre_handle lockh = { 0 };
 	struct ptlrpc_request *req = NULL;
 	int intent = *flags & LDLM_FL_HAS_INTENT;
-	__u64 match_flags = *flags;
+	u64 match_flags = *flags;
 	enum ldlm_mode mode;
 	int rc;
 
@@ -2292,11 +2292,11 @@ no_match:
 
 int osc_match_base(struct obd_export *exp, struct ldlm_res_id *res_id,
 		   enum ldlm_type type, union ldlm_policy_data *policy,
-		   enum ldlm_mode mode, __u64 *flags, void *data,
+		   enum ldlm_mode mode, u64 *flags, void *data,
 		   struct lustre_handle *lockh, int unref)
 {
 	struct obd_device *obd = exp->exp_obd;
-	__u64 lflags = *flags;
+	u64 lflags = *flags;
 	enum ldlm_mode rc;
 
 	if (OBD_FAIL_CHECK(OBD_FAIL_OSC_MATCH))
@@ -2371,7 +2371,7 @@ out:
 }
 
 static int osc_statfs_async(struct obd_export *exp,
-			    struct obd_info *oinfo, __u64 max_age,
+			    struct obd_info *oinfo, u64 max_age,
 			    struct ptlrpc_request_set *rqset)
 {
 	struct obd_device *obd = class_exp2obd(exp);
@@ -2415,7 +2415,7 @@ static int osc_statfs_async(struct obd_export *exp,
 }
 
 static int osc_statfs(const struct lu_env *env, struct obd_export *exp,
-		      struct obd_statfs *osfs, __u64 max_age, __u32 flags)
+		      struct obd_statfs *osfs, u64 max_age, u32 flags)
 {
 	struct obd_device *obd = class_exp2obd(exp);
 	struct obd_statfs *msfs;

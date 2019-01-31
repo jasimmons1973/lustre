@@ -42,7 +42,7 @@ static void set_mrc_cr_flags(struct mdt_rec_create *mrc, u64 flags)
 	mrc->cr_flags_h = (u32)(flags >> 32);
 }
 
-static void __mdc_pack_body(struct mdt_body *b, __u32 suppgid)
+static void __mdc_pack_body(struct mdt_body *b, u32 suppgid)
 {
 	b->mbo_suppgid = suppgid;
 	b->mbo_uid = from_kuid(&init_user_ns, current_uid());
@@ -65,7 +65,7 @@ void mdc_swap_layouts_pack(struct ptlrpc_request *req,
 }
 
 void mdc_pack_body(struct ptlrpc_request *req, const struct lu_fid *fid,
-		   __u64 valid, size_t ea_size, __u32 suppgid, u32 flags)
+		   u64 valid, size_t ea_size, u32 suppgid, u32 flags)
 {
 	struct mdt_body *b = req_capsule_client_get(&req->rq_pill,
 						    &RMF_MDT_BODY);
@@ -134,7 +134,7 @@ void mdc_file_secctx_pack(struct ptlrpc_request *req, const char *secctx_name,
 	memcpy(buf, secctx, buf_size);
 }
 
-void mdc_readdir_pack(struct ptlrpc_request *req, __u64 pgoff, size_t size,
+void mdc_readdir_pack(struct ptlrpc_request *req, u64 pgoff, size_t size,
 		      const struct lu_fid *fid)
 {
 	struct mdt_body *b = req_capsule_client_get(&req->rq_pill,
@@ -151,11 +151,11 @@ void mdc_readdir_pack(struct ptlrpc_request *req, __u64 pgoff, size_t size,
 void mdc_create_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 		     const void *data, size_t datalen, umode_t mode,
 		     uid_t uid, gid_t gid, kernel_cap_t cap_effective,
-		     __u64 rdev)
+		     u64 rdev)
 {
 	struct mdt_rec_create	*rec;
 	char			*tmp;
-	__u64			 flags;
+	u64			 flags;
 
 	BUILD_BUG_ON(sizeof(struct mdt_rec_reint) != sizeof(struct mdt_rec_create));
 	rec = req_capsule_client_get(&req->rq_pill, &RMF_REC_REINT);
@@ -189,9 +189,9 @@ void mdc_create_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 			     op_data->op_file_secctx_size);
 }
 
-static inline __u64 mds_pack_open_flags(__u64 flags)
+static inline u64 mds_pack_open_flags(u64 flags)
 {
-	__u64 cr_flags = (flags & (FMODE_READ | FMODE_WRITE |
+	u64 cr_flags = (flags & (FMODE_READ | FMODE_WRITE |
 				   MDS_OPEN_FL_INTERNAL));
 	if (flags & O_CREAT)
 		cr_flags |= MDS_OPEN_CREAT;
@@ -218,12 +218,12 @@ static inline __u64 mds_pack_open_flags(__u64 flags)
 
 /* packing of MDS records */
 void mdc_open_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
-		   umode_t mode, __u64 rdev, __u64 flags, const void *lmm,
+		   umode_t mode, u64 rdev, u64 flags, const void *lmm,
 		   size_t lmmlen)
 {
 	struct mdt_rec_create *rec;
 	char *tmp;
-	__u64 cr_flags;
+	u64 cr_flags;
 
 	BUILD_BUG_ON(sizeof(struct mdt_rec_reint) != sizeof(struct mdt_rec_create));
 	rec = req_capsule_client_get(&req->rq_pill, &RMF_REC_REINT);
@@ -268,7 +268,7 @@ void mdc_open_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 
 static inline u64 attr_pack(unsigned int ia_valid, enum op_xvalid ia_xvalid)
 {
-	__u64 sa_valid = 0;
+	u64 sa_valid = 0;
 
 	if (ia_valid & ATTR_MODE)
 		sa_valid |= MDS_ATTR_MODE;
@@ -483,7 +483,7 @@ void mdc_rename_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 	}
 }
 
-void mdc_getattr_pack(struct ptlrpc_request *req, __u64 valid, u32 flags,
+void mdc_getattr_pack(struct ptlrpc_request *req, u64 valid, u32 flags,
 		      struct md_op_data *op_data, size_t ea_size)
 {
 	struct mdt_body *b = req_capsule_client_get(&req->rq_pill,

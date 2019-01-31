@@ -100,7 +100,7 @@ struct vvp_io {
 	/**
 	 * Layout version when this IO is initialized
 	 */
-	__u32			vui_layout_gen;
+	u32			vui_layout_gen;
 	/**
 	 * File descriptor against which IO is done.
 	 */

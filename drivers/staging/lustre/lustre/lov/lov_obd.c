@@ -123,7 +123,7 @@ static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 static int lov_notify(struct obd_device *obd, struct obd_device *watched,
 		      enum obd_notify_event ev);
 
-int lov_connect_obd(struct obd_device *obd, __u32 index, int activate,
+int lov_connect_obd(struct obd_device *obd, u32 index, int activate,
 		    struct obd_connect_data *data)
 {
 	struct lov_obd *lov = &obd->u.lov;
@@ -477,7 +477,7 @@ out_notify_lock:
 }
 
 static int lov_add_target(struct obd_device *obd, struct obd_uuid *uuidp,
-			  __u32 index, int gen, int active)
+			  u32 index, int gen, int active)
 {
 	struct lov_obd *lov = &obd->u.lov;
 	struct lov_tgt_desc *tgt;
@@ -511,9 +511,9 @@ static int lov_add_target(struct obd_device *obd, struct obd_uuid *uuidp,
 	if (index >= lov->lov_tgt_size) {
 		/* We need to reallocate the lov target array. */
 		struct lov_tgt_desc **newtgts, **old = NULL;
-		__u32 newsize, oldsize = 0;
+		u32 newsize, oldsize = 0;
 
-		newsize = max_t(__u32, lov->lov_tgt_size, 2);
+		newsize = max_t(u32, lov->lov_tgt_size, 2);
 		while (newsize < index + 1)
 			newsize <<= 1;
 		newtgts = kcalloc(newsize, sizeof(*newtgts), GFP_NOFS);
@@ -609,7 +609,7 @@ out:
 }
 
 /* Schedule a target for deletion */
-int lov_del_target(struct obd_device *obd, __u32 index,
+int lov_del_target(struct obd_device *obd, u32 index,
 		   struct obd_uuid *uuidp, int gen)
 {
 	struct lov_obd *lov = &obd->u.lov;
@@ -681,7 +681,7 @@ static void __lov_del_obd(struct obd_device *obd, struct lov_tgt_desc *tgt)
 		class_manual_cleanup(osc_obd);
 }
 
-void lov_fix_desc_stripe_size(__u64 *val)
+void lov_fix_desc_stripe_size(u64 *val)
 {
 	if (*val < LOV_MIN_STRIPE_SIZE) {
 		if (*val != 0)
@@ -695,13 +695,13 @@ void lov_fix_desc_stripe_size(__u64 *val)
 	}
 }
 
-void lov_fix_desc_stripe_count(__u32 *val)
+void lov_fix_desc_stripe_count(u32 *val)
 {
 	if (*val == 0)
 		*val = 1;
 }
 
-void lov_fix_desc_pattern(__u32 *val)
+void lov_fix_desc_pattern(u32 *val)
 {
 	/* from lov_setstripe */
 	if ((*val != 0) && (*val != LOV_PATTERN_RAID0)) {
@@ -710,7 +710,7 @@ void lov_fix_desc_pattern(__u32 *val)
 	}
 }
 
-void lov_fix_desc_qos_maxage(__u32 *val)
+void lov_fix_desc_qos_maxage(u32 *val)
 {
 	if (*val == 0)
 		*val = LOV_DESC_QOS_MAXAGE_DEFAULT;
@@ -843,7 +843,7 @@ static int lov_cleanup(struct obd_device *obd)
 }
 
 int lov_process_config_base(struct obd_device *obd, struct lustre_cfg *lcfg,
-			    __u32 *indexp, int *genp)
+			    u32 *indexp, int *genp)
 {
 	struct obd_uuid obd_uuid;
 	int cmd;
@@ -853,7 +853,7 @@ int lov_process_config_base(struct obd_device *obd, struct lustre_cfg *lcfg,
 	case LCFG_LOV_ADD_OBD:
 	case LCFG_LOV_ADD_INA:
 	case LCFG_LOV_DEL_OBD: {
-		__u32 index;
+		u32 index;
 		int gen;
 		/* lov_modify_tgts add  0:lov_mdsA  1:ost1_UUID  2:0  3:1 */
 		if (LUSTRE_CFG_BUFLEN(lcfg, 1) > sizeof(obd_uuid.uuid)) {
@@ -923,7 +923,7 @@ lov_statfs_interpret(struct ptlrpc_request_set *rqset, void *data, int rc)
 }
 
 static int lov_statfs_async(struct obd_export *exp, struct obd_info *oinfo,
-			    __u64 max_age, struct ptlrpc_request_set *rqset)
+			    u64 max_age, struct ptlrpc_request_set *rqset)
 {
 	struct obd_device      *obd = class_exp2obd(exp);
 	struct lov_request_set *set;
@@ -961,7 +961,7 @@ static int lov_statfs_async(struct obd_export *exp, struct obd_info *oinfo,
 }
 
 static int lov_statfs(const struct lu_env *env, struct obd_export *exp,
-		      struct obd_statfs *osfs, __u64 max_age, __u32 flags)
+		      struct obd_statfs *osfs, u64 max_age, u32 flags)
 {
 	struct ptlrpc_request_set *set = NULL;
 	struct obd_info oinfo = {
@@ -998,10 +998,10 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 		struct obd_ioctl_data *data = karg;
 		struct obd_device *osc_obd;
 		struct obd_statfs stat_buf = {0};
-		__u32 index;
-		__u32 flags;
+		u32 index;
+		u32 flags;
 
-		memcpy(&index, data->ioc_inlbuf2, sizeof(__u32));
+		memcpy(&index, data->ioc_inlbuf2, sizeof(u32));
 		if (index >= count)
 			return -ENODEV;
 
@@ -1021,7 +1021,7 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 				       sizeof(struct obd_uuid))))
 			return -EFAULT;
 
-		memcpy(&flags, data->ioc_inlbuf1, sizeof(__u32));
+		memcpy(&flags, data->ioc_inlbuf1, sizeof(u32));
 		flags = flags & LL_STATFS_NODELAY ? OBD_STATFS_NODELAY : 0;
 
 		/* got statfs data */
@@ -1040,7 +1040,7 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 		struct obd_ioctl_data *data;
 		struct lov_desc *desc;
 		char *buf = NULL;
-		__u32 *genp;
+		u32 *genp;
 
 		len = 0;
 		if (obd_ioctl_getdata(&buf, &len, uarg))
@@ -1058,7 +1058,7 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 			return -EINVAL;
 		}
 
-		if (sizeof(__u32) * count > data->ioc_inllen3) {
+		if (sizeof(u32) * count > data->ioc_inllen3) {
 			kvfree(buf);
 			return -EINVAL;
 		}
@@ -1067,7 +1067,7 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 		memcpy(desc, &lov->desc, sizeof(*desc));
 
 		uuidp = (struct obd_uuid *)data->ioc_inlbuf2;
-		genp = (__u32 *)data->ioc_inlbuf3;
+		genp = (u32 *)data->ioc_inlbuf3;
 		/* the uuid will be empty for deleted OSTs */
 		for (i = 0; i < count; i++, uuidp++, genp++) {
 			if (!lov->lov_tgts[i])
@@ -1172,7 +1172,7 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 }
 
 static int lov_get_info(const struct lu_env *env, struct obd_export *exp,
-			__u32 keylen, void *key, __u32 *vallen, void *val)
+			u32 keylen, void *key, u32 *vallen, void *val)
 {
 	struct obd_device *obddev = class_exp2obd(exp);
 	struct lov_obd *lov = &obddev->u.lov;
@@ -1283,8 +1283,8 @@ static int lov_quotactl(struct obd_device *obd, struct obd_export *exp,
 {
 	struct lov_obd      *lov = &obd->u.lov;
 	struct lov_tgt_desc *tgt;
-	__u64		curspace = 0;
-	__u64		bhardlimit = 0;
+	u64		curspace = 0;
+	u64		bhardlimit = 0;
 	int		  i, rc = 0;
 
 	if (oqctl->qc_cmd != Q_GETOQUOTA &&

@@ -278,7 +278,7 @@ static int mdc_xattr_common(struct obd_export *exp,
 			    int opcode, u64 valid,
 			    const char *xattr_name, const char *input,
 			    int input_size, int output_size, int flags,
-			    __u32 suppgid, struct ptlrpc_request **request)
+			    u32 suppgid, struct ptlrpc_request **request)
 {
 	struct ptlrpc_request *req;
 	int   xattr_namelen = 0;
@@ -594,7 +594,7 @@ void mdc_replay_open(struct ptlrpc_request *req)
 
 	close_req = mod->mod_close_req;
 	if (close_req) {
-		__u32 opc = lustre_msg_get_opc(close_req->rq_reqmsg);
+		u32 opc = lustre_msg_get_opc(close_req->rq_reqmsg);
 		struct mdt_ioepoch *epoch;
 
 		LASSERT(opc == MDS_CLOSE);
@@ -977,8 +977,8 @@ static void mdc_release_page(struct page *page, int remove)
 	put_page(page);
 }
 
-static struct page *mdc_page_locate(struct address_space *mapping, __u64 *hash,
-				    __u64 *start, __u64 *end, int hash64)
+static struct page *mdc_page_locate(struct address_space *mapping, u64 *hash,
+				    u64 *start, u64 *end, int hash64)
 {
 	/*
 	 * Complement of hash is used as an index so that
@@ -1107,8 +1107,8 @@ static void mdc_adjust_dirpages(struct page **pages, int cfs_pgs, int lu_pgs)
 
 	for (i = 0; i < cfs_pgs; i++) {
 		struct lu_dirpage *dp = kmap(pages[i]);
-		__u64 hash_end = le64_to_cpu(dp->ldp_hash_end);
-		__u32 flags = le32_to_cpu(dp->ldp_flags);
+		u64 hash_end = le64_to_cpu(dp->ldp_hash_end);
+		u32 flags = le32_to_cpu(dp->ldp_flags);
 		struct lu_dirpage *first = dp;
 
 		while (--lu_pgs > 0) {
@@ -1159,7 +1159,7 @@ static void mdc_adjust_dirpages(struct page **pages, int cfs_pgs, int lu_pgs)
 /* parameters for readdir page */
 struct readpage_param {
 	struct md_op_data	*rp_mod;
-	__u64			rp_off;
+	u64			rp_off;
 	int			rp_hash64;
 	struct obd_export	*rp_exp;
 	struct md_callback	*rp_cb;
@@ -1234,7 +1234,7 @@ static int mdc_read_page_remote(void *data, struct page *page0)
 	CDEBUG(D_CACHE, "read %d/%d pages\n", rd_pgs, npages);
 	for (i = 1; i < npages; i++) {
 		unsigned long offset;
-		__u64 hash;
+		u64 hash;
 		int ret;
 
 		page = page_pool[i];
@@ -1285,7 +1285,7 @@ static int mdc_read_page_remote(void *data, struct page *page0)
  *			errno(<0) get the page failed
  */
 static int mdc_read_page(struct obd_export *exp, struct md_op_data *op_data,
-			 struct md_callback *cb_op, __u64 hash_offset,
+			 struct md_callback *cb_op, u64 hash_offset,
 			 struct page **ppage)
 {
 	struct lookup_intent it = { .it_op = IT_READDIR };
@@ -1293,8 +1293,8 @@ static int mdc_read_page(struct obd_export *exp, struct md_op_data *op_data,
 	struct inode *dir = op_data->op_data;
 	struct address_space *mapping;
 	struct lu_dirpage *dp;
-	__u64 start = 0;
-	__u64 end = 0;
+	u64 start = 0;
+	u64 end = 0;
 	struct lustre_handle lockh;
 	struct ptlrpc_request *enq_req = NULL;
 	struct readpage_param rp_param;
@@ -1418,7 +1418,7 @@ fail:
 
 static int mdc_statfs(const struct lu_env *env,
 		      struct obd_export *exp, struct obd_statfs *osfs,
-		      __u64 max_age, __u32 flags)
+		      u64 max_age, u32 flags)
 {
 	struct obd_device     *obd = class_exp2obd(exp);
 	struct ptlrpc_request *req;
@@ -1476,7 +1476,7 @@ output:
 
 static int mdc_ioc_fid2path(struct obd_export *exp, struct getinfo_fid2path *gf)
 {
-	__u32 keylen, vallen;
+	u32 keylen, vallen;
 	void *key;
 	int rc;
 
@@ -1567,9 +1567,9 @@ out:
 	return rc;
 }
 
-static int mdc_ioc_hsm_ct_register(struct obd_import *imp, __u32 archives)
+static int mdc_ioc_hsm_ct_register(struct obd_import *imp, u32 archives)
 {
-	__u32			*archive_mask;
+	u32			*archive_mask;
 	struct ptlrpc_request	*req;
 	int			 rc;
 
@@ -1967,7 +1967,7 @@ static int mdc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	case IOC_OBD_STATFS: {
 		struct obd_statfs stat_buf = {0};
 
-		if (*((__u32 *)data->ioc_inlbuf2) != 0) {
+		if (*((u32 *)data->ioc_inlbuf2) != 0) {
 			rc = -ENODEV;
 			goto out;
 		}
@@ -2056,7 +2056,7 @@ static int mdc_get_info_rpc(struct obd_export *exp,
 	req_capsule_set_size(&req->rq_pill, &RMF_GETINFO_KEY,
 			     RCL_CLIENT, keylen);
 	req_capsule_set_size(&req->rq_pill, &RMF_GETINFO_VALLEN,
-			     RCL_CLIENT, sizeof(__u32));
+			     RCL_CLIENT, sizeof(u32));
 
 	rc = ptlrpc_request_pack(req, LUSTRE_MDS_VERSION, MDS_GET_INFO);
 	if (rc) {
@@ -2067,7 +2067,7 @@ static int mdc_get_info_rpc(struct obd_export *exp,
 	tmp = req_capsule_client_get(&req->rq_pill, &RMF_GETINFO_KEY);
 	memcpy(tmp, key, keylen);
 	tmp = req_capsule_client_get(&req->rq_pill, &RMF_GETINFO_VALLEN);
-	memcpy(tmp, &vallen, sizeof(__u32));
+	memcpy(tmp, &vallen, sizeof(u32));
 
 	req_capsule_set_size(&req->rq_pill, &RMF_GETINFO_VAL,
 			     RCL_SERVER, vallen);
@@ -2119,7 +2119,7 @@ static void lustre_swab_hal(struct hsm_action_list *h)
 static void lustre_swab_kuch(struct kuc_hdr *l)
 {
 	__swab16s(&l->kuc_magic);
-	/* __u8 l->kuc_transport */
+	/* u8 l->kuc_transport */
 	__swab16s(&l->kuc_msgtype);
 	__swab16s(&l->kuc_msglen);
 }
@@ -2128,7 +2128,7 @@ static int mdc_ioc_hsm_ct_start(struct obd_export *exp,
 				struct lustre_kernelcomm *lk)
 {
 	struct obd_import  *imp = class_exp2cliimp(exp);
-	__u32		    archive = lk->lk_data;
+	u32		    archive = lk->lk_data;
 	int		    rc = 0;
 
 	if (lk->lk_group != KUC_GRP_HSM) {
@@ -2264,7 +2264,7 @@ static int mdc_set_info_async(const struct lu_env *env,
 }
 
 static int mdc_get_info(const struct lu_env *env, struct obd_export *exp,
-			__u32 keylen, void *key, __u32 *vallen, void *val)
+			u32 keylen, void *key, u32 *vallen, void *val)
 {
 	int rc = -EINVAL;
 

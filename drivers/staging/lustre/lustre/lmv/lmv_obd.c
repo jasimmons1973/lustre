@@ -369,7 +369,7 @@ static void lmv_del_target(struct lmv_obd *lmv, int index)
 }
 
 static int lmv_add_target(struct obd_device *obd, struct obd_uuid *uuidp,
-			  __u32 index, int gen)
+			  u32 index, int gen)
 {
 	struct lmv_obd      *lmv = &obd->u.lmv;
 	struct obd_device *mdc_obd;
@@ -401,8 +401,8 @@ static int lmv_add_target(struct obd_device *obd, struct obd_uuid *uuidp,
 	if (index >= lmv->tgts_size) {
 		/* We need to reallocate the lmv target array. */
 		struct lmv_tgt_desc **newtgts, **old = NULL;
-		__u32 newsize = 1;
-		__u32 oldsize = 0;
+		u32 newsize = 1;
+		u32 oldsize = 0;
 
 		while (newsize < index + 1)
 			newsize <<= 1;
@@ -757,7 +757,7 @@ static int lmv_hsm_ct_unregister(struct lmv_obd *lmv, unsigned int cmd, int len,
 				 struct lustre_kernelcomm *lk,
 				 void __user *uarg)
 {
-	__u32 i;
+	u32 i;
 
 	/* unregister request (call from llapi_hsm_copytool_fini) */
 	for (i = 0; i < lmv->desc.ld_tgt_count; i++) {
@@ -783,7 +783,7 @@ static int lmv_hsm_ct_register(struct lmv_obd *lmv, unsigned int cmd, int len,
 			       struct lustre_kernelcomm *lk, void __user *uarg)
 {
 	struct file *filp;
-	__u32 i, j;
+	u32 i, j;
 	int err;
 	bool any_set = false;
 	struct kkuc_ct_data kcd = {
@@ -873,9 +873,9 @@ static int lmv_iocontrol(unsigned int cmd, struct obd_export *exp,
 		struct obd_ioctl_data *data = karg;
 		struct obd_device *mdc_obd;
 		struct obd_statfs stat_buf = {0};
-		__u32 index;
+		u32 index;
 
-		memcpy(&index, data->ioc_inlbuf2, sizeof(__u32));
+		memcpy(&index, data->ioc_inlbuf2, sizeof(u32));
 		if (index >= count)
 			return -ENODEV;
 
@@ -971,7 +971,7 @@ static int lmv_iocontrol(unsigned int cmd, struct obd_export *exp,
 		 * Note: this is from llite(see ll_dir_ioctl()), @uarg does not
 		 * point to user space memory for FID2MDTIDX.
 		 */
-		*(__u32 *)uarg = mdt_index;
+		*(u32 *)uarg = mdt_index;
 		break;
 	}
 	case OBD_IOC_FID2PATH: {
@@ -1292,7 +1292,7 @@ static int lmv_process_config(struct obd_device *obd, u32 len, void *buf)
 	struct lustre_cfg	*lcfg = buf;
 	struct obd_uuid		obd_uuid;
 	int			gen;
-	__u32			index;
+	u32			index;
 	int			rc;
 
 	switch (lcfg->lcfg_command) {
@@ -1327,7 +1327,7 @@ out:
 }
 
 static int lmv_statfs(const struct lu_env *env, struct obd_export *exp,
-		      struct obd_statfs *osfs, __u64 max_age, __u32 flags)
+		      struct obd_statfs *osfs, u64 max_age, u32 flags)
 {
 	struct obd_device     *obd = class_exp2obd(exp);
 	struct lmv_obd	*lmv = &obd->u.lmv;
@@ -1585,7 +1585,7 @@ lmv_locate_mds(struct lmv_obd *lmv, struct md_op_data *op_data,
 static int lmv_create(struct obd_export *exp, struct md_op_data *op_data,
 		      const void *data, size_t datalen, umode_t mode,
 		      uid_t uid, gid_t gid, kernel_cap_t cap_effective,
-		      __u64 rdev, struct ptlrpc_request **request)
+		      u64 rdev, struct ptlrpc_request **request)
 {
 	struct obd_device       *obd = exp->exp_obd;
 	struct lmv_obd	  *lmv = &obd->u.lmv;
@@ -1639,7 +1639,7 @@ static int lmv_create(struct obd_export *exp, struct md_op_data *op_data,
 static int
 lmv_enqueue(struct obd_export *exp, struct ldlm_enqueue_info *einfo,
 	    const union ldlm_policy_data *policy, struct md_op_data *op_data,
-	    struct lustre_handle *lockh, __u64 extra_lock_flags)
+	    struct lustre_handle *lockh, u64 extra_lock_flags)
 {
 	struct obd_device	*obd = exp->exp_obd;
 	struct lmv_obd	   *lmv = &obd->u.lmv;
@@ -2029,7 +2029,7 @@ static int lmv_fsync(struct obd_export *exp, const struct lu_fid *fid,
 static int lmv_get_min_striped_entry(struct obd_export *exp,
 				     struct md_op_data *op_data,
 				     struct md_callback *cb_op,
-				     __u64 hash_offset, int *stripe_offset,
+				     u64 hash_offset, int *stripe_offset,
 				     struct lu_dirent **entp,
 				     struct page **ppage)
 {
@@ -2046,7 +2046,7 @@ static int lmv_get_min_striped_entry(struct obd_export *exp,
 
 	stripe_count = lsm->lsm_md_stripe_count;
 	for (i = 0; i < stripe_count; i++) {
-		__u64 stripe_hash = hash_offset;
+		u64 stripe_hash = hash_offset;
 		struct lu_dirent *ent = NULL;
 		struct page *page = NULL;
 		struct lu_dirpage *dp;
@@ -2167,12 +2167,12 @@ out:
 static int lmv_read_striped_page(struct obd_export *exp,
 				 struct md_op_data *op_data,
 				 struct md_callback *cb_op,
-				 __u64 offset, struct page **ppage)
+				 u64 offset, struct page **ppage)
 {
 	struct inode *master_inode = op_data->op_data;
 	struct lu_fid master_fid = op_data->op_fid1;
-	__u64 hash_offset = offset;
-	__u32 ldp_flags;
+	u64 hash_offset = offset;
+	u32 ldp_flags;
 	struct page *min_ent_page = NULL;
 	struct page *ent_page = NULL;
 	struct lu_dirent *min_ent = NULL;
@@ -2203,7 +2203,7 @@ static int lmv_read_striped_page(struct obd_export *exp,
 	ent = area;
 	last_ent = ent;
 	do {
-		__u16 ent_size;
+		u16 ent_size;
 
 		/* Find the minum entry from all sub-stripes */
 		rc = lmv_get_min_striped_entry(exp, op_data, cb_op, hash_offset,
@@ -2295,7 +2295,7 @@ out:
 }
 
 static int lmv_read_page(struct obd_export *exp, struct md_op_data *op_data,
-			 struct md_callback *cb_op, __u64 offset,
+			 struct md_callback *cb_op, u64 offset,
 			 struct page **ppage)
 {
 	struct lmv_stripe_md *lsm = op_data->op_mea1;
@@ -2517,7 +2517,7 @@ static int lmv_precleanup(struct obd_device *obd)
  * \retval negative	negated errno on failure
  */
 static int lmv_get_info(const struct lu_env *env, struct obd_export *exp,
-			__u32 keylen, void *key, __u32 *vallen, void *val)
+			u32 keylen, void *key, u32 *vallen, void *val)
 {
 	struct obd_device       *obd;
 	struct lmv_obd	  *lmv;
@@ -2534,7 +2534,7 @@ static int lmv_get_info(const struct lu_env *env, struct obd_export *exp,
 	if (keylen >= strlen("remote_flag") && !strcmp(key, "remote_flag")) {
 		int i;
 
-		LASSERT(*vallen == sizeof(__u32));
+		LASSERT(*vallen == sizeof(u32));
 		for (i = 0; i < lmv->desc.ld_tgt_count; i++) {
 			struct lmv_tgt_desc *tgt = lmv->tgts[i];
 
@@ -2780,7 +2780,7 @@ static int lmv_cancel_unused(struct obd_export *exp, const struct lu_fid *fid,
 
 static int lmv_set_lock_data(struct obd_export *exp,
 			     const struct lustre_handle *lockh,
-			     void *data, __u64 *bits)
+			     void *data, u64 *bits)
 {
 	struct lmv_obd	  *lmv = &exp->exp_obd->u.lmv;
 	struct lmv_tgt_desc *tgt = lmv->tgts[0];
@@ -2791,7 +2791,7 @@ static int lmv_set_lock_data(struct obd_export *exp,
 	return md_set_lock_data(tgt->ltd_exp, lockh, data, bits);
 }
 
-static enum ldlm_mode lmv_lock_match(struct obd_export *exp, __u64 flags,
+static enum ldlm_mode lmv_lock_match(struct obd_export *exp, u64 flags,
 				     const struct lu_fid *fid,
 				     enum ldlm_type type,
 				     union ldlm_policy_data *policy,
@@ -2925,7 +2925,7 @@ static int lmv_intent_getattr_async(struct obd_export *exp,
 }
 
 static int lmv_revalidate_lock(struct obd_export *exp, struct lookup_intent *it,
-			       struct lu_fid *fid, __u64 *bits)
+			       struct lu_fid *fid, u64 *bits)
 {
 	struct obd_device       *obd = exp->exp_obd;
 	struct lmv_obd	  *lmv = &obd->u.lmv;
@@ -2967,7 +2967,7 @@ static int lmv_quotactl(struct obd_device *unused, struct obd_export *exp,
 	struct lmv_obd      *lmv = &obd->u.lmv;
 	struct lmv_tgt_desc *tgt = lmv->tgts[0];
 	int rc = 0;
-	__u64 curspace = 0, curinodes = 0;
+	u64 curspace = 0, curinodes = 0;
 	u32 i;
 
 	if (!tgt || !tgt->ltd_exp || !tgt->ltd_active ||

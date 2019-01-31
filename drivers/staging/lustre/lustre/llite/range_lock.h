@@ -42,8 +42,8 @@
 
 struct range_lock {
 	struct rb_node		rl_rb;
-	__u64			rl_start, rl_last;
-	__u64			__subtree_last;
+	u64			rl_start, rl_last;
+	u64			__subtree_last;
 	/**
 	 * Process to enqueue this lock.
 	 */
@@ -56,17 +56,17 @@ struct range_lock {
 	 * Sequence number of range lock. This number is used to get to know
 	 * the order the locks are queued; this is required for range_cancel().
 	 */
-	__u64			rl_sequence;
+	u64			rl_sequence;
 };
 
 struct range_lock_tree {
 	struct rb_root_cached	rlt_root;
 	spinlock_t		rlt_lock;	/* protect range lock tree */
-	__u64			rlt_sequence;
+	u64			rlt_sequence;
 };
 
 void range_lock_tree_init(struct range_lock_tree *tree);
-int range_lock_init(struct range_lock *lock, __u64 start, __u64 end);
+int range_lock_init(struct range_lock *lock, u64 start, u64 end);
 int  range_lock(struct range_lock_tree *tree, struct range_lock *lock);
 void range_unlock(struct range_lock_tree *tree, struct range_lock *lock);
 #endif

@@ -52,7 +52,7 @@ static int lmv_intent_remote(struct obd_export *exp, struct lookup_intent *it,
 			     const struct lu_fid *parent_fid,
 			     struct ptlrpc_request **reqp,
 			     ldlm_blocking_callback cb_blocking,
-			     __u64 extra_lock_flags)
+			     u64 extra_lock_flags)
 {
 	struct obd_device	*obd = exp->exp_obd;
 	struct lmv_obd		*lmv = &obd->u.lmv;
@@ -262,7 +262,7 @@ static int lmv_intent_open(struct obd_export *exp, struct md_op_data *op_data,
 			   struct lookup_intent *it,
 			   struct ptlrpc_request **reqp,
 			   ldlm_blocking_callback cb_blocking,
-			   __u64 extra_lock_flags)
+			   u64 extra_lock_flags)
 {
 	struct obd_device	*obd = exp->exp_obd;
 	struct lmv_obd		*lmv = &obd->u.lmv;
@@ -353,7 +353,7 @@ static int lmv_intent_lookup(struct obd_export *exp,
 			     struct lookup_intent *it,
 			     struct ptlrpc_request **reqp,
 			     ldlm_blocking_callback cb_blocking,
-			     __u64 extra_lock_flags)
+			     u64 extra_lock_flags)
 {
 	struct lmv_stripe_md *lsm = op_data->op_mea1;
 	struct obd_device      *obd = exp->exp_obd;
@@ -475,7 +475,7 @@ static int lmv_intent_lookup(struct obd_export *exp,
 int lmv_intent_lock(struct obd_export *exp, struct md_op_data *op_data,
 		    struct lookup_intent *it, struct ptlrpc_request **reqp,
 		    ldlm_blocking_callback cb_blocking,
-		    __u64 extra_lock_flags)
+		    u64 extra_lock_flags)
 {
 	int		rc;
 

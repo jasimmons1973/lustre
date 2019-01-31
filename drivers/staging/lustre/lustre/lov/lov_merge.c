@@ -42,12 +42,12 @@
  * uptodate time on the local client.
  */
 int lov_merge_lvb_kms(struct lov_stripe_md *lsm, int index,
-		      struct ost_lvb *lvb, __u64 *kms_place)
+		      struct ost_lvb *lvb, u64 *kms_place)
 {
 	struct lov_stripe_md_entry *lse = lsm->lsm_entries[index];
-	__u64 size = 0;
-	__u64 kms = 0;
-	__u64 blocks = 0;
+	u64 size = 0;
+	u64 kms = 0;
+	u64 blocks = 0;
 	s64 current_mtime = lvb->lvb_mtime;
 	s64 current_atime = lvb->lvb_atime;
 	s64 current_ctime = lvb->lvb_ctime;

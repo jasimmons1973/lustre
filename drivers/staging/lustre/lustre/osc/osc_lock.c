@@ -153,9 +153,9 @@ static void osc_lock_build_policy(const struct lu_env *env,
 	policy->l_extent.gid = d->cld_gid;
 }
 
-static __u64 osc_enq2ldlm_flags(__u32 enqflags)
+static u64 osc_enq2ldlm_flags(u32 enqflags)
 {
-	__u64 result = 0;
+	u64 result = 0;
 
 	LASSERT((enqflags & ~CEF_MASK) == 0);
 
@@ -200,7 +200,7 @@ static void osc_lock_lvb_update(const struct lu_env *env,
 
 	cl_object_attr_lock(obj);
 	if (dlmlock) {
-		__u64 size;
+		u64 size;
 
 		check_res_locked(dlmlock->l_resource);
 		LASSERT(lvb == dlmlock->l_lvb_data);
@@ -450,7 +450,7 @@ static int __osc_dlm_blocking_ast(const struct lu_env *env,
 	if (obj) {
 		struct ldlm_extent *extent = &dlmlock->l_policy_data.l_extent;
 		struct cl_attr *attr = &osc_env_info(env)->oti_attr;
-		__u64 old_kms;
+		u64 old_kms;
 
 		/* Destroy pages covered by the extent of the DLM lock */
 		result = osc_lock_flush(cl2osc(obj),
@@ -1146,7 +1146,7 @@ int osc_lock_init(const struct lu_env *env,
 		  const struct cl_io *io)
 {
 	struct osc_lock *oscl;
-	__u32 enqflags = lock->cll_descr.cld_enq_flags;
+	u32 enqflags = lock->cll_descr.cld_enq_flags;
 
 	oscl = kmem_cache_zalloc(osc_lock_kmem, GFP_NOFS);
 	if (!oscl)
@@ -1200,7 +1200,7 @@ struct ldlm_lock *osc_dlmlock_at_pgoff(const struct lu_env *env,
 	struct lustre_handle lockh;
 	struct ldlm_lock *lock = NULL;
 	enum ldlm_mode mode;
-	__u64 flags;
+	u64 flags;
 
 	ostid_build_res_name(&obj->oo_oinfo->loi_oi, resname);
 	osc_index2policy(policy, osc2cl(obj), index, index);

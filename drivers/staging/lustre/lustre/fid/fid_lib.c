@@ -60,7 +60,7 @@
  */
 const struct lu_seq_range LUSTRE_SEQ_SPACE_RANGE = {
 	.lsr_start	= FID_SEQ_NORMAL,
-	.lsr_end	= (__u64)~0ULL,
+	.lsr_end	= (u64)~0ULL,
 };
 
 /* Zero range, used for init and other purposes. */

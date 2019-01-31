@@ -188,7 +188,7 @@ static int vvp_prep_size(const struct lu_env *env, struct cl_object *obj,
 			i_size_write(inode, kms);
 			CDEBUG(D_VFSTRACE, DFID " updating i_size %llu\n",
 			       PFID(lu_object_fid(&obj->co_lu)),
-			       (__u64)i_size_read(inode));
+			       (u64)i_size_read(inode));
 		}
 	}
 
@@ -204,7 +204,7 @@ static int vvp_prep_size(const struct lu_env *env, struct cl_object *obj,
  */
 
 static int vvp_io_one_lock_index(const struct lu_env *env, struct cl_io *io,
-				 __u32 enqflags, enum cl_lock_mode mode,
+				 u32 enqflags, enum cl_lock_mode mode,
 			  pgoff_t start, pgoff_t end)
 {
 	struct vvp_io          *vio   = vvp_env_io(env);
@@ -234,7 +234,7 @@ static int vvp_io_one_lock_index(const struct lu_env *env, struct cl_io *io,
 }
 
 static int vvp_io_one_lock(const struct lu_env *env, struct cl_io *io,
-			   __u32 enqflags, enum cl_lock_mode mode,
+			   u32 enqflags, enum cl_lock_mode mode,
 			   loff_t start, loff_t end)
 {
 	struct cl_object *obj = io->ci_obj;
@@ -355,7 +355,7 @@ static void vvp_io_fini(const struct lu_env *env, const struct cl_io_slice *ios)
 	}
 
 	if (!io->ci_ignore_layout && io->ci_verify_layout) {
-		__u32 gen = 0;
+		u32 gen = 0;
 
 		/* check layout version */
 		ll_layout_refresh(inode, &gen);
@@ -590,8 +590,8 @@ static int vvp_io_setattr_lock(const struct lu_env *env,
 			       const struct cl_io_slice *ios)
 {
 	struct cl_io  *io  = ios->cis_io;
-	__u64 new_size;
-	__u32 enqflags = 0;
+	u64 new_size;
+	u32 enqflags = 0;
 
 	if (cl_io_is_trunc(io)) {
 		new_size = io->u.ci_setattr.sa_attr.lvb_size;

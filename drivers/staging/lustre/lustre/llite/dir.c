@@ -138,7 +138,7 @@
  *
  */
 struct page *ll_get_dir_page(struct inode *dir, struct md_op_data *op_data,
-			     __u64 offset)
+			     u64 offset)
 {
 	struct md_callback cb_op;
 	struct page *page;
@@ -180,9 +180,9 @@ void ll_release_page(struct inode *inode, struct page *page, bool remove)
  * IF_* flag shld be converted to particular OS file type in
  * platform llite module.
  */
-static __u16 ll_dirent_type_get(struct lu_dirent *ent)
+static u16 ll_dirent_type_get(struct lu_dirent *ent)
 {
-	__u16 type = 0;
+	u16 type = 0;
 	struct luda_type *lt;
 	int len = 0;
 
@@ -197,11 +197,11 @@ static __u16 ll_dirent_type_get(struct lu_dirent *ent)
 	return type;
 }
 
-int ll_dir_read(struct inode *inode, __u64 *ppos, struct md_op_data *op_data,
+int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
 		struct dir_context *ctx)
 {
 	struct ll_sb_info    *sbi	= ll_i2sbi(inode);
-	__u64		   pos		= *ppos;
+	u64		   pos		= *ppos;
 	bool is_api32 = ll_need_32bit_api(sbi);
 	int		   is_hash64 = sbi->ll_flags & LL_SBI_64BIT_HASH;
 	struct page	  *page;
@@ -213,8 +213,8 @@ int ll_dir_read(struct inode *inode, __u64 *ppos, struct md_op_data *op_data,
 	while (rc == 0 && !done) {
 		struct lu_dirpage *dp;
 		struct lu_dirent  *ent;
-		__u64 hash;
-		__u64 next;
+		u64 hash;
+		u64 next;
 
 		if (IS_ERR(page)) {
 			rc = PTR_ERR(page);
@@ -225,11 +225,11 @@ int ll_dir_read(struct inode *inode, __u64 *ppos, struct md_op_data *op_data,
 		dp = page_address(page);
 		for (ent = lu_dirent_start(dp); ent && !done;
 		     ent = lu_dirent_next(ent)) {
-			__u16	  type;
+			u16	  type;
 			int	    namelen;
 			struct lu_fid  fid;
-			__u64	  lhash;
-			__u64	  ino;
+			u64	  lhash;
+			u64	  ino;
 
 			hash = le64_to_cpu(ent->lde_hash);
 			if (hash < pos)
@@ -294,7 +294,7 @@ static int ll_readdir(struct file *filp, struct dir_context *ctx)
 	struct inode		*inode	= file_inode(filp);
 	struct ll_file_data	*lfd	= LUSTRE_FPRIVATE(filp);
 	struct ll_sb_info	*sbi	= ll_i2sbi(inode);
-	__u64 pos = lfd ? lfd->lfd_pos : 0;
+	u64 pos = lfd ? lfd->lfd_pos : 0;
 	int			hash64	= sbi->ll_flags & LL_SBI_64BIT_HASH;
 	bool api32 = ll_need_32bit_api(sbi);
 	struct md_op_data *op_data;
@@ -327,7 +327,7 @@ static int ll_readdir(struct file *filp, struct dir_context *ctx)
 		 */
 		if (file_dentry(filp)->d_parent &&
 		    file_dentry(filp)->d_parent->d_inode) {
-			__u64 ibits = MDS_INODELOCK_UPDATE;
+			u64 ibits = MDS_INODELOCK_UPDATE;
 			struct inode *parent;
 
 			parent = file_dentry(filp)->d_parent->d_inode;
@@ -760,7 +760,7 @@ static int ll_ioc_copy_start(struct super_block *sb, struct hsm_copy *copy)
 	/* For archive request, we need to read the current file version. */
 	if (copy->hc_hai.hai_action == HSMA_ARCHIVE) {
 		struct inode	*inode;
-		__u64		 data_version = 0;
+		u64		 data_version = 0;
 
 		/* Get inode for this fid */
 		inode = search_inode_for_lustre(sb, &copy->hc_hai.hai_fid);
@@ -845,7 +845,7 @@ static int ll_ioc_copy_end(struct super_block *sb, struct hsm_copy *copy)
 	     (copy->hc_hai.hai_action == HSMA_RESTORE)) &&
 	    (copy->hc_errval == 0)) {
 		struct inode	*inode;
-		__u64		 data_version = 0;
+		u64		 data_version = 0;
 
 		/* Get lsm for this fid */
 		inode = search_inode_for_lustre(sb, &copy->hc_hai.hai_fid);
@@ -1522,7 +1522,7 @@ out_quotactl:
 	case LL_IOC_FID2MDTIDX: {
 		struct obd_export *exp = ll_i2mdexp(inode);
 		struct lu_fid fid;
-		__u32 index;
+		u32 index;
 
 		if (copy_from_user(&fid, (const struct lu_fid __user *)arg,
 				   sizeof(fid)))

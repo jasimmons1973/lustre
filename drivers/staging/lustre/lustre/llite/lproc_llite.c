@@ -1232,8 +1232,8 @@ static struct kobj_type llite_ktype = {
 };
 
 static const struct llite_file_opcode {
-	__u32       opcode;
-	__u32       type;
+	u32       opcode;
+	u32       type;
 	const char *opname;
 } llite_opcode_table[LPROC_LL_FILE_OPCODES] = {
 	/* file operation */
@@ -1352,7 +1352,7 @@ int ll_debugfs_register_super(struct super_block *sb, const char *name)
 
 	/* do counter init */
 	for (id = 0; id < LPROC_LL_FILE_OPCODES; id++) {
-		__u32 type = llite_opcode_table[id].type;
+		u32 type = llite_opcode_table[id].type;
 		void *ptr = NULL;
 
 		if (type & LPROCFS_TYPE_REGS)

@@ -94,7 +94,7 @@ struct fld_cache *fld_cache_init(const char *name,
  */
 void fld_cache_fini(struct fld_cache *cache)
 {
-	__u64 pct;
+	u64 pct;
 
 	LASSERT(cache);
 	fld_cache_flush(cache);
@@ -383,7 +383,7 @@ static int fld_cache_insert_nolock(struct fld_cache *cache,
 	struct list_head *prev = NULL;
 	const u64 new_start  = f_new->fce_range.lsr_start;
 	const u64 new_end  = f_new->fce_range.lsr_end;
-	__u32 new_flags  = f_new->fce_range.lsr_flags;
+	u32 new_flags  = f_new->fce_range.lsr_flags;
 
 	/*
 	 * Duplicate entries are eliminated in insert op.

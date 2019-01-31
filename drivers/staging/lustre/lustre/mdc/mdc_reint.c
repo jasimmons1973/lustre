@@ -64,7 +64,7 @@ static int mdc_reint(struct ptlrpc_request *request, int level)
  */
 int mdc_resource_get_unused(struct obd_export *exp, const struct lu_fid *fid,
 			    struct list_head *cancels, enum ldlm_mode mode,
-			    __u64 bits)
+			    u64 bits)
 {
 	struct ldlm_namespace *ns = exp->exp_obd->obd_namespace;
 	union ldlm_policy_data policy = {};
@@ -103,7 +103,7 @@ int mdc_setattr(struct obd_export *exp, struct md_op_data *op_data,
 	LIST_HEAD(cancels);
 	struct ptlrpc_request *req;
 	int count = 0, rc;
-	__u64 bits;
+	u64 bits;
 
 	bits = MDS_INODELOCK_UPDATE;
 	if (op_data->op_attr.ia_valid & (ATTR_MODE | ATTR_UID | ATTR_GID))
@@ -151,7 +151,7 @@ int mdc_setattr(struct obd_export *exp, struct md_op_data *op_data,
 int mdc_create(struct obd_export *exp, struct md_op_data *op_data,
 	       const void *data, size_t datalen, umode_t mode,
 	       uid_t uid, gid_t gid, kernel_cap_t cap_effective,
-	       __u64 rdev, struct ptlrpc_request **request)
+	       u64 rdev, struct ptlrpc_request **request)
 {
 	struct ptlrpc_request *req;
 	int level, rc;

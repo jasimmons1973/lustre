@@ -34,7 +34,7 @@
 
 /* The persistent object (i.e. actually stores stuff!) */
 #define ECHO_PERSISTENT_OBJID    1ULL
-#define ECHO_PERSISTENT_SIZE     ((__u64)(1 << 20))
+#define ECHO_PERSISTENT_SIZE     ((u64)(1 << 20))
 
 /* block size to use for data verification */
 #define OBD_ECHO_BLOCK_SIZE	(4 << 10)

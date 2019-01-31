@@ -85,7 +85,7 @@ struct echo_lock {
 	struct cl_lock_slice   el_cl;
 	struct list_head	     el_chain;
 	struct echo_object    *el_object;
-	__u64		  el_cookie;
+	u64		  el_cookie;
 	atomic_t	   el_refcount;
 };
 
@@ -912,7 +912,7 @@ static int cl_echo_object_put(struct echo_object *eco)
 
 static int __cl_echo_enqueue(struct lu_env *env, struct echo_object *eco,
 			     u64 start, u64 end, int mode,
-			     __u64 *cookie, __u32 enqflags)
+			     u64 *cookie, u32 enqflags)
 {
 	struct cl_io *io;
 	struct cl_lock *lck;
@@ -954,7 +954,7 @@ static int __cl_echo_enqueue(struct lu_env *env, struct echo_object *eco,
 }
 
 static int __cl_echo_cancel(struct lu_env *env, struct echo_device *ed,
-			    __u64 cookie)
+			    u64 cookie)
 {
 	struct echo_client_obd *ec = ed->ed_ec;
 	struct echo_lock       *ecl = NULL;

@@ -52,13 +52,13 @@
 static struct dentry *seq_debugfs_dir;
 
 static int seq_client_rpc(struct lu_client_seq *seq,
-			  struct lu_seq_range *output, __u32 opc,
+			  struct lu_seq_range *output, u32 opc,
 			  const char *opcname)
 {
 	struct obd_export     *exp = seq->lcs_exp;
 	struct ptlrpc_request *req;
 	struct lu_seq_range   *out, *in;
-	__u32                 *op;
+	u32                 *op;
 	unsigned int           debug_mask;
 	int                    rc;
 

@@ -53,7 +53,7 @@
 static int mgc_name2resid(char *name, int len, struct ldlm_res_id *res_id,
 			  int type)
 {
-	__u64 resname = 0;
+	u64 resname = 0;
 
 	if (len > sizeof(resname)) {
 		CERROR("name too long: %s\n", name);
@@ -883,10 +883,10 @@ static int mgc_set_mgs_param(struct obd_export *exp,
 }
 
 /* Take a config lock so we can get cancel notifications */
-static int mgc_enqueue(struct obd_export *exp, __u32 type,
-		       union ldlm_policy_data *policy, __u32 mode,
-		       __u64 *flags, void *bl_cb, void *cp_cb, void *gl_cb,
-		       void *data, __u32 lvb_len, void *lvb_swabber,
+static int mgc_enqueue(struct obd_export *exp, u32 type,
+		       union ldlm_policy_data *policy, u32 mode,
+		       u64 *flags, void *bl_cb, void *cp_cb, void *gl_cb,
+		       void *data, u32 lvb_len, void *lvb_swabber,
 		       struct lustre_handle *lockh)
 {
 	struct config_llog_data *cld = data;
@@ -1055,7 +1055,7 @@ static int mgc_set_info_async(const struct lu_env *env, struct obd_export *exp,
 }
 
 static int mgc_get_info(const struct lu_env *env, struct obd_export *exp,
-			__u32 keylen, void *key, __u32 *vallen, void *val)
+			u32 keylen, void *key, u32 *vallen, void *val)
 {
 	int rc = -EINVAL;
 
@@ -1120,7 +1120,7 @@ enum {
 
 static int mgc_apply_recover_logs(struct obd_device *mgc,
 				  struct config_llog_data *cld,
-				  __u64 max_version,
+				  u64 max_version,
 				  void *data, int datalen, bool mne_swab)
 {
 	struct config_llog_instance *cfg = &cld->cld_cfg;
@@ -1597,7 +1597,7 @@ static bool mgc_import_in_recovery(struct obd_import *imp)
 int mgc_process_log(struct obd_device *mgc, struct config_llog_data *cld)
 {
 	struct lustre_handle lockh = { 0 };
-	__u64 flags = LDLM_FL_NO_LRU;
+	u64 flags = LDLM_FL_NO_LRU;
 	bool retry = false;
 	int rc = 0, rcl;
 
