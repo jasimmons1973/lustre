@@ -51,13 +51,13 @@
 
 /****************** persistent mount data *********************/
 
-#define LDD_F_SV_TYPE_MDT   0x0001
-#define LDD_F_SV_TYPE_OST   0x0002
-#define LDD_F_SV_TYPE_MGS   0x0004
-#define LDD_F_SV_TYPE_MASK (LDD_F_SV_TYPE_MDT  | \
-			    LDD_F_SV_TYPE_OST  | \
-			    LDD_F_SV_TYPE_MGS)
-#define LDD_F_SV_ALL	0x0008
+#define LDD_F_SV_TYPE_MDT	0x0001
+#define LDD_F_SV_TYPE_OST	0x0002
+#define LDD_F_SV_TYPE_MGS	0x0004
+#define LDD_F_SV_TYPE_MASK	(LDD_F_SV_TYPE_MDT  | \
+				 LDD_F_SV_TYPE_OST  | \
+				 LDD_F_SV_TYPE_MGS)
+#define LDD_F_SV_ALL		0x0008
 
 /****************** mount command *********************/
 
@@ -65,7 +65,7 @@
  * everything as string options
  */
 
-#define LMD_MAGIC    0xbdacbd03
+#define LMD_MAGIC		0xbdacbd03
 #define LMD_PARAMS_MAXLEN	4096
 
 /* gleaned from the mount command - no persistent info here */
@@ -117,19 +117,19 @@ struct ll_sb_info;
 struct kobject;
 
 struct lustre_sb_info {
-	int			lsi_flags;
-	struct obd_device	*lsi_mgc;     /* mgc obd */
-	struct lustre_mount_data *lsi_lmd;     /* mount command info */
-	struct ll_sb_info	*lsi_llsbi;   /* add'l client sbi info */
-	struct dt_device	*lsi_dt_dev;  /* dt device to access disk fs*/
-	atomic_t		lsi_mounts;  /* references to the srv_mnt */
-	struct kobject		*lsi_kobj;
-	char			lsi_svname[MTI_NAME_MAXLEN];
-	char			lsi_osd_obdname[64];
-	char			lsi_osd_uuid[64];
-	struct obd_export	*lsi_osd_exp;
-	char			lsi_osd_type[16];
-	char			lsi_fstype[16];
+	int			  lsi_flags;
+	struct obd_device	 *lsi_mgc;    /* mgc obd */
+	struct lustre_mount_data *lsi_lmd;    /* mount command info */
+	struct ll_sb_info	 *lsi_llsbi;  /* add'l client sbi info */
+	struct dt_device	 *lsi_dt_dev; /* dt device to access disk fs */
+	atomic_t		  lsi_mounts; /* references to the srv_mnt */
+	struct kobject		 *lsi_kobj;
+	char			  lsi_svname[MTI_NAME_MAXLEN];
+	char			  lsi_osd_obdname[64];
+	char			  lsi_osd_uuid[64];
+	struct obd_export	 *lsi_osd_exp;
+	char			  lsi_osd_type[16];
+	char			  lsi_fstype[16];
 };
 
 #define LSI_UMOUNT_FAILOVER	0x00200000

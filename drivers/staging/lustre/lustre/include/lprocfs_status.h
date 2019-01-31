@@ -49,25 +49,25 @@
 #include <uapi/linux/lustre/lustre_idl.h>
 
 struct lprocfs_vars {
-	const char		*name;
+	const char			*name;
 	const struct file_operations	*fops;
-	void			*data;
+	void				*data;
 	/**
 	 * sysfs file mode.
 	 */
-	umode_t			proc_mode;
+	umode_t				proc_mode;
 };
 
 struct lprocfs_static_vars {
-	struct lprocfs_vars *obd_vars;
-	const struct attribute_group *sysfs_vars;
+	struct lprocfs_vars		*obd_vars;
+	const struct attribute_group	*sysfs_vars;
 };
 
 /* if we find more consumers this could be generalized */
 #define OBD_HIST_MAX 32
 struct obd_histogram {
-	spinlock_t	oh_lock;
-	unsigned long	oh_buckets[OBD_HIST_MAX];
+	spinlock_t			oh_lock;
+	unsigned long			oh_buckets[OBD_HIST_MAX];
 };
 
 enum {
@@ -125,37 +125,37 @@ struct rename_stats {
  */
 
 enum {
-	LPROCFS_CNTR_EXTERNALLOCK = 0x0001,
-	LPROCFS_CNTR_AVGMINMAX    = 0x0002,
-	LPROCFS_CNTR_STDDEV       = 0x0004,
+	LPROCFS_CNTR_EXTERNALLOCK	= 0x0001,
+	LPROCFS_CNTR_AVGMINMAX		= 0x0002,
+	LPROCFS_CNTR_STDDEV		= 0x0004,
 
 	/* counter data type */
-	LPROCFS_TYPE_REGS	 = 0x0100,
-	LPROCFS_TYPE_BYTES	= 0x0200,
-	LPROCFS_TYPE_PAGES	= 0x0400,
-	LPROCFS_TYPE_CYCLE	= 0x0800,
+	LPROCFS_TYPE_REGS		= 0x0100,
+	LPROCFS_TYPE_BYTES		= 0x0200,
+	LPROCFS_TYPE_PAGES		= 0x0400,
+	LPROCFS_TYPE_CYCLE		= 0x0800,
 };
 
 #define LC_MIN_INIT ((~(u64)0) >> 1)
 
 struct lprocfs_counter_header {
-	unsigned int		lc_config;
-	const char		*lc_name;   /* must be static */
-	const char		*lc_units;  /* must be static */
+	unsigned int	 lc_config;
+	const char	*lc_name;   /* must be static */
+	const char	*lc_units;  /* must be static */
 };
 
 struct lprocfs_counter {
-	s64	lc_count;
-	s64	lc_min;
-	s64	lc_max;
-	s64	lc_sumsquare;
+	s64		lc_count;
+	s64		lc_min;
+	s64		lc_max;
+	s64		lc_sumsquare;
 	/*
 	 * Every counter has lc_array_sum[0], while lc_array_sum[1] is only
 	 * for irq context counter, i.e. stats with
 	 * LPROCFS_STATS_FLAG_IRQ_SAFE flag, its counter need
 	 * lc_array_sum[1]
 	 */
-	s64	lc_array_sum[1];
+	s64		lc_array_sum[1];
 };
 
 #define lc_sum		lc_array_sum[0]
@@ -165,20 +165,23 @@ struct lprocfs_percpu {
 #ifndef __GNUC__
 	s64			pad;
 #endif
-	struct lprocfs_counter lp_cntr[0];
+	struct lprocfs_counter	lp_cntr[0];
 };
 
 enum lprocfs_stats_lock_ops {
-	LPROCFS_GET_NUM_CPU	= 0x0001, /* number allocated per-CPU stats */
-	LPROCFS_GET_SMP_ID	= 0x0002, /* current stat to be updated */
+	LPROCFS_GET_NUM_CPU		= 0x0001, /* number allocated per-CPU
+						   * stats
+						   */
+	LPROCFS_GET_SMP_ID		= 0x0002, /* current stat to be updated
+						   */
 };
 
 enum lprocfs_stats_flags {
-	LPROCFS_STATS_FLAG_NONE     = 0x0000, /* per cpu counter */
-	LPROCFS_STATS_FLAG_NOPERCPU = 0x0001, /* stats have no percpu
-					       * area and need locking
-					       */
-	LPROCFS_STATS_FLAG_IRQ_SAFE = 0x0002, /* alloc need irq safe */
+	LPROCFS_STATS_FLAG_NONE		= 0x0000, /* per cpu counter */
+	LPROCFS_STATS_FLAG_NOPERCPU	= 0x0001, /* stats have no percpu
+						   * area and need locking
+						   */
+	LPROCFS_STATS_FLAG_IRQ_SAFE	= 0x0002, /* alloc need irq safe */
 };
 
 enum lprocfs_fields_flags {
@@ -187,7 +190,7 @@ enum lprocfs_fields_flags {
 	LPROCFS_FIELDS_FLAGS_MIN	= 0x0003,
 	LPROCFS_FIELDS_FLAGS_MAX	= 0x0004,
 	LPROCFS_FIELDS_FLAGS_AVG	= 0x0005,
-	LPROCFS_FIELDS_FLAGS_SUMSQUARE  = 0x0006,
+	LPROCFS_FIELDS_FLAGS_SUMSQUARE	= 0x0006,
 	LPROCFS_FIELDS_FLAGS_COUNT      = 0x0007,
 };
 
@@ -513,12 +516,12 @@ static int name##_single_open(struct inode *inode, struct file *file)	\
 	return single_open(file, name##_seq_show, inode->i_private);	\
 }									\
 static const struct file_operations name##_fops = {			\
-	.owner   = THIS_MODULE,					    \
-	.open    = name##_single_open,				     \
-	.read    = seq_read,					       \
-	.write   = custom_seq_write,				       \
-	.llseek  = seq_lseek,					      \
-	.release = lprocfs_single_release,				 \
+	.owner   = THIS_MODULE,						\
+	.open    = name##_single_open,					\
+	.read    = seq_read,						\
+	.write   = custom_seq_write,					\
+	.llseek  = seq_lseek,						\
+	.release = lprocfs_single_release,				\
 }
 
 #define LPROC_SEQ_FOPS_RO(name)	 __LPROC_SEQ_FOPS(name, NULL)

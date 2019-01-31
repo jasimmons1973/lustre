@@ -66,17 +66,17 @@ struct obd_device;
  * LDLM non-error return states
  */
 enum ldlm_error {
-	ELDLM_OK = 0,
-	ELDLM_LOCK_MATCHED = 1,
+	ELDLM_OK		= 0,
+	ELDLM_LOCK_MATCHED	= 1,
 
-	ELDLM_LOCK_CHANGED = 300,
-	ELDLM_LOCK_ABORTED = 301,
-	ELDLM_LOCK_REPLACED = 302,
-	ELDLM_NO_LOCK_DATA = 303,
-	ELDLM_LOCK_WOULDBLOCK = 304,
+	ELDLM_LOCK_CHANGED	= 300,
+	ELDLM_LOCK_ABORTED	= 301,
+	ELDLM_LOCK_REPLACED	= 302,
+	ELDLM_NO_LOCK_DATA	= 303,
+	ELDLM_LOCK_WOULDBLOCK	= 304,
 
-	ELDLM_NAMESPACE_EXISTS = 400,
-	ELDLM_BAD_NAMESPACE    = 401
+	ELDLM_NAMESPACE_EXISTS	= 400,
+	ELDLM_BAD_NAMESPACE	= 401
 };
 
 /**
@@ -389,7 +389,7 @@ struct ldlm_namespace {
 	 * Position in global namespace list linking all namespaces on
 	 * the node.
 	 */
-	struct list_head		ns_list_chain;
+	struct list_head	ns_list_chain;
 
 	/**
 	 * List of unused locks for this namespace. This list is also called
@@ -401,7 +401,7 @@ struct ldlm_namespace {
 	 * to release from the head of this list.
 	 * Locks are linked via l_lru field in \see struct ldlm_lock.
 	 */
-	struct list_head		ns_unused_list;
+	struct list_head	ns_unused_list;
 	/** Number of locks in the LRU list above */
 	int			ns_nr_unused;
 
@@ -437,7 +437,7 @@ struct ldlm_namespace {
 	 * Wait queue used by __ldlm_namespace_free. Gets woken up every time
 	 * a resource is removed.
 	 */
-	wait_queue_head_t		ns_waitq;
+	wait_queue_head_t	ns_waitq;
 	/** LDLM pool structure for this namespace */
 	struct ldlm_pool	ns_pool;
 	/** Definition of how eagerly unused locks will be released from LRU */
@@ -502,7 +502,7 @@ typedef int (*ldlm_glimpse_callback)(struct ldlm_lock *lock, void *data);
 /** Work list for sending GL ASTs to multiple locks. */
 struct ldlm_glimpse_work {
 	struct ldlm_lock	*gl_lock; /* lock to glimpse */
-	struct list_head		 gl_list; /* linkage to other gl work structs */
+	struct list_head	 gl_list; /* linkage to other gl work structs */
 	u32			 gl_flags;/* see LDLM_GL_WORK_* below */
 	union ldlm_gl_desc	*gl_desc; /* glimpse descriptor to be packed in
 					   * glimpse callback request
@@ -538,18 +538,18 @@ enum ldlm_cancel_flags {
 };
 
 struct ldlm_flock {
-	u64 start;
-	u64 end;
-	u64 owner;
-	u64 blocking_owner;
-	struct obd_export *blocking_export;
-	u32 pid;
+	u64			start;
+	u64			end;
+	u64			owner;
+	u64			blocking_owner;
+	struct obd_export	*blocking_export;
+	u32			pid;
 };
 
 union ldlm_policy_data {
-	struct ldlm_extent l_extent;
-	struct ldlm_flock l_flock;
-	struct ldlm_inodebits l_inodebits;
+	struct ldlm_extent	l_extent;
+	struct ldlm_flock	l_flock;
+	struct ldlm_inodebits	l_inodebits;
 };
 
 void ldlm_convert_policy_to_local(struct obd_export *exp, enum ldlm_type type,
@@ -589,23 +589,23 @@ struct ldlm_lock {
 	 *
 	 * Must be first in the structure.
 	 */
-	struct portals_handle	l_handle;
+	struct portals_handle		l_handle;
 	/**
 	 * Lock reference count.
 	 * This is how many users have pointers to actual structure, so that
 	 * we do not accidentally free lock structure that is in use.
 	 */
-	atomic_t		l_refc;
+	atomic_t			l_refc;
 	/**
 	 * Internal spinlock protects l_resource.  We should hold this lock
 	 * first before taking res_lock.
 	 */
-	spinlock_t		l_lock;
+	spinlock_t			l_lock;
 	/**
 	 * Pointer to actual resource this lock is in.
 	 * ldlm_lock_change_resource() can change this.
 	 */
-	struct ldlm_resource	*l_resource;
+	struct ldlm_resource		*l_resource;
 	/**
 	 * List item for client side LRU list.
 	 * Protected by ns_lock in struct ldlm_namespace.
@@ -620,20 +620,20 @@ struct ldlm_lock {
 	/**
 	 * Interval-tree node for ldlm_extent.
 	 */
-	struct rb_node		l_rb;
-	u64			__subtree_last;
+	struct rb_node			l_rb;
+	u64				__subtree_last;
 
 	/**
 	 * Requested mode.
 	 * Protected by lr_lock.
 	 */
-	enum ldlm_mode		l_req_mode;
+	enum ldlm_mode			l_req_mode;
 	/**
 	 * Granted mode, also protected by lr_lock.
 	 */
-	enum ldlm_mode		l_granted_mode;
+	enum ldlm_mode			l_granted_mode;
 	/** Lock completion handler pointer. Called when lock is granted. */
-	ldlm_completion_callback l_completion_ast;
+	ldlm_completion_callback	l_completion_ast;
 	/**
 	 * Lock blocking AST handler pointer.
 	 * It plays two roles:
@@ -644,51 +644,51 @@ struct ldlm_lock {
 	 * and then once more when the last user went away and the lock is
 	 * cancelled (could happen recursively).
 	 */
-	ldlm_blocking_callback	l_blocking_ast;
+	ldlm_blocking_callback		l_blocking_ast;
 	/**
 	 * Lock glimpse handler.
 	 * Glimpse handler is used to obtain LVB updates from a client by
 	 * server
 	 */
-	ldlm_glimpse_callback	l_glimpse_ast;
+	ldlm_glimpse_callback		l_glimpse_ast;
 
 	/**
 	 * Lock export.
 	 * This is a pointer to actual client export for locks that were granted
 	 * to clients. Used server-side.
 	 */
-	struct obd_export	*l_export;
+	struct obd_export		*l_export;
 	/**
 	 * Lock connection export.
 	 * Pointer to server export on a client.
 	 */
-	struct obd_export	*l_conn_export;
+	struct obd_export		*l_conn_export;
 
 	/**
 	 * Remote lock handle.
 	 * If the lock is remote, this is the handle of the other side lock
 	 * (l_handle)
 	 */
-	struct lustre_handle	l_remote_handle;
+	struct lustre_handle		l_remote_handle;
 
 	/**
 	 * Representation of private data specific for a lock type.
 	 * Examples are: extent range for extent lock or bitmask for ibits locks
 	 */
-	union ldlm_policy_data	l_policy_data;
+	union ldlm_policy_data		l_policy_data;
 
 	/**
 	 * Lock state flags. Protected by lr_lock.
 	 * \see lustre_dlm_flags.h where the bits are defined.
 	 */
-	u64			l_flags;
+	u64				l_flags;
 
 	/**
 	 * Lock r/w usage counters.
 	 * Protected by lr_lock.
 	 */
-	u32			l_readers;
-	u32			l_writers;
+	u32				l_readers;
+	u32				l_writers;
 	/**
 	 * If the lock is granted, a process sleeps on this waitq to learn when
 	 * it's no longer in use.  If the lock is not granted, a process sleeps
@@ -700,31 +700,31 @@ struct ldlm_lock {
 	 * Seconds. It will be updated if there is any activity related to
 	 * the lock, e.g. enqueue the lock or send blocking AST.
 	 */
-	time64_t		l_last_activity;
+	time64_t			l_last_activity;
 
 	/**
 	 * Time last used by e.g. being matched by lock match.
 	 * Jiffies. Should be converted to time if needed.
 	 */
-	unsigned long		l_last_used;
+	unsigned long			l_last_used;
 
 	/** Originally requested extent for the extent lock. */
-	struct ldlm_extent	l_req_extent;
+	struct ldlm_extent		l_req_extent;
 
 	/*
 	 * Client-side-only members.
 	 */
 
-	enum lvb_type	      l_lvb_type;
+	enum lvb_type			l_lvb_type;
 
 	/**
 	 * Temporary storage for a LVB received during an enqueue operation.
 	 */
-	u32			l_lvb_len;
-	void			*l_lvb_data;
+	u32				l_lvb_len;
+	void				*l_lvb_data;
 
 	/** Private storage for lock user. Opaque to LDLM. */
-	void			*l_ast_data;
+	void				*l_ast_data;
 
 	/*
 	 * Server-side-only members.
@@ -735,7 +735,7 @@ struct ldlm_lock {
 	 * Used by Commit on Share (COS) code. Currently only used for
 	 * inodebits locks on MDS.
 	 */
-	u64			l_client_cookie;
+	u64				l_client_cookie;
 
 	/**
 	 * List item for locks waiting for cancellation from clients.
@@ -753,10 +753,10 @@ struct ldlm_lock {
 	 * under this lock.
 	 * \see ost_rw_prolong_locks
 	 */
-	unsigned long		l_callback_timeout;
+	unsigned long			l_callback_timeout;
 
 	/** Local PID of process which created this lock. */
-	u32			l_pid;
+	u32				l_pid;
 
 	/**
 	 * Number of times blocking AST was sent for this lock.
@@ -764,7 +764,7 @@ struct ldlm_lock {
 	 * attempt to send blocking AST more than once, an assertion would be
 	 * hit. \see ldlm_work_bl_ast_lock
 	 */
-	int			l_bl_ast_run;
+	int				l_bl_ast_run;
 	/** List item ldlm_add_ast_work_item() for case of blocking ASTs. */
 	struct list_head		l_bl_ast;
 	/** List item ldlm_add_ast_work_item() for case of completion ASTs. */
@@ -776,7 +776,7 @@ struct ldlm_lock {
 	 * Pointer to a conflicting lock that caused blocking AST to be sent
 	 * for this lock
 	 */
-	struct ldlm_lock	*l_blocking_lock;
+	struct ldlm_lock		*l_blocking_lock;
 
 	/**
 	 * Protected by lr_lock, linkages to "skip lists".
@@ -786,15 +786,15 @@ struct ldlm_lock {
 	struct list_head		l_sl_policy;
 
 	/** Reference tracking structure to debug leaked locks. */
-	struct lu_ref		l_reference;
+	struct lu_ref			l_reference;
 #if LUSTRE_TRACKS_LOCK_EXP_REFS
 	/* Debugging stuff for bug 20498, for tracking export references. */
 	/** number of export references taken */
-	int			l_exp_refs_nr;
+	int				l_exp_refs_nr;
 	/** link all locks referencing one export */
 	struct list_head		l_exp_refs_link;
 	/** referenced export object */
-	struct obd_export	*l_exp_refs_target;
+	struct obd_export		*l_exp_refs_target;
 #endif
 };
 
@@ -810,19 +810,19 @@ struct ldlm_lock {
  * whether the locks are conflicting or not.
  */
 struct ldlm_resource {
-	struct ldlm_ns_bucket	*lr_ns_bucket;
+	struct ldlm_ns_bucket		*lr_ns_bucket;
 
 	/**
 	 * List item for list in namespace hash.
 	 * protected by ns_lock
 	 */
-	struct hlist_node	lr_hash;
+	struct hlist_node		lr_hash;
 
 	/** Reference count for this resource */
-	atomic_t		lr_refcount;
+	atomic_t			lr_refcount;
 
 	/** Spinlock to protect locks under this resource. */
-	spinlock_t		lr_lock;
+	spinlock_t			lr_lock;
 
 	/**
 	 * protected by lr_lock
@@ -838,30 +838,30 @@ struct ldlm_resource {
 	/** @} */
 
 	/** Resource name */
-	struct ldlm_res_id	lr_name;
+	struct ldlm_res_id		lr_name;
 
 	/**
 	 * Interval trees (only for extent locks) for all modes of this resource
 	 */
-	struct ldlm_interval_tree *lr_itree;
+	struct ldlm_interval_tree	*lr_itree;
 
 	/** Type of locks this resource can hold. Only one type per resource. */
-	enum ldlm_type		lr_type; /* LDLM_{PLAIN,EXTENT,FLOCK,IBITS} */
+	enum ldlm_type			lr_type; /* LDLM_{PLAIN,EXTENT,FLOCK,IBITS} */
 
 	/**
 	 * Server-side-only lock value block elements.
 	 * To serialize lvbo_init.
 	 */
-	int			lr_lvb_len;
-	struct mutex		lr_lvb_mutex;
+	int				lr_lvb_len;
+	struct mutex			lr_lvb_mutex;
 
 	/**
 	 * Associated inode, used only on client side.
 	 */
-	struct inode		*lr_lvb_inode;
+	struct inode			*lr_lvb_inode;
 
 	/** List of references to this resource. For debugging. */
-	struct lu_ref		lr_reference;
+	struct lu_ref			lr_reference;
 };
 
 static inline bool ldlm_has_layout(struct ldlm_lock *lock)
@@ -931,26 +931,26 @@ static inline int ldlm_lvbo_fill(struct ldlm_lock *lock, void *buf, int len)
 }
 
 struct ldlm_ast_work {
-	struct ldlm_lock      *w_lock;
-	int		    w_blocking;
-	struct ldlm_lock_desc  w_desc;
-	struct list_head	     w_list;
-	int		    w_flags;
-	void		  *w_data;
-	int		    w_datalen;
+	struct ldlm_lock       *w_lock;
+	int			w_blocking;
+	struct ldlm_lock_desc	w_desc;
+	struct list_head	w_list;
+	int			w_flags;
+	void		       *w_data;
+	int			w_datalen;
 };
 
 /**
  * Common ldlm_enqueue parameters
  */
 struct ldlm_enqueue_info {
-	enum ldlm_type	ei_type;  /** Type of the lock being enqueued. */
-	enum ldlm_mode	ei_mode;  /** Mode of the lock being enqueued. */
-	void *ei_cb_bl;  /** blocking lock callback */
-	void *ei_cb_cp;  /** lock completion callback */
-	void *ei_cb_gl;  /** lock glimpse callback */
-	void *ei_cbdata; /** Data to be passed into callbacks. */
-	unsigned int ei_enq_slave:1; /* whether enqueue slave stripes */
+	enum ldlm_type		ei_type;  /** Type of the lock being enqueued. */
+	enum ldlm_mode		ei_mode;  /** Mode of the lock being enqueued. */
+	void			*ei_cb_bl;  /** blocking lock callback */
+	void			*ei_cb_cp;  /** lock completion callback */
+	void			*ei_cb_gl;  /** lock glimpse callback */
+	void			*ei_cbdata; /** Data to be passed into callbacks. */
+	unsigned int		ei_enq_slave:1; /* whether enqueue slave stripes */
 };
 
 extern struct obd_ops ldlm_obd_ops;
@@ -971,12 +971,12 @@ const char *ldlm_it2str(enum ldlm_intent_flags it);
  * \see LDLM_DEBUG
  */
 #define ldlm_lock_debug(msgdata, mask, cdls, lock, fmt, a...) do {      \
-	CFS_CHECK_STACK(msgdata, mask, cdls);			   \
+	CFS_CHECK_STACK(msgdata, mask, cdls);				\
 									\
-	if (((mask) & D_CANTMASK) != 0 ||			       \
-	    ((libcfs_debug & (mask)) != 0 &&			    \
-	     (libcfs_subsystem_debug & DEBUG_SUBSYSTEM) != 0))	  \
-		_ldlm_lock_debug(lock, msgdata, fmt, ##a);	      \
+	if (((mask) & D_CANTMASK) != 0 ||				\
+	    ((libcfs_debug & (mask)) != 0 &&				\
+	     (libcfs_subsystem_debug & DEBUG_SUBSYSTEM) != 0))		\
+		_ldlm_lock_debug(lock, msgdata, fmt, ##a);		\
 } while (0)
 
 void _ldlm_lock_debug(struct ldlm_lock *lock,
@@ -987,9 +987,9 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 /**
  * Rate-limited version of lock printing function.
  */
-#define LDLM_DEBUG_LIMIT(mask, lock, fmt, a...) do {			 \
-	static struct cfs_debug_limit_state _ldlm_cdls;			   \
-	LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, mask, &_ldlm_cdls);	      \
+#define LDLM_DEBUG_LIMIT(mask, lock, fmt, a...) do {			\
+	static struct cfs_debug_limit_state _ldlm_cdls;			\
+	LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, mask, &_ldlm_cdls);		\
 	ldlm_lock_debug(&msgdata, mask, &_ldlm_cdls, lock, "### " fmt, ##a);\
 } while (0)
 
@@ -997,14 +997,14 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 #define LDLM_WARN(lock, fmt, a...)  LDLM_DEBUG_LIMIT(D_WARNING, lock, fmt, ## a)
 
 /** Non-rate-limited lock printing function for debugging purposes. */
-#define LDLM_DEBUG(lock, fmt, a...)   do {				  \
-	if (likely(lock)) {						    \
-		LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, D_DLMTRACE, NULL);      \
-		ldlm_lock_debug(&msgdata, D_DLMTRACE, NULL, lock,	    \
-				"### " fmt, ##a);			    \
-	} else {							    \
-		LDLM_DEBUG_NOLOCK("no dlm lock: " fmt, ##a);		    \
-	}								    \
+#define LDLM_DEBUG(lock, fmt, a...)   do {				\
+	if (likely(lock)) {						\
+		LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, D_DLMTRACE, NULL);	\
+		ldlm_lock_debug(&msgdata, D_DLMTRACE, NULL, lock,	\
+				"### " fmt, ##a);			\
+	} else {							\
+		LDLM_DEBUG_NOLOCK("no dlm lock: " fmt, ##a);		\
+	}								\
 } while (0)
 
 typedef int (*ldlm_processing_policy)(struct ldlm_lock *lock, u64 *flags,
@@ -1040,9 +1040,9 @@ int ldlm_flock_completion_ast(struct ldlm_lock *lock, u64 flags, void *data);
 u64 ldlm_extent_shift_kms(struct ldlm_lock *lock, u64 old_kms);
 
 struct ldlm_callback_suite {
-	ldlm_completion_callback lcs_completion;
-	ldlm_blocking_callback   lcs_blocking;
-	ldlm_glimpse_callback    lcs_glimpse;
+	ldlm_completion_callback	lcs_completion;
+	ldlm_blocking_callback		lcs_blocking;
+	ldlm_glimpse_callback		lcs_glimpse;
 };
 
 /* ldlm_lockd.c */
@@ -1105,41 +1105,41 @@ void ldlm_dump_export_locks(struct obd_export *exp);
  * Release a temporary lock reference obtained by ldlm_handle2lock() or
  * __ldlm_handle2lock().
  */
-#define LDLM_LOCK_PUT(lock)		     \
-do {					    \
-	LDLM_LOCK_REF_DEL(lock);		\
-	/*LDLM_DEBUG((lock), "put");*/	  \
-	ldlm_lock_put(lock);		    \
+#define LDLM_LOCK_PUT(lock)		\
+do {					\
+	LDLM_LOCK_REF_DEL(lock);	\
+	/*LDLM_DEBUG((lock), "put");*/	\
+	ldlm_lock_put(lock);		\
 } while (0)
 
 /**
  * Release a lock reference obtained by some other means (see
  * LDLM_LOCK_PUT()).
  */
-#define LDLM_LOCK_RELEASE(lock)		 \
-do {					    \
-	/*LDLM_DEBUG((lock), "put");*/	  \
-	ldlm_lock_put(lock);		    \
+#define LDLM_LOCK_RELEASE(lock)		\
+do {					\
+	/*LDLM_DEBUG((lock), "put");*/	\
+	ldlm_lock_put(lock);		\
 } while (0)
 
-#define LDLM_LOCK_GET(lock)		     \
-({					      \
-	ldlm_lock_get(lock);		    \
-	/*LDLM_DEBUG((lock), "get");*/	  \
-	lock;				   \
+#define LDLM_LOCK_GET(lock)		\
+({					\
+	ldlm_lock_get(lock);		\
+	/*LDLM_DEBUG((lock), "get");*/	\
+	lock;				\
 })
 
-#define ldlm_lock_list_put(head, member, count)		     \
-({								  \
-	struct ldlm_lock *_lock, *_next;			    \
-	int c = count;					      \
-	list_for_each_entry_safe(_lock, _next, head, member) {  \
-		if (c-- == 0)				       \
-			break;				      \
-		list_del_init(&_lock->member);		  \
-		LDLM_LOCK_RELEASE(_lock);			   \
-	}							   \
-	LASSERT(c <= 0);					    \
+#define ldlm_lock_list_put(head, member, count)			\
+({								\
+	struct ldlm_lock *_lock, *_next;			\
+	int c = count;						\
+	list_for_each_entry_safe(_lock, _next, head, member) {	\
+		if (c-- == 0)					\
+			break;					\
+		list_del_init(&_lock->member);			\
+		LDLM_LOCK_RELEASE(_lock);			\
+	}							\
+	LASSERT(c <= 0);					\
 })
 
 struct ldlm_lock *ldlm_lock_get(struct ldlm_lock *lock);
@@ -1198,12 +1198,12 @@ void ldlm_resource_dump(int level, struct ldlm_resource *);
 int ldlm_lock_change_resource(struct ldlm_namespace *, struct ldlm_lock *,
 			      const struct ldlm_res_id *);
 
-#define LDLM_RESOURCE_ADDREF(res) do {				  \
-	lu_ref_add_atomic(&(res)->lr_reference, __func__, current);  \
+#define LDLM_RESOURCE_ADDREF(res) do {					\
+	lu_ref_add_atomic(&(res)->lr_reference, __func__, current);	\
 } while (0)
 
-#define LDLM_RESOURCE_DELREF(res) do {				  \
-	lu_ref_del(&(res)->lr_reference, __func__, current);	  \
+#define LDLM_RESOURCE_DELREF(res) do {				\
+	lu_ref_del(&(res)->lr_reference, __func__, current);	\
 } while (0)
 
 /* ldlm_request.c */
