@@ -33,12 +33,12 @@
 
 #define DEBUG_SUBSYSTEM S_MDC
 
-# include <linux/module.h>
-# include <linux/pagemap.h>
-# include <linux/init.h>
-# include <linux/utsname.h>
-# include <linux/file.h>
-# include <linux/kthread.h>
+#include <linux/module.h>
+#include <linux/pagemap.h>
+#include <linux/init.h>
+#include <linux/utsname.h>
+#include <linux/file.h>
+#include <linux/kthread.h>
 #include <linux/prefetch.h>
 
 #include <lustre_errno.h>
@@ -96,8 +96,8 @@ static int mdc_get_root(struct obd_export *exp, const char *fileset,
 			struct lu_fid *rootfid)
 {
 	struct ptlrpc_request *req;
-	struct mdt_body       *body;
-	int		    rc;
+	struct mdt_body *body;
+	int rc;
 
 	if (fileset && !(exp_connect_flags(exp) & OBD_CONNECT_SUBTREE))
 		return -ENOTSUPP;
@@ -160,9 +160,9 @@ static int mdc_getattr_common(struct obd_export *exp,
 			      struct ptlrpc_request *req)
 {
 	struct req_capsule *pill = &req->rq_pill;
-	struct mdt_body    *body;
-	void	       *eadata;
-	int		 rc;
+	struct mdt_body *body;
+	void *eadata;
+	int rc;
 
 	/* Request message already built. */
 	rc = ptlrpc_queue_wait(req);
@@ -191,7 +191,7 @@ static int mdc_getattr(struct obd_export *exp, struct md_op_data *op_data,
 		       struct ptlrpc_request **request)
 {
 	struct ptlrpc_request *req;
-	int		    rc;
+	int rc;
 
 	/* Single MDS without an LMV case */
 	if (op_data->op_flags & MF_GET_MDT_IDX) {
@@ -230,7 +230,7 @@ static int mdc_getattr_name(struct obd_export *exp, struct md_op_data *op_data,
 			    struct ptlrpc_request **request)
 {
 	struct ptlrpc_request *req;
-	int		    rc;
+	int rc;
 
 	*request = NULL;
 	req = ptlrpc_request_alloc(class_exp2cliimp(exp),
@@ -281,9 +281,9 @@ static int mdc_xattr_common(struct obd_export *exp,
 			    u32 suppgid, struct ptlrpc_request **request)
 {
 	struct ptlrpc_request *req;
-	int   xattr_namelen = 0;
+	int xattr_namelen = 0;
 	char *tmp;
-	int   rc;
+	int rc;
 
 	*request = NULL;
 	req = ptlrpc_request_alloc(class_exp2cliimp(exp), fmt);
@@ -333,19 +333,19 @@ static int mdc_xattr_common(struct obd_export *exp,
 		struct mdt_rec_setxattr *rec;
 
 		BUILD_BUG_ON(sizeof(struct mdt_rec_setxattr) !=
-			 sizeof(struct mdt_rec_reint));
+			     sizeof(struct mdt_rec_reint));
 		rec = req_capsule_client_get(&req->rq_pill, &RMF_REC_REINT);
 		rec->sx_opcode = REINT_SETXATTR;
-		rec->sx_fsuid  = from_kuid(&init_user_ns, current_fsuid());
-		rec->sx_fsgid  = from_kgid(&init_user_ns, current_fsgid());
-		rec->sx_cap    = current_cap().cap[0];
+		rec->sx_fsuid = from_kuid(&init_user_ns, current_fsuid());
+		rec->sx_fsgid = from_kgid(&init_user_ns, current_fsgid());
+		rec->sx_cap = current_cap().cap[0];
 		rec->sx_suppgid1 = suppgid;
 		rec->sx_suppgid2 = -1;
-		rec->sx_fid    = *fid;
-		rec->sx_valid  = valid | OBD_MD_FLCTIME;
-		rec->sx_time   = ktime_get_real_seconds();
-		rec->sx_size   = output_size;
-		rec->sx_flags  = flags;
+		rec->sx_fid = *fid;
+		rec->sx_valid = valid | OBD_MD_FLCTIME;
+		rec->sx_time = ktime_get_real_seconds();
+		rec->sx_size = output_size;
+		rec->sx_flags = flags;
 
 	} else {
 		mdc_pack_body(req, fid, valid, output_size, suppgid, flags);
@@ -411,11 +411,11 @@ static int mdc_getxattr(struct obd_export *exp, const struct lu_fid *fid,
 #ifdef CONFIG_FS_POSIX_ACL
 static int mdc_unpack_acl(struct ptlrpc_request *req, struct lustre_md *md)
 {
-	struct req_capsule     *pill = &req->rq_pill;
+	struct req_capsule *pill = &req->rq_pill;
 	struct mdt_body	*body = md->body;
-	struct posix_acl       *acl;
-	void		   *buf;
-	int		     rc;
+	struct posix_acl *acl;
+	void *buf;
+	int rc;
 
 	if (!body->mbo_aclsize)
 		return 0;
@@ -643,11 +643,11 @@ int mdc_set_open_replay_data(struct obd_export *exp,
 			     struct obd_client_handle *och,
 			     struct lookup_intent *it)
 {
-	struct md_open_data   *mod;
+	struct md_open_data *mod;
 	struct mdt_rec_create *rec;
-	struct mdt_body       *body;
+	struct mdt_body *body;
 	struct ptlrpc_request *open_req = it->it_request;
-	struct obd_import     *imp = open_req->rq_import;
+	struct obd_import *imp = open_req->rq_import;
 
 	if (!open_req->rq_replay)
 		return 0;
@@ -758,11 +758,11 @@ static int mdc_clear_open_replay_data(struct obd_export *exp,
 static int mdc_close(struct obd_export *exp, struct md_op_data *op_data,
 		     struct md_open_data *mod, struct ptlrpc_request **request)
 {
-	struct obd_device     *obd = class_exp2obd(exp);
+	struct obd_device *obd = class_exp2obd(exp);
 	struct ptlrpc_request *req;
-	struct req_format     *req_fmt;
-	int                    rc;
-	int		       saved_rc = 0;
+	struct req_format *req_fmt;
+	int rc;
+	int saved_rc = 0;
 
 	if (op_data->op_bias & MDS_HSM_RELEASE) {
 		req_fmt = &RQF_MDS_INTENT_CLOSE;
@@ -1056,7 +1056,7 @@ static struct page *mdc_page_locate(struct address_space *mapping, u64 *hash,
  *
  * A lu_dirpage is laid out as follows, where s = ldp_hash_start,
  * e = ldp_hash_end, f = ldp_flags, p = padding, and each "ent" is a
- * struct lu_dirent.  It has size up to LU_PAGE_SIZE. The ldp_hash_end
+ * struct lu_dirent. It has size up to LU_PAGE_SIZE. The ldp_hash_end
  * value is used as a cookie to request the next lu_dirpage in a
  * directory listing that spans multiple pages (two in this example):
  *   ________
@@ -1420,11 +1420,11 @@ static int mdc_statfs(const struct lu_env *env,
 		      struct obd_export *exp, struct obd_statfs *osfs,
 		      u64 max_age, u32 flags)
 {
-	struct obd_device     *obd = class_exp2obd(exp);
+	struct obd_device *obd = class_exp2obd(exp);
 	struct ptlrpc_request *req;
-	struct obd_statfs     *msfs;
-	struct obd_import     *imp = NULL;
-	int		    rc;
+	struct obd_statfs *msfs;
+	struct obd_import *imp = NULL;
+	int rc;
 
 	/*
 	 * Since the request might also come from lprocfs, so we need
@@ -1487,7 +1487,7 @@ static int mdc_ioc_fid2path(struct obd_export *exp, struct getinfo_fid2path *gf)
 
 	/* Key is KEY_FID2PATH + getinfo_fid2path description */
 	keylen = cfs_size_round(sizeof(KEY_FID2PATH)) + sizeof(*gf) +
-		 sizeof(struct lu_fid);
+				sizeof(struct lu_fid);
 	key = kzalloc(keylen, GFP_NOFS);
 	if (!key)
 		return -ENOMEM;
@@ -1533,10 +1533,10 @@ out:
 static int mdc_ioc_hsm_progress(struct obd_export *exp,
 				struct hsm_progress_kernel *hpk)
 {
-	struct obd_import		*imp = class_exp2cliimp(exp);
-	struct hsm_progress_kernel	*req_hpk;
-	struct ptlrpc_request		*req;
-	int				 rc;
+	struct obd_import *imp = class_exp2cliimp(exp);
+	struct hsm_progress_kernel *req_hpk;
+	struct ptlrpc_request *req;
+	int rc;
 
 	req = ptlrpc_request_alloc_pack(imp, &RQF_MDS_HSM_PROGRESS,
 					LUSTRE_MDS_VERSION, MDS_HSM_PROGRESS);
@@ -1569,9 +1569,9 @@ out:
 
 static int mdc_ioc_hsm_ct_register(struct obd_import *imp, u32 archives)
 {
-	u32			*archive_mask;
-	struct ptlrpc_request	*req;
-	int			 rc;
+	u32 *archive_mask;
+	struct ptlrpc_request *req;
+	int rc;
 
 	req = ptlrpc_request_alloc_pack(imp, &RQF_MDS_HSM_CT_REGISTER,
 					LUSTRE_MDS_VERSION,
@@ -1604,10 +1604,10 @@ out:
 static int mdc_ioc_hsm_current_action(struct obd_export *exp,
 				      struct md_op_data *op_data)
 {
-	struct hsm_current_action	*hca = op_data->op_data;
-	struct hsm_current_action	*req_hca;
-	struct ptlrpc_request		*req;
-	int				 rc;
+	struct hsm_current_action *hca = op_data->op_data;
+	struct hsm_current_action *req_hca;
+	struct ptlrpc_request *req;
+	int rc;
 
 	req = ptlrpc_request_alloc(class_exp2cliimp(exp),
 				   &RQF_MDS_HSM_ACTION);
@@ -1645,8 +1645,8 @@ out:
 
 static int mdc_ioc_hsm_ct_unregister(struct obd_import *imp)
 {
-	struct ptlrpc_request	*req;
-	int			 rc;
+	struct ptlrpc_request *req;
+	int rc;
 
 	req = ptlrpc_request_alloc_pack(imp, &RQF_MDS_HSM_CT_UNREGISTER,
 					LUSTRE_MDS_VERSION,
@@ -1669,10 +1669,10 @@ out:
 static int mdc_ioc_hsm_state_get(struct obd_export *exp,
 				 struct md_op_data *op_data)
 {
-	struct hsm_user_state	*hus = op_data->op_data;
-	struct hsm_user_state	*req_hus;
-	struct ptlrpc_request	*req;
-	int			 rc;
+	struct hsm_user_state *hus = op_data->op_data;
+	struct hsm_user_state *req_hus;
+	struct ptlrpc_request *req;
+	int rc;
 
 	req = ptlrpc_request_alloc(class_exp2cliimp(exp),
 				   &RQF_MDS_HSM_STATE_GET);
@@ -1710,10 +1710,10 @@ out:
 static int mdc_ioc_hsm_state_set(struct obd_export *exp,
 				 struct md_op_data *op_data)
 {
-	struct hsm_state_set	*hss = op_data->op_data;
-	struct hsm_state_set	*req_hss;
-	struct ptlrpc_request	*req;
-	int			 rc;
+	struct hsm_state_set *hss = op_data->op_data;
+	struct hsm_state_set *req_hss;
+	struct ptlrpc_request *req;
+	int rc;
 
 	req = ptlrpc_request_alloc(class_exp2cliimp(exp),
 				   &RQF_MDS_HSM_STATE_SET);
@@ -1750,12 +1750,12 @@ out:
 static int mdc_ioc_hsm_request(struct obd_export *exp,
 			       struct hsm_user_request *hur)
 {
-	struct obd_import	*imp = class_exp2cliimp(exp);
-	struct ptlrpc_request	*req;
-	struct hsm_request	*req_hr;
-	struct hsm_user_item	*req_hui;
-	char			*req_opaque;
-	int			 rc;
+	struct obd_import *imp = class_exp2cliimp(exp);
+	struct ptlrpc_request *req;
+	struct hsm_request *req_hr;
+	struct hsm_user_item *req_hui;
+	char *req_opaque;
+	int rc;
 
 	req = ptlrpc_request_alloc(imp, &RQF_MDS_HSM_REQUEST);
 	if (!req) {
@@ -1818,9 +1818,9 @@ static int mdc_ioc_hsm_ct_start(struct obd_export *exp,
 static int mdc_quotactl(struct obd_device *unused, struct obd_export *exp,
 			struct obd_quotactl *oqctl)
 {
-	struct ptlrpc_request   *req;
-	struct obd_quotactl     *oqc;
-	int		      rc;
+	struct ptlrpc_request *req;
+	struct obd_quotactl *oqc;
+	int rc;
 
 	req = ptlrpc_request_alloc_pack(class_exp2cliimp(exp),
 					&RQF_MDS_QUOTACTL, LUSTRE_MDS_VERSION,
@@ -1860,8 +1860,8 @@ static int mdc_ioc_swap_layouts(struct obd_export *exp,
 				struct md_op_data *op_data)
 {
 	LIST_HEAD(cancels);
-	struct ptlrpc_request	*req;
-	int			 rc, count;
+	struct ptlrpc_request *req;
+	int rc, count;
 	struct mdc_swap_layouts *msl, *payload;
 
 	msl = op_data->op_data;
@@ -1965,7 +1965,7 @@ static int mdc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	 * bz20731, LU-592.
 	 */
 	case IOC_OBD_STATFS: {
-		struct obd_statfs stat_buf = {0};
+		struct obd_statfs stat_buf = { 0 };
 
 		if (*((u32 *)data->ioc_inlbuf2) != 0) {
 			rc = -ENODEV;
@@ -2044,10 +2044,10 @@ static int mdc_get_info_rpc(struct obd_export *exp,
 			    u32 keylen, void *key,
 			    int vallen, void *val)
 {
-	struct obd_import      *imp = class_exp2cliimp(exp);
-	struct ptlrpc_request  *req;
-	char		   *tmp;
-	int		     rc = -EINVAL;
+	struct obd_import *imp = class_exp2cliimp(exp);
+	struct ptlrpc_request *req;
+	char *tmp;
+	int rc = -EINVAL;
 
 	req = ptlrpc_request_alloc(imp, &RQF_MDS_GET_INFO);
 	if (!req)
@@ -2104,7 +2104,7 @@ static void lustre_swab_hai(struct hsm_action_item *h)
 
 static void lustre_swab_hal(struct hsm_action_list *h)
 {
-	struct hsm_action_item	*hai;
+	struct hsm_action_item *hai;
 	u32 i;
 
 	__swab32s(&h->hal_version);
@@ -2127,9 +2127,9 @@ static void lustre_swab_kuch(struct kuc_hdr *l)
 static int mdc_ioc_hsm_ct_start(struct obd_export *exp,
 				struct lustre_kernelcomm *lk)
 {
-	struct obd_import  *imp = class_exp2cliimp(exp);
-	u32		    archive = lk->lk_data;
-	int		    rc = 0;
+	struct obd_import *imp = class_exp2cliimp(exp);
+	u32 archive = lk->lk_data;
+	int rc = 0;
 
 	if (lk->lk_group != KUC_GRP_HSM) {
 		CERROR("Bad copytool group %d\n", lk->lk_group);
@@ -2156,8 +2156,8 @@ static int mdc_ioc_hsm_ct_start(struct obd_export *exp,
  */
 static int mdc_hsm_copytool_send(size_t len, void *val)
 {
-	struct kuc_hdr		*lh = (struct kuc_hdr *)val;
-	struct hsm_action_list	*hal = (struct hsm_action_list *)(lh + 1);
+	struct kuc_hdr *lh = (struct kuc_hdr *)val;
+	struct hsm_action_list *hal = (struct hsm_action_list *)(lh + 1);
 
 	if (len < sizeof(*lh) + sizeof(*hal)) {
 		CERROR("Short HSM message %zu < %zu\n", len,
@@ -2189,9 +2189,9 @@ static int mdc_hsm_copytool_send(size_t len, void *val)
  */
 static int mdc_hsm_ct_reregister(void *data, void *cb_arg)
 {
-	struct kkuc_ct_data	*kcd = data;
-	struct obd_import	*imp = (struct obd_import *)cb_arg;
-	int			 rc;
+	struct kkuc_ct_data *kcd = data;
+	struct obd_import *imp = (struct obd_import *)cb_arg;
+	int rc;
 
 	if (!kcd || kcd->kcd_magic != KKUC_CT_DATA_MAGIC)
 		return -EPROTO;
@@ -2213,8 +2213,8 @@ static int mdc_set_info_async(const struct lu_env *env,
 			      u32 vallen, void *val,
 			      struct ptlrpc_request_set *set)
 {
-	struct obd_import	*imp = class_exp2cliimp(exp);
-	int			 rc;
+	struct obd_import *imp = class_exp2cliimp(exp);
+	int rc;
 
 	if (KEY_IS(KEY_READ_ONLY)) {
 		if (vallen != sizeof(int))
@@ -2310,7 +2310,7 @@ static int mdc_fsync(struct obd_export *exp, const struct lu_fid *fid,
 		     struct ptlrpc_request **request)
 {
 	struct ptlrpc_request *req;
-	int		    rc;
+	int rc;
 
 	*request = NULL;
 	req = ptlrpc_request_alloc(class_exp2cliimp(exp), &RQF_MDS_SYNC);
@@ -2437,14 +2437,14 @@ static int mdc_resource_inode_free(struct ldlm_resource *res)
 }
 
 static struct ldlm_valblock_ops inode_lvbo = {
-	.lvbo_free = mdc_resource_inode_free,
+	.lvbo_free	= mdc_resource_inode_free,
 };
 
 static int mdc_llog_init(struct obd_device *obd)
 {
-	struct obd_llog_group	*olg = &obd->obd_olg;
-	struct llog_ctxt	*ctxt;
-	int			 rc;
+	struct obd_llog_group *olg = &obd->obd_olg;
+	struct llog_ctxt *ctxt;
+	int rc;
 
 	rc = llog_setup(NULL, obd, olg, LLOG_CHANGELOG_REPL_CTXT, obd,
 			&llog_client_ops);
@@ -2570,25 +2570,25 @@ static int mdc_process_config(struct obd_device *obd, u32 len, void *buf)
 }
 
 static struct obd_ops mdc_obd_ops = {
-	.owner          = THIS_MODULE,
-	.setup          = mdc_setup,
-	.precleanup     = mdc_precleanup,
-	.cleanup        = mdc_cleanup,
-	.add_conn       = client_import_add_conn,
-	.del_conn       = client_import_del_conn,
-	.connect        = client_connect_import,
-	.disconnect     = client_disconnect_export,
-	.iocontrol      = mdc_iocontrol,
-	.set_info_async = mdc_set_info_async,
-	.statfs         = mdc_statfs,
-	.fid_init       = client_fid_init,
-	.fid_fini       = client_fid_fini,
-	.fid_alloc      = mdc_fid_alloc,
-	.import_event   = mdc_import_event,
-	.get_info       = mdc_get_info,
-	.process_config = mdc_process_config,
-	.get_uuid       = mdc_get_uuid,
-	.quotactl       = mdc_quotactl,
+	.owner			= THIS_MODULE,
+	.setup			= mdc_setup,
+	.precleanup		= mdc_precleanup,
+	.cleanup		= mdc_cleanup,
+	.add_conn		= client_import_add_conn,
+	.del_conn		= client_import_del_conn,
+	.connect		= client_connect_import,
+	.disconnect		= client_disconnect_export,
+	.iocontrol		= mdc_iocontrol,
+	.set_info_async		= mdc_set_info_async,
+	.statfs			= mdc_statfs,
+	.fid_init		= client_fid_init,
+	.fid_fini		= client_fid_fini,
+	.fid_alloc		= mdc_fid_alloc,
+	.import_event		= mdc_import_event,
+	.get_info		= mdc_get_info,
+	.process_config		= mdc_process_config,
+	.get_uuid		= mdc_get_uuid,
+	.quotactl		= mdc_quotactl,
 };
 
 static struct md_ops mdc_md_ops = {
@@ -2629,7 +2629,7 @@ static int __init mdc_init(void)
 		return rc;
 
 	return class_register_type(&mdc_obd_ops, &mdc_md_ops,
-				 LUSTRE_MDC_NAME, NULL);
+				   LUSTRE_MDC_NAME, NULL);
 }
 
 static void /*__exit*/ mdc_exit(void)

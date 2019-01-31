@@ -223,7 +223,7 @@ rebuild:
 		req->rq_sent = ktime_get_real_seconds() + resends;
 	}
 	level = LUSTRE_IMP_FULL;
- resend:
+resend:
 	rc = mdc_reint(req, level);
 
 	/* Resend if we were told to. */

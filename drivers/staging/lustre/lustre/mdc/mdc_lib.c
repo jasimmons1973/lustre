@@ -153,30 +153,30 @@ void mdc_create_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 		     uid_t uid, gid_t gid, kernel_cap_t cap_effective,
 		     u64 rdev)
 {
-	struct mdt_rec_create	*rec;
-	char			*tmp;
-	u64			 flags;
+	struct mdt_rec_create *rec;
+	char *tmp;
+	u64 flags;
 
 	BUILD_BUG_ON(sizeof(struct mdt_rec_reint) != sizeof(struct mdt_rec_create));
 	rec = req_capsule_client_get(&req->rq_pill, &RMF_REC_REINT);
 
-	rec->cr_opcode   = REINT_CREATE;
-	rec->cr_fsuid    = uid;
-	rec->cr_fsgid    = gid;
-	rec->cr_cap      = cap_effective.cap[0];
-	rec->cr_fid1     = op_data->op_fid1;
-	rec->cr_fid2     = op_data->op_fid2;
-	rec->cr_mode     = mode;
-	rec->cr_rdev     = rdev;
-	rec->cr_time     = op_data->op_mod_time;
+	rec->cr_opcode = REINT_CREATE;
+	rec->cr_fsuid = uid;
+	rec->cr_fsgid = gid;
+	rec->cr_cap = cap_effective.cap[0];
+	rec->cr_fid1 = op_data->op_fid1;
+	rec->cr_fid2 = op_data->op_fid2;
+	rec->cr_mode = mode;
+	rec->cr_rdev = rdev;
+	rec->cr_time = op_data->op_mod_time;
 	rec->cr_suppgid1 = op_data->op_suppgids[0];
 	rec->cr_suppgid2 = op_data->op_suppgids[1];
 	flags = 0;
 	if (op_data->op_bias & MDS_CREATE_VOLATILE)
 		flags |= MDS_OPEN_VOLATILE;
 	set_mrc_cr_flags(rec, flags);
-	rec->cr_bias     = op_data->op_bias;
-	rec->cr_umask    = current_umask();
+	rec->cr_bias = op_data->op_bias;
+	rec->cr_umask = current_umask();
 
 	mdc_pack_name(req, &RMF_NAME, op_data->op_name, op_data->op_namelen);
 	if (data) {
@@ -229,21 +229,21 @@ void mdc_open_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 	rec = req_capsule_client_get(&req->rq_pill, &RMF_REC_REINT);
 
 	/* XXX do something about time, uid, gid */
-	rec->cr_opcode   = REINT_OPEN;
-	rec->cr_fsuid    = from_kuid(&init_user_ns, current_fsuid());
-	rec->cr_fsgid    = from_kgid(&init_user_ns, current_fsgid());
-	rec->cr_cap      = current_cap().cap[0];
+	rec->cr_opcode = REINT_OPEN;
+	rec->cr_fsuid = from_kuid(&init_user_ns, current_fsuid());
+	rec->cr_fsgid = from_kgid(&init_user_ns, current_fsgid());
+	rec->cr_cap = current_cap().cap[0];
 	rec->cr_fid1 = op_data->op_fid1;
 	rec->cr_fid2 = op_data->op_fid2;
 
-	rec->cr_mode     = mode;
+	rec->cr_mode = mode;
 	cr_flags = mds_pack_open_flags(flags);
-	rec->cr_rdev     = rdev;
-	rec->cr_time     = op_data->op_mod_time;
+	rec->cr_rdev = rdev;
+	rec->cr_time = op_data->op_mod_time;
 	rec->cr_suppgid1 = op_data->op_suppgids[0];
 	rec->cr_suppgid2 = op_data->op_suppgids[1];
-	rec->cr_bias     = op_data->op_bias;
-	rec->cr_umask    = current_umask();
+	rec->cr_bias = op_data->op_bias;
+	rec->cr_umask = current_umask();
 	rec->cr_old_handle = op_data->op_handle;
 
 	if (op_data->op_name) {
@@ -313,24 +313,24 @@ static inline u64 attr_pack(unsigned int ia_valid, enum op_xvalid ia_xvalid)
 static void mdc_setattr_pack_rec(struct mdt_rec_setattr *rec,
 				 struct md_op_data *op_data)
 {
-	rec->sa_opcode  = REINT_SETATTR;
-	rec->sa_fsuid   = from_kuid(&init_user_ns, current_fsuid());
-	rec->sa_fsgid   = from_kgid(&init_user_ns, current_fsgid());
-	rec->sa_cap     = current_cap().cap[0];
+	rec->sa_opcode = REINT_SETATTR;
+	rec->sa_fsuid = from_kuid(&init_user_ns, current_fsuid());
+	rec->sa_fsgid = from_kgid(&init_user_ns, current_fsgid());
+	rec->sa_cap = current_cap().cap[0];
 	rec->sa_suppgid = -1;
 
-	rec->sa_fid    = op_data->op_fid1;
+	rec->sa_fid = op_data->op_fid1;
 	rec->sa_valid  = attr_pack(op_data->op_attr.ia_valid,
 				   op_data->op_xvalid);
-	rec->sa_mode   = op_data->op_attr.ia_mode;
-	rec->sa_uid    = from_kuid(&init_user_ns, op_data->op_attr.ia_uid);
-	rec->sa_gid    = from_kgid(&init_user_ns, op_data->op_attr.ia_gid);
+	rec->sa_mode = op_data->op_attr.ia_mode;
+	rec->sa_uid = from_kuid(&init_user_ns, op_data->op_attr.ia_uid);
+	rec->sa_gid = from_kgid(&init_user_ns, op_data->op_attr.ia_gid);
 	rec->sa_projid = op_data->op_projid;
-	rec->sa_size   = op_data->op_attr.ia_size;
+	rec->sa_size = op_data->op_attr.ia_size;
 	rec->sa_blocks = op_data->op_attr_blocks;
-	rec->sa_atime  = op_data->op_attr.ia_atime.tv_sec;
-	rec->sa_mtime  = op_data->op_attr.ia_mtime.tv_sec;
-	rec->sa_ctime  = op_data->op_attr.ia_ctime.tv_sec;
+	rec->sa_atime = op_data->op_attr.ia_atime.tv_sec;
+	rec->sa_mtime = op_data->op_attr.ia_mtime.tv_sec;
+	rec->sa_ctime = op_data->op_attr.ia_ctime.tv_sec;
 	rec->sa_attr_flags = op_data->op_attr_flags;
 	if ((op_data->op_attr.ia_valid & ATTR_GID) &&
 	    in_group_p(op_data->op_attr.ia_gid))
@@ -383,18 +383,18 @@ void mdc_unlink_pack(struct ptlrpc_request *req, struct md_op_data *op_data)
 	BUILD_BUG_ON(sizeof(struct mdt_rec_reint) != sizeof(struct mdt_rec_unlink));
 	rec = req_capsule_client_get(&req->rq_pill, &RMF_REC_REINT);
 
-	rec->ul_opcode   = op_data->op_cli_flags & CLI_RM_ENTRY ?
-					REINT_RMENTRY : REINT_UNLINK;
-	rec->ul_fsuid    = op_data->op_fsuid;
-	rec->ul_fsgid    = op_data->op_fsgid;
-	rec->ul_cap      = op_data->op_cap.cap[0];
-	rec->ul_mode     = op_data->op_mode;
+	rec->ul_opcode = op_data->op_cli_flags & CLI_RM_ENTRY ?
+			 REINT_RMENTRY : REINT_UNLINK;
+	rec->ul_fsuid = op_data->op_fsuid;
+	rec->ul_fsgid = op_data->op_fsgid;
+	rec->ul_cap = op_data->op_cap.cap[0];
+	rec->ul_mode = op_data->op_mode;
 	rec->ul_suppgid1 = op_data->op_suppgids[0];
 	rec->ul_suppgid2 = -1;
-	rec->ul_fid1     = op_data->op_fid1;
-	rec->ul_fid2     = op_data->op_fid2;
-	rec->ul_time     = op_data->op_mod_time;
-	rec->ul_bias     = op_data->op_bias;
+	rec->ul_fid1 = op_data->op_fid1;
+	rec->ul_fid2 = op_data->op_fid2;
+	rec->ul_time = op_data->op_mod_time;
+	rec->ul_bias = op_data->op_bias;
 
 	mdc_pack_name(req, &RMF_NAME, op_data->op_name, op_data->op_namelen);
 }
@@ -406,16 +406,16 @@ void mdc_link_pack(struct ptlrpc_request *req, struct md_op_data *op_data)
 	BUILD_BUG_ON(sizeof(struct mdt_rec_reint) != sizeof(struct mdt_rec_link));
 	rec = req_capsule_client_get(&req->rq_pill, &RMF_REC_REINT);
 
-	rec->lk_opcode   = REINT_LINK;
-	rec->lk_fsuid    = op_data->op_fsuid; /* current->fsuid; */
-	rec->lk_fsgid    = op_data->op_fsgid; /* current->fsgid; */
-	rec->lk_cap      = op_data->op_cap.cap[0]; /* current->cap_effective; */
+	rec->lk_opcode = REINT_LINK;
+	rec->lk_fsuid = op_data->op_fsuid; /* current->fsuid; */
+	rec->lk_fsgid = op_data->op_fsgid; /* current->fsgid; */
+	rec->lk_cap = op_data->op_cap.cap[0]; /* current->cap_effective; */
 	rec->lk_suppgid1 = op_data->op_suppgids[0];
 	rec->lk_suppgid2 = op_data->op_suppgids[1];
-	rec->lk_fid1     = op_data->op_fid1;
-	rec->lk_fid2     = op_data->op_fid2;
-	rec->lk_time     = op_data->op_mod_time;
-	rec->lk_bias     = op_data->op_bias;
+	rec->lk_fid1 = op_data->op_fid1;
+	rec->lk_fid2 = op_data->op_fid2;
+	rec->lk_time = op_data->op_mod_time;
+	rec->lk_bias = op_data->op_bias;
 
 	mdc_pack_name(req, &RMF_NAME, op_data->op_name, op_data->op_namelen);
 }
@@ -455,18 +455,18 @@ void mdc_rename_pack(struct ptlrpc_request *req, struct md_op_data *op_data,
 	rec = req_capsule_client_get(&req->rq_pill, &RMF_REC_REINT);
 
 	/* XXX do something about time, uid, gid */
-	rec->rn_opcode	 = op_data->op_cli_flags & CLI_MIGRATE ?
-				REINT_MIGRATE : REINT_RENAME;
-	rec->rn_fsuid    = op_data->op_fsuid;
-	rec->rn_fsgid    = op_data->op_fsgid;
-	rec->rn_cap      = op_data->op_cap.cap[0];
+	rec->rn_opcode = op_data->op_cli_flags & CLI_MIGRATE ?
+			 REINT_MIGRATE : REINT_RENAME;
+	rec->rn_fsuid = op_data->op_fsuid;
+	rec->rn_fsgid = op_data->op_fsgid;
+	rec->rn_cap = op_data->op_cap.cap[0];
 	rec->rn_suppgid1 = op_data->op_suppgids[0];
 	rec->rn_suppgid2 = op_data->op_suppgids[1];
-	rec->rn_fid1     = op_data->op_fid1;
-	rec->rn_fid2     = op_data->op_fid2;
-	rec->rn_time     = op_data->op_mod_time;
-	rec->rn_mode     = op_data->op_mode;
-	rec->rn_bias     = op_data->op_bias;
+	rec->rn_fid1 = op_data->op_fid1;
+	rec->rn_fid2 = op_data->op_fid2;
+	rec->rn_time = op_data->op_mod_time;
+	rec->rn_mode = op_data->op_mode;
+	rec->rn_bias = op_data->op_bias;
 
 	mdc_pack_name(req, &RMF_NAME, old, oldlen);
 

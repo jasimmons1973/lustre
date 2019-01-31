@@ -203,7 +203,7 @@ static inline void mdc_clear_replay_flag(struct ptlrpc_request *req, int rc)
 }
 
 /* Save a large LOV EA into the request buffer so that it is available
- * for replay.  We don't do this in the initial request because the
+ * for replay. We don't do this in the initial request because the
  * original request doesn't need this buffer (at most it sends just the
  * lov_mds_md) and it is a waste of RAM/bandwidth to send the empty
  * buffer and may also be difficult to allocate and save a very large
@@ -247,14 +247,14 @@ mdc_intent_open_pack(struct obd_export *exp, struct lookup_intent *it,
 		     struct md_op_data *op_data)
 {
 	struct ptlrpc_request *req;
-	struct obd_device     *obddev = class_exp2obd(exp);
-	struct ldlm_intent    *lit;
+	struct obd_device *obddev = class_exp2obd(exp);
+	struct ldlm_intent *lit;
 	const void *lmm = op_data->op_data;
 	u32 lmmsize = op_data->op_data_size;
 	LIST_HEAD(cancels);
-	int		    count = 0;
-	int		    mode;
-	int		    rc;
+	int count = 0;
+	int mode;
+	int rc;
 
 	it->it_create_mode = (it->it_create_mode & ~S_IFMT) | S_IFREG;
 
@@ -344,8 +344,8 @@ mdc_intent_getxattr_pack(struct obd_export *exp,
 			 struct md_op_data *op_data)
 {
 	u32 ea_vals_buf_size = GA_DEFAULT_EA_VAL_LEN * GA_DEFAULT_EA_NUM;
-	struct ptlrpc_request	*req;
-	struct ldlm_intent	*lit;
+	struct ptlrpc_request *req;
+	struct ldlm_intent *lit;
 	int rc, count = 0;
 	LIST_HEAD(cancels);
 
@@ -403,9 +403,9 @@ static struct ptlrpc_request *mdc_intent_unlink_pack(struct obd_export *exp,
 						     struct md_op_data *op_data)
 {
 	struct ptlrpc_request *req;
-	struct obd_device     *obddev = class_exp2obd(exp);
-	struct ldlm_intent    *lit;
-	int		    rc;
+	struct obd_device *obddev = class_exp2obd(exp);
+	struct ldlm_intent *lit;
+	int rc;
 
 	req = ptlrpc_request_alloc(class_exp2cliimp(exp),
 				   &RQF_LDLM_INTENT_UNLINK);
@@ -439,12 +439,12 @@ static struct ptlrpc_request *mdc_intent_getattr_pack(struct obd_export *exp,
 						     struct md_op_data *op_data)
 {
 	struct ptlrpc_request *req;
-	struct obd_device     *obddev = class_exp2obd(exp);
-	u64		       valid = OBD_MD_FLGETATTR | OBD_MD_FLEASIZE |
-				       OBD_MD_FLMODEASIZE | OBD_MD_FLDIREA |
-				       OBD_MD_MEA | OBD_MD_FLACL;
-	struct ldlm_intent    *lit;
-	int		    rc;
+	struct obd_device *obddev = class_exp2obd(exp);
+	u64 valid = OBD_MD_FLGETATTR | OBD_MD_FLEASIZE |
+		    OBD_MD_FLMODEASIZE | OBD_MD_FLDIREA |
+		    OBD_MD_MEA | OBD_MD_FLACL;
+	struct ldlm_intent *lit;
+	int rc;
 	u32 easize;
 
 	req = ptlrpc_request_alloc(class_exp2cliimp(exp),
@@ -484,10 +484,10 @@ static struct ptlrpc_request *mdc_intent_layout_pack(struct obd_export *exp,
 						     struct lookup_intent *it,
 						     struct md_op_data *op_data)
 {
-	struct obd_device     *obd = class_exp2obd(exp);
+	struct obd_device *obd = class_exp2obd(exp);
 	struct ptlrpc_request *req;
-	struct ldlm_intent    *lit;
-	struct layout_intent  *layout;
+	struct ldlm_intent *lit;
+	struct layout_intent *layout;
 	int rc;
 
 	req = ptlrpc_request_alloc(class_exp2cliimp(exp),
@@ -546,11 +546,11 @@ static int mdc_finish_enqueue(struct obd_export *exp,
 			      struct lustre_handle *lockh,
 			      int rc)
 {
-	struct req_capsule  *pill = &req->rq_pill;
+	struct req_capsule *pill = &req->rq_pill;
 	struct ldlm_request *lockreq;
-	struct ldlm_reply   *lockrep;
-	struct ldlm_lock    *lock;
-	void		*lvb_data = NULL;
+	struct ldlm_reply *lockrep;
+	struct ldlm_lock *lock;
+	void *lvb_data = NULL;
 	u32 lvb_len = 0;
 
 	LASSERT(rc >= 0);
@@ -985,7 +985,7 @@ static int mdc_finish_intent_lock(struct obd_export *exp,
 
 matching_lock:
 	/* If we already have a matching lock, then cancel the new
-	 * one.  We have to set the data here instead of in
+	 * one. We have to set the data here instead of in
 	 * mdc_enqueue, because we need to use the child's inode as
 	 * the l_ast_data to match, and that's not available until
 	 * intent_finish has performed the iget().)
@@ -1185,16 +1185,16 @@ static int mdc_intent_getattr_async_interpret(const struct lu_env *env,
 					      void *args, int rc)
 {
 	struct mdc_getattr_args  *ga = args;
-	struct obd_export	*exp = ga->ga_exp;
-	struct md_enqueue_info   *minfo = ga->ga_minfo;
+	struct obd_export *exp = ga->ga_exp;
+	struct md_enqueue_info *minfo = ga->ga_minfo;
 	struct ldlm_enqueue_info *einfo = &minfo->mi_einfo;
-	struct lookup_intent     *it;
-	struct lustre_handle     *lockh;
-	struct obd_device	*obddev;
-	struct ldlm_reply	 *lockrep;
-	u64		     flags = LDLM_FL_HAS_INTENT;
+	struct lookup_intent *it;
+	struct lustre_handle *lockh;
+	struct obd_device *obddev;
+	struct ldlm_reply *lockrep;
+	u64 flags = LDLM_FL_HAS_INTENT;
 
-	it    = &minfo->mi_it;
+	it = &minfo->mi_it;
 	lockh = &minfo->mi_lockh;
 
 	obddev = class_exp2obd(exp);
@@ -1230,17 +1230,17 @@ out:
 int mdc_intent_getattr_async(struct obd_export *exp,
 			     struct md_enqueue_info *minfo)
 {
-	struct md_op_data       *op_data = &minfo->mi_data;
-	struct lookup_intent    *it = &minfo->mi_it;
-	struct ptlrpc_request   *req;
+	struct md_op_data *op_data = &minfo->mi_data;
+	struct lookup_intent *it = &minfo->mi_it;
+	struct ptlrpc_request *req;
 	struct mdc_getattr_args *ga;
-	struct obd_device       *obddev = class_exp2obd(exp);
-	struct ldlm_res_id       res_id;
+	struct obd_device *obddev = class_exp2obd(exp);
+	struct ldlm_res_id res_id;
 	union ldlm_policy_data policy = {
 		.l_inodebits = { MDS_INODELOCK_LOOKUP | MDS_INODELOCK_UPDATE }
 	};
-	int		      rc = 0;
-	u64		    flags = LDLM_FL_HAS_INTENT;
+	int rc = 0;
+	u64 flags = LDLM_FL_HAS_INTENT;
 
 	CDEBUG(D_DLMTRACE,
 	       "name: %.*s in inode " DFID ", intent: %s flags %#Lo\n",
