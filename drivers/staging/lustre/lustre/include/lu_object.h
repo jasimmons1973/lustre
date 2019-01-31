@@ -309,7 +309,7 @@ struct lu_device_type {
 	/**
 	 * Tag bits. Taken from enum lu_device_tag. Never modified once set.
 	 */
-	__u32				   ldt_tags;
+	u32				   ldt_tags;
 	/**
 	 * Name of this class. Unique system-wide. Never modified once set.
 	 */
@@ -325,7 +325,7 @@ struct lu_device_type {
 	/**
 	 * \todo XXX: temporary: context tags used by obd_*() calls.
 	 */
-	__u32				   ldt_ctx_tags;
+	u32				   ldt_ctx_tags;
 	/**
 	 * Number of existing device type instances.
 	 */
@@ -392,7 +392,7 @@ static inline int lu_device_is_md(const struct lu_device *d)
  */
 struct lu_attr {
 	/** size in bytes */
-	__u64	  la_size;
+	u64	  la_size;
 	/** modification time in seconds since Epoch */
 	s64	  la_mtime;
 	/** access time in seconds since Epoch */
@@ -400,29 +400,29 @@ struct lu_attr {
 	/** change time in seconds since Epoch */
 	s64	  la_ctime;
 	/** 512-byte blocks allocated to object */
-	__u64	  la_blocks;
+	u64	  la_blocks;
 	/** permission bits and file type */
-	__u32	  la_mode;
+	u32	  la_mode;
 	/** owner id */
-	__u32	  la_uid;
+	u32	  la_uid;
 	/** group id */
-	__u32	  la_gid;
+	u32	  la_gid;
 	/** object flags */
-	__u32	  la_flags;
+	u32	  la_flags;
 	/** number of persistent references to this object */
-	__u32	  la_nlink;
+	u32	  la_nlink;
 	/** blk bits of the object*/
-	__u32	  la_blkbits;
+	u32	  la_blkbits;
 	/** blk size of the object*/
-	__u32	  la_blksize;
+	u32	  la_blksize;
 	/** real device */
-	__u32	  la_rdev;
+	u32	  la_rdev;
 	/**
 	 * valid bits
 	 *
 	 * \see enum la_valid
 	 */
-	__u64	  la_valid;
+	u64	  la_valid;
 };
 
 /** Bit-mask of valid attributes */
@@ -522,7 +522,7 @@ struct lu_object_header {
 	 * Common object attributes, cached for efficiency. From enum
 	 * lu_object_header_attr.
 	 */
-	__u32		  loh_attr;
+	u32		  loh_attr;
 	/**
 	 * Linkage into per-site hash table. Protected by lu_site::ls_guard.
 	 */
@@ -812,7 +812,7 @@ static inline int lu_object_assert_not_exists(const struct lu_object *o)
 /**
  * Attr of this object.
  */
-static inline __u32 lu_object_attr(const struct lu_object *o)
+static inline u32 lu_object_attr(const struct lu_object *o)
 {
 	LASSERT(lu_object_exists(o) != 0);
 	return o->lo_header->loh_attr;
@@ -849,13 +849,13 @@ static inline void lu_object_ref_del_at(struct lu_object *o,
 /** input params, should be filled out by mdt */
 struct lu_rdpg {
 	/** hash */
-	__u64		   rp_hash;
+	u64		   rp_hash;
 	/** count in bytes */
 	unsigned int	    rp_count;
 	/** number of pages */
 	unsigned int	    rp_npages;
 	/** requested attr */
-	__u32		   rp_attrs;
+	u32		   rp_attrs;
 	/** pointers to pages */
 	struct page	   **rp_pages;
 };
@@ -912,7 +912,7 @@ struct lu_context {
 	 * of tags has non-empty intersection with one for key. Tags are taken
 	 * from enum lu_context_tag.
 	 */
-	__u32		  lc_tags;
+	u32		  lc_tags;
 	enum lu_context_state  lc_state;
 	/**
 	 * Pointer to the home service thread. NULL for other execution
@@ -1049,7 +1049,7 @@ struct lu_context_key {
 	/**
 	 * Set of tags for which values of this key are to be instantiated.
 	 */
-	__u32 lct_tags;
+	u32 lct_tags;
 	/**
 	 * Value constructor. This is called when new value is created for a
 	 * context. Returns pointer to new value of error pointer.
@@ -1194,7 +1194,7 @@ void lu_context_key_revive(struct lu_context_key *key);
 	LU_TYPE_START(mod, __VA_ARGS__);	\
 	LU_TYPE_STOP(mod, __VA_ARGS__)
 
-int lu_context_init(struct lu_context *ctx, __u32 tags);
+int lu_context_init(struct lu_context *ctx, u32 tags);
 void lu_context_fini(struct lu_context *ctx);
 void lu_context_enter(struct lu_context *ctx);
 void lu_context_exit(struct lu_context *ctx);
@@ -1224,7 +1224,7 @@ struct lu_env {
 	struct lu_context *le_ses;
 };
 
-int lu_env_init(struct lu_env *env, __u32 tags);
+int lu_env_init(struct lu_env *env, u32 tags);
 void lu_env_fini(struct lu_env *env);
 int lu_env_refill(struct lu_env *env);
 
@@ -1293,8 +1293,8 @@ struct lu_kmem_descr {
 int  lu_kmem_init(struct lu_kmem_descr *caches);
 void lu_kmem_fini(struct lu_kmem_descr *caches);
 
-extern __u32 lu_context_tags_default;
-extern __u32 lu_session_tags_default;
+extern u32 lu_context_tags_default;
+extern u32 lu_session_tags_default;
 
 /** @} lu */
 #endif /* __LUSTRE_LU_OBJECT_H */

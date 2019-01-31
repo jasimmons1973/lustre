@@ -235,14 +235,14 @@ enum local_oid {
 	SLAVE_LLOG_CATALOGS_OID	= 4124UL,
 };
 
-static inline void lu_local_obj_fid(struct lu_fid *fid, __u32 oid)
+static inline void lu_local_obj_fid(struct lu_fid *fid, u32 oid)
 {
 	fid->f_seq = FID_SEQ_LOCAL_FILE;
 	fid->f_oid = oid;
 	fid->f_ver = 0;
 }
 
-static inline void lu_local_name_obj_fid(struct lu_fid *fid, __u32 oid)
+static inline void lu_local_name_obj_fid(struct lu_fid *fid, u32 oid)
 {
 	fid->f_seq = FID_SEQ_LOCAL_NAME;
 	fid->f_oid = oid;
@@ -290,13 +290,13 @@ static inline int fid_is_quota(const struct lu_fid *fid)
 	       fid_seq(fid) == FID_SEQ_QUOTA_GLB;
 }
 
-static inline int fid_seq_in_fldb(__u64 seq)
+static inline int fid_seq_in_fldb(u64 seq)
 {
 	return fid_seq_is_igif(seq) || fid_seq_is_norm(seq) ||
 	       fid_seq_is_root(seq) || fid_seq_is_dot(seq);
 }
 
-static inline void lu_last_id_fid(struct lu_fid *fid, __u64 seq, __u32 ost_idx)
+static inline void lu_last_id_fid(struct lu_fid *fid, u64 seq, u32 ost_idx)
 {
 	if (fid_seq_is_mdt0(seq)) {
 		fid->f_seq = fid_idif_seq(0, ost_idx);
@@ -352,7 +352,7 @@ struct lu_client_seq {
 	 * Sequence width, that is how many objects may be allocated in one
 	 * sequence. Default value for it is LUSTRE_SEQ_MAX_WIDTH.
 	 */
-	__u64		   lcs_width;
+	u64		   lcs_width;
 
 	/* wait queue for fid allocation and update indicator */
 	wait_queue_head_t	     lcs_waitq;
@@ -409,8 +409,8 @@ static inline void
 fid_extract_from_res_name(struct lu_fid *fid, const struct ldlm_res_id *res)
 {
 	fid->f_seq = res->name[LUSTRE_RES_ID_SEQ_OFF];
-	fid->f_oid = (__u32)(res->name[LUSTRE_RES_ID_VER_OID_OFF]);
-	fid->f_ver = (__u32)(res->name[LUSTRE_RES_ID_VER_OID_OFF] >> 32);
+	fid->f_oid = (u32)(res->name[LUSTRE_RES_ID_VER_OID_OFF]);
+	fid->f_ver = (u32)(res->name[LUSTRE_RES_ID_VER_OID_OFF] >> 32);
 	LASSERT(fid_res_name_eq(fid, res));
 }
 
@@ -435,9 +435,9 @@ static inline void fid_extract_from_quota_res(struct lu_fid *glb_fid,
 {
 	fid_extract_from_res_name(glb_fid, res);
 	qid->qid_fid.f_seq = res->name[LUSTRE_RES_ID_QUOTA_SEQ_OFF];
-	qid->qid_fid.f_oid = (__u32)res->name[LUSTRE_RES_ID_QUOTA_VER_OID_OFF];
+	qid->qid_fid.f_oid = (u32)res->name[LUSTRE_RES_ID_QUOTA_VER_OID_OFF];
 	qid->qid_fid.f_ver =
-		(__u32)(res->name[LUSTRE_RES_ID_QUOTA_VER_OID_OFF] >> 32);
+		(u32)(res->name[LUSTRE_RES_ID_QUOTA_VER_OID_OFF] >> 32);
 }
 
 static inline void
@@ -500,7 +500,7 @@ static inline int ostid_res_name_eq(const struct ost_id *oi,
  * Note: we need check oi_seq to decide where to set oi_id,
  * so oi_seq should always be set ahead of oi_id.
  */
-static inline int ostid_set_id(struct ost_id *oi, __u64 oid)
+static inline int ostid_set_id(struct ost_id *oi, u64 oid)
 {
 	if (fid_seq_is_mdt0(oi->oi.oi_seq)) {
 		if (oid >= IDIF_MAX_OID)
@@ -569,10 +569,10 @@ static inline void ost_fid_build_resid(const struct lu_fid *fid,
  * the time between re-used inode numbers is very long - 2^40 SEQ numbers,
  * or about 2^40 client mounts, if clients create less than 2^24 files/mount.
  */
-static inline __u64 fid_flatten(const struct lu_fid *fid)
+static inline u64 fid_flatten(const struct lu_fid *fid)
 {
-	__u64 ino;
-	__u64 seq;
+	u64 ino;
+	u64 seq;
 
 	if (fid_is_igif(fid)) {
 		ino = lu_igif_ino(fid);
@@ -586,7 +586,7 @@ static inline __u64 fid_flatten(const struct lu_fid *fid)
 	return ino ? ino : fid_oid(fid);
 }
 
-static inline __u32 fid_hash(const struct lu_fid *f, int bits)
+static inline u32 fid_hash(const struct lu_fid *f, int bits)
 {
 	/* all objects with same id and different versions will belong to same
 	 * collisions list.
@@ -597,10 +597,10 @@ static inline __u32 fid_hash(const struct lu_fid *f, int bits)
 /**
  * map fid to 32 bit value for ino on 32bit systems.
  */
-static inline __u32 fid_flatten32(const struct lu_fid *fid)
+static inline u32 fid_flatten32(const struct lu_fid *fid)
 {
-	__u32 ino;
-	__u64 seq;
+	u32 ino;
+	u64 seq;
 
 	if (fid_is_igif(fid)) {
 		ino = lu_igif_ino(fid);

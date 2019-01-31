@@ -92,8 +92,8 @@ void obd_zombie_barrier(void);
 
 int obd_get_request_slot(struct client_obd *cli);
 void obd_put_request_slot(struct client_obd *cli);
-__u32 obd_get_max_rpcs_in_flight(struct client_obd *cli);
-int obd_set_max_rpcs_in_flight(struct client_obd *cli, __u32 max);
+u32 obd_get_max_rpcs_in_flight(struct client_obd *cli);
+int obd_set_max_rpcs_in_flight(struct client_obd *cli, u32 max);
 int obd_set_max_mod_rpcs_in_flight(struct client_obd *cli, u16 max);
 int obd_mod_rpc_stats_seq_show(struct client_obd *cli, struct seq_file *seq);
 
@@ -356,8 +356,8 @@ static inline int class_devno_max(void)
 }
 
 static inline int obd_get_info(const struct lu_env *env,
-			       struct obd_export *exp, __u32 keylen,
-			       void *key, __u32 *vallen, void *val)
+			       struct obd_export *exp, u32 keylen,
+			       void *key, u32 *vallen, void *val)
 {
 	int rc;
 
@@ -873,7 +873,7 @@ static inline int obd_destroy_export(struct obd_export *exp)
  */
 static inline int obd_statfs_async(struct obd_export *exp,
 				   struct obd_info *oinfo,
-				   __u64 max_age,
+				   u64 max_age,
 				   struct ptlrpc_request_set *rqset)
 {
 	int rc = 0;
@@ -909,8 +909,8 @@ static inline int obd_statfs_async(struct obd_export *exp,
 }
 
 static inline int obd_statfs_rqset(struct obd_export *exp,
-				   struct obd_statfs *osfs, __u64 max_age,
-				   __u32 flags)
+				   struct obd_statfs *osfs, u64 max_age,
+				   u32 flags)
 {
 	struct ptlrpc_request_set *set = NULL;
 	struct obd_info oinfo = {
@@ -936,8 +936,8 @@ static inline int obd_statfs_rqset(struct obd_export *exp,
  * target.  Use a value of "jiffies + HZ" to guarantee freshness.
  */
 static inline int obd_statfs(const struct lu_env *env, struct obd_export *exp,
-			     struct obd_statfs *osfs, __u64 max_age,
-			     __u32 flags)
+			     struct obd_statfs *osfs, u64 max_age,
+			     u32 flags)
 {
 	struct obd_device *obd = exp->exp_obd;
 	int rc = 0;
@@ -1509,7 +1509,7 @@ static inline int md_clear_open_replay_data(struct obd_export *exp,
 
 static inline int md_set_lock_data(struct obd_export *exp,
 				   const struct lustre_handle *lockh,
-				   void *data, __u64 *bits)
+				   void *data, u64 *bits)
 {
 	int rc;
 
@@ -1537,7 +1537,7 @@ static inline int md_cancel_unused(struct obd_export *exp,
 						flags, opaque);
 }
 
-static inline enum ldlm_mode md_lock_match(struct obd_export *exp, __u64 flags,
+static inline enum ldlm_mode md_lock_match(struct obd_export *exp, u64 flags,
 					   const struct lu_fid *fid,
 					   enum ldlm_type type,
 					   union ldlm_policy_data *policy,
@@ -1583,7 +1583,7 @@ static inline int md_intent_getattr_async(struct obd_export *exp,
 
 static inline int md_revalidate_lock(struct obd_export *exp,
 				     struct lookup_intent *it,
-				     struct lu_fid *fid, __u64 *bits)
+				     struct lu_fid *fid, u64 *bits)
 {
 	int rc;
 
@@ -1669,9 +1669,9 @@ static inline void class_uuid_unparse(class_uuid_t uu, struct obd_uuid *out)
 
 /* lustre_peer.c    */
 int lustre_uuid_to_peer(const char *uuid, lnet_nid_t *peer_nid, int index);
-int class_add_uuid(const char *uuid, __u64 nid);
+int class_add_uuid(const char *uuid, u64 nid);
 int class_del_uuid(const char *uuid);
-int class_check_uuid(struct obd_uuid *uuid, __u64 nid);
+int class_check_uuid(struct obd_uuid *uuid, u64 nid);
 
 /* class_obd.c */
 extern char obd_jobid_node[];

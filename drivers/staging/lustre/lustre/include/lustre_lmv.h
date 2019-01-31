@@ -42,13 +42,13 @@ struct lmv_oinfo {
 };
 
 struct lmv_stripe_md {
-	__u32	lsm_md_magic;
-	__u32	lsm_md_stripe_count;
-	__u32	lsm_md_master_mdt_index;
-	__u32	lsm_md_hash_type;
-	__u32	lsm_md_layout_version;
-	__u32	lsm_md_default_count;
-	__u32	lsm_md_default_index;
+	u32	lsm_md_magic;
+	u32	lsm_md_stripe_count;
+	u32	lsm_md_master_mdt_index;
+	u32	lsm_md_hash_type;
+	u32	lsm_md_layout_version;
+	u32	lsm_md_default_count;
+	u32	lsm_md_default_index;
 	char	lsm_md_pool_name[LOV_MAXPOOLNAME + 1];
 	struct lmv_oinfo lsm_md_oinfo[0];
 };
@@ -56,7 +56,7 @@ struct lmv_stripe_md {
 static inline bool
 lsm_md_eq(const struct lmv_stripe_md *lsm1, const struct lmv_stripe_md *lsm2)
 {
-	__u32 idx;
+	u32 idx;
 
 	if (lsm1->lsm_md_magic != lsm2->lsm_md_magic ||
 	    lsm1->lsm_md_stripe_count != lsm2->lsm_md_stripe_count ||
@@ -82,7 +82,7 @@ void lmv_free_memmd(struct lmv_stripe_md *lsm);
 static inline void lmv1_le_to_cpu(struct lmv_mds_md_v1 *lmv_dst,
 				  const struct lmv_mds_md_v1 *lmv_src)
 {
-	__u32 i;
+	u32 i;
 
 	lmv_dst->lmv_magic = le32_to_cpu(lmv_src->lmv_magic);
 	lmv_dst->lmv_stripe_count = le32_to_cpu(lmv_src->lmv_stripe_count);
@@ -126,18 +126,18 @@ lmv_hash_all_chars(unsigned int count, const char *name, int namelen)
 static inline unsigned int
 lmv_hash_fnv1a(unsigned int count, const char *name, int namelen)
 {
-	__u64 hash;
+	u64 hash;
 
 	hash = lustre_hash_fnv_1a_64(name, namelen);
 
 	return do_div(hash, count);
 }
 
-static inline int lmv_name_to_stripe_index(__u32 lmv_hash_type,
+static inline int lmv_name_to_stripe_index(u32 lmv_hash_type,
 					   unsigned int stripe_count,
 					   const char *name, int namelen)
 {
-	__u32 hash_type = lmv_hash_type & LMV_HASH_TYPE_MASK;
+	u32 hash_type = lmv_hash_type & LMV_HASH_TYPE_MASK;
 	int idx;
 
 	LASSERT(namelen > 0);
@@ -165,7 +165,7 @@ static inline int lmv_name_to_stripe_index(__u32 lmv_hash_type,
 	return idx;
 }
 
-static inline bool lmv_is_known_hash_type(__u32 type)
+static inline bool lmv_is_known_hash_type(u32 type)
 {
 	return (type & LMV_HASH_TYPE_MASK) == LMV_HASH_TYPE_FNV_1A_64 ||
 	       (type & LMV_HASH_TYPE_MASK) == LMV_HASH_TYPE_ALL_CHARS;

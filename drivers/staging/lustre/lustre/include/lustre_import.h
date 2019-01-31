@@ -69,10 +69,10 @@ struct adaptive_timeout {
 
 struct ptlrpc_at_array {
 	struct list_head       *paa_reqs_array; /** array to hold requests */
-	__u32	     paa_size;       /** the size of array */
-	__u32	     paa_count;      /** the total count of reqs */
+	u32	     paa_size;       /** the size of array */
+	u32	     paa_count;      /** the total count of reqs */
 	time64_t     paa_deadline;   /** the earliest deadline of reqs */
-	__u32	    *paa_reqs_count; /** the count of reqs in each entry */
+	u32	    *paa_reqs_count; /** the count of reqs in each entry */
 };
 
 #define IMP_AT_MAX_PORTALS 8
@@ -137,7 +137,7 @@ struct obd_import_conn {
 	/**
 	 * Time (64 bit jiffies) of last connection attempt on this connection
 	 */
-	__u64		     oic_last_attempt;
+	u64		     oic_last_attempt;
 };
 
 /* state history */
@@ -190,7 +190,7 @@ struct obd_import {
 	/** List of not replied requests */
 	struct list_head	imp_unreplied_list;
 	/** Known maximal replied XID */
-	__u64			imp_known_replied_xid;
+	u64			imp_known_replied_xid;
 
 	/** obd device for this import */
 	struct obd_device	*imp_obd;
@@ -227,23 +227,23 @@ struct obd_import {
 	/** Current import generation. Incremented on every reconnect */
 	int		       imp_generation;
 	/** Incremented every time we send reconnection request */
-	__u32		     imp_conn_cnt;
+	u32		     imp_conn_cnt;
        /**
 	* \see ptlrpc_free_committed remembers imp_generation value here
 	* after a check to save on unnecessary replay list iterations
 	*/
 	int		       imp_last_generation_checked;
 	/** Last transno we replayed */
-	__u64		     imp_last_replay_transno;
+	u64		     imp_last_replay_transno;
 	/** Last transno committed on remote side */
-	__u64		     imp_peer_committed_transno;
+	u64		     imp_peer_committed_transno;
 	/**
 	 * \see ptlrpc_free_committed remembers last_transno since its last
 	 * check here and if last_transno did not change since last run of
 	 * ptlrpc_free_committed and import generation is the same, we can
 	 * skip looking for requests to remove from replay list as optimisation
 	 */
-	__u64		     imp_last_transno_checked;
+	u64		     imp_last_transno_checked;
 	/**
 	 * Remote export handle. This is how remote side knows what export
 	 * we are talking to. Filled from response to connect request
@@ -252,7 +252,7 @@ struct obd_import {
 	/** When to perform next ping. time in jiffies. */
 	unsigned long		imp_next_ping;
 	/** When we last successfully connected. time in 64bit jiffies */
-	__u64		     imp_last_success_conn;
+	u64		     imp_last_success_conn;
 
 	/** List of all possible connection for import. */
 	struct list_head		imp_conn_list;
@@ -304,14 +304,14 @@ struct obd_import {
 				  imp_connect_tried:1,
 				 /* connected but not FULL yet */
 				 imp_connected:1;
-	__u32		     imp_connect_op;
+	u32		     imp_connect_op;
 	struct obd_connect_data   imp_connect_data;
-	__u64		     imp_connect_flags_orig;
+	u64		     imp_connect_flags_orig;
 	u64			imp_connect_flags2_orig;
 	int		       imp_connect_error;
 
-	__u32		     imp_msg_magic;
-	__u32		     imp_msghdr_flags;       /* adjusted based on server capability */
+	u32		     imp_msg_magic;
+	u32		     imp_msghdr_flags;       /* adjusted based on server capability */
 
 	struct imp_at	     imp_at;		 /* adaptive timeout data */
 	time64_t	     imp_last_reply_time;    /* for health check */

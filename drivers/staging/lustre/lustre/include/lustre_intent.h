@@ -41,14 +41,14 @@
 struct lookup_intent {
 	int		it_op;
 	int		it_create_mode;
-	__u64		it_flags;
+	u64		it_flags;
 	int		it_disposition;
 	int		it_status;
-	__u64		it_lock_handle;
-	__u64		it_lock_bits;
+	u64		it_lock_handle;
+	u64		it_lock_bits;
 	int		it_lock_mode;
 	int		it_remote_lock_mode;
-	__u64	   it_remote_lock_handle;
+	u64	   it_remote_lock_handle;
 	struct ptlrpc_request *it_request;
 	unsigned int    it_lock_set:1;
 };

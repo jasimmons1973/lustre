@@ -136,7 +136,7 @@ enum {
 	LPROCFS_TYPE_CYCLE	= 0x0800,
 };
 
-#define LC_MIN_INIT ((~(__u64)0) >> 1)
+#define LC_MIN_INIT ((~(u64)0) >> 1)
 
 struct lprocfs_counter_header {
 	unsigned int		lc_config;
@@ -145,17 +145,17 @@ struct lprocfs_counter_header {
 };
 
 struct lprocfs_counter {
-	__s64	lc_count;
-	__s64	lc_min;
-	__s64	lc_max;
-	__s64	lc_sumsquare;
+	s64	lc_count;
+	s64	lc_min;
+	s64	lc_max;
+	s64	lc_sumsquare;
 	/*
 	 * Every counter has lc_array_sum[0], while lc_array_sum[1] is only
 	 * for irq context counter, i.e. stats with
 	 * LPROCFS_STATS_FLAG_IRQ_SAFE flag, its counter need
 	 * lc_array_sum[1]
 	 */
-	__s64	lc_array_sum[1];
+	s64	lc_array_sum[1];
 };
 
 #define lc_sum		lc_array_sum[0]
@@ -163,7 +163,7 @@ struct lprocfs_counter {
 
 struct lprocfs_percpu {
 #ifndef __GNUC__
-	__s64			pad;
+	s64			pad;
 #endif
 	struct lprocfs_counter lp_cntr[0];
 };
@@ -210,7 +210,7 @@ struct lprocfs_stats {
 #define OPC_RANGE(seg) (seg ## _LAST_OPC - seg ## _FIRST_OPC)
 
 /* Pack all opcodes down into a single monotonically increasing index */
-static inline int opcode_offset(__u32 opc)
+static inline int opcode_offset(u32 opc)
 {
 	if (opc < OST_LAST_OPC) {
 		 /* OST opcode */
@@ -394,7 +394,7 @@ lprocfs_stats_counter_size(struct lprocfs_stats *stats)
 
 	/* irq safe stats need lc_array_sum[1] */
 	if ((stats->ls_flags & LPROCFS_STATS_FLAG_IRQ_SAFE) != 0)
-		percpusize += stats->ls_num * sizeof(__s64);
+		percpusize += stats->ls_num * sizeof(s64);
 
 	if ((stats->ls_flags & LPROCFS_STATS_FLAG_NOPERCPU) == 0)
 		percpusize = L1_CACHE_ALIGN(percpusize);
@@ -411,7 +411,7 @@ lprocfs_stats_counter_get(struct lprocfs_stats *stats, unsigned int cpuid,
 	cntr = &stats->ls_percpu[cpuid]->lp_cntr[index];
 
 	if ((stats->ls_flags & LPROCFS_STATS_FLAG_IRQ_SAFE) != 0)
-		cntr = (void *)cntr + index * sizeof(__s64);
+		cntr = (void *)cntr + index * sizeof(s64);
 
 	return cntr;
 }
@@ -431,11 +431,11 @@ void lprocfs_counter_sub(struct lprocfs_stats *stats, int idx, long amount);
 #define lprocfs_counter_decr(stats, idx) \
 	lprocfs_counter_sub(stats, idx, 1)
 
-__s64 lprocfs_read_helper(struct lprocfs_counter *lc,
+s64 lprocfs_read_helper(struct lprocfs_counter *lc,
 			  struct lprocfs_counter_header *header,
 			  enum lprocfs_stats_flags flags,
 			  enum lprocfs_fields_flags field);
-__u64 lprocfs_stats_collector(struct lprocfs_stats *stats, int idx,
+u64 lprocfs_stats_collector(struct lprocfs_stats *stats, int idx,
 			      enum lprocfs_fields_flags field);
 
 extern struct lprocfs_stats *
@@ -485,10 +485,10 @@ int lprocfs_wr_pinger_recov(struct file *file, const char __user *buffer,
 int lprocfs_write_helper(const char __user *buffer, unsigned long count,
 			 int *val);
 int lprocfs_write_u64_helper(const char __user *buffer,
-			     unsigned long count, __u64 *val);
+			     unsigned long count, u64 *val);
 int lprocfs_write_frac_u64_helper(const char __user *buffer,
 				  unsigned long count,
-				  __u64 *val, int mult);
+				  u64 *val, int mult);
 char *lprocfs_find_named_value(const char *buffer, const char *name,
 			       size_t *count);
 void lprocfs_oh_tally(struct obd_histogram *oh, unsigned int value);

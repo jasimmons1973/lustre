@@ -59,12 +59,12 @@ struct nrs_fifo_head {
 	/**
 	 * For debugging purposes.
 	 */
-	__u64				fh_sequence;
+	u64				fh_sequence;
 };
 
 struct nrs_fifo_req {
 	struct list_head	fr_list;
-	__u64			fr_sequence;
+	u64			fr_sequence;
 };
 
 /** @} fifo */

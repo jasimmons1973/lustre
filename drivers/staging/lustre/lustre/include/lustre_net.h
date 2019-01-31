@@ -95,7 +95,7 @@
  * use the negotiated per-client ocd_brw_size to determine the bulk
  * RPC count.
  */
-#define PTLRPC_BULK_OPS_MASK	(~((__u64)PTLRPC_BULK_OPS_COUNT - 1))
+#define PTLRPC_BULK_OPS_MASK	(~((u64)PTLRPC_BULK_OPS_COUNT - 1))
 
 /**
  * Define maxima for bulk I/O.
@@ -304,9 +304,9 @@ struct ptlrpc_connection {
 /** Client definition for PortalRPC */
 struct ptlrpc_client {
 	/** What lnet portal does this client send messages to by default */
-	__u32		   cli_request_portal;
+	u32		   cli_request_portal;
 	/** What portal do we expect replies on */
-	__u32		   cli_reply_portal;
+	u32		   cli_reply_portal;
 	/** Name of the client */
 	char		   *cli_name;
 };
@@ -327,7 +327,7 @@ union ptlrpc_async_args {
 	 * least big enough for that.
 	 */
 	void      *pointer_arg[11];
-	__u64      space[7];
+	u64      space[7];
 };
 
 struct ptlrpc_request_set;
@@ -455,11 +455,11 @@ struct ptlrpc_reply_state {
 	/** Size of the state */
 	int		    rs_size;
 	/** opcode */
-	__u32		  rs_opc;
+	u32		  rs_opc;
 	/** Transaction number */
-	__u64		  rs_transno;
+	u64		  rs_transno;
 	/** xid */
-	__u64		  rs_xid;
+	u64		  rs_xid;
 	struct obd_export     *rs_export;
 	struct ptlrpc_service_part *rs_svcpt;
 	/** Lnet metadata handle for the reply */
@@ -667,7 +667,7 @@ struct ptlrpc_srv_req {
 	/** server-side history, used for debuging purposes. */
 	struct list_head		sr_hist_list;
 	/** history sequence # */
-	__u64				sr_hist_seq;
+	u64				sr_hist_seq;
 	/** the index of service's srv_at_array into which request is linked */
 	time64_t			sr_at_index;
 	/** authed uid */
@@ -809,9 +809,9 @@ struct ptlrpc_request {
 	/** Reply message - server response */
 	struct lustre_msg *rq_repmsg;
 	/** Transaction number */
-	__u64 rq_transno;
+	u64 rq_transno;
 	/** xid */
-	__u64 rq_xid;
+	u64 rq_xid;
 	/** bulk match bits */
 	u64				rq_mbits;
 	/**
@@ -871,8 +871,8 @@ struct ptlrpc_request {
 	/** @} */
 
 	/** Fields that help to see if request and reply were swabbed or not */
-	__u32 rq_req_swab_mask;
-	__u32 rq_rep_swab_mask;
+	u32 rq_req_swab_mask;
+	u32 rq_rep_swab_mask;
 
 	/** how many early replies (for stats) */
 	int rq_early_count;
@@ -1214,7 +1214,7 @@ struct ptlrpc_bulk_desc {
 	/** {put,get}{source,sink}{kvec,kiov} */
 	enum ptlrpc_bulk_op_type bd_type;
 	/** LNet portal for this bulk */
-	__u32 bd_portal;
+	u32 bd_portal;
 	/** Server side - export this bulk created for */
 	struct obd_export *bd_export;
 	/** Client side - import this bulk was sent on */
@@ -1282,7 +1282,7 @@ struct ptlrpc_thread {
 	 * thread-private data (preallocated memory)
 	 */
 	void *t_data;
-	__u32 t_flags;
+	u32 t_flags;
 	/**
 	 * service thread index, from ptlrpc_start_threads
 	 */
@@ -1329,23 +1329,23 @@ static inline int thread_is_running(struct ptlrpc_thread *thread)
 	return !!(thread->t_flags & SVC_RUNNING);
 }
 
-static inline void thread_clear_flags(struct ptlrpc_thread *thread, __u32 flags)
+static inline void thread_clear_flags(struct ptlrpc_thread *thread, u32 flags)
 {
 	thread->t_flags &= ~flags;
 }
 
-static inline void thread_set_flags(struct ptlrpc_thread *thread, __u32 flags)
+static inline void thread_set_flags(struct ptlrpc_thread *thread, u32 flags)
 {
 	thread->t_flags = flags;
 }
 
-static inline void thread_add_flags(struct ptlrpc_thread *thread, __u32 flags)
+static inline void thread_add_flags(struct ptlrpc_thread *thread, u32 flags)
 {
 	thread->t_flags |= flags;
 }
 
 static inline int thread_test_and_clear_flags(struct ptlrpc_thread *thread,
-					      __u32 flags)
+					      u32 flags)
 {
 	if (thread->t_flags & flags) {
 		thread->t_flags &= ~flags;
@@ -1459,14 +1459,14 @@ struct ptlrpc_service {
 	/** # buffers to allocate in 1 group */
 	int			     srv_nbuf_per_group;
 	/** Local portal on which to receive requests */
-	__u32			   srv_req_portal;
+	u32			   srv_req_portal;
 	/** Portal on the client to send replies to */
-	__u32			   srv_rep_portal;
+	u32			   srv_rep_portal;
 	/**
 	 * Tags for lu_context associated with this thread, see struct
 	 * lu_context.
 	 */
-	__u32			   srv_ctx_tags;
+	u32			   srv_ctx_tags;
 	/** soft watchdog timeout multiplier */
 	int			     srv_watchdog_factor;
 	/** under unregister_service */
@@ -1477,7 +1477,7 @@ struct ptlrpc_service {
 	/** number of CPTs this service bound on */
 	int				srv_ncpts;
 	/** CPTs array this service bound on */
-	__u32				*srv_cpts;
+	u32				*srv_cpts;
 	/** 2^srv_cptab_bits >= cfs_cpt_numbert(srv_cptable) */
 	int				srv_cpt_bits;
 	/** CPT table this service is running over */
@@ -1561,9 +1561,9 @@ struct ptlrpc_service_part {
 	/** # request buffers in history */
 	int				scp_hist_nrqbds;
 	/** sequence number for request */
-	__u64				scp_hist_seq;
+	u64				scp_hist_seq;
 	/** highest seq culled from history */
-	__u64				scp_hist_seq_culled;
+	u64				scp_hist_seq_culled;
 
 	/**
 	 * serialize the following fields, used for processing requests
@@ -1849,12 +1849,12 @@ struct ptlrpc_request *ptlrpc_request_alloc_pool(struct obd_import *imp,
 						 const struct req_format *);
 void ptlrpc_request_free(struct ptlrpc_request *request);
 int ptlrpc_request_pack(struct ptlrpc_request *request,
-			__u32 version, int opcode);
+			u32 version, int opcode);
 struct ptlrpc_request *ptlrpc_request_alloc_pack(struct obd_import *,
 						 const struct req_format *,
-						 __u32, int);
+						 u32, int);
 int ptlrpc_request_bufs_pack(struct ptlrpc_request *request,
-			     __u32 version, int opcode, char **bufs,
+			     u32 version, int opcode, char **bufs,
 			     struct ptlrpc_cli_ctx *ctx);
 void ptlrpc_req_finished(struct ptlrpc_request *request);
 struct ptlrpc_request *ptlrpc_request_addref(struct ptlrpc_request *req);
@@ -1896,9 +1896,9 @@ static inline void ptlrpc_release_bulk_page_pin(struct ptlrpc_bulk_desc *desc)
 
 void ptlrpc_retain_replayable_request(struct ptlrpc_request *req,
 				      struct obd_import *imp);
-__u64 ptlrpc_next_xid(void);
-__u64 ptlrpc_sample_next_xid(void);
-__u64 ptlrpc_req_xid(struct ptlrpc_request *request);
+u64 ptlrpc_next_xid(void);
+u64 ptlrpc_sample_next_xid(void);
+u64 ptlrpc_req_xid(struct ptlrpc_request *request);
 
 /* Set of routines to run a function in ptlrpcd context */
 void *ptlrpcd_alloc_work(struct obd_import *imp,
@@ -1945,7 +1945,7 @@ struct ptlrpc_service_thr_conf {
 	/* set NUMA node affinity for service threads */
 	unsigned int			tc_cpu_affinity;
 	/* Tags for lu_context associated with service thread */
-	__u32				tc_ctx_tags;
+	u32				tc_ctx_tags;
 };
 
 struct ptlrpc_service_cpt_conf {
@@ -2016,24 +2016,24 @@ void ptlrpc_buf_set_swabbed(struct ptlrpc_request *req, const int inout,
 int ptlrpc_unpack_rep_msg(struct ptlrpc_request *req, int len);
 int ptlrpc_unpack_req_msg(struct ptlrpc_request *req, int len);
 
-void lustre_init_msg_v2(struct lustre_msg_v2 *msg, int count, __u32 *lens,
+void lustre_init_msg_v2(struct lustre_msg_v2 *msg, int count, u32 *lens,
 			char **bufs);
-int lustre_pack_request(struct ptlrpc_request *, __u32 magic, int count,
-			__u32 *lens, char **bufs);
-int lustre_pack_reply(struct ptlrpc_request *, int count, __u32 *lens,
+int lustre_pack_request(struct ptlrpc_request *, u32 magic, int count,
+			u32 *lens, char **bufs);
+int lustre_pack_reply(struct ptlrpc_request *, int count, u32 *lens,
 		      char **bufs);
 int lustre_pack_reply_v2(struct ptlrpc_request *req, int count,
-			 __u32 *lens, char **bufs, int flags);
+			 u32 *lens, char **bufs, int flags);
 #define LPRFL_EARLY_REPLY 1
-int lustre_pack_reply_flags(struct ptlrpc_request *, int count, __u32 *lens,
+int lustre_pack_reply_flags(struct ptlrpc_request *, int count, u32 *lens,
 			    char **bufs, int flags);
 int lustre_shrink_msg(struct lustre_msg *msg, int segment,
 		      unsigned int newlen, int move_data);
 void lustre_free_reply_state(struct ptlrpc_reply_state *rs);
 int __lustre_unpack_msg(struct lustre_msg *m, int len);
-u32 lustre_msg_hdr_size(__u32 magic, u32 count);
-u32 lustre_msg_size(__u32 magic, int count, __u32 *lengths);
-u32 lustre_msg_size_v2(int count, __u32 *lengths);
+u32 lustre_msg_hdr_size(u32 magic, u32 count);
+u32 lustre_msg_size(u32 magic, int count, u32 *lengths);
+u32 lustre_msg_size_v2(int count, u32 *lengths);
 u32 lustre_packed_msg_size(struct lustre_msg *msg);
 u32 lustre_msg_early_size(void);
 void *lustre_msg_buf_v2(struct lustre_msg_v2 *m, u32 n, u32 min_size);
@@ -2041,48 +2041,48 @@ void *lustre_msg_buf(struct lustre_msg *m, u32 n, u32 minlen);
 u32 lustre_msg_buflen(struct lustre_msg *m, u32 n);
 u32 lustre_msg_bufcount(struct lustre_msg *m);
 char *lustre_msg_string(struct lustre_msg *m, u32 n, u32 max_len);
-__u32 lustre_msghdr_get_flags(struct lustre_msg *msg);
-void lustre_msghdr_set_flags(struct lustre_msg *msg, __u32 flags);
-__u32 lustre_msg_get_flags(struct lustre_msg *msg);
+u32 lustre_msghdr_get_flags(struct lustre_msg *msg);
+void lustre_msghdr_set_flags(struct lustre_msg *msg, u32 flags);
+u32 lustre_msg_get_flags(struct lustre_msg *msg);
 void lustre_msg_add_flags(struct lustre_msg *msg, u32 flags);
 void lustre_msg_set_flags(struct lustre_msg *msg, u32 flags);
 void lustre_msg_clear_flags(struct lustre_msg *msg, u32 flags);
-__u32 lustre_msg_get_op_flags(struct lustre_msg *msg);
+u32 lustre_msg_get_op_flags(struct lustre_msg *msg);
 void lustre_msg_add_op_flags(struct lustre_msg *msg, u32 flags);
 struct lustre_handle *lustre_msg_get_handle(struct lustre_msg *msg);
-__u32 lustre_msg_get_type(struct lustre_msg *msg);
+u32 lustre_msg_get_type(struct lustre_msg *msg);
 void lustre_msg_add_version(struct lustre_msg *msg, u32 version);
-__u32 lustre_msg_get_opc(struct lustre_msg *msg);
-__u16 lustre_msg_get_tag(struct lustre_msg *msg);
-__u64 lustre_msg_get_last_committed(struct lustre_msg *msg);
-__u64 *lustre_msg_get_versions(struct lustre_msg *msg);
-__u64 lustre_msg_get_transno(struct lustre_msg *msg);
-__u64 lustre_msg_get_slv(struct lustre_msg *msg);
-__u32 lustre_msg_get_limit(struct lustre_msg *msg);
-void lustre_msg_set_slv(struct lustre_msg *msg, __u64 slv);
-void lustre_msg_set_limit(struct lustre_msg *msg, __u64 limit);
+u32 lustre_msg_get_opc(struct lustre_msg *msg);
+u16 lustre_msg_get_tag(struct lustre_msg *msg);
+u64 lustre_msg_get_last_committed(struct lustre_msg *msg);
+u64 *lustre_msg_get_versions(struct lustre_msg *msg);
+u64 lustre_msg_get_transno(struct lustre_msg *msg);
+u64 lustre_msg_get_slv(struct lustre_msg *msg);
+u32 lustre_msg_get_limit(struct lustre_msg *msg);
+void lustre_msg_set_slv(struct lustre_msg *msg, u64 slv);
+void lustre_msg_set_limit(struct lustre_msg *msg, u64 limit);
 int lustre_msg_get_status(struct lustre_msg *msg);
-__u32 lustre_msg_get_conn_cnt(struct lustre_msg *msg);
-__u32 lustre_msg_get_magic(struct lustre_msg *msg);
-__u32 lustre_msg_get_timeout(struct lustre_msg *msg);
-__u32 lustre_msg_get_service_time(struct lustre_msg *msg);
-__u32 lustre_msg_get_cksum(struct lustre_msg *msg);
-__u32 lustre_msg_calc_cksum(struct lustre_msg *msg);
+u32 lustre_msg_get_conn_cnt(struct lustre_msg *msg);
+u32 lustre_msg_get_magic(struct lustre_msg *msg);
+u32 lustre_msg_get_timeout(struct lustre_msg *msg);
+u32 lustre_msg_get_service_time(struct lustre_msg *msg);
+u32 lustre_msg_get_cksum(struct lustre_msg *msg);
+u32 lustre_msg_calc_cksum(struct lustre_msg *msg);
 void lustre_msg_set_handle(struct lustre_msg *msg,
 			   struct lustre_handle *handle);
-void lustre_msg_set_type(struct lustre_msg *msg, __u32 type);
-void lustre_msg_set_opc(struct lustre_msg *msg, __u32 opc);
+void lustre_msg_set_type(struct lustre_msg *msg, u32 type);
+void lustre_msg_set_opc(struct lustre_msg *msg, u32 opc);
 void lustre_msg_set_last_xid(struct lustre_msg *msg, u64 last_xid);
-void lustre_msg_set_tag(struct lustre_msg *msg, __u16 tag);
-void lustre_msg_set_versions(struct lustre_msg *msg, __u64 *versions);
-void lustre_msg_set_transno(struct lustre_msg *msg, __u64 transno);
-void lustre_msg_set_status(struct lustre_msg *msg, __u32 status);
-void lustre_msg_set_conn_cnt(struct lustre_msg *msg, __u32 conn_cnt);
+void lustre_msg_set_tag(struct lustre_msg *msg, u16 tag);
+void lustre_msg_set_versions(struct lustre_msg *msg, u64 *versions);
+void lustre_msg_set_transno(struct lustre_msg *msg, u64 transno);
+void lustre_msg_set_status(struct lustre_msg *msg, u32 status);
+void lustre_msg_set_conn_cnt(struct lustre_msg *msg, u32 conn_cnt);
 void ptlrpc_request_set_replen(struct ptlrpc_request *req);
-void lustre_msg_set_timeout(struct lustre_msg *msg, __u32 timeout);
-void lustre_msg_set_service_time(struct lustre_msg *msg, __u32 service_time);
+void lustre_msg_set_timeout(struct lustre_msg *msg, u32 timeout);
+void lustre_msg_set_service_time(struct lustre_msg *msg, u32 service_time);
 void lustre_msg_set_jobid(struct lustre_msg *msg, char *jobid);
-void lustre_msg_set_cksum(struct lustre_msg *msg, __u32 cksum);
+void lustre_msg_set_cksum(struct lustre_msg *msg, u32 cksum);
 void lustre_msg_set_mbits(struct lustre_msg *msg, u64 mbits);
 
 static inline void
@@ -2244,7 +2244,7 @@ static inline void ptlrpc_req_drop_rs(struct ptlrpc_request *req)
 	req->rq_repmsg = NULL;
 }
 
-static inline __u32 lustre_request_magic(struct ptlrpc_request *req)
+static inline u32 lustre_request_magic(struct ptlrpc_request *req)
 {
 	return lustre_msg_get_magic(req->rq_reqmsg);
 }
@@ -2355,7 +2355,7 @@ void ptlrpcd_decref(void);
  * procfs output related functions
  * @{
  */
-const char *ll_opcode2str(__u32 opcode);
+const char *ll_opcode2str(u32 opcode);
 void ptlrpc_lprocfs_register_obd(struct obd_device *obd);
 void ptlrpc_lprocfs_unregister_obd(struct obd_device *obd);
 void ptlrpc_lprocfs_brw(struct ptlrpc_request *req, int bytes);

@@ -153,7 +153,7 @@ struct cl_attr {
 	 *
 	 * \todo XXX An interface for block size is needed.
 	 */
-	__u64  cat_blocks;
+	u64  cat_blocks;
 	/**
 	 * User identifier for quota purposes.
 	 */
@@ -164,7 +164,7 @@ struct cl_attr {
 	gid_t  cat_gid;
 
 	/* nlink of the directory */
-	__u64  cat_nlink;
+	u64  cat_nlink;
 
 	/* Project identifier for quota purpose. */
 	u32	cat_projid;
@@ -1151,14 +1151,14 @@ struct cl_lock_descr {
 	/** Index of the last page (inclusive) protected by this lock. */
 	pgoff_t	   cld_end;
 	/** Group ID, for group lock */
-	__u64	     cld_gid;
+	u64	     cld_gid;
 	/** Lock mode. */
 	enum cl_lock_mode cld_mode;
 	/**
 	 * flags to enqueue lock. A combination of bit-flags from
 	 * enum cl_enq_flags.
 	 */
-	__u32	     cld_enq_flags;
+	u32	     cld_enq_flags;
 };
 
 #define DDESCR "%s(%d):[%lu, %lu]:%x"
@@ -2438,7 +2438,7 @@ void cl_sync_io_end(const struct lu_env *env, struct cl_sync_io *anchor);
  */
 
 struct lu_env *cl_env_get(u16 *refcheck);
-struct lu_env *cl_env_alloc(u16 *refcheck, __u32 tags);
+struct lu_env *cl_env_alloc(u16 *refcheck, u32 tags);
 void cl_env_put(struct lu_env *env, u16 *refcheck);
 unsigned int cl_env_cache_purge(unsigned int nr);
 struct lu_env *cl_env_percpu_get(void);

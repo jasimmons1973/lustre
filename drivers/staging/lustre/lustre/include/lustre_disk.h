@@ -70,8 +70,8 @@
 
 /* gleaned from the mount command - no persistent info here */
 struct lustre_mount_data {
-	__u32	lmd_magic;
-	__u32	lmd_flags;	/* lustre mount flags */
+	u32	lmd_magic;
+	u32	lmd_flags;	/* lustre mount flags */
 	int	lmd_mgs_failnodes; /* mgs failover node count */
 	int	lmd_exclude_count;
 	int	lmd_recovery_time_soft;
@@ -84,7 +84,7 @@ struct lustre_mount_data {
 				 * _device_ mount options)
 				 */
 	char	*lmd_params;	/* lustre params */
-	__u32	*lmd_exclude;	/* array of OSTs to ignore */
+	u32	*lmd_exclude;	/* array of OSTs to ignore */
 	char	*lmd_mgs;	/* MGS nid */
 	char	*lmd_osd_type;	/* OSD type */
 	char    *lmd_nidnet;	/* network to restrict this client to */

@@ -143,7 +143,7 @@ int llog_initiator_connect(struct llog_ctxt *ctxt);
 
 struct llog_operations {
 	int (*lop_next_block)(const struct lu_env *env, struct llog_handle *h,
-			      int *curr_idx, int next_idx, __u64 *offset,
+			      int *curr_idx, int next_idx, u64 *offset,
 			      void *buf, int len);
 	int (*lop_prev_block)(const struct lu_env *env, struct llog_handle *h,
 			      int prev_idx, void *buf, int len);
@@ -218,7 +218,7 @@ struct llog_handle {
 	size_t			 lgh_hdr_size;
 	int			 lgh_last_idx;
 	int			 lgh_cur_idx; /* used during llog_process */
-	__u64			 lgh_cur_offset; /* used during llog_process */
+	u64			 lgh_cur_offset; /* used during llog_process */
 	struct llog_ctxt	*lgh_ctxt;
 	union {
 		struct plain_handle_data	 phd;
@@ -250,7 +250,7 @@ struct llog_ctxt {
 	 * llog chunk size, and llog record size can not be bigger than
 	 * loc_chunk_size
 	 */
-	__u32			loc_chunk_size;
+	u32			loc_chunk_size;
 };
 
 #define LLOG_PROC_BREAK 0x0001
@@ -348,7 +348,7 @@ static inline int llog_ctxt_null(struct obd_device *obd, int index)
 
 static inline int llog_next_block(const struct lu_env *env,
 				  struct llog_handle *loghandle, int *cur_idx,
-				  int next_idx, __u64 *cur_offset, void *buf,
+				  int next_idx, u64 *cur_offset, void *buf,
 				  int len)
 {
 	struct llog_operations *lop;

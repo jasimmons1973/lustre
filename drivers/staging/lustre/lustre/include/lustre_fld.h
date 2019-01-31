@@ -62,7 +62,7 @@ struct lu_fld_target {
 	struct list_head	       ft_chain;
 	struct obd_export       *ft_exp;
 	struct lu_server_fld    *ft_srv;
-	__u64		    ft_idx;
+	u64		    ft_idx;
 };
 
 struct lu_server_fld {
@@ -115,7 +115,7 @@ void fld_client_fini(struct lu_client_fld *fld);
 void fld_client_flush(struct lu_client_fld *fld);
 
 int fld_client_lookup(struct lu_client_fld *fld, u64 seq, u32 *mds,
-		      __u32 flags, const struct lu_env *env);
+		      u32 flags, const struct lu_env *env);
 
 int fld_client_create(struct lu_client_fld *fld,
 		      struct lu_seq_range *range,
@@ -128,7 +128,7 @@ int fld_client_add_target(struct lu_client_fld *fld,
 			  struct lu_fld_target *tar);
 
 int fld_client_del_target(struct lu_client_fld *fld,
-			  __u64 idx);
+			  u64 idx);
 
 void fld_client_debugfs_fini(struct lu_client_fld *fld);
 

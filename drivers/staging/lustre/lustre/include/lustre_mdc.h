@@ -204,7 +204,7 @@ static inline void mdc_update_max_ea_from_body(struct obd_export *exp,
 		if (cli->cl_max_mds_easize < body->mbo_max_mdsize)
 			cli->cl_max_mds_easize = body->mbo_max_mdsize;
 
-		def_easize = min_t(__u32, body->mbo_max_mdsize,
+		def_easize = min_t(u32, body->mbo_max_mdsize,
 				   OBD_MAX_DEFAULT_EA_SIZE);
 		cli->cl_default_mds_easize = def_easize;
 	}

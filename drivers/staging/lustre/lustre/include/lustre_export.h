@@ -101,12 +101,12 @@ struct obd_export {
 	/** Active connection */
 	struct ptlrpc_connection *exp_connection;
 	/** Connection count value from last successful reconnect rpc */
-	__u32		     exp_conn_cnt;
+	u32		     exp_conn_cnt;
 	struct list_head		exp_outstanding_replies;
 	struct list_head		exp_uncommitted_replies;
 	spinlock_t		  exp_uncommitted_replies_lock;
 	/** Last committed transno for this export */
-	__u64		     exp_last_committed;
+	u64		     exp_last_committed;
 	/** On replay all requests waiting for replay are linked here */
 	struct list_head		exp_req_replay_queue;
 	/**
@@ -139,12 +139,12 @@ struct obd_export {
 	spinlock_t		  exp_bl_list_lock;
 };
 
-static inline __u64 *exp_connect_flags_ptr(struct obd_export *exp)
+static inline u64 *exp_connect_flags_ptr(struct obd_export *exp)
 {
 	return &exp->exp_connect_data.ocd_connect_flags;
 }
 
-static inline __u64 exp_connect_flags(struct obd_export *exp)
+static inline u64 exp_connect_flags(struct obd_export *exp)
 {
 	return *exp_connect_flags_ptr(exp);
 }
@@ -219,7 +219,7 @@ static inline bool imp_connect_lvb_type(struct obd_import *imp)
 		return false;
 }
 
-static inline __u64 exp_connect_ibits(struct obd_export *exp)
+static inline u64 exp_connect_ibits(struct obd_export *exp)
 {
 	struct obd_connect_data *ocd;
 
@@ -239,9 +239,9 @@ struct obd_export *class_conn2export(struct lustre_handle *conn);
 
 #define KKUC_CT_DATA_MAGIC	0x092013cea
 struct kkuc_ct_data {
-	__u32		kcd_magic;
+	u32		kcd_magic;
 	struct obd_uuid	kcd_uuid;
-	__u32		kcd_archive;
+	u32		kcd_archive;
 };
 
 /** @} export */

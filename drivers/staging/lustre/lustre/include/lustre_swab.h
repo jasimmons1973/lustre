@@ -62,7 +62,7 @@ void lustre_swab_ost_lvb_v1(struct ost_lvb_v1 *lvb);
 void lustre_swab_ost_lvb(struct ost_lvb *lvb);
 void lustre_swab_obd_quotactl(struct obd_quotactl *q);
 void lustre_swab_lquota_lvb(struct lquota_lvb *lvb);
-void lustre_swab_generic_32s(__u32 *val);
+void lustre_swab_generic_32s(u32 *val);
 void lustre_swab_mdt_body(struct mdt_body *b);
 void lustre_swab_mdt_ioepoch(struct mdt_ioepoch *b);
 void lustre_swab_mdt_rec_setattr(struct mdt_rec_setattr *sa);
@@ -79,7 +79,7 @@ void lustre_swab_mgs_nidtbl_entry(struct mgs_nidtbl_entry *oinfo);
 void lustre_swab_mgs_config_body(struct mgs_config_body *body);
 void lustre_swab_mgs_config_res(struct mgs_config_res *body);
 void lustre_swab_ost_body(struct ost_body *b);
-void lustre_swab_ost_last_id(__u64 *id);
+void lustre_swab_ost_last_id(u64 *id);
 void lustre_swab_fiemap(struct fiemap *fiemap);
 void lustre_swab_lov_user_md_v1(struct lov_user_md_v1 *lum);
 void lustre_swab_lov_user_md_v3(struct lov_user_md_v3 *lum);
@@ -107,6 +107,6 @@ void lustre_swab_ladvise_hdr(struct ladvise_hdr *ladvise_hdr);
 void dump_rniobuf(struct niobuf_remote *rnb);
 void dump_ioo(struct obd_ioobj *nb);
 void dump_ost_body(struct ost_body *ob);
-void dump_rcs(__u32 *rc);
+void dump_rcs(u32 *rc);
 
 #endif

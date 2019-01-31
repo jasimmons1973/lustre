@@ -44,8 +44,8 @@
 
 /* lib/debug.c */
 int dump_req(struct ptlrpc_request *req);
-int block_debug_setup(void *addr, int len, __u64 off, __u64 id);
-int block_debug_check(char *who, void *addr, int len, __u64 off, __u64 id);
+int block_debug_setup(void *addr, int len, u64 off, u64 id);
+int block_debug_check(char *who, void *addr, int len, u64 off, u64 id);
 
 /** @} debug */
 

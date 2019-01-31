@@ -66,7 +66,7 @@ struct req_capsule {
 	struct ptlrpc_request   *rc_req;
 	const struct req_format *rc_fmt;
 	enum req_location	rc_loc;
-	__u32		    rc_area[RCL_NR][REQ_MAX_FIELD_NR];
+	u32		    rc_area[RCL_NR][REQ_MAX_FIELD_NR];
 };
 
 void req_capsule_init(struct req_capsule *pill, struct ptlrpc_request *req,
@@ -105,7 +105,7 @@ u32 req_capsule_get_size(const struct req_capsule *pill,
 			 const struct req_msg_field *field,
 			 enum req_location loc);
 u32 req_capsule_msg_size(struct req_capsule *pill, enum req_location loc);
-u32 req_capsule_fmt_size(__u32 magic, const struct req_format *fmt,
+u32 req_capsule_fmt_size(u32 magic, const struct req_format *fmt,
 			 enum req_location loc);
 void req_capsule_extend(struct req_capsule *pill, const struct req_format *fmt);
 
