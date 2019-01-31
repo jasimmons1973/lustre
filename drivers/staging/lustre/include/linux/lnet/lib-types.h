@@ -88,18 +88,18 @@ struct lnet_msg {
 	/* ready for pending on RX delay list */
 	unsigned int		msg_rx_ready_delay:1;
 
-	unsigned int	msg_vmflush:1;		/* VM trying to free memory */
-	unsigned int	msg_target_is_router:1; /* sending to a router */
-	unsigned int	msg_routing:1;		/* being forwarded */
-	unsigned int	msg_ack:1;		/* ack on finalize (PUT) */
-	unsigned int	msg_sending:1;		/* outgoing message */
-	unsigned int	msg_receiving:1;	/* being received */
-	unsigned int	msg_txcredit:1;		/* taken an NI send credit */
-	unsigned int	msg_peertxcredit:1;	/* taken a peer send credit */
-	unsigned int	msg_rtrcredit:1;	/* taken a global router credit */
-	unsigned int	msg_peerrtrcredit:1;	/* taken a peer router credit */
-	unsigned int	msg_onactivelist:1;	/* on the activelist */
-	unsigned int	msg_rdma_get:1;
+	unsigned int		msg_vmflush:1;		/* VM trying to free memory */
+	unsigned int		msg_target_is_router:1; /* sending to a router */
+	unsigned int		msg_routing:1;		/* being forwarded */
+	unsigned int		msg_ack:1;		/* ack on finalize (PUT) */
+	unsigned int		msg_sending:1;		/* outgoing message */
+	unsigned int		msg_receiving:1;	/* being received */
+	unsigned int		msg_txcredit:1;		/* taken an NI send credit */
+	unsigned int		msg_peertxcredit:1;	/* taken a peer send credit */
+	unsigned int		msg_rtrcredit:1;	/* taken a global router credit */
+	unsigned int		msg_peerrtrcredit:1;	/* taken a peer router credit */
+	unsigned int		msg_onactivelist:1;	/* on the activelist */
+	unsigned int		msg_rdma_get:1;
 
 	struct lnet_peer_ni	*msg_txpeer;	 /* peer I'm sending to */
 	struct lnet_peer_ni	*msg_rxpeer;	 /* peer I received from */
@@ -130,14 +130,14 @@ struct lnet_libhandle {
 	((type *)((char *)(ptr) - (char *)(&((type *)0)->member)))
 
 struct lnet_eq {
-	struct list_head	  eq_list;
-	struct lnet_libhandle	  eq_lh;
-	unsigned long		  eq_enq_seq;
-	unsigned long		  eq_deq_seq;
-	unsigned int		  eq_size;
-	lnet_eq_handler_t	  eq_callback;
-	struct lnet_event	 *eq_events;
-	int			**eq_refs;	/* percpt refcount for EQ */
+	struct list_head	eq_list;
+	struct lnet_libhandle	eq_lh;
+	unsigned long		eq_enq_seq;
+	unsigned long		eq_deq_seq;
+	unsigned int		eq_size;
+	lnet_eq_handler_t	eq_callback;
+	struct lnet_event      *eq_events;
+	int		      **eq_refs;	/* percpt refcount for EQ */
 };
 
 struct lnet_me {
@@ -267,7 +267,7 @@ struct lnet_tx_queue {
 
 enum lnet_ni_state {
 	/* set when NI block is allocated */
-	LNET_NI_STATE_INIT = 0,
+	LNET_NI_STATE_INIT	= 0,
 	/* set when NI is started successfully */
 	LNET_NI_STATE_ACTIVE,
 	/* set when LND notifies NI failed */
@@ -279,23 +279,23 @@ enum lnet_ni_state {
 };
 
 enum lnet_stats_type {
-	LNET_STATS_TYPE_SEND = 0,
+	LNET_STATS_TYPE_SEND	= 0,
 	LNET_STATS_TYPE_RECV,
 	LNET_STATS_TYPE_DROP
 };
 
 struct lnet_comm_count {
-	atomic_t co_get_count;
-	atomic_t co_put_count;
-	atomic_t co_reply_count;
-	atomic_t co_ack_count;
-	atomic_t co_hello_count;
+	atomic_t		co_get_count;
+	atomic_t		co_put_count;
+	atomic_t		co_reply_count;
+	atomic_t		co_ack_count;
+	atomic_t		co_hello_count;
 };
 
 struct lnet_element_stats {
-	struct lnet_comm_count el_send_stats;
-	struct lnet_comm_count el_recv_stats;
-	struct lnet_comm_count el_drop_stats;
+	struct lnet_comm_count	el_send_stats;
+	struct lnet_comm_count	el_recv_stats;
+	struct lnet_comm_count	el_drop_stats;
 };
 
 struct lnet_net {
@@ -376,7 +376,7 @@ struct lnet_ni {
 	struct lnet_lnd_tunables ni_lnd_tunables;
 
 	/* lnd tunables set explicitly */
-	bool ni_lnd_tunables_set;
+	bool			ni_lnd_tunables_set;
 
 	/* NI statistics */
 	struct lnet_element_stats ni_stats;
@@ -391,9 +391,9 @@ struct lnet_ni {
 	 * equivalent interfaces to use
 	 * This is an array because socklnd bonding can still be configured
 	 */
-	char			 *ni_interfaces[LNET_INTERFACES_NUM];
+	char			*ni_interfaces[LNET_INTERFACES_NUM];
 	/* original net namespace */
-	struct net		 *ni_net_ns;
+	struct net		*ni_net_ns;
 };
 
 #define LNET_PROTO_PING_MATCHBITS	0x8000000000000000LL
@@ -434,9 +434,9 @@ struct lnet_rc_data {
 
 struct lnet_peer_ni {
 	/* chain on lpn_peer_nis */
-	struct list_head	lpni_peer_nis;
+	struct list_head	 lpni_peer_nis;
 	/* chain on remote peer list */
-	struct list_head	lpni_on_remote_peer_ni_list;
+	struct list_head	 lpni_on_remote_peer_ni_list;
 	/* chain on peer hash */
 	struct list_head	 lpni_hashlist;
 	/* messages blocking for tx credits */
@@ -448,7 +448,7 @@ struct lnet_peer_ni {
 	/* statistics kept on each peer NI */
 	struct lnet_element_stats lpni_stats;
 	/* spin lock protecting credits and lpni_txq / lpni_rtrq */
-	spinlock_t		lpni_lock;
+	spinlock_t		 lpni_lock;
 	/* # tx credits available */
 	int			 lpni_txcredits;
 	struct lnet_peer_net	*lpni_peer_net;
@@ -491,26 +491,26 @@ struct lnet_peer_ni {
 	/* CPT this peer attached on */
 	int			 lpni_cpt;
 	/* state flags -- protected by lpni_lock */
-	unsigned int		lpni_state;
+	unsigned int		 lpni_state;
 	/* # refs from lnet_route::lr_gateway */
 	int			 lpni_rtr_refcount;
 	/* sequence number used to round robin over peer nis within a net */
-	u32			lpni_seq;
+	u32			 lpni_seq;
 	/* sequence number used to round robin over gateways */
-	u32			lpni_gw_seq;
+	u32			 lpni_gw_seq;
 	/* health flag */
-	bool			lpni_healthy;
+	bool			 lpni_healthy;
 	/* returned RC ping features. Protected with lpni_lock */
 	unsigned int		 lpni_ping_feats;
 	/* routers on this peer */
 	struct list_head	 lpni_routes;
 	/* preferred local nids: if only one, use lpni_pref.nid */
 	union lpni_pref {
-		lnet_nid_t	nid;
+		lnet_nid_t	 nid;
 		lnet_nid_t	*nids;
 	} lpni_pref;
 	/* number of preferred NIDs in lnpi_pref_nids */
-	u32			lpni_pref_nnids;
+	u32			 lpni_pref_nnids;
 	/* router checker state */
 	struct lnet_rc_data	*lpni_rcd;
 };
@@ -676,9 +676,9 @@ struct lnet_peer_table {
 	/* # peers extant */
 	atomic_t		 pt_number;
 	/* peers */
-	struct list_head	pt_peer_list;
+	struct list_head	 pt_peer_list;
 	/* # peers */
-	int			pt_peers;
+	int			 pt_peers;
 	/* # zombies to go to deathrow (and not there yet) */
 	int			 pt_zombies;
 	/* zombie peers_ni */
@@ -704,7 +704,7 @@ struct lnet_route {
 	/* chain on gateway */
 	struct list_head	lr_gwlist;
 	/* router node */
-	struct lnet_peer_ni	*lr_gateway;
+	struct lnet_peer_ni    *lr_gateway;
 	/* remote network number */
 	u32			lr_net;
 	/* sequence for round-robin */
@@ -754,9 +754,9 @@ struct lnet_rtrbufpool {
 };
 
 struct lnet_rtrbuf {
-	struct list_head	 rb_list;	/* chain on rbp_bufs */
-	struct lnet_rtrbufpool	*rb_pool;	/* owning pool */
-	struct bio_vec		 rb_kiov[0];	/* the buffer space */
+	struct list_head	rb_list;	/* chain on rbp_bufs */
+	struct lnet_rtrbufpool *rb_pool;	/* owning pool */
+	struct bio_vec		rb_kiov[0];	/* the buffer space */
 };
 
 #define LNET_PEER_HASHSIZE	503	/* prime! */
@@ -904,58 +904,58 @@ enum lnet_state {
 
 struct lnet {
 	/* CPU partition table of LNet */
-	struct cfs_cpt_table		 *ln_cpt_table;
+	struct cfs_cpt_table	       *ln_cpt_table;
 	/* number of CPTs in ln_cpt_table */
-	unsigned int			  ln_cpt_number;
-	unsigned int			  ln_cpt_bits;
+	unsigned int			ln_cpt_number;
+	unsigned int			ln_cpt_bits;
 
 	/* protect LNet resources (ME/MD/EQ) */
-	struct cfs_percpt_lock		 *ln_res_lock;
+	struct cfs_percpt_lock	       *ln_res_lock;
 	/* # portals */
-	int				  ln_nportals;
+	int				ln_nportals;
 	/* the vector of portals */
-	struct lnet_portal		**ln_portals;
+	struct lnet_portal	      **ln_portals;
 	/* percpt ME containers */
-	struct lnet_res_container	**ln_me_containers;
+	struct lnet_res_container     **ln_me_containers;
 	/* percpt MD container */
-	struct lnet_res_container	**ln_md_containers;
+	struct lnet_res_container     **ln_md_containers;
 
 	/* Event Queue container */
-	struct lnet_res_container	  ln_eq_container;
-	wait_queue_head_t		  ln_eq_waitq;
-	spinlock_t			  ln_eq_wait_lock;
-	unsigned int			  ln_remote_nets_hbits;
+	struct lnet_res_container	ln_eq_container;
+	wait_queue_head_t		ln_eq_waitq;
+	spinlock_t			ln_eq_wait_lock;
+	unsigned int			ln_remote_nets_hbits;
 
 	/* protect NI, peer table, credits, routers, rtrbuf... */
-	struct cfs_percpt_lock		 *ln_net_lock;
+	struct cfs_percpt_lock	       *ln_net_lock;
 	/* percpt message containers for active/finalizing/freed message */
-	struct lnet_msg_container	**ln_msg_containers;
-	struct lnet_counters		**ln_counters;
-	struct lnet_peer_table		**ln_peer_tables;
+	struct lnet_msg_container     **ln_msg_containers;
+	struct lnet_counters	      **ln_counters;
+	struct lnet_peer_table	      **ln_peer_tables;
 	/* list of peer nis not on a local network */
 	struct list_head		ln_remote_peer_ni_list;
 	/* failure simulation */
-	struct list_head		  ln_test_peers;
-	struct list_head		  ln_drop_rules;
-	struct list_head		  ln_delay_rules;
+	struct list_head		ln_test_peers;
+	struct list_head		ln_drop_rules;
+	struct list_head		ln_delay_rules;
 
 	/* LND instances */
 	struct list_head		ln_nets;
 	/* network zombie list */
 	struct list_head		ln_net_zombie;
 	/* the loopback NI */
-	struct lnet_ni			*ln_loni;
+	struct lnet_ni		       *ln_loni;
 
 	/* remote networks with routes to them */
-	struct list_head		 *ln_remote_nets_hash;
+	struct list_head	       *ln_remote_nets_hash;
 	/* validity stamp */
-	u64				  ln_remote_nets_version;
+	u64				ln_remote_nets_version;
 	/* list of all known routers */
-	struct list_head		  ln_routers;
+	struct list_head		ln_routers;
 	/* validity stamp */
-	u64				  ln_routers_version;
+	u64				ln_routers_version;
 	/* percpt router buffer pools */
-	struct lnet_rtrbufpool		**ln_rtrpools;
+	struct lnet_rtrbufpool	      **ln_rtrpools;
 
 	/*
 	 * Ping target / Push source
@@ -964,9 +964,9 @@ struct lnet {
 	 * ln_ping_target is protected against concurrent updates by
 	 * ln_api_mutex.
 	 */
-	struct lnet_handle_md		  ln_ping_target_md;
-	struct lnet_handle_eq		  ln_ping_target_eq;
-	struct lnet_ping_buffer		 *ln_ping_target;
+	struct lnet_handle_md		ln_ping_target_md;
+	struct lnet_handle_eq		ln_ping_target_eq;
+	struct lnet_ping_buffer	       *ln_ping_target;
 	atomic_t			ln_ping_target_seqno;
 
 	/*
@@ -979,7 +979,7 @@ struct lnet {
 	 */
 	struct lnet_handle_eq		ln_push_target_eq;
 	struct lnet_handle_md		ln_push_target_md;
-	struct lnet_ping_buffer		*ln_push_target;
+	struct lnet_ping_buffer	       *ln_push_target;
 	int				ln_push_target_nnis;
 
 	/* discovery event queue handle */
@@ -996,35 +996,35 @@ struct lnet {
 	int				ln_dc_state;
 
 	/* router checker startup/shutdown state */
-	enum lnet_rc_state		  ln_rc_state;
+	enum lnet_rc_state		ln_rc_state;
 	/* router checker's event queue */
-	struct lnet_handle_eq		  ln_rc_eqh;
+	struct lnet_handle_eq		ln_rc_eqh;
 	/* rcd still pending on net */
-	struct list_head		  ln_rcd_deathrow;
+	struct list_head		ln_rcd_deathrow;
 	/* rcd ready for free */
-	struct list_head		  ln_rcd_zombie;
+	struct list_head		ln_rcd_zombie;
 	/* serialise startup/shutdown */
-	struct completion		  ln_rc_signal;
+	struct completion		ln_rc_signal;
 
-	struct mutex			  ln_api_mutex;
-	struct mutex			  ln_lnd_mutex;
-	struct mutex			  ln_delay_mutex;
+	struct mutex			ln_api_mutex;
+	struct mutex			ln_lnd_mutex;
+	struct mutex			ln_delay_mutex;
 	/* Have I called LNetNIInit myself? */
-	int				  ln_niinit_self;
+	int				ln_niinit_self;
 	/* LNetNIInit/LNetNIFini counter */
-	int				  ln_refcount;
+	int				ln_refcount;
 	/* SHUTDOWN/RUNNING/STOPPING */
-	enum lnet_state			  ln_state;
+	enum lnet_state			ln_state;
 
-	int				  ln_routing;	/* am I a router? */
-	lnet_pid_t			  ln_pid;	/* requested pid */
+	int				ln_routing;	/* am I a router? */
+	lnet_pid_t			ln_pid;		/* requested pid */
 	/* uniquely identifies this ni in this epoch */
-	u64				  ln_interface_cookie;
+	u64				ln_interface_cookie;
 	/* registered LNDs */
-	struct list_head		  ln_lnds;
+	struct list_head		ln_lnds;
 
 	/* test protocol compatibility flags */
-	int				  ln_testprotocompat;
+	int				ln_testprotocompat;
 
 	/*
 	 * 0 - load the NIs from the mod params
@@ -1032,14 +1032,14 @@ struct lnet {
 	 * Reverse logic to ensure that other calls to LNetNIInit
 	 * need no change
 	 */
-	bool				  ln_nis_from_mod_params;
+	bool				ln_nis_from_mod_params;
 
 	/*
 	 * waitq for router checker.  As long as there are no routes in
 	 * the list, the router checker will sleep on this queue.  when
 	 * routes are added the thread will wake up
 	 */
-	wait_queue_head_t		  ln_rc_waitq;
+	wait_queue_head_t		ln_rc_waitq;
 
 };
 

@@ -60,8 +60,8 @@
  * between getting its string and using it.
  */
 
-static char      libcfs_nidstrings[LNET_NIDSTR_COUNT][LNET_NIDSTR_SIZE];
-static int       libcfs_nidstring_idx;
+static char libcfs_nidstrings[LNET_NIDSTR_COUNT][LNET_NIDSTR_SIZE];
+static int libcfs_nidstring_idx;
 
 static DEFINE_SPINLOCK(libcfs_nidstring_lock);
 
@@ -117,23 +117,23 @@ struct nidrange {
 	 * Link to list of this structures which is built on nid range
 	 * list parsing.
 	 */
-	struct list_head nr_link;
+	struct list_head	nr_link;
 	/**
 	 * List head for addrrange::ar_link.
 	 */
-	struct list_head nr_addrranges;
+	struct list_head	nr_addrranges;
 	/**
 	 * Flag indicating that *@<net> is found.
 	 */
-	int nr_all;
+	int			nr_all;
 	/**
 	 * Pointer to corresponding element of libcfs_netstrfns.
 	 */
-	struct netstrfns *nr_netstrfns;
+	struct netstrfns	*nr_netstrfns;
 	/**
 	 * Number of network. E.g. 5 if \<net\> is "elan5".
 	 */
-	int nr_netnum;
+	int			nr_netnum;
 };
 
 /**
@@ -143,11 +143,11 @@ struct addrrange {
 	/**
 	 * Link to nidrange::nr_addrranges.
 	 */
-	struct list_head ar_link;
+	struct list_head	ar_link;
 	/**
 	 * List head for cfs_expr_list::el_list.
 	 */
-	struct list_head ar_numaddr_ranges;
+	struct list_head	ar_numaddr_ranges;
 };
 
 /**
@@ -471,8 +471,8 @@ static void cfs_ip_ar_min_max(struct addrrange *ar, u32 *min_nid,
 	struct cfs_expr_list *el;
 	struct cfs_range_expr *re;
 	u32 tmp_ip_addr = 0;
-	unsigned int min_ip[4] = {0};
-	unsigned int max_ip[4] = {0};
+	unsigned int min_ip[4] = { 0 };
+	unsigned int max_ip[4] = { 0 };
 	int re_count = 0;
 
 	list_for_each_entry(el, &ar->ar_numaddr_ranges, el_link) {
@@ -794,11 +794,11 @@ libcfs_ip_addr2str(u32 addr, char *str, size_t size)
 static int
 libcfs_ip_str2addr(const char *str, int nob, u32 *addr)
 {
-	unsigned int	a;
-	unsigned int	b;
-	unsigned int	c;
-	unsigned int	d;
-	int		n = nob; /* XscanfX */
+	unsigned int a;
+	unsigned int b;
+	unsigned int c;
+	unsigned int d;
+	int n = nob; /* XscanfX */
 
 	/* numeric IP? */
 	if (sscanf(str, "%u.%u.%u.%u%n", &a, &b, &c, &d, &n) >= 4 &&
@@ -897,7 +897,7 @@ libcfs_decnum_addr2str(u32 addr, char *str, size_t size)
 static int
 libcfs_num_str2addr(const char *str, int nob, u32 *addr)
 {
-	int     n;
+	int n;
 
 	n = nob;
 	if (sscanf(str, "0x%x%n", addr, &n) >= 1 && n == nob)
@@ -926,7 +926,7 @@ static int
 libcfs_num_parse(char *str, int len, struct list_head *list)
 {
 	struct cfs_expr_list *el;
-	int	rc;
+	int rc;
 
 	rc = cfs_expr_list_parse(str, len, 0, MAX_NUMERIC_VALUE, &el);
 	if (!rc)
@@ -1049,7 +1049,7 @@ libcfs_namenum2netstrfns(const char *name)
 static struct netstrfns *
 libcfs_name2netstrfns(const char *name)
 {
-	int    i;
+	int i;
 
 	for (i = 0; i < libcfs_nnetstrfns; i++)
 		if (!strcmp(libcfs_netstrfns[i].nf_name, name))
@@ -1194,7 +1194,7 @@ libcfs_str2net_internal(const char *str, u32 *net)
 u32
 libcfs_str2net(const char *str)
 {
-	u32  net;
+	u32 net;
 
 	if (libcfs_str2net_internal(str, &net))
 		return net;

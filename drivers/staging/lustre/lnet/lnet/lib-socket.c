@@ -50,8 +50,11 @@ lnet_sock_write(struct socket *sock, void *buffer, int nob, int timeout)
 	long jiffies_left = timeout * msecs_to_jiffies(MSEC_PER_SEC);
 	unsigned long then;
 	struct timeval tv;
-	struct kvec  iov = { .iov_base = buffer, .iov_len  = nob };
-	struct msghdr msg = {NULL,};
+	struct kvec iov = {
+		.iov_base = buffer,
+		.iov_len = nob
+	};
+	struct msghdr msg = { NULL, };
 
 	LASSERT(nob > 0);
 	/*
@@ -102,9 +105,9 @@ lnet_sock_read(struct socket *sock, void *buffer, int nob, int timeout)
 	long jiffies_left = timeout * msecs_to_jiffies(MSEC_PER_SEC);
 	unsigned long then;
 	struct timeval tv;
-	struct kvec  iov = {
+	struct kvec iov = {
 		.iov_base = buffer,
-		.iov_len  = nob
+		.iov_len = nob
 	};
 	struct msghdr msg = {
 		.msg_flags = 0

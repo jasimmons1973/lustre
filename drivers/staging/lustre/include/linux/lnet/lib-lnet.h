@@ -205,7 +205,6 @@ lnet_md_alloc(struct lnet_md *umd)
 	}
 
 	md = kzalloc(size, GFP_NOFS);
-
 	if (md) {
 		/* Set here in case of early free */
 		md->md_options = umd->options;
@@ -467,7 +466,7 @@ int lnet_get_peer_list(u32 *countp, u32 *sizep,
 
 void lnet_router_debugfs_init(void);
 void lnet_router_debugfs_fini(void);
-int  lnet_rtrpools_alloc(int im_a_router);
+int lnet_rtrpools_alloc(int im_a_router);
 void lnet_destroy_rtrbuf(struct lnet_rtrbuf *rb, int npages);
 int lnet_rtrpools_adjust(int tiny, int small, int large);
 int lnet_rtrpools_enable(void);

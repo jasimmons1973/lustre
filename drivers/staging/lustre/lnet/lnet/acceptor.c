@@ -36,9 +36,9 @@
 #include <net/sock.h>
 #include <linux/lnet/lib-lnet.h>
 
-static int   accept_port    = 988;
-static int   accept_backlog = 127;
-static int   accept_timeout = 5;
+static int accept_port = 988;
+static int accept_backlog = 127;
+static int accept_timeout = 5;
 
 static struct {
 	int			pta_shutdown;
@@ -167,9 +167,9 @@ lnet_connect(struct socket **sockp, lnet_nid_t peer_nid,
 
 		BUILD_BUG_ON(LNET_PROTO_ACCEPTOR_VERSION != 1);
 
-		cr.acr_magic   = LNET_PROTO_ACCEPTOR_MAGIC;
+		cr.acr_magic = LNET_PROTO_ACCEPTOR_MAGIC;
 		cr.acr_version = LNET_PROTO_ACCEPTOR_VERSION;
-		cr.acr_nid     = peer_nid;
+		cr.acr_nid = peer_nid;
 
 		if (the_lnet.ln_testprotocompat) {
 			/* single-shot proto check */
@@ -196,9 +196,9 @@ lnet_connect(struct socket **sockp, lnet_nid_t peer_nid,
 	rc = -EADDRINUSE;
 	goto failed;
 
- failed_sock:
+failed_sock:
 	sock_release(sock);
- failed:
+failed:
 	lnet_connect_console_error(rc, peer_nid, peer_ip, peer_port);
 	return rc;
 }
@@ -297,7 +297,7 @@ lnet_accept(struct socket *sock, u32 magic)
 		__swab64s(&cr.acr_nid);
 
 	ni = lnet_nid2ni_addref(cr.acr_nid);
-	if (!ni ||	       /* no matching net */
+	if (!ni ||			/* no matching net */
 	    ni->ni_nid != cr.acr_nid) { /* right NET, wrong NID! */
 		if (ni)
 			lnet_ni_decref(ni);

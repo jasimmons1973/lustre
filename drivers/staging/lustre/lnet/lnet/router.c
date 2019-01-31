@@ -172,7 +172,7 @@ lnet_ni_notify_locked(struct lnet_ni *ni, struct lnet_peer_ni *lp)
 		notifylnd = lp->lpni_notifylnd;
 
 		lp->lpni_notifylnd = 0;
-		lp->lpni_notify    = 0;
+		lp->lpni_notify = 0;
 
 		if (notifylnd && ni->ni_net->net_lnd->lnd_notify) {
 			spin_unlock(&lp->lpni_lock);
@@ -274,6 +274,7 @@ static void lnet_shuffle_seed(void)
 	 * the NID for this node gives the most entropy in the low bits */
 	while ((ni = lnet_get_next_ni_locked(NULL, ni))) {
 		u32 lnd_type, seed;
+
 		lnd_type = LNET_NETTYP(LNET_NIDNET(ni->ni_nid));
 		if (lnd_type != LOLND) {
 			seed = (LNET_NIDADDR(ni->ni_nid) | lnd_type);
@@ -386,7 +387,6 @@ lnet_add_route(u32 net, u32 hops, lnet_nid_t gateway,
 	/* Search for a duplicate route (it's a NOOP if it is) */
 	add_route = 1;
 	list_for_each_entry(route2, &rnet2->lrn_routes, lr_list) {
-
 		if (route2->lr_gateway == route->lr_gateway) {
 			add_route = 0;
 			break;
@@ -501,7 +501,7 @@ lnet_del_route(u32 net, lnet_nid_t gw_nid)
 	else
 		rn_list = lnet_net2rnethash(net);
 
- again:
+again:
 	list_for_each_entry(rnet, rn_list, lrn_list) {
 		if (!(net == LNET_NIDNET(LNET_NID_ANY) ||
 		      net == rnet->lrn_net))
@@ -601,10 +601,10 @@ lnet_get_route(int idx, u32 *net, u32 *hops,
 		list_for_each_entry(rnet, rn_list, lrn_list) {
 			list_for_each_entry(route, &rnet->lrn_routes, lr_list) {
 				if (!idx--) {
-					*net      = rnet->lrn_net;
-					*hops     = route->lr_hops;
+					*net = rnet->lrn_net;
+					*hops = route->lr_hops;
 					*priority = route->lr_priority;
-					*gateway  = route->lr_gateway->lpni_nid;
+					*gateway = route->lr_gateway->lpni_nid;
 					*alive = lnet_is_route_alive(route);
 					lnet_net_unlock(cpt);
 					return 0;
@@ -648,7 +648,7 @@ lnet_parse_rc_info(struct lnet_rc_data *rcd)
 	struct lnet_ping_buffer *pbuf = rcd->rcd_pingbuffer;
 	struct lnet_peer_ni *gw = rcd->rcd_gateway;
 	struct lnet_route *rte;
-	int			nnis;
+	int nnis;
 
 	if (!gw->lpni_alive || !pbuf)
 		return;
@@ -799,7 +799,7 @@ lnet_router_checker_event(struct lnet_event *event)
 	if (avoid_asym_router_failure && !event->status)
 		lnet_parse_rc_info(rcd);
 
- out:
+out:
 	lnet_net_unlock(lp->lpni_cpt);
 }
 
@@ -1069,14 +1069,14 @@ lnet_ping_router_locked(struct lnet_peer_ni *rtr)
 		id.pid = LNET_PID_LUSTRE;
 		CDEBUG(D_NET, "Check: %s\n", libcfs_id2str(id));
 
-		rtr->lpni_ping_notsent   = 1;
+		rtr->lpni_ping_notsent = 1;
 		rtr->lpni_ping_timestamp = now;
 
 		mdh = rcd->rcd_mdh;
 
 		if (!rtr->lpni_ping_deadline) {
 			rtr->lpni_ping_deadline = ktime_get_seconds() +
-						router_ping_timeout;
+						  router_ping_timeout;
 		}
 
 		lnet_net_unlock(rtr->lpni_cpt);
@@ -1652,7 +1652,7 @@ lnet_rtrpools_alloc(int im_a_router)
 
 	return 0;
 
- failed:
+failed:
 	lnet_rtrpools_free(0);
 	return rc;
 }
@@ -1797,8 +1797,8 @@ lnet_notify(struct lnet_ni *ni, lnet_nid_t nid, int alive, time64_t when)
 		return -EINVAL;
 	}
 
-	if (ni && !alive &&	     /* LND telling me she's down */
-	    !auto_down) {		       /* auto-down disabled */
+	if (ni && !alive &&	/* LND telling me she's down */
+	    !auto_down) {	/* auto-down disabled */
 		CDEBUG(D_NET, "Auto-down disabled\n");
 		return 0;
 	}

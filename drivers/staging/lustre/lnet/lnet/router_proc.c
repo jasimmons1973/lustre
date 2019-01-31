@@ -66,8 +66,8 @@
 #define LNET_PROC_HOFF_GET(pos)				\
 	(int)((pos) & LNET_PROC_HOFF_MASK)
 
-#define LNET_PROC_POS_MAKE(cpt, ver, hash, off)		\
-	(((((loff_t)(cpt)) & LNET_PROC_CPT_MASK) << LNET_PROC_VPOS_BITS) |   \
+#define LNET_PROC_POS_MAKE(cpt, ver, hash, off)				    \
+	(((((loff_t)(cpt)) & LNET_PROC_CPT_MASK) << LNET_PROC_VPOS_BITS) |  \
 	((((loff_t)(ver)) & LNET_PROC_VER_MASK) << LNET_PROC_HPOS_BITS) |   \
 	((((loff_t)(hash)) & LNET_PROC_HASH_MASK) << LNET_PROC_HOFF_BITS) | \
 	((off) & LNET_PROC_HOFF_MASK))
@@ -91,7 +91,6 @@ static int proc_lnet_stats(struct ctl_table *table, int write,
 	}
 
 	/* read */
-
 	ctrs = kzalloc(sizeof(*ctrs), GFP_NOFS);
 	if (!ctrs)
 		return -ENOMEM;
@@ -395,8 +394,8 @@ static int proc_lnet_peers(struct ctl_table *table, int write,
 	struct lnet_peer_table *ptable;
 	char *tmpstr = NULL;
 	char *s;
-	int cpt  = LNET_PROC_CPT_GET(*ppos);
-	int ver  = LNET_PROC_VER_GET(*ppos);
+	int cpt = LNET_PROC_CPT_GET(*ppos);
+	int ver = LNET_PROC_VER_GET(*ppos);
 	int hash = LNET_PROC_HASH_GET(*ppos);
 	int hoff = LNET_PROC_HOFF_GET(*ppos);
 	int rc = 0;
@@ -456,7 +455,7 @@ static int proc_lnet_peers(struct ctl_table *table, int write,
 		struct lnet_peer_ni *peer;
 		struct list_head *p;
 		int skip;
- again:
+again:
 		p = NULL;
 		peer = NULL;
 		skip = hoff - 1;
@@ -630,7 +629,7 @@ static int proc_lnet_buffers(struct ctl_table *table, int write,
 		lnet_net_unlock(LNET_LOCK_EX);
 	}
 
- out:
+out:
 	len = s - tmpstr;
 
 	if (pos >= min_t(int, len, strlen(tmpstr)))
@@ -787,9 +786,9 @@ static int proc_lnet_nis(struct ctl_table *table, int write,
 }
 
 struct lnet_portal_rotors {
-	int pr_value;
-	const char *pr_name;
-	const char *pr_desc;
+	int		 pr_value;
+	const char	*pr_name;
+	const char	*pr_desc;
 };
 
 static struct lnet_portal_rotors	portal_rotors[] = {
@@ -890,39 +889,39 @@ static struct ctl_table lnet_table[] = {
 	 * to go via /proc for portability.
 	 */
 	{
-		.procname     = "stats",
-		.mode         = 0644,
-		.proc_handler = &proc_lnet_stats,
+		.procname	= "stats",
+		.mode		= 0644,
+		.proc_handler	= &proc_lnet_stats,
 	},
 	{
-		.procname     = "routes",
-		.mode         = 0444,
-		.proc_handler = &proc_lnet_routes,
+		.procname	= "routes",
+		.mode		= 0444,
+		.proc_handler	= &proc_lnet_routes,
 	},
 	{
-		.procname     = "routers",
-		.mode         = 0444,
-		.proc_handler = &proc_lnet_routers,
+		.procname	= "routers",
+		.mode		= 0444,
+		.proc_handler	= &proc_lnet_routers,
 	},
 	{
-		.procname     = "peers",
-		.mode         = 0644,
-		.proc_handler = &proc_lnet_peers,
+		.procname	= "peers",
+		.mode		= 0644,
+		.proc_handler	= &proc_lnet_peers,
 	},
 	{
-		.procname     = "buffers",
-		.mode         = 0444,
-		.proc_handler = &proc_lnet_buffers,
+		.procname	= "buffers",
+		.mode		= 0444,
+		.proc_handler	= &proc_lnet_buffers,
 	},
 	{
-		.procname     = "nis",
-		.mode         = 0644,
-		.proc_handler = &proc_lnet_nis,
+		.procname	= "nis",
+		.mode		= 0644,
+		.proc_handler	= &proc_lnet_nis,
 	},
 	{
-		.procname     = "portal_rotor",
-		.mode         = 0644,
-		.proc_handler = &proc_lnet_portal_rotor,
+		.procname	= "portal_rotor",
+		.mode		= 0644,
+		.proc_handler	= &proc_lnet_portal_rotor,
 	},
 	{
 	}

@@ -74,7 +74,7 @@ lnet_ptl_match_type(unsigned int index, struct lnet_process_id match_id,
 
 	return 1;
 
- match:
+match:
 	if ((lnet_ptl_is_unique(ptl) && !unique) ||
 	    (lnet_ptl_is_wildcard(ptl) && unique))
 		return 0;
@@ -387,7 +387,7 @@ lnet_mt_match_md(struct lnet_match_table *mtable,
 		head = &mtable->mt_mhash[LNET_MT_HASH_IGNORE];
 	else
 		head = lnet_mt_match_head(mtable, info->mi_id, info->mi_mbits);
- again:
+again:
 	/* NB: only wildcard portal needs to return LNET_MATCHMD_EXHAUSTED */
 	if (lnet_ptl_is_wildcard(the_lnet.ln_portals[mtable->mt_portal]))
 		exhausted = LNET_MATCHMD_EXHAUSTED;
@@ -634,9 +634,9 @@ lnet_ptl_match_md(struct lnet_match_info *info, struct lnet_msg *msg)
 		       info->mi_mbits, info->mi_roffset, info->mi_rlength);
 	}
 	goto out0;
- out1:
+out1:
 	lnet_res_unlock(mtable->mt_cpt);
- out0:
+out0:
 	/* EXHAUSTED bit is only meaningful for internal functions */
 	return rc & ~LNET_MATCHMD_EXHAUSTED;
 }
@@ -678,7 +678,7 @@ lnet_ptl_attach_md(struct lnet_me *me, struct lnet_libmd *md,
 
 	lnet_ptl_lock(ptl);
 	head = &ptl->ptl_msg_stealing;
- again:
+again:
 	list_for_each_entry_safe(msg, tmp, head, msg_list) {
 		struct lnet_match_info info;
 		struct lnet_hdr *hdr;
@@ -688,13 +688,13 @@ lnet_ptl_attach_md(struct lnet_me *me, struct lnet_libmd *md,
 
 		hdr = &msg->msg_hdr;
 		/* Multi-Rail: Primary peer NID */
-		info.mi_id.nid  = msg->msg_initiator;
-		info.mi_id.pid  = hdr->src_pid;
-		info.mi_opc     = LNET_MD_OP_PUT;
-		info.mi_portal  = hdr->msg.put.ptl_index;
+		info.mi_id.nid = msg->msg_initiator;
+		info.mi_id.pid = hdr->src_pid;
+		info.mi_opc = LNET_MD_OP_PUT;
+		info.mi_portal = hdr->msg.put.ptl_index;
 		info.mi_rlength = hdr->payload_length;
 		info.mi_roffset = hdr->msg.put.offset;
-		info.mi_mbits   = hdr->msg.put.match_bits;
+		info.mi_mbits = hdr->msg.put.match_bits;
 
 		rc = lnet_try_match_md(md, &info, msg);
 
@@ -824,7 +824,7 @@ lnet_ptl_setup(struct lnet_portal *ptl, int index)
 	}
 
 	return 0;
- failed:
+failed:
 	lnet_ptl_cleanup(ptl);
 	return -ENOMEM;
 }

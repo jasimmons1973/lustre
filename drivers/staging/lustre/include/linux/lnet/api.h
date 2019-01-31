@@ -94,18 +94,18 @@ lnet_nid_t LNetPrimaryNID(lnet_nid_t nid);
  * and LNetMEInsert(), and removed from its list by LNetMEUnlink().
  * @{
  */
-int LNetMEAttach(unsigned int      portal,
+int LNetMEAttach(unsigned int portal,
 		 struct lnet_process_id match_id_in,
-		 u64		   match_bits_in,
-		 u64		   ignore_bits_in,
+		 u64 match_bits_in,
+		 u64 ignore_bits_in,
 		 enum lnet_unlink unlink_in,
 		 enum lnet_ins_pos pos_in,
 		 struct lnet_handle_me *handle_out);
 
 int LNetMEInsert(struct lnet_handle_me current_in,
 		 struct lnet_process_id match_id_in,
-		 u64		   match_bits_in,
-		 u64		   ignore_bits_in,
+		 u64 match_bits_in,
+		 u64 ignore_bits_in,
 		 enum lnet_unlink unlink_in,
 		 enum lnet_ins_pos position_in,
 		 struct lnet_handle_me *handle_out);
@@ -161,18 +161,18 @@ int LNetMDUnlink(struct lnet_handle_md md_in);
  * on multiple EQs.
  * @{
  */
-int LNetEQAlloc(unsigned int       count_in,
+int LNetEQAlloc(unsigned int count_in,
 		lnet_eq_handler_t  handler,
 		struct lnet_handle_eq *handle_out);
 
 int LNetEQFree(struct lnet_handle_eq eventq_in);
 
 int LNetEQPoll(struct lnet_handle_eq *eventqs_in,
-	       int		 neq_in,
-	       signed long	 timeout,
-	       int		 interruptible,
+	       int neq_in,
+	       signed long timeout,
+	       int interruptible,
 	       struct lnet_event *event_out,
-	       int		*which_eq_out);
+	       int *which_eq_out);
 /** @} lnet_eq */
 
 /** \defgroup lnet_data Data movement operations
@@ -181,21 +181,21 @@ int LNetEQPoll(struct lnet_handle_eq *eventqs_in,
  * and LNetGet().
  * @{
  */
-int LNetPut(lnet_nid_t	      self,
+int LNetPut(lnet_nid_t self,
 	    struct lnet_handle_md md_in,
 	    enum lnet_ack_req ack_req_in,
 	    struct lnet_process_id target_in,
-	    unsigned int      portal_in,
+	    unsigned int portal_in,
 	    u64 match_bits_in,
-	    unsigned int      offset_in,
+	    unsigned int offset_in,
 	    u64	hdr_data_in);
 
-int LNetGet(lnet_nid_t	      self,
+int LNetGet(lnet_nid_t self,
 	    struct lnet_handle_md md_in,
 	    struct lnet_process_id target_in,
-	    unsigned int      portal_in,
+	    unsigned int portal_in,
 	    u64	match_bits_in,
-	    unsigned int      offset_in);
+	    unsigned int offset_in);
 /** @} lnet_data */
 
 /** \defgroup lnet_misc Miscellaneous operations.

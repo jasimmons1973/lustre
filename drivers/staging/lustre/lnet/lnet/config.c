@@ -38,15 +38,15 @@
 #include <linux/lnet/lib-lnet.h>
 #include <linux/inetdevice.h>
 
-struct lnet_text_buf {	    /* tmp struct for parsing routes */
-	struct list_head ltb_list;	/* stash on lists */
-	int ltb_size;	/* allocated size */
-	char ltb_text[0];     /* text buffer */
+struct lnet_text_buf {		/* tmp struct for parsing routes */
+	struct list_head	ltb_list;	/* stash on lists */
+	int			ltb_size;	/* allocated size */
+	char			ltb_text[0];	/* text buffer */
 };
 
-static int lnet_tbnob;			/* track text buf allocation */
-#define LNET_MAX_TEXTBUF_NOB     (64 << 10)	/* bound allocation */
-#define LNET_SINGLE_TEXTBUF_NOB  (4 << 10)
+static int lnet_tbnob;		/* track text buf allocation */
+#define LNET_MAX_TEXTBUF_NOB	(64 << 10)	/* bound allocation */
+#define LNET_SINGLE_TEXTBUF_NOB	(4 << 10)
 
 #define SPACESTR " \t\v\r\n"
 #define DELIMITERS ":()[]"
@@ -126,6 +126,7 @@ static bool
 lnet_ni_unique_ni(char *iface_list[LNET_INTERFACES_NUM], char *iface)
 {
 	int i;
+
 	for (i = 0; i < LNET_INTERFACES_NUM; i++) {
 		if (iface_list[i] &&
 		    strncmp(iface_list[i], iface, strlen(iface)) == 0)
@@ -554,7 +555,7 @@ lnet_ni_alloc_w_cpt_array(struct lnet_net *net, u32 *cpts, u32 ncpts,
 		goto failed;
 
 	return ni;
- failed:
+failed:
 	lnet_ni_free(ni);
 	return NULL;
 }
@@ -743,9 +744,9 @@ lnet_parse_networks(struct list_head *netlist, char *networks,
 					goto failed_syntax;
 				}
 				rc = cfs_expr_list_parse(elstr,
-							nistr - elstr + 1,
-							0, LNET_CPT_NUMBER - 1,
-							&ni_el);
+							 nistr - elstr + 1,
+							 0, LNET_CPT_NUMBER - 1,
+							 &ni_el);
 				if (rc != 0) {
 					str = elstr;
 					goto failed_syntax;
@@ -812,9 +813,9 @@ lnet_parse_networks(struct list_head *netlist, char *networks,
 	kfree(tokens);
 	return nnets;
 
- failed_syntax:
+failed_syntax:
 	lnet_syntax("networks", networks, (int)(str - tokens), strlen(str));
- failed:
+failed:
 	/* free the net list and all the nis on each net */
 	while (!list_empty(netlist)) {
 		net = list_entry(netlist->next, struct lnet_net, net_list);
@@ -1038,7 +1039,7 @@ lnet_str2tbs_expand(struct list_head *tbs, char *str)
 	list_splice(&pending, tbs->prev);
 	return 1;
 
- failed:
+failed:
 	lnet_free_text_bufs(&pending);
 	return -EINVAL;
 }
@@ -1093,7 +1094,6 @@ lnet_parse_route(char *str, int *im_a_router)
 {
 	/* static scratch buffer OK (single threaded) */
 	static char cmd[LNET_SINGLE_TEXTBUF_NOB];
-
 	struct list_head nets;
 	struct list_head gateways;
 	struct list_head *tmp1;
@@ -1226,9 +1226,9 @@ lnet_parse_route(char *str, int *im_a_router)
 	myrc = 0;
 	goto out;
 
- token_error:
+token_error:
 	lnet_syntax("routes", cmd, (int)(token - str), strlen(token));
- out:
+out:
 	lnet_free_text_bufs(&nets);
 	lnet_free_text_bufs(&gateways);
 	return myrc;
@@ -1298,7 +1298,6 @@ static int
 lnet_match_network_tokens(char *net_entry, u32 *ipaddrs, int nip)
 {
 	static char tokens[LNET_SINGLE_TEXTBUF_NOB];
-
 	int matched = 0;
 	int ntokens = 0;
 	int len;
@@ -1451,7 +1450,6 @@ lnet_match_networks(char **networksp, char *ip2nets, u32 *ipaddrs, int nip)
 {
 	static char networks[LNET_SINGLE_TEXTBUF_NOB];
 	static char source[LNET_SINGLE_TEXTBUF_NOB];
-
 	struct list_head raw_entries;
 	struct list_head matched_nets;
 	struct list_head current_nets;
@@ -1549,7 +1547,7 @@ lnet_match_networks(char **networksp, char *ip2nets, u32 *ipaddrs, int nip)
 		count++;
 	}
 
- out:
+out:
 	lnet_free_text_bufs(&raw_entries);
 	lnet_free_text_bufs(&matched_nets);
 	lnet_free_text_bufs(&current_nets);

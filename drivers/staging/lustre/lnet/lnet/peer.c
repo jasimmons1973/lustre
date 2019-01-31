@@ -586,8 +586,8 @@ lnet_peer_tables_cleanup(struct lnet_net *net)
 static struct lnet_peer_ni *
 lnet_get_peer_ni_locked(struct lnet_peer_table *ptable, lnet_nid_t nid)
 {
-	struct list_head	*peers;
-	struct lnet_peer_ni	*lp;
+	struct list_head *peers;
+	struct lnet_peer_ni *lp;
 
 	LASSERT(the_lnet.ln_state == LNET_STATE_RUNNING);
 
@@ -1069,6 +1069,7 @@ struct lnet_peer_net *
 lnet_peer_get_net_locked(struct lnet_peer *peer, u32 net_id)
 {
 	struct lnet_peer_net *peer_net;
+
 	list_for_each_entry(peer_net, &peer->lp_peer_nets, lpn_peer_nets) {
 		if (peer_net->lpn_net_id == net_id)
 			return peer_net;
@@ -1088,9 +1089,9 @@ lnet_peer_get_net_locked(struct lnet_peer *peer, u32 net_id)
  */
 static int
 lnet_peer_attach_peer_ni(struct lnet_peer *lp,
-				struct lnet_peer_net *lpn,
-				struct lnet_peer_ni *lpni,
-				unsigned int flags)
+			 struct lnet_peer_net *lpn,
+			 struct lnet_peer_ni *lpni,
+			 unsigned int flags)
 {
 	struct lnet_peer_table *ptable;
 
@@ -2686,12 +2687,12 @@ __must_hold(&lp->lp_lock)
 	}
 
 	/* initialize md content */
-	md.start     = &pbuf->pb_info;
-	md.length    = LNET_PING_INFO_SIZE(nnis);
+	md.start = &pbuf->pb_info;
+	md.length = LNET_PING_INFO_SIZE(nnis);
 	md.threshold = 2; /* GET/REPLY */
-	md.max_size  = 0;
-	md.options   = LNET_MD_TRUNCATE;
-	md.user_ptr  = lp;
+	md.max_size = 0;
+	md.options = LNET_MD_TRUNCATE;
+	md.user_ptr = lp;
 	md.eq_handle = the_lnet.ln_dc_eqh;
 
 	rc = LNetMDBind(md, LNET_UNLINK, &lp->lp_ping_mdh);
@@ -2715,7 +2716,6 @@ __must_hold(&lp->lp_lock)
 	rc = LNetGet(LNET_NID_ANY, lp->lp_ping_mdh, id,
 		     LNET_RESERVED_PORTAL,
 		     LNET_PROTO_PING_MATCHBITS, 0);
-
 	if (rc)
 		goto fail_unlink_md;
 
@@ -2792,13 +2792,13 @@ __must_hold(&lp->lp_lock)
 	lnet_net_unlock(cpt);
 
 	/* Push source MD */
-	md.start     = &pbuf->pb_info;
-	md.length    = LNET_PING_INFO_SIZE(pbuf->pb_nnis);
+	md.start = &pbuf->pb_info;
+	md.length = LNET_PING_INFO_SIZE(pbuf->pb_nnis);
 	md.threshold = 2; /* Put/Ack */
-	md.max_size  = 0;
-	md.options   = 0;
+	md.max_size = 0;
+	md.options = 0;
 	md.eq_handle = the_lnet.ln_dc_eqh;
-	md.user_ptr  = lp;
+	md.user_ptr = lp;
 
 	rc = LNetMDBind(md, LNET_UNLINK, &lp->lp_push_mdh);
 	if (rc) {
@@ -2821,7 +2821,6 @@ __must_hold(&lp->lp_lock)
 	rc = LNetPut(LNET_NID_ANY, lp->lp_push_mdh,
 		     LNET_ACK_REQ, id, LNET_RESERVED_PORTAL,
 		     LNET_PROTO_PING_MATCHBITS, 0, 0);
-
 	if (rc)
 		goto fail_unlink;
 
@@ -3315,8 +3314,8 @@ int lnet_get_peer_info(struct lnet_ioctl_peer_cfg *cfg, void __user *bulk)
 		goto out;
 	}
 
-	size = sizeof(nid) + sizeof(*lpni_info) + sizeof(*lpni_stats)
-		+ sizeof(*lpni_msg_stats);
+	size = sizeof(nid) + sizeof(*lpni_info) + sizeof(*lpni_stats) +
+	       sizeof(*lpni_msg_stats);
 	size *= lp->lp_nnis;
 	if (size > cfg->prcfg_size) {
 		cfg->prcfg_size = size;

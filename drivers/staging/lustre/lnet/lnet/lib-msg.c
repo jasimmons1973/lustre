@@ -44,9 +44,9 @@ lnet_build_unlink_event(struct lnet_libmd *md, struct lnet_event *ev)
 {
 	memset(ev, 0, sizeof(*ev));
 
-	ev->status   = 0;
+	ev->status = 0;
 	ev->unlinked = 1;
-	ev->type     = LNET_EVENT_UNLINK;
+	ev->type = LNET_EVENT_UNLINK;
 	lnet_md_deconstruct(md, &ev->md);
 	lnet_md2handle(&ev->md_handle, md);
 }
@@ -58,7 +58,7 @@ void
 lnet_build_msg_event(struct lnet_msg *msg, enum lnet_event_kind ev_type)
 {
 	struct lnet_hdr *hdr = &msg->msg_hdr;
-	struct lnet_event *ev  = &msg->msg_ev;
+	struct lnet_event *ev = &msg->msg_ev;
 
 	LASSERT(!msg->msg_routing);
 
@@ -67,27 +67,27 @@ lnet_build_msg_event(struct lnet_msg *msg, enum lnet_event_kind ev_type)
 
 	if (ev_type == LNET_EVENT_SEND) {
 		/* event for active message */
-		ev->target.nid    = le64_to_cpu(hdr->dest_nid);
-		ev->target.pid    = le32_to_cpu(hdr->dest_pid);
+		ev->target.nid = le64_to_cpu(hdr->dest_nid);
+		ev->target.pid = le32_to_cpu(hdr->dest_pid);
 		ev->initiator.nid = LNET_NID_ANY;
 		ev->initiator.pid = the_lnet.ln_pid;
-		ev->source.nid	  = LNET_NID_ANY;
-		ev->source.pid    = the_lnet.ln_pid;
-		ev->sender        = LNET_NID_ANY;
+		ev->source.nid = LNET_NID_ANY;
+		ev->source.pid = the_lnet.ln_pid;
+		ev->sender = LNET_NID_ANY;
 	} else {
 		/* event for passive message */
-		ev->target.pid    = hdr->dest_pid;
-		ev->target.nid    = hdr->dest_nid;
+		ev->target.pid = hdr->dest_pid;
+		ev->target.nid = hdr->dest_nid;
 		ev->initiator.pid = hdr->src_pid;
 		/* Multi-Rail: resolve src_nid to "primary" peer NID */
 		ev->initiator.nid = msg->msg_initiator;
 		/* Multi-Rail: track source NID. */
-		ev->source.pid	  = hdr->src_pid;
-		ev->source.nid	  = hdr->src_nid;
-		ev->rlength       = hdr->payload_length;
-		ev->sender        = msg->msg_from;
-		ev->mlength       = msg->msg_wanted;
-		ev->offset        = msg->msg_offset;
+		ev->source.pid = hdr->src_pid;
+		ev->source.nid = hdr->src_nid;
+		ev->rlength = hdr->payload_length;
+		ev->sender = msg->msg_from;
+		ev->mlength = msg->msg_wanted;
+		ev->offset = msg->msg_offset;
 	}
 
 	switch (ev_type) {
@@ -95,20 +95,20 @@ lnet_build_msg_event(struct lnet_msg *msg, enum lnet_event_kind ev_type)
 		LBUG();
 
 	case LNET_EVENT_PUT: /* passive PUT */
-		ev->pt_index   = hdr->msg.put.ptl_index;
+		ev->pt_index = hdr->msg.put.ptl_index;
 		ev->match_bits = hdr->msg.put.match_bits;
-		ev->hdr_data   = hdr->msg.put.hdr_data;
+		ev->hdr_data = hdr->msg.put.hdr_data;
 		return;
 
 	case LNET_EVENT_GET: /* passive GET */
-		ev->pt_index   = hdr->msg.get.ptl_index;
+		ev->pt_index = hdr->msg.get.ptl_index;
 		ev->match_bits = hdr->msg.get.match_bits;
-		ev->hdr_data   = 0;
+		ev->hdr_data = 0;
 		return;
 
 	case LNET_EVENT_ACK: /* ACK */
 		ev->match_bits = hdr->msg.ack.match_bits;
-		ev->mlength    = hdr->msg.ack.mlength;
+		ev->mlength = hdr->msg.ack.mlength;
 		return;
 
 	case LNET_EVENT_REPLY: /* REPLY */
@@ -116,21 +116,21 @@ lnet_build_msg_event(struct lnet_msg *msg, enum lnet_event_kind ev_type)
 
 	case LNET_EVENT_SEND: /* active message */
 		if (msg->msg_type == LNET_MSG_PUT) {
-			ev->pt_index   = le32_to_cpu(hdr->msg.put.ptl_index);
+			ev->pt_index = le32_to_cpu(hdr->msg.put.ptl_index);
 			ev->match_bits = le64_to_cpu(hdr->msg.put.match_bits);
-			ev->offset     = le32_to_cpu(hdr->msg.put.offset);
-			ev->mlength    =
-			ev->rlength    = le32_to_cpu(hdr->payload_length);
-			ev->hdr_data   = le64_to_cpu(hdr->msg.put.hdr_data);
+			ev->offset = le32_to_cpu(hdr->msg.put.offset);
+			ev->mlength =
+			ev->rlength = le32_to_cpu(hdr->payload_length);
+			ev->hdr_data = le64_to_cpu(hdr->msg.put.hdr_data);
 
 		} else {
 			LASSERT(msg->msg_type == LNET_MSG_GET);
-			ev->pt_index   = le32_to_cpu(hdr->msg.get.ptl_index);
+			ev->pt_index = le32_to_cpu(hdr->msg.get.ptl_index);
 			ev->match_bits = le64_to_cpu(hdr->msg.get.match_bits);
-			ev->mlength    =
-			ev->rlength    = le32_to_cpu(hdr->msg.get.sink_length);
-			ev->offset     = le32_to_cpu(hdr->msg.get.src_offset);
-			ev->hdr_data   = 0;
+			ev->mlength =
+			ev->rlength = le32_to_cpu(hdr->msg.get.sink_length);
+			ev->offset = le32_to_cpu(hdr->msg.get.src_offset);
+			ev->hdr_data = 0;
 		}
 		return;
 	}
@@ -140,7 +140,7 @@ void
 lnet_msg_commit(struct lnet_msg *msg, int cpt)
 {
 	struct lnet_msg_container *container = the_lnet.ln_msg_containers[cpt];
-	struct lnet_counters *counters  = the_lnet.ln_counters[cpt];
+	struct lnet_counters *counters = the_lnet.ln_counters[cpt];
 
 	/* routed message can be committed for both receiving and sending */
 	LASSERT(!msg->msg_tx_committed);
@@ -172,7 +172,7 @@ lnet_msg_commit(struct lnet_msg *msg, int cpt)
 static void
 lnet_msg_decommit_tx(struct lnet_msg *msg, int status)
 {
-	struct lnet_counters	*counters;
+	struct lnet_counters *counters;
 	struct lnet_event *ev = &msg->msg_ev;
 
 	LASSERT(msg->msg_tx_committed);
@@ -294,7 +294,7 @@ incr_stats:
 	if (ev->type == LNET_EVENT_PUT || ev->type == LNET_EVENT_REPLY)
 		counters->recv_length += msg->msg_wanted;
 
- out:
+out:
 	lnet_return_rx_credits_locked(msg);
 	msg->msg_rx_committed = 0;
 }
@@ -375,7 +375,7 @@ lnet_msg_detach_md(struct lnet_msg *msg, int status)
 
 	unlink = lnet_md_unlinkable(md);
 	if (md->md_eq) {
-		msg->msg_ev.status   = status;
+		msg->msg_ev.status = status;
 		msg->msg_ev.unlinked = unlink;
 		lnet_eq_enqueue_event(md->md_eq, &msg->msg_ev);
 	}
@@ -488,7 +488,7 @@ lnet_finalize(struct lnet_msg *msg, int status)
 		lnet_res_unlock(cpt);
 	}
 
- again:
+again:
 	rc = 0;
 	if (!msg->msg_tx_committed && !msg->msg_rx_committed) {
 		/* not committed to network yet */

@@ -52,7 +52,6 @@ lnet_configure(void *arg)
 
 	if (!the_lnet.ln_niinit_self) {
 		rc = try_module_get(THIS_MODULE);
-
 		if (rc != 1)
 			goto out;
 
@@ -229,7 +228,7 @@ lnet_ioctl(struct notifier_block *nb,
 }
 
 static struct notifier_block lnet_ioctl_handler = {
-	.notifier_call = lnet_ioctl,
+	.notifier_call		= lnet_ioctl,
 };
 
 static int __init lnet_init(void)

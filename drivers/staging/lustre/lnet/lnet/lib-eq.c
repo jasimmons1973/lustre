@@ -198,7 +198,7 @@ LNetEQFree(struct lnet_handle_eq eqh)
 	lnet_res_lh_invalidate(&eq->eq_lh);
 	list_del(&eq->eq_list);
 	kfree(eq);
- out:
+out:
 	lnet_eq_wait_unlock();
 	lnet_res_unlock(LNET_LOCK_EX);
 

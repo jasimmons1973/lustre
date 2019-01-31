@@ -489,7 +489,7 @@ lnet_ni_recv(struct lnet_ni *ni, void *private, struct lnet_msg *msg,
 
 		if (mlen) {
 			niov = msg->msg_niov;
-			iov  = msg->msg_iov;
+			iov = msg->msg_iov;
 			kiov = msg->msg_kiov;
 
 			LASSERT(niov > 0);
@@ -541,12 +541,12 @@ lnet_prep_send(struct lnet_msg *msg, int type, struct lnet_process_id target,
 		lnet_setpayloadbuffer(msg);
 
 	memset(&msg->msg_hdr, 0, sizeof(msg->msg_hdr));
-	msg->msg_hdr.type	   = cpu_to_le32(type);
+	msg->msg_hdr.type = cpu_to_le32(type);
 	/* dest_nid will be overwritten by lnet_select_pathway() */
-	msg->msg_hdr.dest_nid       = cpu_to_le64(target.nid);
-	msg->msg_hdr.dest_pid       = cpu_to_le32(target.pid);
+	msg->msg_hdr.dest_nid = cpu_to_le64(target.nid);
+	msg->msg_hdr.dest_pid = cpu_to_le32(target.pid);
 	/* src_nid will be set later */
-	msg->msg_hdr.src_pid	= cpu_to_le32(the_lnet.ln_pid);
+	msg->msg_hdr.src_pid = cpu_to_le32(the_lnet.ln_pid);
 	msg->msg_hdr.payload_length = cpu_to_le32(len);
 }
 
@@ -635,7 +635,7 @@ lnet_peer_is_alive(struct lnet_peer_ni *lp, unsigned long now)
 	}
 
 	deadline = lp->lpni_last_alive +
-		lp->lpni_net->net_tunables.lct_peer_timeout;
+		   lp->lpni_net->net_tunables.lct_peer_timeout;
 	alive = deadline > now;
 
 	/* Update obsolete lpni_alive except for routers assumed to be dead
@@ -911,7 +911,7 @@ lnet_return_tx_credits_locked(struct lnet_msg *msg)
 {
 	struct lnet_peer_ni *txpeer = msg->msg_txpeer;
 	struct lnet_msg *msg2;
-	struct lnet_ni	*txni = msg->msg_txni;
+	struct lnet_ni *txni = msg->msg_txni;
 
 	if (msg->msg_txcredit) {
 		struct lnet_ni *ni = msg->msg_txni;
@@ -1044,7 +1044,7 @@ void
 lnet_return_rx_credits_locked(struct lnet_msg *msg)
 {
 	struct lnet_peer_ni *rxpeer = msg->msg_rxpeer;
-	struct lnet_ni	*rxni = msg->msg_rxni;
+	struct lnet_ni *rxni = msg->msg_rxni;
 	struct lnet_msg *msg2;
 
 	if (msg->msg_rtrcredit) {
@@ -1796,7 +1796,7 @@ pick_peer:
 	/* if we still can't find a peer ni then we can't reach it */
 	if (!best_lpni) {
 		u32 net_id = peer_net ? peer_net->lpn_net_id :
-			LNET_NIDNET(dst_nid);
+					LNET_NIDNET(dst_nid);
 
 		lnet_net_unlock(cpt);
 		LCONSOLE_WARN("no peer_ni found on peer net %s\n",
@@ -1912,7 +1912,6 @@ send:
 	}
 
 	rc = lnet_post_send_locked(msg, 0);
-
 	if (!rc)
 		CDEBUG(D_NET, "TRACE: %s(%s:%s) -> %s(%s:%s) : %s\n",
 		       libcfs_nid2str(msg->msg_hdr.src_nid),
@@ -1931,8 +1930,8 @@ send:
 int
 lnet_send(lnet_nid_t src_nid, struct lnet_msg *msg, lnet_nid_t rtr_nid)
 {
-	lnet_nid_t		dst_nid = msg->msg_target.nid;
-	int			rc;
+	lnet_nid_t dst_nid = msg->msg_target.nid;
+	int rc;
 
 	/*
 	 * NB: rtr_nid is set to LNET_NID_ANY for all current use-cases,
@@ -2008,19 +2007,19 @@ lnet_parse_put(struct lnet_ni *ni, struct lnet_msg *msg)
 	le32_to_cpus(&hdr->msg.put.offset);
 
 	/* Primary peer NID. */
-	info.mi_id.nid	= msg->msg_initiator;
-	info.mi_id.pid	= hdr->src_pid;
-	info.mi_opc	= LNET_MD_OP_PUT;
-	info.mi_portal	= hdr->msg.put.ptl_index;
+	info.mi_id.nid = msg->msg_initiator;
+	info.mi_id.pid = hdr->src_pid;
+	info.mi_opc = LNET_MD_OP_PUT;
+	info.mi_portal = hdr->msg.put.ptl_index;
 	info.mi_rlength	= hdr->payload_length;
 	info.mi_roffset	= hdr->msg.put.offset;
-	info.mi_mbits	= hdr->msg.put.match_bits;
-	info.mi_cpt	= lnet_cpt_of_nid(msg->msg_rxpeer->lpni_nid, ni);
+	info.mi_mbits = hdr->msg.put.match_bits;
+	info.mi_cpt = lnet_cpt_of_nid(msg->msg_rxpeer->lpni_nid, ni);
 
 	msg->msg_rx_ready_delay = !ni->ni_net->net_lnd->lnd_eager_recv;
 	ready_delay = msg->msg_rx_ready_delay;
 
- again:
+again:
 	rc = lnet_ptl_match_md(&info, msg);
 	switch (rc) {
 	default:
@@ -2069,17 +2068,17 @@ lnet_parse_get(struct lnet_ni *ni, struct lnet_msg *msg, int rdma_get)
 	le32_to_cpus(&hdr->msg.get.sink_length);
 	le32_to_cpus(&hdr->msg.get.src_offset);
 
-	source_id.nid   = hdr->src_nid;
-	source_id.pid   = hdr->src_pid;
+	source_id.nid = hdr->src_nid;
+	source_id.pid = hdr->src_pid;
 	/* Primary peer NID */
-	info.mi_id.nid  = msg->msg_initiator;
-	info.mi_id.pid  = hdr->src_pid;
-	info.mi_opc     = LNET_MD_OP_GET;
-	info.mi_portal  = hdr->msg.get.ptl_index;
+	info.mi_id.nid = msg->msg_initiator;
+	info.mi_id.pid = hdr->src_pid;
+	info.mi_opc = LNET_MD_OP_GET;
+	info.mi_portal = hdr->msg.get.ptl_index;
 	info.mi_rlength = hdr->msg.get.sink_length;
 	info.mi_roffset = hdr->msg.get.src_offset;
-	info.mi_mbits   = hdr->msg.get.match_bits;
-	info.mi_cpt	= lnet_cpt_of_nid(msg->msg_rxpeer->lpni_nid, ni);
+	info.mi_mbits = hdr->msg.get.match_bits;
+	info.mi_cpt = lnet_cpt_of_nid(msg->msg_rxpeer->lpni_nid, ni);
 
 	rc = lnet_ptl_match_md(&info, msg);
 	if (rc == LNET_MATCHMD_DROP) {
@@ -2128,7 +2127,7 @@ lnet_parse_reply(struct lnet_ni *ni, struct lnet_msg *msg)
 {
 	void *private = msg->msg_private;
 	struct lnet_hdr *hdr = &msg->msg_hdr;
-	struct lnet_process_id src = {0};
+	struct lnet_process_id src = { 0 };
 	struct lnet_libmd *md;
 	int rlength;
 	int mlength;
@@ -2192,7 +2191,7 @@ static int
 lnet_parse_ack(struct lnet_ni *ni, struct lnet_msg *msg)
 {
 	struct lnet_hdr *hdr = &msg->msg_hdr;
-	struct lnet_process_id src = {0};
+	struct lnet_process_id src = { 0 };
 	struct lnet_libmd *md;
 	int cpt;
 
@@ -2316,8 +2315,8 @@ lnet_msgtyp2str(int type)
 void
 lnet_print_hdr(struct lnet_hdr *hdr)
 {
-	struct lnet_process_id src = {0};
-	struct lnet_process_id dst = {0};
+	struct lnet_process_id src = { 0 };
+	struct lnet_process_id dst = { 0 };
 	char *type_str = lnet_msgtyp2str(hdr->type);
 
 	src.nid = hdr->src_nid;
@@ -2533,17 +2532,16 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr, lnet_nid_t from_nid,
 	/* for building message event */
 	msg->msg_from = from_nid;
 	if (!for_me) {
-		msg->msg_target.pid	= dest_pid;
-		msg->msg_target.nid	= dest_nid;
-		msg->msg_routing	= 1;
-
+		msg->msg_target.pid = dest_pid;
+		msg->msg_target.nid = dest_nid;
+		msg->msg_routing = 1;
 	} else {
 		/* convert common msg->hdr fields to host byteorder */
-		msg->msg_hdr.type	= type;
-		msg->msg_hdr.src_nid	= src_nid;
+		msg->msg_hdr.type = type;
+		msg->msg_hdr.src_nid = src_nid;
 		le32_to_cpus(&msg->msg_hdr.src_pid);
-		msg->msg_hdr.dest_nid	= dest_nid;
-		msg->msg_hdr.dest_pid	= dest_pid;
+		msg->msg_hdr.dest_nid = dest_nid;
+		msg->msg_hdr.dest_pid = dest_pid;
 		msg->msg_hdr.payload_length = payload_length;
 	}
 
@@ -2609,11 +2607,11 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr, lnet_nid_t from_nid,
 		goto free_drop;
 	return 0;
 
- free_drop:
+free_drop:
 	LASSERT(!msg->msg_md);
 	lnet_finalize(msg, rc);
 
- drop:
+drop:
 	lnet_drop_message(ni, cpt, private, payload_length, type);
 	return 0;
 }
@@ -2623,7 +2621,7 @@ void
 lnet_drop_delayed_msg_list(struct list_head *head, char *reason)
 {
 	while (!list_empty(head)) {
-		struct lnet_process_id id = {0};
+		struct lnet_process_id id = { 0 };
 		struct lnet_msg *msg;
 
 		msg = list_entry(head->next, struct lnet_msg, msg_list);
@@ -2887,7 +2885,7 @@ lnet_create_reply_msg(struct lnet_ni *ni, struct lnet_msg *getmsg)
 
 	return msg;
 
- drop:
+drop:
 	cpt = lnet_cpt_of_nid(peer_id.nid, ni);
 
 	lnet_net_lock(cpt);

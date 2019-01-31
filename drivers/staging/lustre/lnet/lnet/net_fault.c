@@ -614,7 +614,6 @@ delayed_msg_process(struct list_head *msg_list, bool drop)
 			rc = lnet_parse_local(ni, msg);
 			if (!rc)
 				continue;
-
 		} else {
 			lnet_net_lock(cpt);
 			rc = lnet_parse_forward_locked(ni, msg);
