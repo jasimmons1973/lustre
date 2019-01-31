@@ -95,12 +95,12 @@ struct lov_device {
 	/*
 	 * XXX Locking of lov-private data is missing.
 	 */
-	struct cl_device	  ld_cl;
-	struct lov_obd	   *ld_lov;
+	struct cl_device	ld_cl;
+	struct lov_obd	       *ld_lov;
 	/** size of lov_device::ld_target[] array */
-	u32		     ld_target_nr;
-	struct lovsub_device    **ld_target;
-	u32		     ld_flags;
+	u32			ld_target_nr;
+	struct lovsub_device  **ld_target;
+	u32			ld_flags;
 };
 
 /**
@@ -180,7 +180,7 @@ struct lov_layout_raid0 {
  * function corresponding to the current layout type.
  */
 struct lov_object {
-	struct cl_object       lo_cl;
+	struct cl_object	lo_cl;
 	/**
 	 * Serializes object operations with transitions between layout types.
 	 *
@@ -203,15 +203,15 @@ struct lov_object {
 	 * How many IOs are on going on this object. Layout can be changed
 	 * only if there is no active IO.
 	 */
-	atomic_t	       lo_active_ios;
+	atomic_t		lo_active_ios;
 	/**
 	 * Waitq - wait for no one else is using lo_lsm
 	 */
-	wait_queue_head_t	       lo_waitq;
+	wait_queue_head_t	lo_waitq;
 	/**
 	 * Layout metadata. NULL if empty layout.
 	 */
-	struct lov_stripe_md  *lo_lsm;
+	struct lov_stripe_md	*lo_lsm;
 
 	union lov_layout_state {
 		struct lov_layout_state_empty {
@@ -259,9 +259,9 @@ struct lov_lock_sub {
  * lov-specific lock state.
  */
 struct lov_lock {
-	struct cl_lock_slice   lls_cl;
+	struct cl_lock_slice	lls_cl;
 	/** Number of sub-locks in this lock */
-	int		    lls_nr;
+	int			lls_nr;
 	/** sublock array */
 	struct lov_lock_sub     lls_sub[0];
 };
@@ -277,43 +277,43 @@ struct lov_page {
  */
 
 struct lovsub_device {
-	struct cl_device   acid_cl;
-	struct cl_device  *acid_next;
+	struct cl_device	acid_cl;
+	struct cl_device       *acid_next;
 };
 
 struct lovsub_object {
 	struct cl_object_header lso_header;
 	struct cl_object	lso_cl;
 	struct lov_object      *lso_super;
-	int		     lso_index;
+	int			lso_index;
 };
 
 /**
  * Lock state at lovsub layer.
  */
 struct lovsub_lock {
-	struct cl_lock_slice  lss_cl;
+	struct cl_lock_slice	lss_cl;
 };
 
 /**
  * Describe the environment settings for sublocks.
  */
 struct lov_sublock_env {
-	const struct lu_env *lse_env;
-	struct cl_io	*lse_io;
+	const struct lu_env	*lse_env;
+	struct cl_io		*lse_io;
 };
 
 struct lovsub_page {
-	struct cl_page_slice lsb_cl;
+	struct cl_page_slice	lsb_cl;
 };
 
 struct lov_thread_info {
 	struct cl_object_conf   lti_stripe_conf;
-	struct lu_fid	   lti_fid;
-	struct ost_lvb	  lti_lvb;
+	struct lu_fid		lti_fid;
+	struct ost_lvb		lti_lvb;
 	struct cl_2queue	lti_cl2q;
 	struct cl_page_list     lti_plist;
-	wait_queue_entry_t	  lti_waiter;
+	wait_queue_entry_t	lti_waiter;
 };
 
 /**
@@ -354,12 +354,12 @@ struct lov_io_sub {
  */
 struct lov_io {
 	/** super-class */
-	struct cl_io_slice lis_cl;
+	struct cl_io_slice	lis_cl;
 	/**
 	 * Pointer to the object slice. This is a duplicate of
 	 * lov_io::lis_cl::cis_object.
 	 */
-	struct lov_object *lis_object;
+	struct lov_object	*lis_object;
 	/**
 	 * Original end-of-io position for this IO, set by the upper layer as
 	 * cl_io::u::ci_rw::pos + cl_io::u::ci_rw::count. lov remembers this,
@@ -401,8 +401,8 @@ struct lov_io {
 };
 
 struct lov_session {
-	struct lov_io	  ls_io;
-	struct lov_sublock_env ls_subenv;
+	struct lov_io		ls_io;
+	struct lov_sublock_env	ls_subenv;
 };
 
 extern struct lu_device_type lov_device_type;

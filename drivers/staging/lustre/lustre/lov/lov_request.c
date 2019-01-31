@@ -137,12 +137,12 @@ out:
 }
 
 #define LOV_U64_MAX ((u64)~0ULL)
-#define LOV_SUM_MAX(tot, add)					   \
-	do {							    \
-		if ((tot) + (add) < (tot))			      \
-			(tot) = LOV_U64_MAX;			    \
-		else						    \
-			(tot) += (add);				 \
+#define LOV_SUM_MAX(tot, add)			\
+	do {					\
+		if ((tot) + (add) < (tot))	\
+			(tot) = LOV_U64_MAX;	\
+		else				\
+			(tot) += (add);		\
 	} while (0)
 
 static int lov_fini_statfs(struct obd_device *obd, struct obd_statfs *osfs,

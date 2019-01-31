@@ -91,9 +91,9 @@ static int lov_io_sub_init(const struct lu_env *env, struct lov_io *lio,
 			   struct lov_io_sub *sub)
 {
 	struct lov_object *lov = lio->lis_object;
-	struct cl_io      *sub_io;
-	struct cl_object  *sub_obj;
-	struct cl_io      *io  = lio->lis_cl.cis_io;
+	struct cl_io *sub_io;
+	struct cl_object *sub_obj;
+	struct cl_io *io = lio->lis_cl.cis_io;
 	int index = lov_comp_entry(sub->sub_subio_index);
 	int stripe = lov_comp_stripe(sub->sub_subio_index);
 	int rc = 0;
@@ -377,11 +377,11 @@ static u64 lov_offset_mod(u64 val, int delta)
 static int lov_io_iter_init(const struct lu_env *env,
 			    const struct cl_io_slice *ios)
 {
-	struct lov_io	*lio = cl2lov_io(env, ios);
+	struct lov_io *lio = cl2lov_io(env, ios);
 	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
 	struct cl_io *io = ios->cis_io;
 	struct lov_layout_entry *le;
-	struct lov_io_sub    *sub;
+	struct lov_io_sub *sub;
 	struct lu_extent ext;
 	int rc = 0;
 	int index;
@@ -461,9 +461,9 @@ static int lov_io_iter_init(const struct lu_env *env,
 static int lov_io_rw_iter_init(const struct lu_env *env,
 			       const struct cl_io_slice *ios)
 {
-	struct lov_io	*lio = cl2lov_io(env, ios);
+	struct lov_io *lio = cl2lov_io(env, ios);
 	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
-	struct cl_io	 *io  = ios->cis_io;
+	struct cl_io *io = ios->cis_io;
 	u64 start = io->u.ci_rw.crw_pos;
 	struct lov_stripe_md_entry *lse;
 	int index;
@@ -872,8 +872,8 @@ static int lov_io_fault_start(const struct lu_env *env,
 			      const struct cl_io_slice *ios)
 {
 	struct cl_fault_io *fio;
-	struct lov_io      *lio;
-	struct lov_io_sub  *sub;
+	struct lov_io *lio;
+	struct lov_io_sub *sub;
 
 	fio = &ios->cis_io->u.ci_fault;
 	lio = cl2lov_io(env, ios);
@@ -906,31 +906,31 @@ static void lov_io_fsync_end(const struct lu_env *env,
 static const struct cl_io_operations lov_io_ops = {
 	.op = {
 		[CIT_READ] = {
-			.cio_fini      = lov_io_fini,
-			.cio_iter_init = lov_io_rw_iter_init,
-			.cio_iter_fini = lov_io_iter_fini,
-			.cio_lock      = lov_io_lock,
-			.cio_unlock    = lov_io_unlock,
-			.cio_start     = lov_io_start,
-			.cio_end       = lov_io_end
+			.cio_fini	= lov_io_fini,
+			.cio_iter_init	= lov_io_rw_iter_init,
+			.cio_iter_fini	= lov_io_iter_fini,
+			.cio_lock	= lov_io_lock,
+			.cio_unlock	= lov_io_unlock,
+			.cio_start	= lov_io_start,
+			.cio_end	= lov_io_end
 		},
 		[CIT_WRITE] = {
-			.cio_fini      = lov_io_fini,
-			.cio_iter_init = lov_io_rw_iter_init,
-			.cio_iter_fini = lov_io_iter_fini,
-			.cio_lock      = lov_io_lock,
-			.cio_unlock    = lov_io_unlock,
-			.cio_start     = lov_io_start,
-			.cio_end       = lov_io_end
+			.cio_fini	= lov_io_fini,
+			.cio_iter_init	= lov_io_rw_iter_init,
+			.cio_iter_fini	= lov_io_iter_fini,
+			.cio_lock	= lov_io_lock,
+			.cio_unlock	= lov_io_unlock,
+			.cio_start	= lov_io_start,
+			.cio_end	= lov_io_end
 		},
 		[CIT_SETATTR] = {
-			.cio_fini      = lov_io_fini,
-			.cio_iter_init = lov_io_setattr_iter_init,
-			.cio_iter_fini = lov_io_iter_fini,
-			.cio_lock      = lov_io_lock,
-			.cio_unlock    = lov_io_unlock,
-			.cio_start     = lov_io_start,
-			.cio_end       = lov_io_end
+			.cio_fini	= lov_io_fini,
+			.cio_iter_init	= lov_io_setattr_iter_init,
+			.cio_iter_fini	= lov_io_iter_fini,
+			.cio_lock	= lov_io_lock,
+			.cio_unlock	= lov_io_unlock,
+			.cio_start	= lov_io_start,
+			.cio_end	= lov_io_end
 		},
 		[CIT_DATA_VERSION] = {
 			.cio_fini	= lov_io_fini,
@@ -942,22 +942,22 @@ static const struct cl_io_operations lov_io_ops = {
 			.cio_end	= lov_io_data_version_end,
 		},
 		[CIT_FAULT] = {
-			.cio_fini      = lov_io_fini,
-			.cio_iter_init = lov_io_iter_init,
-			.cio_iter_fini = lov_io_iter_fini,
-			.cio_lock      = lov_io_lock,
-			.cio_unlock    = lov_io_unlock,
-			.cio_start     = lov_io_fault_start,
-			.cio_end       = lov_io_end
+			.cio_fini	= lov_io_fini,
+			.cio_iter_init	= lov_io_iter_init,
+			.cio_iter_fini	= lov_io_iter_fini,
+			.cio_lock	= lov_io_lock,
+			.cio_unlock	= lov_io_unlock,
+			.cio_start	= lov_io_fault_start,
+			.cio_end	= lov_io_end
 		},
 		[CIT_FSYNC] = {
-			.cio_fini      = lov_io_fini,
-			.cio_iter_init = lov_io_iter_init,
-			.cio_iter_fini = lov_io_iter_fini,
-			.cio_lock      = lov_io_lock,
-			.cio_unlock    = lov_io_unlock,
-			.cio_start     = lov_io_start,
-			.cio_end       = lov_io_fsync_end
+			.cio_fini	= lov_io_fini,
+			.cio_iter_init	= lov_io_iter_init,
+			.cio_iter_fini	= lov_io_iter_fini,
+			.cio_lock	= lov_io_lock,
+			.cio_unlock	= lov_io_unlock,
+			.cio_start	= lov_io_start,
+			.cio_end	= lov_io_fsync_end
 		},
 		[CIT_LADVISE] = {
 			.cio_fini	= lov_io_fini,
@@ -969,12 +969,12 @@ static const struct cl_io_operations lov_io_ops = {
 			.cio_end	= lov_io_end
 		},
 		[CIT_MISC] = {
-			.cio_fini   = lov_io_fini
+			.cio_fini	= lov_io_fini
 		}
 	},
 	.cio_read_ahead			= lov_io_read_ahead,
-	.cio_submit                    = lov_io_submit,
-	.cio_commit_async              = lov_io_commit_async,
+	.cio_submit			= lov_io_submit,
+	.cio_commit_async		= lov_io_commit_async,
 };
 
 /*****************************************************************************
@@ -1013,48 +1013,48 @@ static void lov_empty_impossible(const struct lu_env *env,
 static const struct cl_io_operations lov_empty_io_ops = {
 	.op = {
 		[CIT_READ] = {
-			.cio_fini       = lov_empty_io_fini,
+			.cio_fini	= lov_empty_io_fini,
 		},
 		[CIT_WRITE] = {
-			.cio_fini      = lov_empty_io_fini,
-			.cio_iter_init = LOV_EMPTY_IMPOSSIBLE,
-			.cio_lock      = LOV_EMPTY_IMPOSSIBLE,
-			.cio_start     = LOV_EMPTY_IMPOSSIBLE,
-			.cio_end       = LOV_EMPTY_IMPOSSIBLE
+			.cio_fini	= lov_empty_io_fini,
+			.cio_iter_init	= LOV_EMPTY_IMPOSSIBLE,
+			.cio_lock	= LOV_EMPTY_IMPOSSIBLE,
+			.cio_start	= LOV_EMPTY_IMPOSSIBLE,
+			.cio_end	= LOV_EMPTY_IMPOSSIBLE
 		},
 		[CIT_SETATTR] = {
-			.cio_fini      = lov_empty_io_fini,
-			.cio_iter_init = LOV_EMPTY_IMPOSSIBLE,
-			.cio_lock      = LOV_EMPTY_IMPOSSIBLE,
-			.cio_start     = LOV_EMPTY_IMPOSSIBLE,
-			.cio_end       = LOV_EMPTY_IMPOSSIBLE
+			.cio_fini	= lov_empty_io_fini,
+			.cio_iter_init	= LOV_EMPTY_IMPOSSIBLE,
+			.cio_lock	= LOV_EMPTY_IMPOSSIBLE,
+			.cio_start	= LOV_EMPTY_IMPOSSIBLE,
+			.cio_end	= LOV_EMPTY_IMPOSSIBLE
 		},
 		[CIT_FAULT] = {
-			.cio_fini      = lov_empty_io_fini,
-			.cio_iter_init = LOV_EMPTY_IMPOSSIBLE,
-			.cio_lock      = LOV_EMPTY_IMPOSSIBLE,
-			.cio_start     = LOV_EMPTY_IMPOSSIBLE,
-			.cio_end       = LOV_EMPTY_IMPOSSIBLE
+			.cio_fini	= lov_empty_io_fini,
+			.cio_iter_init	= LOV_EMPTY_IMPOSSIBLE,
+			.cio_lock	= LOV_EMPTY_IMPOSSIBLE,
+			.cio_start	= LOV_EMPTY_IMPOSSIBLE,
+			.cio_end	= LOV_EMPTY_IMPOSSIBLE
 		},
 		[CIT_FSYNC] = {
-			.cio_fini   = lov_empty_io_fini
+			.cio_fini	= lov_empty_io_fini
 		},
 		[CIT_LADVISE] = {
 			.cio_fini	= lov_empty_io_fini
 		},
 		[CIT_MISC] = {
-			.cio_fini   = lov_empty_io_fini
+			.cio_fini	= lov_empty_io_fini
 		}
 	},
 	.cio_submit			= lov_empty_io_submit,
-	.cio_commit_async              = LOV_EMPTY_IMPOSSIBLE
+	.cio_commit_async		= LOV_EMPTY_IMPOSSIBLE
 };
 
 int lov_io_init_composite(const struct lu_env *env, struct cl_object *obj,
 			  struct cl_io *io)
 {
-	struct lov_io       *lio = lov_env_io(env);
-	struct lov_object   *lov = cl2lov(obj);
+	struct lov_io *lio = lov_env_io(env);
+	struct lov_object *lov = cl2lov(obj);
 
 	INIT_LIST_HEAD(&lio->lis_active);
 	io->ci_result = lov_io_slice_init(lio, lov, io);

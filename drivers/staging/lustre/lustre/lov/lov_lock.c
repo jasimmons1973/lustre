@@ -54,9 +54,9 @@ static struct lov_sublock_env *lov_sublock_env_get(const struct lu_env *env,
 						   struct lov_lock_sub *lls)
 {
 	struct lov_sublock_env *subenv;
-	struct lov_io	  *lio    = lov_env_io(env);
-	struct cl_io	   *io     = lio->lis_cl.cis_io;
-	struct lov_io_sub      *sub;
+	struct lov_io *lio = lov_env_io(env);
+	struct cl_io *io = lio->lis_cl.cis_io;
+	struct lov_io_sub *sub;
 
 	subenv = &lov_env_session(env)->ls_subenv;
 
@@ -71,7 +71,7 @@ static struct lov_sublock_env *lov_sublock_env_get(const struct lu_env *env,
 	 */
 	if (!io || !cl_object_same(io->ci_obj, parent->cll_descr.cld_obj)) {
 		subenv->lse_env = env;
-		subenv->lse_io  = io;
+		subenv->lse_io = io;
 	} else {
 		sub = lov_sub_get(env, lio, lls->sub_index);
 		if (!IS_ERR(sub)) {
@@ -154,7 +154,7 @@ static struct lov_lock *lov_lock_sub_init(const struct lu_env *env,
 	 */
 
 	lovlck = kvzalloc(offsetof(struct lov_lock, lls_sub[nr]),
-				 GFP_NOFS);
+			  GFP_NOFS);
 	if (!lovlck)
 		return ERR_PTR(-ENOMEM);
 
@@ -178,11 +178,11 @@ static struct lov_lock *lov_lock_sub_init(const struct lu_env *env,
 				continue;
 
 			LASSERT(!descr->cld_obj);
-			descr->cld_obj   = lovsub2cl(r0->lo_sub[i]);
+			descr->cld_obj = lovsub2cl(r0->lo_sub[i]);
 			descr->cld_start = cl_index(descr->cld_obj, start);
-			descr->cld_end   = cl_index(descr->cld_obj, end);
-			descr->cld_mode  = lock->cll_descr.cld_mode;
-			descr->cld_gid   = lock->cll_descr.cld_gid;
+			descr->cld_end = cl_index(descr->cld_obj, end);
+			descr->cld_mode = lock->cll_descr.cld_mode;
+			descr->cld_gid = lock->cll_descr.cld_gid;
 			descr->cld_enq_flags = lock->cll_descr.cld_enq_flags;
 
 			lls->sub_index = lov_comp_index(index, i);
@@ -244,7 +244,7 @@ static int lov_lock_enqueue(const struct lu_env *env,
 	int rc = 0;
 
 	for (i = 0; i < lovlck->lls_nr; ++i) {
-		struct lov_lock_sub  *lls = &lovlck->lls_sub[i];
+		struct lov_lock_sub *lls = &lovlck->lls_sub[i];
 		struct lov_sublock_env *subenv;
 
 		subenv = lov_sublock_env_get(env, lock, lls);
@@ -293,7 +293,7 @@ static int lov_lock_print(const struct lu_env *env, void *cookie,
 			  lu_printer_t p, const struct cl_lock_slice *slice)
 {
 	struct lov_lock *lck = cl2lov_lock(slice);
-	int	      i;
+	int i;
 
 	(*p)(env, cookie, "%d\n", lck->lls_nr);
 	for (i = 0; i < lck->lls_nr; ++i) {
@@ -307,10 +307,10 @@ static int lov_lock_print(const struct lu_env *env, void *cookie,
 }
 
 static const struct cl_lock_operations lov_lock_ops = {
-	.clo_fini      = lov_lock_fini,
-	.clo_enqueue   = lov_lock_enqueue,
-	.clo_cancel    = lov_lock_cancel,
-	.clo_print     = lov_lock_print
+	.clo_fini	= lov_lock_fini,
+	.clo_enqueue	= lov_lock_enqueue,
+	.clo_cancel	= lov_lock_cancel,
+	.clo_print	= lov_lock_print
 };
 
 int lov_lock_init_composite(const struct lu_env *env, struct cl_object *obj,
@@ -345,8 +345,8 @@ static int lov_empty_lock_print(const struct lu_env *env, void *cookie,
 
 /* XXX: more methods will be added later. */
 static const struct cl_lock_operations lov_empty_lock_ops = {
-	.clo_fini  = lov_empty_lock_fini,
-	.clo_print = lov_empty_lock_print
+	.clo_fini	= lov_empty_lock_fini,
+	.clo_print	= lov_empty_lock_print
 };
 
 int lov_lock_init_empty(const struct lu_env *env, struct cl_object *obj,

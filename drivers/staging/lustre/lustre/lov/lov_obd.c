@@ -425,7 +425,7 @@ static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 		CERROR("Unknown event(%d) for uuid %s", ev, uuid->uuid);
 	}
 
- out:
+out:
 	lov_tgts_putref(obd);
 	return index;
 }
@@ -925,7 +925,7 @@ lov_statfs_interpret(struct ptlrpc_request_set *rqset, void *data, int rc)
 static int lov_statfs_async(struct obd_export *exp, struct obd_info *oinfo,
 			    u64 max_age, struct ptlrpc_request_set *rqset)
 {
-	struct obd_device      *obd = class_exp2obd(exp);
+	struct obd_device *obd = class_exp2obd(exp);
 	struct lov_request_set *set;
 	struct lov_request *req;
 	struct lov_obd *lov;
@@ -997,7 +997,7 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	case IOC_OBD_STATFS: {
 		struct obd_ioctl_data *data = karg;
 		struct obd_device *osc_obd;
-		struct obd_statfs stat_buf = {0};
+		struct obd_statfs stat_buf = { 0 };
 		u32 index;
 		u32 flags;
 
@@ -1281,11 +1281,11 @@ void lov_stripe_unlock(struct lov_stripe_md *md)
 static int lov_quotactl(struct obd_device *obd, struct obd_export *exp,
 			struct obd_quotactl *oqctl)
 {
-	struct lov_obd      *lov = &obd->u.lov;
+	struct lov_obd *lov = &obd->u.lov;
 	struct lov_tgt_desc *tgt;
-	u64		curspace = 0;
-	u64		bhardlimit = 0;
-	int		  i, rc = 0;
+	u64 curspace = 0;
+	u64 bhardlimit = 0;
+	int i, rc = 0;
 
 	if (oqctl->qc_cmd != Q_GETOQUOTA &&
 	    oqctl->qc_cmd != LUSTRE_Q_SETQUOTA) {
@@ -1336,10 +1336,9 @@ static int lov_quotactl(struct obd_device *obd, struct obd_export *exp,
 }
 
 static struct obd_ops lov_obd_ops = {
-	.owner          = THIS_MODULE,
-	.setup          = lov_setup,
-	.cleanup        = lov_cleanup,
-	/*.process_config       = lov_process_config,*/
+	.owner		= THIS_MODULE,
+	.setup		= lov_setup,
+	.cleanup	= lov_cleanup,
 	.connect        = lov_connect,
 	.disconnect     = lov_disconnect,
 	.statfs         = lov_statfs,

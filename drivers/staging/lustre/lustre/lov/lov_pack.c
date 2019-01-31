@@ -52,7 +52,7 @@
 void lov_dump_lmm_common(int level, void *lmmp)
 {
 	struct lov_mds_md *lmm = lmmp;
-	struct ost_id	oi;
+	struct ost_id oi;
 
 	lmm_oi_le_to_cpu(&oi, &lmm->lmm_oi);
 	CDEBUG(level, "objid " DOSTID ", magic 0x%08x, pattern %#x\n",
@@ -76,7 +76,7 @@ static void lov_dump_lmm_objects(int level, struct lov_ost_data *lod,
 	}
 
 	for (i = 0; i < stripe_count; ++i, ++lod) {
-		struct ost_id	oi;
+		struct ost_id oi;
 
 		ostid_le_to_cpu(&lod->l_ost_oi, &oi);
 		CDEBUG(level, "stripe %u idx %u subobj " DOSTID "\n", i,

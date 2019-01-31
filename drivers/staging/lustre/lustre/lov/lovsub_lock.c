@@ -52,14 +52,14 @@
 static void lovsub_lock_fini(const struct lu_env *env,
 			     struct cl_lock_slice *slice)
 {
-	struct lovsub_lock   *lsl;
+	struct lovsub_lock *lsl;
 
 	lsl = cl2lovsub_lock(slice);
 	kmem_cache_free(lovsub_lock_kmem, lsl);
 }
 
 static const struct cl_lock_operations lovsub_lock_ops = {
-	.clo_fini    = lovsub_lock_fini,
+	.clo_fini	= lovsub_lock_fini,
 };
 
 int lovsub_lock_init(const struct lu_env *env, struct cl_object *obj,

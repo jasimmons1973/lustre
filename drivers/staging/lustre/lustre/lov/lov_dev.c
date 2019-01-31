@@ -113,9 +113,9 @@ static void lov_key_fini(const struct lu_context *ctx,
 }
 
 struct lu_context_key lov_key = {
-	.lct_tags = LCT_CL_THREAD,
-	.lct_init = lov_key_init,
-	.lct_fini = lov_key_fini
+	.lct_tags	= LCT_CL_THREAD,
+	.lct_init	= lov_key_init,
+	.lct_fini	= lov_key_fini
 };
 
 static void *lov_session_key_init(const struct lu_context *ctx,
@@ -138,9 +138,9 @@ static void lov_session_key_fini(const struct lu_context *ctx,
 }
 
 struct lu_context_key lov_session_key = {
-	.lct_tags = LCT_SESSION,
-	.lct_init = lov_session_key_init,
-	.lct_fini = lov_session_key_fini
+	.lct_tags	= LCT_SESSION,
+	.lct_init	= lov_session_key_init,
+	.lct_fini	= lov_session_key_fini
 };
 
 /* type constructor/destructor: lov_type_{init,fini,start,stop}() */
@@ -181,8 +181,8 @@ static int lov_device_init(const struct lu_env *env, struct lu_device *d,
 
 	lov_foreach_target(ld, i) {
 		struct lovsub_device *lsd;
-		struct cl_device     *cl;
-		struct lov_tgt_desc  *desc;
+		struct cl_device *cl;
+		struct lov_tgt_desc *desc;
 
 		desc = ld->ld_lov->lov_tgts[i];
 		if (!desc)
@@ -230,7 +230,7 @@ static void lov_cl_del_target(const struct lu_env *env, struct lu_device *dev,
 
 static int lov_expand_targets(const struct lu_env *env, struct lov_device *dev)
 {
-	int   result;
+	int result;
 	u32 tgt_size;
 	u32 sub_size;
 
@@ -238,8 +238,8 @@ static int lov_expand_targets(const struct lu_env *env, struct lov_device *dev)
 	tgt_size = dev->ld_lov->lov_tgt_size;
 	sub_size = dev->ld_target_nr;
 	if (sub_size < tgt_size) {
-		struct lovsub_device    **newd;
-		const size_t	      sz   = sizeof(newd[0]);
+		struct lovsub_device **newd;
+		const size_t sz = sizeof(newd[0]);
 
 		newd = kcalloc(tgt_size, sz, GFP_NOFS);
 		if (newd) {
@@ -247,7 +247,7 @@ static int lov_expand_targets(const struct lu_env *env, struct lov_device *dev)
 				memcpy(newd, dev->ld_target, sub_size * sz);
 				kfree(dev->ld_target);
 			}
-			dev->ld_target    = newd;
+			dev->ld_target = newd;
 			dev->ld_target_nr = tgt_size;
 		} else {
 			result = -ENOMEM;
@@ -259,11 +259,11 @@ static int lov_expand_targets(const struct lu_env *env, struct lov_device *dev)
 static int lov_cl_add_target(const struct lu_env *env, struct lu_device *dev,
 			     u32 index)
 {
-	struct obd_device    *obd = dev->ld_obd;
-	struct lov_device    *ld  = lu2lov_dev(dev);
-	struct lov_tgt_desc  *tgt;
+	struct obd_device *obd = dev->ld_obd;
+	struct lov_device *ld  = lu2lov_dev(dev);
+	struct lov_tgt_desc *tgt;
 	struct lovsub_device *lsd;
-	struct cl_device     *cl;
+	struct cl_device *cl;
 	int rc;
 
 	lov_tgts_getref(obd);
@@ -330,8 +330,8 @@ static int lov_process_config(const struct lu_env *env,
 }
 
 static const struct lu_device_operations lov_lu_ops = {
-	.ldo_object_alloc      = lov_object_alloc,
-	.ldo_process_config    = lov_process_config,
+	.ldo_object_alloc	= lov_object_alloc,
+	.ldo_process_config	= lov_process_config,
 };
 
 static struct lu_device *lov_device_alloc(const struct lu_env *env,
@@ -349,7 +349,7 @@ static struct lu_device *lov_device_alloc(const struct lu_env *env,
 
 	cl_device_init(&ld->ld_cl, t);
 	d = lov2lu_dev(ld);
-	d->ld_ops	= &lov_lu_ops;
+	d->ld_ops = &lov_lu_ops;
 
 	/* setup the LOV OBD */
 	obd = class_name2obd(lustre_cfg_string(cfg, 0));
@@ -365,24 +365,24 @@ static struct lu_device *lov_device_alloc(const struct lu_env *env,
 }
 
 static const struct lu_device_type_operations lov_device_type_ops = {
-	.ldto_init = lov_type_init,
-	.ldto_fini = lov_type_fini,
+	.ldto_init		= lov_type_init,
+	.ldto_fini		= lov_type_fini,
 
-	.ldto_start = lov_type_start,
-	.ldto_stop  = lov_type_stop,
+	.ldto_start		= lov_type_start,
+	.ldto_stop		= lov_type_stop,
 
-	.ldto_device_alloc = lov_device_alloc,
-	.ldto_device_free  = lov_device_free,
+	.ldto_device_alloc	= lov_device_alloc,
+	.ldto_device_free	= lov_device_free,
 
-	.ldto_device_init    = lov_device_init,
-	.ldto_device_fini    = lov_device_fini
+	.ldto_device_init	= lov_device_init,
+	.ldto_device_fini	= lov_device_fini
 };
 
 struct lu_device_type lov_device_type = {
-	.ldt_tags     = LU_DEVICE_CL,
-	.ldt_name     = LUSTRE_LOV_NAME,
-	.ldt_ops      = &lov_device_type_ops,
-	.ldt_ctx_tags = LCT_CL_THREAD
+	.ldt_tags		= LU_DEVICE_CL,
+	.ldt_name		= LUSTRE_LOV_NAME,
+	.ldt_ops		= &lov_device_type_ops,
+	.ldt_ctx_tags		= LCT_CL_THREAD
 };
 
 /** @} lov */

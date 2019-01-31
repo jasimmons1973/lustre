@@ -96,9 +96,9 @@ void lov_pool_putref(struct pool_desc *pool)
  */
 #define POOL_IT_MAGIC 0xB001CEA0
 struct pool_iterator {
-	int magic;
-	struct pool_desc *pool;
-	int idx;	/* from 0 to pool_tgt_size - 1 */
+	int			magic;
+	struct pool_desc	*pool;
+	int			idx;	/* from 0 to pool_tgt_size - 1 */
 };
 
 static void *pool_proc_next(struct seq_file *s, void *v, loff_t *pos)
@@ -204,10 +204,10 @@ static int pool_proc_show(struct seq_file *s, void *v)
 }
 
 static const struct seq_operations pool_proc_ops = {
-	.start	  = pool_proc_start,
-	.next	   = pool_proc_next,
-	.stop	   = pool_proc_stop,
-	.show	   = pool_proc_show,
+	.start		= pool_proc_start,
+	.next		= pool_proc_next,
+	.stop		= pool_proc_stop,
+	.show		= pool_proc_show,
 };
 
 static int pool_proc_open(struct inode *inode, struct file *file)
@@ -224,9 +224,9 @@ static int pool_proc_open(struct inode *inode, struct file *file)
 }
 
 static const struct file_operations pool_proc_operations = {
-	.open	   = pool_proc_open,
-	.read	   = seq_read,
-	.llseek	 = seq_lseek,
+	.open		= pool_proc_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
 	.release	= seq_release,
 };
 

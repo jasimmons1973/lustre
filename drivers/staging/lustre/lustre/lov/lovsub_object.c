@@ -52,10 +52,9 @@
 int lovsub_object_init(const struct lu_env *env, struct lu_object *obj,
 		       const struct lu_object_conf *conf)
 {
-	struct lovsub_device  *dev   = lu2lovsub_dev(obj->lo_dev);
-	struct lu_object      *below;
-	struct lu_device      *under;
-
+	struct lovsub_device *dev = lu2lovsub_dev(obj->lo_dev);
+	struct lu_object *below;
+	struct lu_device *under;
 	int result;
 
 	under = &dev->acid_next->cd_lu_dev;
@@ -73,7 +72,7 @@ int lovsub_object_init(const struct lu_env *env, struct lu_object *obj,
 static void lovsub_object_free(const struct lu_env *env, struct lu_object *obj)
 {
 	struct lovsub_object *los = lu2lovsub(obj);
-	struct lov_object    *lov = los->lso_super;
+	struct lov_object *lov = los->lso_super;
 
 	/* We can't assume lov was assigned here, because of the shadow
 	 * object handling in lu_object_find.
@@ -146,20 +145,20 @@ static void lovsub_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 }
 
 static const struct cl_object_operations lovsub_ops = {
-	.coo_page_init = lovsub_page_init,
-	.coo_lock_init = lovsub_lock_init,
-	.coo_attr_update = lovsub_attr_update,
+	.coo_page_init		= lovsub_page_init,
+	.coo_lock_init		= lovsub_lock_init,
+	.coo_attr_update	= lovsub_attr_update,
 	.coo_glimpse		= lovsub_object_glimpse,
 	.coo_req_attr_set	= lovsub_req_attr_set
 };
 
 static const struct lu_object_operations lovsub_lu_obj_ops = {
-	.loo_object_init      = lovsub_object_init,
-	.loo_object_delete    = NULL,
-	.loo_object_release   = NULL,
-	.loo_object_free      = lovsub_object_free,
-	.loo_object_print     = lovsub_object_print,
-	.loo_object_invariant = NULL
+	.loo_object_init	= lovsub_object_init,
+	.loo_object_delete	= NULL,
+	.loo_object_release	= NULL,
+	.loo_object_free	= lovsub_object_free,
+	.loo_object_print	= lovsub_object_print,
+	.loo_object_invariant	= NULL
 };
 
 struct lu_object *lovsub_object_alloc(const struct lu_env *env,
@@ -167,7 +166,7 @@ struct lu_object *lovsub_object_alloc(const struct lu_env *env,
 				      struct lu_device *dev)
 {
 	struct lovsub_object *los;
-	struct lu_object     *obj;
+	struct lu_object *obj;
 
 	los = kmem_cache_zalloc(lovsub_object_kmem, GFP_NOFS);
 	if (los) {

@@ -62,24 +62,24 @@ static int lov_comp_page_print(const struct lu_env *env,
 }
 
 static const struct cl_page_operations lov_comp_page_ops = {
-	.cpo_print  = lov_comp_page_print
+	.cpo_print	= lov_comp_page_print
 };
 
 int lov_page_init_composite(const struct lu_env *env, struct cl_object *obj,
 			    struct cl_page *page, pgoff_t index)
 {
 	struct lov_object *loo = cl2lov(obj);
-	struct lov_io     *lio = lov_env_io(env);
+	struct lov_io *lio = lov_env_io(env);
 	struct lov_layout_raid0 *r0;
-	struct cl_object  *subobj;
-	struct cl_object  *o;
+	struct cl_object *subobj;
+	struct cl_object *o;
 	struct lov_io_sub *sub;
-	struct lov_page   *lpg = cl_object_page_slice(obj, page);
+	struct lov_page *lpg = cl_object_page_slice(obj, page);
 	u64 offset;
-	u64	    suboff;
-	int		stripe;
+	u64 suboff;
+	int stripe;
 	int entry;
-	int		rc;
+	int rc;
 
 	offset = cl_offset(obj, index);
 	entry = lov_lsm_entry(loo->lo_lsm, offset);
@@ -127,7 +127,7 @@ static int lov_empty_page_print(const struct lu_env *env,
 }
 
 static const struct cl_page_operations lov_empty_page_ops = {
-	.cpo_print = lov_empty_page_print
+	.cpo_print	= lov_empty_page_print
 };
 
 int lov_page_init_empty(const struct lu_env *env, struct cl_object *obj,

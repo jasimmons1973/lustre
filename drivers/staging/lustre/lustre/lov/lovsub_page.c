@@ -53,7 +53,7 @@ static void lovsub_page_fini(const struct lu_env *env,
 }
 
 static const struct cl_page_operations lovsub_page_ops = {
-	.cpo_fini   = lovsub_page_fini
+	.cpo_fini	= lovsub_page_fini
 };
 
 int lovsub_page_init(const struct lu_env *env, struct cl_object *obj,

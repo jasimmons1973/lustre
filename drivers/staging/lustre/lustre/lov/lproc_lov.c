@@ -239,10 +239,10 @@ static int lov_tgt_seq_show(struct seq_file *p, void *v)
 }
 
 static const struct seq_operations lov_tgt_sops = {
-	.start = lov_tgt_seq_start,
-	.stop = lov_tgt_seq_stop,
-	.next = lov_tgt_seq_next,
-	.show = lov_tgt_seq_show,
+	.start		= lov_tgt_seq_start,
+	.stop		= lov_tgt_seq_stop,
+	.next		= lov_tgt_seq_next,
+	.show		= lov_tgt_seq_show,
 };
 
 static int lov_target_seq_open(struct inode *inode, struct file *file)
@@ -260,11 +260,11 @@ static int lov_target_seq_open(struct inode *inode, struct file *file)
 }
 
 static const struct file_operations lov_debugfs_target_fops = {
-	.owner   = THIS_MODULE,
-	.open    = lov_target_seq_open,
-	.read    = seq_read,
-	.llseek  = seq_lseek,
-	.release = lprocfs_seq_release,
+	.owner		= THIS_MODULE,
+	.open		= lov_target_seq_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= lprocfs_seq_release,
 };
 
 static struct attribute *lov_attrs[] = {

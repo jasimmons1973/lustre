@@ -169,29 +169,29 @@ void lsm_free(struct lov_stripe_md *lsm);
  * already a 32-bit value the compiler handles this directly.
  */
 #if BITS_PER_LONG == 64
-# define lov_do_div64(n, base) ({					\
-	u64 __base = (base);					\
-	u64 __rem;							\
-	__rem = ((u64)(n)) % __base;				\
-	(n) = ((u64)(n)) / __base;					\
-	__rem;								\
+# define lov_do_div64(n, base) ({		\
+	u64 __base = (base);			\
+	u64 __rem;				\
+	__rem = ((u64)(n)) % __base;		\
+	(n) = ((u64)(n)) / __base;		\
+	__rem;					\
 })
 #elif BITS_PER_LONG == 32
-# define lov_do_div64(n, base) ({					\
-	u64 __rem;							\
+# define lov_do_div64(n, base) ({					      \
+	u64 __rem;							      \
 	if ((sizeof(base) > 4) && (((base) & 0xffffffff00000000ULL) != 0)) {  \
 		int __remainder;					      \
 		LASSERTF(!((base) & (LOV_MIN_STRIPE_SIZE - 1)), "64 bit lov " \
-			 "division %llu / %llu\n", (n), (u64)(base));    \
-		__remainder = (n) & (LOV_MIN_STRIPE_SIZE - 1);		\
-		(n) >>= LOV_MIN_STRIPE_BITS;				\
-		__rem = do_div(n, (base) >> LOV_MIN_STRIPE_BITS);	\
-		__rem <<= LOV_MIN_STRIPE_BITS;				\
-		__rem += __remainder;					\
-	} else {							\
-		__rem = do_div(n, base);				\
-	}								\
-	__rem;								\
+			 "division %llu / %llu\n", (n), (u64)(base));	      \
+		__remainder = (n) & (LOV_MIN_STRIPE_SIZE - 1);		      \
+		(n) >>= LOV_MIN_STRIPE_BITS;				      \
+		__rem = do_div(n, (base) >> LOV_MIN_STRIPE_BITS);	      \
+		__rem <<= LOV_MIN_STRIPE_BITS;				      \
+		__rem += __remainder;					      \
+	} else {							      \
+		__rem = do_div(n, base);				      \
+	}								      \
+	__rem;								      \
 })
 #endif
 
@@ -215,21 +215,21 @@ int lov_pool_hash_init(struct rhashtable *tbl);
 void lov_pool_hash_destroy(struct rhashtable *tbl);
 
 struct lov_request {
-	struct obd_info	  rq_oi;
-	struct lov_request_set  *rq_rqset;
+	struct obd_info		rq_oi;
+	struct lov_request_set *rq_rqset;
 
-	struct list_head	       rq_link;
+	struct list_head	rq_link;
 
-	int		      rq_idx;	/* index in lov->tgts array */
+	int			rq_idx;	/* index in lov->tgts array */
 };
 
 struct lov_request_set {
-	struct obd_info			*set_oi;
-	struct obd_device		*set_obd;
-	int				set_count;
-	atomic_t			set_completes;
-	atomic_t			set_success;
-	struct list_head			set_list;
+	struct obd_info		*set_oi;
+	struct obd_device	*set_obd;
+	int			set_count;
+	atomic_t		set_completes;
+	atomic_t		set_success;
+	struct list_head	set_list;
 };
 
 extern struct kmem_cache *lov_oinfo_slab;
