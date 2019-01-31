@@ -82,7 +82,7 @@ void lprocfs_counter_add(struct lprocfs_stats *stats, int idx, long amount)
 			percpu_cntr->lc_sum += amount;
 
 		if (header->lc_config & LPROCFS_CNTR_STDDEV)
-			percpu_cntr->lc_sumsquare += (__s64)amount * amount;
+			percpu_cntr->lc_sumsquare += (s64)amount * amount;
 		if (amount < percpu_cntr->lc_min)
 			percpu_cntr->lc_min = amount;
 		if (amount > percpu_cntr->lc_max)

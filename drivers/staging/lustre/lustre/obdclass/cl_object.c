@@ -592,7 +592,7 @@ static void cl_env_init0(struct cl_env *cle, void *debug)
 	cl_env_inc(CS_busy);
 }
 
-static struct lu_env *cl_env_new(__u32 ctx_tags, __u32 ses_tags, void *debug)
+static struct lu_env *cl_env_new(u32 ctx_tags, u32 ses_tags, void *debug)
 {
 	struct lu_env *env;
 	struct cl_env *cle;

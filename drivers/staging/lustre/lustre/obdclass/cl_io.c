@@ -205,7 +205,7 @@ int cl_io_rw_init(const struct lu_env *env, struct cl_io *io,
 
 	LU_OBJECT_HEADER(D_VFSTRACE, env, &io->ci_obj->co_lu,
 			 "io range: %u [%llu, %llu) %u %u\n",
-			 iot, (__u64)pos, (__u64)pos + count,
+			 iot, (u64)pos, (u64)pos + count,
 			 io->u.ci_rw.crw_nonblock, io->u.ci_wr.wr_append);
 	io->u.ci_rw.crw_pos    = pos;
 	io->u.ci_rw.crw_count  = count;

@@ -358,12 +358,12 @@ void lustre_swab_lustre_cfg(struct lustre_cfg *lcfg)
 
 /* used only for compatibility with old on-disk cfg_marker data */
 struct cfg_marker32 {
-	__u32   cm_step;
-	__u32   cm_flags;
-	__u32   cm_vers;
-	__u32   padding;
-	__u32   cm_createtime;
-	__u32   cm_canceltime;
+	u32   cm_step;
+	u32   cm_flags;
+	u32   cm_vers;
+	u32   padding;
+	u32   cm_createtime;
+	u32   cm_canceltime;
 	char    cm_tgtname[MTI_NAME_MAXLEN];
 	char    cm_comment[MTI_NAME_MAXLEN];
 };
@@ -381,7 +381,7 @@ void lustre_swab_cfg_marker(struct cfg_marker *marker, int swab, int size)
 		__swab32s(&marker->cm_vers);
 	}
 	if (size == sizeof(*cm32)) {
-		__u32 createtime, canceltime;
+		u32 createtime, canceltime;
 		/* There was a problem with the original declaration of
 		 * cfg_marker on 32-bit systems because it used time_t as
 		 * a wire protocol structure, and didn't verify this in

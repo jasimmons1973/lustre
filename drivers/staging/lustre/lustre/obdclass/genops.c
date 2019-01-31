@@ -1366,17 +1366,17 @@ void obd_put_request_slot(struct client_obd *cli)
 }
 EXPORT_SYMBOL(obd_put_request_slot);
 
-__u32 obd_get_max_rpcs_in_flight(struct client_obd *cli)
+u32 obd_get_max_rpcs_in_flight(struct client_obd *cli)
 {
 	return cli->cl_max_rpcs_in_flight;
 }
 EXPORT_SYMBOL(obd_get_max_rpcs_in_flight);
 
-int obd_set_max_rpcs_in_flight(struct client_obd *cli, __u32 max)
+int obd_set_max_rpcs_in_flight(struct client_obd *cli, u32 max)
 {
 	struct obd_request_slot_waiter *orsw;
 	const char *typ_name;
-	__u32 old;
+	u32 old;
 	int diff;
 	int rc;
 	int i;
@@ -1424,7 +1424,7 @@ int obd_set_max_rpcs_in_flight(struct client_obd *cli, __u32 max)
 }
 EXPORT_SYMBOL(obd_set_max_rpcs_in_flight);
 
-int obd_set_max_mod_rpcs_in_flight(struct client_obd *cli, __u16 max)
+int obd_set_max_mod_rpcs_in_flight(struct client_obd *cli, u16 max)
 {
 	struct obd_connect_data *ocd;
 	u16 maxmodrpcs;
@@ -1564,7 +1564,7 @@ static inline bool obd_skip_mod_rpc_slot(const struct lookup_intent *it)
  * Returns the tag to be set in the request message. Tag 0
  * is reserved for non-modifying requests.
  */
-u16 obd_get_mod_rpc_slot(struct client_obd *cli, __u32 opc,
+u16 obd_get_mod_rpc_slot(struct client_obd *cli, u32 opc,
 			 struct lookup_intent *it)
 {
 	bool close_req = false;

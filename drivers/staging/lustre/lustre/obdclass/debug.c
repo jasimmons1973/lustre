@@ -43,8 +43,8 @@
 #include <lustre_debug.h>
 #include <lustre_net.h>
 
-#define LPDS sizeof(__u64)
-int block_debug_setup(void *addr, int len, __u64 off, __u64 id)
+#define LPDS sizeof(u64)
+int block_debug_setup(void *addr, int len, u64 off, u64 id)
 {
 	LASSERT(addr);
 
@@ -58,9 +58,9 @@ int block_debug_setup(void *addr, int len, __u64 off, __u64 id)
 }
 EXPORT_SYMBOL(block_debug_setup);
 
-int block_debug_check(char *who, void *addr, int end, __u64 off, __u64 id)
+int block_debug_check(char *who, void *addr, int end, u64 off, u64 id)
 {
-	__u64 ne_off;
+	u64 ne_off;
 	int err = 0;
 
 	LASSERT(addr);
@@ -69,24 +69,24 @@ int block_debug_check(char *who, void *addr, int end, __u64 off, __u64 id)
 	id = le64_to_cpu(id);
 	if (memcmp(addr, (char *)&ne_off, LPDS)) {
 		CDEBUG(D_ERROR, "%s: id %#llx offset %llu off: %#llx != %#llx\n",
-		       who, id, off, *(__u64 *)addr, ne_off);
+		       who, id, off, *(u64 *)addr, ne_off);
 		err = -EINVAL;
 	}
 	if (memcmp(addr + LPDS, (char *)&id, LPDS)) {
 		CDEBUG(D_ERROR, "%s: id %#llx offset %llu id: %#llx != %#llx\n",
-		       who, id, off, *(__u64 *)(addr + LPDS), id);
+		       who, id, off, *(u64 *)(addr + LPDS), id);
 		err = -EINVAL;
 	}
 
 	addr += end - LPDS - LPDS;
 	if (memcmp(addr, (char *)&ne_off, LPDS)) {
 		CDEBUG(D_ERROR, "%s: id %#llx offset %llu end off: %#llx != %#llx\n",
-		       who, id, off, *(__u64 *)addr, ne_off);
+		       who, id, off, *(u64 *)addr, ne_off);
 		err = -EINVAL;
 	}
 	if (memcmp(addr + LPDS, (char *)&id, LPDS)) {
 		CDEBUG(D_ERROR, "%s: id %#llx offset %llu end id: %#llx != %#llx\n",
-		       who, id, off, *(__u64 *)(addr + LPDS), id);
+		       who, id, off, *(u64 *)(addr + LPDS), id);
 		err = -EINVAL;
 	}
 

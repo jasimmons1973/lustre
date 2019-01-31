@@ -42,7 +42,7 @@
 #include <lustre_handles.h>
 #include <lustre_lib.h>
 
-static __u64 handle_base;
+static u64 handle_base;
 #define HANDLE_INCR 7
 static spinlock_t handle_base_lock;
 
@@ -132,7 +132,7 @@ void class_handle_unhash(struct portals_handle *h)
 }
 EXPORT_SYMBOL(class_handle_unhash);
 
-void *class_handle2object(__u64 cookie, const void *owner)
+void *class_handle2object(u64 cookie, const void *owner)
 {
 	struct handle_bucket *bucket;
 	struct portals_handle *h;

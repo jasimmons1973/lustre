@@ -180,7 +180,7 @@ int cl_lock_request(const struct lu_env *env, struct cl_io *io,
 		    struct cl_lock *lock)
 {
 	struct cl_sync_io *anchor = NULL;
-	__u32 enq_flags = lock->cll_descr.cld_enq_flags;
+	u32 enq_flags = lock->cll_descr.cld_enq_flags;
 	int rc;
 
 	rc = cl_lock_init(env, lock, io);

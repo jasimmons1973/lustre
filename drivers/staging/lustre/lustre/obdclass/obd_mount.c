@@ -269,7 +269,7 @@ int lustre_start_mgc(struct super_block *sb)
 		if (lmd_is_client(lsi->lsi_lmd)) {
 			int has_ir;
 			int vallen = sizeof(*data);
-			__u32 *flags = &lsi->lsi_lmd->lmd_flags;
+			u32 *flags = &lsi->lsi_lmd->lmd_flags;
 
 			rc = obd_get_info(NULL, obd->obd_self_export,
 					  strlen(KEY_CONN_DATA), KEY_CONN_DATA,
@@ -621,7 +621,7 @@ static int server_name2fsname(const char *svname, char *fsname,
  * rc < 0  on error
  * if endptr isn't NULL it is set to end of name
  */
-static int server_name2index(const char *svname, __u32 *idx,
+static int server_name2index(const char *svname, u32 *idx,
 			     const char **endptr)
 {
 	unsigned long index;
@@ -721,7 +721,7 @@ int lustre_check_exclusion(struct super_block *sb, char *svname)
 {
 	struct lustre_sb_info *lsi = s2lsi(sb);
 	struct lustre_mount_data *lmd = lsi->lsi_lmd;
-	__u32 index;
+	u32 index;
 	int i, rc;
 
 	rc = server_name2index(svname, &index, NULL);
@@ -745,7 +745,7 @@ int lustre_check_exclusion(struct super_block *sb, char *svname)
 static int lmd_make_exclusion(struct lustre_mount_data *lmd, const char *ptr)
 {
 	const char *s1 = ptr, *s2;
-	__u32 index = 0, *exclude_list;
+	u32 index = 0, *exclude_list;
 	int rc = 0, devmax;
 
 	/* The shortest an ost name can be is 8 chars: -OST0000.

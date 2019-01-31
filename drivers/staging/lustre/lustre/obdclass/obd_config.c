@@ -168,7 +168,7 @@ static int parse_nid(char *buf, void *value, int quiet)
 
 static int parse_net(char *buf, void *value)
 {
-	__u32 *net = value;
+	u32 *net = value;
 
 	*net = libcfs_str2net(buf);
 	CDEBUG(D_INFO, "Net %s\n", libcfs_net2str(*net));
@@ -1415,7 +1415,7 @@ int class_config_llog_handler(const struct lu_env *env,
 		 */
 		if (lcfg->lcfg_nal != 0 &&      /* pre-newconfig log? */
 		    (lcfg->lcfg_nid >> 32) == 0) {
-			__u32 addr = (__u32)(lcfg->lcfg_nid & 0xffffffff);
+			u32 addr = (u32)(lcfg->lcfg_nid & 0xffffffff);
 
 			lcfg_new->lcfg_nid =
 				LNET_MKNID(LNET_MKNET(lcfg->lcfg_nal, 0), addr);

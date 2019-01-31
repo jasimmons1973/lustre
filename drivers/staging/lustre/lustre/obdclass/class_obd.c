@@ -120,7 +120,7 @@ out_cache_jobid:
 }
 EXPORT_SYMBOL(lustre_get_jobid);
 
-static int class_resolve_dev_name(__u32 len, const char *name)
+static int class_resolve_dev_name(u32 len, const char *name)
 {
 	int rc;
 	int dev;
@@ -594,19 +594,19 @@ static struct miscdevice obd_psdev = {
 
 static int obd_init_checks(void)
 {
-	__u64 u64val, div64val;
+	u64 u64val, div64val;
 	char buf[64];
 	int len, ret = 0;
 
 	CDEBUG(D_INFO, "LPU64=%s, LPD64=%s, LPX64=%s\n", "%llu", "%lld",
 	       "%#llx");
 
-	CDEBUG(D_INFO, "OBD_OBJECT_EOF = %#llx\n", (__u64)OBD_OBJECT_EOF);
+	CDEBUG(D_INFO, "OBD_OBJECT_EOF = %#llx\n", (u64)OBD_OBJECT_EOF);
 
 	u64val = OBD_OBJECT_EOF;
 	CDEBUG(D_INFO, "u64val OBD_OBJECT_EOF = %#llx\n", u64val);
 	if (u64val != OBD_OBJECT_EOF) {
-		CERROR("__u64 %#llx(%d) != 0xffffffffffffffff\n",
+		CERROR("u64 %#llx(%d) != 0xffffffffffffffff\n",
 		       u64val, (int)sizeof(u64val));
 		ret = -EINVAL;
 	}
@@ -619,12 +619,12 @@ static int obd_init_checks(void)
 	div64val = OBD_OBJECT_EOF;
 	CDEBUG(D_INFO, "u64val OBD_OBJECT_EOF = %#llx\n", u64val);
 	if (u64val != OBD_OBJECT_EOF) {
-		CERROR("__u64 %#llx(%d) != 0xffffffffffffffff\n",
+		CERROR("u64 %#llx(%d) != 0xffffffffffffffff\n",
 		       u64val, (int)sizeof(u64val));
 		ret = -EOVERFLOW;
 	}
 	if (u64val >> 8 != OBD_OBJECT_EOF >> 8) {
-		CERROR("__u64 %#llx(%d) != 0xffffffffffffffff\n",
+		CERROR("u64 %#llx(%d) != 0xffffffffffffffff\n",
 		       u64val, (int)sizeof(u64val));
 		return -EOVERFLOW;
 	}
@@ -654,7 +654,7 @@ static int obd_init_checks(void)
 	}
 	if ((u64val & ~PAGE_MASK) >= PAGE_SIZE) {
 		CWARN("mask failed: u64val %llu >= %llu\n", u64val,
-		      (__u64)PAGE_SIZE);
+		      (u64)PAGE_SIZE);
 		ret = -EINVAL;
 	}
 

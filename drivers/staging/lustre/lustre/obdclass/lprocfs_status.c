@@ -118,7 +118,7 @@ static const char * const obd_connect_names[] = {
 int obd_connect_flags2str(char *page, int count, u64 flags, u64 flags2,
 			  const char *sep)
 {
-	__u64 mask;
+	u64 mask;
 	int i, ret = 0;
 
 	BUILD_BUG_ON(ARRAY_SIZE(obd_connect_names) < 65);
@@ -385,8 +385,8 @@ static ssize_t kbytestotal_show(struct kobject *kobj, struct attribute *attr,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 			    OBD_STATFS_NODELAY);
 	if (!rc) {
-		__u32 blk_size = osfs.os_bsize >> 10;
-		__u64 result = osfs.os_blocks;
+		u32 blk_size = osfs.os_bsize >> 10;
+		u64 result = osfs.os_blocks;
 
 		while (blk_size >>= 1)
 			result <<= 1;
@@ -408,8 +408,8 @@ static ssize_t kbytesfree_show(struct kobject *kobj, struct attribute *attr,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 			    OBD_STATFS_NODELAY);
 	if (!rc) {
-		__u32 blk_size = osfs.os_bsize >> 10;
-		__u64 result = osfs.os_bfree;
+		u32 blk_size = osfs.os_bsize >> 10;
+		u64 result = osfs.os_bfree;
 
 		while (blk_size >>= 1)
 			result <<= 1;
@@ -431,8 +431,8 @@ static ssize_t kbytesavail_show(struct kobject *kobj, struct attribute *attr,
 			    get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
 			    OBD_STATFS_NODELAY);
 	if (!rc) {
-		__u32 blk_size = osfs.os_bsize >> 10;
-		__u64 result = osfs.os_bavail;
+		u32 blk_size = osfs.os_bsize >> 10;
+		u64 result = osfs.os_bavail;
 
 		while (blk_size >>= 1)
 			result <<= 1;
@@ -702,7 +702,7 @@ static int obd_import_flags2str(struct obd_import *imp, struct seq_file *m)
 static void obd_connect_seq_flags2str(struct seq_file *m, u64 flags,
 				      u64 flags2, const char *sep)
 {
-	__u64 mask;
+	u64 mask;
 	int i;
 	bool first = true;
 
@@ -813,8 +813,8 @@ int lprocfs_rd_import(struct seq_file *m, void *data)
 	header = &obd->obd_svc_stats->ls_cnt_header[PTLRPC_REQWAIT_CNTR];
 	lprocfs_stats_collect(obd->obd_svc_stats, PTLRPC_REQWAIT_CNTR, &ret);
 	if (ret.lc_count != 0) {
-		/* first argument to do_div MUST be __u64 */
-		__u64 sum = ret.lc_sum;
+		/* first argument to do_div MUST be u64 */
+		u64 sum = ret.lc_sum;
 
 		do_div(sum, ret.lc_count);
 		ret.lc_sum = sum;
@@ -861,8 +861,8 @@ int lprocfs_rd_import(struct seq_file *m, void *data)
 				      PTLRPC_LAST_CNTR + BRW_READ_BYTES + rw,
 				      &ret);
 		if (ret.lc_sum > 0 && ret.lc_count > 0) {
-			/* first argument to do_div MUST be __u64 */
-			__u64 sum = ret.lc_sum;
+			/* first argument to do_div MUST be u64 */
+			u64 sum = ret.lc_sum;
 
 			do_div(sum, ret.lc_count);
 			ret.lc_sum = sum;
@@ -877,8 +877,8 @@ int lprocfs_rd_import(struct seq_file *m, void *data)
 		header = &obd->obd_svc_stats->ls_cnt_header[j];
 		lprocfs_stats_collect(obd->obd_svc_stats, j, &ret);
 		if (ret.lc_sum > 0 && ret.lc_count != 0) {
-			/* first argument to do_div MUST be __u64 */
-			__u64 sum = ret.lc_sum;
+			/* first argument to do_div MUST be u64 */
+			u64 sum = ret.lc_sum;
 
 			do_div(sum, ret.lc_count);
 			ret.lc_sum = sum;
@@ -994,7 +994,7 @@ EXPORT_SYMBOL(lprocfs_rd_timeouts);
 int lprocfs_rd_connect_flags(struct seq_file *m, void *data)
 {
 	struct obd_device *obd = data;
-	__u64 flags, flags2;
+	u64 flags, flags2;
 	int rc;
 
 	rc = lprocfs_climp_check(obd);
@@ -1217,13 +1217,13 @@ void lprocfs_free_stats(struct lprocfs_stats **statsh)
 }
 EXPORT_SYMBOL(lprocfs_free_stats);
 
-__u64 lprocfs_stats_collector(struct lprocfs_stats *stats, int idx,
+u64 lprocfs_stats_collector(struct lprocfs_stats *stats, int idx,
 			      enum lprocfs_fields_flags field)
 {
 	unsigned int i;
 	unsigned int  num_cpu;
 	unsigned long flags     = 0;
-	__u64         ret       = 0;
+	u64         ret       = 0;
 
 	LASSERT(stats);
 
@@ -1471,12 +1471,12 @@ void ldebugfs_free_md_stats(struct obd_device *obd)
 }
 EXPORT_SYMBOL(ldebugfs_free_md_stats);
 
-__s64 lprocfs_read_helper(struct lprocfs_counter *lc,
+s64 lprocfs_read_helper(struct lprocfs_counter *lc,
 			  struct lprocfs_counter_header *header,
 			  enum lprocfs_stats_flags flags,
 			  enum lprocfs_fields_flags field)
 {
-	__s64 ret = 0;
+	s64 ret = 0;
 
 	if (!lc || !header)
 		return 0;
@@ -1521,17 +1521,17 @@ int lprocfs_write_helper(const char __user *buffer, unsigned long count,
 EXPORT_SYMBOL(lprocfs_write_helper);
 
 int lprocfs_write_u64_helper(const char __user *buffer, unsigned long count,
-			     __u64 *val)
+			     u64 *val)
 {
 	return lprocfs_write_frac_u64_helper(buffer, count, val, 1);
 }
 EXPORT_SYMBOL(lprocfs_write_u64_helper);
 
 int lprocfs_write_frac_u64_helper(const char __user *buffer,
-				  unsigned long count, __u64 *val, int mult)
+				  unsigned long count, u64 *val, int mult)
 {
 	char kernbuf[22], *end, *pbuf;
-	__u64 whole, frac = 0, units;
+	u64 whole, frac = 0, units;
 	unsigned int frac_d = 1;
 	int sign = 1;
 
@@ -1557,7 +1557,7 @@ int lprocfs_write_frac_u64_helper(const char __user *buffer,
 
 		pbuf = end + 1;
 
-		/* need to limit frac_d to a __u32 */
+		/* need to limit frac_d to a u32 */
 		if (strlen(pbuf) > 10)
 			pbuf[10] = '\0';
 

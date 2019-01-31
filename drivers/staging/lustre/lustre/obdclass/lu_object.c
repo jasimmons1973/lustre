@@ -106,7 +106,7 @@ module_param(lu_cache_nr, long, 0644);
 MODULE_PARM_DESC(lu_cache_nr, "Maximum number of objects in lu_object cache");
 
 static void lu_object_free(const struct lu_env *env, struct lu_object *o);
-static __u32 ls_stats_read(struct lprocfs_stats *stats, int idx);
+static u32 ls_stats_read(struct lprocfs_stats *stats, int idx);
 
 wait_queue_head_t *
 lu_site_wq_from_fid(struct lu_site *site, struct lu_fid *fid)
@@ -590,7 +590,7 @@ EXPORT_SYMBOL(lu_object_print);
 static struct lu_object *htable_lookup(struct lu_site *s,
 				       struct cfs_hash_bd *bd,
 				       const struct lu_fid *f,
-				       __u64 *version)
+				       u64 *version)
 {
 	struct lu_site_bkt_data *bkt;
 	struct lu_object_header *h;
@@ -643,18 +643,18 @@ static struct lu_object *lu_object_find(const struct lu_env *env,
  */
 static void lu_object_limit(const struct lu_env *env, struct lu_device *dev)
 {
-	__u64 size, nr;
+	u64 size, nr;
 
 	if (lu_cache_nr == LU_CACHE_NR_UNLIMITED)
 		return;
 
 	size = cfs_hash_size_get(dev->ld_site->ls_obj_hash);
-	nr = (__u64)lu_cache_nr;
+	nr = (u64)lu_cache_nr;
 	if (size <= nr)
 		return;
 
 	lu_site_purge_objects(env, dev->ld_site,
-			      min_t(__u64, size - nr, LU_CACHE_NR_MAX_ADJUST),
+			      min_t(u64, size - nr, LU_CACHE_NR_MAX_ADJUST),
 			      false);
 }
 
@@ -675,7 +675,7 @@ struct lu_object *lu_object_find_at(const struct lu_env *env,
 	struct lu_site	*s;
 	struct cfs_hash	    *hs;
 	struct cfs_hash_bd	  bd;
-	__u64		  version = 0;
+	u64		  version = 0;
 
 	/*
 	 * This uses standard index maintenance protocol:
@@ -884,7 +884,7 @@ static unsigned int lu_obj_hop_hash(struct cfs_hash *hs,
 				    const void *key, unsigned int mask)
 {
 	struct lu_fid  *fid = (struct lu_fid *)key;
-	__u32	   hash;
+	u32	   hash;
 
 	hash = fid_flatten32(fid);
 	hash += (hash >> 4) + (hash << 12); /* mixing oid and seq */
@@ -1593,7 +1593,7 @@ static int keys_init(struct lu_context *ctx)
 /**
  * Initialize context data-structure. Create values for all keys.
  */
-int lu_context_init(struct lu_context *ctx, __u32 tags)
+int lu_context_init(struct lu_context *ctx, u32 tags)
 {
 	int	rc;
 
@@ -1705,10 +1705,10 @@ int lu_context_refill(struct lu_context *ctx)
  * predefined when the lu_device type are registered, during the module probe
  * phase.
  */
-__u32 lu_context_tags_default;
-__u32 lu_session_tags_default;
+u32 lu_context_tags_default;
+u32 lu_session_tags_default;
 
-int lu_env_init(struct lu_env *env, __u32 tags)
+int lu_env_init(struct lu_env *env, u32 tags)
 {
 	int result;
 
@@ -1939,12 +1939,12 @@ void lu_global_fini(void)
 	lu_ref_global_fini();
 }
 
-static __u32 ls_stats_read(struct lprocfs_stats *stats, int idx)
+static u32 ls_stats_read(struct lprocfs_stats *stats, int idx)
 {
 	struct lprocfs_counter ret;
 
 	lprocfs_stats_collect(stats, idx, &ret);
-	return (__u32)ret.lc_count;
+	return (u32)ret.lc_count;
 }
 
 /**

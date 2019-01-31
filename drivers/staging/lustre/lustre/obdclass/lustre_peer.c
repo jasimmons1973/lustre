@@ -80,7 +80,7 @@ EXPORT_SYMBOL(lustre_uuid_to_peer);
 /* Add a nid to a niduuid.  Multiple nids can be added to a single uuid;
  * LNET will choose the best one.
  */
-int class_add_uuid(const char *uuid, __u64 nid)
+int class_add_uuid(const char *uuid, u64 nid)
 {
 	struct uuid_nid_data *data, *entry;
 	int found = 0;
@@ -173,7 +173,7 @@ int class_del_uuid(const char *uuid)
 }
 
 /* check if @nid exists in nid list of @uuid */
-int class_check_uuid(struct obd_uuid *uuid, __u64 nid)
+int class_check_uuid(struct obd_uuid *uuid, u64 nid)
 {
 	struct uuid_nid_data *entry;
 	int found = 0;
