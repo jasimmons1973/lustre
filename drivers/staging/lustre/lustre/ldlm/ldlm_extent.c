@@ -57,7 +57,7 @@
 
 #define START(node) ((node)->l_policy_data.l_extent.start)
 #define LAST(node) ((node)->l_policy_data.l_extent.end)
-INTERVAL_TREE_DEFINE(struct ldlm_lock, l_rb, __u64, __subtree_last,
+INTERVAL_TREE_DEFINE(struct ldlm_lock, l_rb, u64, __subtree_last,
 		     START, LAST, static, extent);
 
 /* When a lock is cancelled by a client, the KMS may undergo change if this
@@ -66,11 +66,11 @@ INTERVAL_TREE_DEFINE(struct ldlm_lock, l_rb, __u64, __subtree_last,
  *
  * NB: A lock on [x,y] protects a KMS of up to y + 1 bytes!
  */
-__u64 ldlm_extent_shift_kms(struct ldlm_lock *lock, __u64 old_kms)
+u64 ldlm_extent_shift_kms(struct ldlm_lock *lock, u64 old_kms)
 {
 	struct ldlm_resource *res = lock->l_resource;
 	struct ldlm_lock *lck;
-	__u64 kms = 0;
+	u64 kms = 0;
 
 	/* don't let another thread in ldlm_extent_shift_kms race in
 	 * just after we finish and take our lock into account in its
@@ -192,7 +192,7 @@ void ldlm_extent_policy_local_to_wire(const union ldlm_policy_data *lpolicy,
 }
 
 void ldlm_extent_search(struct rb_root_cached *root,
-			__u64 start, __u64 end,
+			u64 start, u64 end,
 			bool (*matches)(struct ldlm_lock *lock, void *data),
 			void *data)
 {

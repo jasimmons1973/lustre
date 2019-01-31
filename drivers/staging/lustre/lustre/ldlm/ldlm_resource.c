@@ -132,7 +132,7 @@ static ssize_t resource_count_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct ldlm_namespace *ns = container_of(kobj, struct ldlm_namespace,
 						 ns_kobj);
-	__u64		  res = 0;
+	u64		  res = 0;
 	struct cfs_hash_bd	  bd;
 	int		    i;
 
@@ -148,7 +148,7 @@ static ssize_t lock_count_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct ldlm_namespace *ns = container_of(kobj, struct ldlm_namespace,
 						 ns_kobj);
-	__u64		  locks;
+	u64		  locks;
 
 	locks = lprocfs_stats_collector(ns->ns_stats, LDLM_NSS_LOCKS,
 					LPROCFS_FIELDS_FLAGS_SUM);
@@ -172,7 +172,7 @@ static ssize_t lru_size_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct ldlm_namespace *ns = container_of(kobj, struct ldlm_namespace,
 						 ns_kobj);
-	__u32 *nr = &ns->ns_max_unused;
+	u32 *nr = &ns->ns_max_unused;
 
 	if (ns_connect_lru_resize(ns))
 		nr = &ns->ns_nr_unused;
@@ -421,12 +421,12 @@ static unsigned int ldlm_res_hop_fid_hash(struct cfs_hash *hs,
 {
 	const struct ldlm_res_id *id = key;
 	struct lu_fid       fid;
-	__u32	       hash;
-	__u32	       val;
+	u32	       hash;
+	u32	       val;
 
 	fid.f_seq = id->name[LUSTRE_RES_ID_SEQ_OFF];
-	fid.f_oid = (__u32)id->name[LUSTRE_RES_ID_VER_OID_OFF];
-	fid.f_ver = (__u32)(id->name[LUSTRE_RES_ID_VER_OID_OFF] >> 32);
+	fid.f_oid = (u32)id->name[LUSTRE_RES_ID_VER_OID_OFF];
+	fid.f_ver = (u32)(id->name[LUSTRE_RES_ID_VER_OID_OFF] >> 32);
 
 	hash = fid_flatten32(&fid);
 	hash += (hash >> 4) + (hash << 12); /* mixing oid and seq */
@@ -694,7 +694,7 @@ extern struct ldlm_lock *ldlm_lock_get(struct ldlm_lock *lock);
  * locks with refs.
  */
 static void cleanup_resource(struct ldlm_resource *res, struct list_head *q,
-			     __u64 flags)
+			     u64 flags)
 {
 	int rc = 0;
 	bool local_only = !!(flags & LDLM_FL_LOCAL_ONLY);
@@ -764,7 +764,7 @@ static int ldlm_resource_clean(struct cfs_hash *hs, struct cfs_hash_bd *bd,
 			       struct hlist_node *hnode, void *arg)
 {
 	struct ldlm_resource *res = cfs_hash_object(hs, hnode);
-	__u64 flags = *(__u64 *)arg;
+	u64 flags = *(u64 *)arg;
 
 	cleanup_resource(res, &res->lr_granted, flags);
 	cleanup_resource(res, &res->lr_waiting, flags);
@@ -795,7 +795,7 @@ static int ldlm_resource_complain(struct cfs_hash *hs, struct cfs_hash_bd *bd,
  * evicted and all of its state needs to be destroyed.
  * Also used during shutdown.
  */
-int ldlm_namespace_cleanup(struct ldlm_namespace *ns, __u64 flags)
+int ldlm_namespace_cleanup(struct ldlm_namespace *ns, u64 flags)
 {
 	if (!ns) {
 		CDEBUG(D_INFO, "NULL ns, skipping cleanup\n");
@@ -1048,7 +1048,7 @@ ldlm_resource_get(struct ldlm_namespace *ns, struct ldlm_resource *parent,
 	struct hlist_node     *hnode;
 	struct ldlm_resource *res = NULL;
 	struct cfs_hash_bd	 bd;
-	__u64		 version;
+	u64		 version;
 	int		      ns_refcount = 0;
 	int rc;
 

@@ -136,10 +136,10 @@ struct ldlm_lock *
 ldlm_lock_create(struct ldlm_namespace *ns, const struct ldlm_res_id *id,
 		 enum ldlm_type type, enum ldlm_mode mode,
 		 const struct ldlm_callback_suite *cbs,
-		 void *data, __u32 lvb_len, enum lvb_type lvb_type);
+		 void *data, u32 lvb_len, enum lvb_type lvb_type);
 enum ldlm_error ldlm_lock_enqueue(struct ldlm_namespace *ns,
 				  struct ldlm_lock **lock, void *cookie,
-				  __u64 *flags);
+				  u64 *flags);
 void ldlm_lock_addref_internal(struct ldlm_lock *lock, enum ldlm_mode mode);
 void ldlm_lock_addref_internal_nolock(struct ldlm_lock *lock,
 				      enum ldlm_mode mode);
@@ -176,7 +176,7 @@ extern struct kmem_cache *ldlm_interval_tree_slab;
 void ldlm_extent_add_lock(struct ldlm_resource *res, struct ldlm_lock *lock);
 void ldlm_extent_unlink_lock(struct ldlm_lock *lock);
 void ldlm_extent_search(struct rb_root_cached *root,
-			__u64 start, __u64 end,
+			u64 start, u64 end,
 			bool (*matches)(struct ldlm_lock *lock, void *data),
 			void *data);
 
@@ -195,9 +195,9 @@ struct ldlm_state {
 };
 
 /* ldlm_pool.c */
-__u64 ldlm_pool_get_slv(struct ldlm_pool *pl);
-void ldlm_pool_set_clv(struct ldlm_pool *pl, __u64 clv);
-__u32 ldlm_pool_get_lvf(struct ldlm_pool *pl);
+u64 ldlm_pool_get_slv(struct ldlm_pool *pl);
+void ldlm_pool_set_clv(struct ldlm_pool *pl, u64 clv);
+u32 ldlm_pool_get_lvf(struct ldlm_pool *pl);
 
 int ldlm_init(void);
 void ldlm_exit(void);

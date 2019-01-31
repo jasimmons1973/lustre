@@ -508,7 +508,7 @@ EXPORT_SYMBOL(ldlm_lock2handle);
  *	      Return NULL if flag already set
  */
 struct ldlm_lock *__ldlm_handle2lock(const struct lustre_handle *handle,
-				     __u64 flags)
+				     u64 flags)
 {
 	struct ldlm_lock *lock;
 
@@ -1043,7 +1043,7 @@ struct lock_match_data {
 	struct ldlm_lock	*lmd_lock;
 	enum ldlm_mode		*lmd_mode;
 	union ldlm_policy_data	*lmd_policy;
-	__u64			 lmd_flags;
+	u64			 lmd_flags;
 	int			 lmd_unref;
 };
 
@@ -1250,7 +1250,7 @@ EXPORT_SYMBOL(ldlm_lock_allow_match);
  * keep caller code unchanged), the context failure will be discovered by
  * caller sometime later.
  */
-enum ldlm_mode ldlm_lock_match(struct ldlm_namespace *ns, __u64 flags,
+enum ldlm_mode ldlm_lock_match(struct ldlm_namespace *ns, u64 flags,
 			       const struct ldlm_res_id *res_id,
 			       enum ldlm_type type,
 			       union ldlm_policy_data *policy,
@@ -1313,7 +1313,7 @@ out:
 	if (lock) {
 		ldlm_lock2handle(lock, lockh);
 		if ((flags & LDLM_FL_LVB_READY) && !ldlm_is_lvb_ready(lock)) {
-			__u64 wait_flags = LDLM_FL_LVB_READY |
+			u64 wait_flags = LDLM_FL_LVB_READY |
 				LDLM_FL_DESTROYED | LDLM_FL_FAIL_NOTIFIED;
 
 			if (lock->l_completion_ast) {
@@ -1381,7 +1381,7 @@ out:
 EXPORT_SYMBOL(ldlm_lock_match);
 
 enum ldlm_mode ldlm_revalidate_lock_handle(const struct lustre_handle *lockh,
-					   __u64 *bits)
+					   u64 *bits)
 {
 	struct ldlm_lock *lock;
 	enum ldlm_mode mode = 0;
@@ -1519,7 +1519,7 @@ struct ldlm_lock *ldlm_lock_create(struct ldlm_namespace *ns,
 				   enum ldlm_type type,
 				   enum ldlm_mode mode,
 				   const struct ldlm_callback_suite *cbs,
-				   void *data, __u32 lvb_len,
+				   void *data, u32 lvb_len,
 				   enum lvb_type lvb_type)
 {
 	struct ldlm_lock *lock;
@@ -1580,7 +1580,7 @@ out:
  */
 enum ldlm_error ldlm_lock_enqueue(struct ldlm_namespace *ns,
 				  struct ldlm_lock **lockp,
-				  void *cookie, __u64 *flags)
+				  void *cookie, u64 *flags)
 {
 	struct ldlm_lock *lock = *lockp;
 	struct ldlm_resource *res = lock->l_resource;

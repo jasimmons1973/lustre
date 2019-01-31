@@ -104,7 +104,7 @@ static int ldlm_request_bufsize(int count, int type)
 	return sizeof(struct ldlm_request) + avail;
 }
 
-static void ldlm_expired_completion_wait(struct ldlm_lock *lock, __u32 conn_cnt)
+static void ldlm_expired_completion_wait(struct ldlm_lock *lock, u32 conn_cnt)
 {
 	struct obd_import *imp;
 	struct obd_device *obd;
@@ -213,13 +213,13 @@ static int ldlm_completion_tail(struct ldlm_lock *lock, void *data)
  * or penultimate cases happen in some other thread.
  *
  */
-int ldlm_completion_ast(struct ldlm_lock *lock, __u64 flags, void *data)
+int ldlm_completion_ast(struct ldlm_lock *lock, u64 flags, void *data)
 {
 	/* XXX ALLOCATE - 160 bytes */
 	struct obd_device *obd;
 	struct obd_import *imp = NULL;
-	__u32 timeout;
-	__u32 conn_cnt = 0;
+	u32 timeout;
+	u32 conn_cnt = 0;
 	int rc = 0;
 
 	if (flags == LDLM_FL_WAIT_NOREPROC) {
@@ -337,9 +337,9 @@ static void failed_lock_cleanup(struct ldlm_namespace *ns,
  * Called after receiving reply from server.
  */
 int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
-			  enum ldlm_type type, __u8 with_policy,
+			  enum ldlm_type type, u8 with_policy,
 			  enum ldlm_mode mode,
-			  __u64 *flags, void *lvb, __u32 lvb_len,
+			  u64 *flags, void *lvb, u32 lvb_len,
 			  const struct lustre_handle *lockh, int rc)
 {
 	struct ldlm_namespace *ns = exp->exp_obd->obd_namespace;
@@ -670,8 +670,8 @@ static struct ptlrpc_request *ldlm_enqueue_pack(struct obd_export *exp,
 int ldlm_cli_enqueue(struct obd_export *exp, struct ptlrpc_request **reqp,
 		     struct ldlm_enqueue_info *einfo,
 		     const struct ldlm_res_id *res_id,
-		     union ldlm_policy_data const *policy, __u64 *flags,
-		     void *lvb, __u32 lvb_len, enum lvb_type lvb_type,
+		     union ldlm_policy_data const *policy, u64 *flags,
+		     void *lvb, u32 lvb_len, enum lvb_type lvb_type,
 		     struct lustre_handle *lockh, int async)
 {
 	struct ldlm_namespace *ns;
@@ -792,9 +792,9 @@ EXPORT_SYMBOL(ldlm_cli_enqueue);
  * \retval LDLM_FL_CANCELING otherwise;
  * \retval LDLM_FL_BL_AST if there is a need for a separate CANCEL RPC.
  */
-static __u64 ldlm_cli_cancel_local(struct ldlm_lock *lock)
+static u64 ldlm_cli_cancel_local(struct ldlm_lock *lock)
 {
-	__u64 rc = LDLM_FL_LOCAL_ONLY;
+	u64 rc = LDLM_FL_LOCAL_ONLY;
 
 	if (lock->l_conn_export) {
 		bool local_only;
@@ -960,8 +960,8 @@ static inline struct ldlm_pool *ldlm_imp2pl(struct obd_import *imp)
 int ldlm_cli_update_pool(struct ptlrpc_request *req)
 {
 	struct obd_device *obd;
-	__u64 new_slv;
-	__u32 new_limit;
+	u64 new_slv;
+	u32 new_limit;
 
 	if (unlikely(!req->rq_import || !req->rq_import->imp_obd ||
 		     !imp_connect_lru_resize(req->rq_import))) {
@@ -1014,7 +1014,7 @@ int ldlm_cli_cancel(const struct lustre_handle *lockh,
 {
 	struct obd_export *exp;
 	int avail, flags, count = 1;
-	__u64 rc = 0;
+	u64 rc = 0;
 	struct ldlm_namespace *ns;
 	struct ldlm_lock *lock;
 	LIST_HEAD(cancels);
@@ -1080,7 +1080,7 @@ int ldlm_cli_cancel_list_local(struct list_head *cancels, int count,
 	LIST_HEAD(head);
 	struct ldlm_lock *lock, *next;
 	int left = 0, bl_ast = 0;
-	__u64 rc;
+	u64 rc;
 
 	left = count;
 	list_for_each_entry_safe(lock, next, cancels, l_bl_ast) {
@@ -1169,7 +1169,7 @@ static enum ldlm_policy_res ldlm_cancel_lrur_policy(struct ldlm_namespace *ns,
 {
 	unsigned long cur = jiffies;
 	struct ldlm_pool *pl = &ns->ns_pool;
-	__u64 slv, lvf, lv;
+	u64 slv, lvf, lv;
 	unsigned long la;
 
 	/* Stop LRU processing when we reach past @count or have checked all
@@ -1562,7 +1562,7 @@ int ldlm_cancel_lru(struct ldlm_namespace *ns, int nr,
 int ldlm_cancel_resource_local(struct ldlm_resource *res,
 			       struct list_head *cancels,
 			       union ldlm_policy_data *policy,
-			       enum ldlm_mode mode, __u64 lock_flags,
+			       enum ldlm_mode mode, u64 lock_flags,
 			       enum ldlm_cancel_flags cancel_flags,
 			       void *opaque)
 {

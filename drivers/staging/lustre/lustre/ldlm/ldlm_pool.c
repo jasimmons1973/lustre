@@ -137,22 +137,22 @@
  */
 #define LDLM_POOL_SLV_SHIFT (10)
 
-static inline __u64 dru(__u64 val, __u32 shift, int round_up)
+static inline u64 dru(u64 val, u32 shift, int round_up)
 {
 	return (val + (round_up ? (1 << shift) - 1 : 0)) >> shift;
 }
 
-static inline __u64 ldlm_pool_slv_max(__u32 L)
+static inline u64 ldlm_pool_slv_max(u32 L)
 {
 	/*
 	 * Allow to have all locks for 1 client for 10 hrs.
 	 * Formula is the following: limit * 10h / 1 client.
 	 */
-	__u64 lim = (__u64)L *  LDLM_POOL_MAX_AGE / 1;
+	u64 lim = (u64)L *  LDLM_POOL_MAX_AGE / 1;
 	return lim;
 }
 
-static inline __u64 ldlm_pool_slv_min(__u32 L)
+static inline u64 ldlm_pool_slv_min(u32 L)
 {
 	return 1;
 }
@@ -212,7 +212,7 @@ static inline int ldlm_pool_t2gsp(unsigned int t)
 static void ldlm_pool_recalc_stats(struct ldlm_pool *pl)
 {
 	int grant_plan = pl->pl_grant_plan;
-	__u64 slv = pl->pl_server_lock_volume;
+	u64 slv = pl->pl_server_lock_volume;
 	int granted = atomic_read(&pl->pl_granted);
 	int grant_rate = atomic_read(&pl->pl_grant_rate);
 	int cancel_rate = atomic_read(&pl->pl_cancel_rate);
@@ -430,8 +430,8 @@ static int lprocfs_pool_state_seq_show(struct seq_file *m, void *unused)
 	int granted, grant_rate, cancel_rate;
 	int grant_speed, lvf;
 	struct ldlm_pool *pl = m->private;
-	__u64 slv, clv;
-	__u32 limit;
+	u64 slv, clv;
+	u32 limit;
 
 	spin_lock(&pl->pl_lock);
 	slv = pl->pl_server_lock_volume;
@@ -739,9 +739,9 @@ void ldlm_pool_del(struct ldlm_pool *pl, struct ldlm_lock *lock)
  *
  * \pre ->pl_lock is not locked.
  */
-__u64 ldlm_pool_get_slv(struct ldlm_pool *pl)
+u64 ldlm_pool_get_slv(struct ldlm_pool *pl)
 {
-	__u64 slv;
+	u64 slv;
 
 	spin_lock(&pl->pl_lock);
 	slv = pl->pl_server_lock_volume;
@@ -754,7 +754,7 @@ __u64 ldlm_pool_get_slv(struct ldlm_pool *pl)
  *
  * \pre ->pl_lock is not locked.
  */
-void ldlm_pool_set_clv(struct ldlm_pool *pl, __u64 clv)
+void ldlm_pool_set_clv(struct ldlm_pool *pl, u64 clv)
 {
 	spin_lock(&pl->pl_lock);
 	pl->pl_client_lock_volume = clv;
@@ -764,7 +764,7 @@ void ldlm_pool_set_clv(struct ldlm_pool *pl, __u64 clv)
 /**
  * Returns current LVF from \a pl.
  */
-__u32 ldlm_pool_get_lvf(struct ldlm_pool *pl)
+u32 ldlm_pool_get_lvf(struct ldlm_pool *pl)
 {
 	return atomic_read(&pl->pl_lock_volume_factor);
 }

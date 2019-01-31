@@ -312,7 +312,7 @@ reprocess:
  * \retval <0   : failure
  */
 int
-ldlm_flock_completion_ast(struct ldlm_lock *lock, __u64 flags, void *data)
+ldlm_flock_completion_ast(struct ldlm_lock *lock, u64 flags, void *data)
 {
 	struct file_lock		*getlk = lock->l_ast_data;
 	int				rc = 0;
