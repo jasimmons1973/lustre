@@ -452,8 +452,8 @@ LUSTRE_RW_ATTR(max_read_ahead_whole_mb);
 
 static int ll_max_cached_mb_seq_show(struct seq_file *m, void *v)
 {
-	struct super_block     *sb    = m->private;
-	struct ll_sb_info      *sbi   = ll_s2sbi(sb);
+	struct super_block *sb = m->private;
+	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	struct cl_client_cache *cache = sbi->ll_cache;
 	int shift = 20 - PAGE_SHIFT;
 	long max_cached_mb;
@@ -1050,8 +1050,8 @@ LUSTRE_RW_ATTR(fast_read);
 
 static int ll_unstable_stats_seq_show(struct seq_file *m, void *v)
 {
-	struct super_block     *sb    = m->private;
-	struct ll_sb_info      *sbi   = ll_s2sbi(sb);
+	struct super_block *sb = m->private;
+	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	struct cl_client_cache *cache = sbi->ll_cache;
 	long pages;
 	int mb;
@@ -1232,9 +1232,9 @@ static struct kobj_type llite_ktype = {
 };
 
 static const struct llite_file_opcode {
-	u32       opcode;
-	u32       type;
-	const char *opname;
+	u32		opcode;
+	u32		type;
+	const char	*opname;
 } llite_opcode_table[LPROC_LL_FILE_OPCODES] = {
 	/* file operation */
 	{ LPROC_LL_DIRTY_HITS,     LPROCFS_TYPE_REGS, "dirty_pages_hits" },
@@ -1247,31 +1247,31 @@ static const struct llite_file_opcode {
 				   "brw_read" },
 	{ LPROC_LL_BRW_WRITE,      LPROCFS_CNTR_AVGMINMAX | LPROCFS_TYPE_PAGES,
 				   "brw_write" },
-	{ LPROC_LL_IOCTL,	  LPROCFS_TYPE_REGS, "ioctl" },
+	{ LPROC_LL_IOCTL,	   LPROCFS_TYPE_REGS, "ioctl" },
 	{ LPROC_LL_OPEN,	   LPROCFS_TYPE_REGS, "open" },
-	{ LPROC_LL_RELEASE,	LPROCFS_TYPE_REGS, "close" },
-	{ LPROC_LL_MAP,	    LPROCFS_TYPE_REGS, "mmap" },
-	{ LPROC_LL_FAULT,		LPROCFS_TYPE_REGS, "page_fault" },
-	{ LPROC_LL_MKWRITE,		LPROCFS_TYPE_REGS, "page_mkwrite" },
-	{ LPROC_LL_LLSEEK,	 LPROCFS_TYPE_REGS, "seek" },
-	{ LPROC_LL_FSYNC,	  LPROCFS_TYPE_REGS, "fsync" },
-	{ LPROC_LL_READDIR,	LPROCFS_TYPE_REGS, "readdir" },
+	{ LPROC_LL_RELEASE,	   LPROCFS_TYPE_REGS, "close" },
+	{ LPROC_LL_MAP,		   LPROCFS_TYPE_REGS, "mmap" },
+	{ LPROC_LL_FAULT,	   LPROCFS_TYPE_REGS, "page_fault" },
+	{ LPROC_LL_MKWRITE,	   LPROCFS_TYPE_REGS, "page_mkwrite" },
+	{ LPROC_LL_LLSEEK,	   LPROCFS_TYPE_REGS, "seek" },
+	{ LPROC_LL_FSYNC,	   LPROCFS_TYPE_REGS, "fsync" },
+	{ LPROC_LL_READDIR,	   LPROCFS_TYPE_REGS, "readdir" },
 	/* inode operation */
-	{ LPROC_LL_SETATTR,	LPROCFS_TYPE_REGS, "setattr" },
-	{ LPROC_LL_TRUNC,	  LPROCFS_TYPE_REGS, "truncate" },
-	{ LPROC_LL_FLOCK,	  LPROCFS_TYPE_REGS, "flock" },
-	{ LPROC_LL_GETATTR,	LPROCFS_TYPE_REGS, "getattr" },
+	{ LPROC_LL_SETATTR,	   LPROCFS_TYPE_REGS, "setattr" },
+	{ LPROC_LL_TRUNC,	   LPROCFS_TYPE_REGS, "truncate" },
+	{ LPROC_LL_FLOCK,	   LPROCFS_TYPE_REGS, "flock" },
+	{ LPROC_LL_GETATTR,	   LPROCFS_TYPE_REGS, "getattr" },
 	/* dir inode operation */
-	{ LPROC_LL_CREATE,	 LPROCFS_TYPE_REGS, "create" },
+	{ LPROC_LL_CREATE,	   LPROCFS_TYPE_REGS, "create" },
 	{ LPROC_LL_LINK,	   LPROCFS_TYPE_REGS, "link" },
-	{ LPROC_LL_UNLINK,	 LPROCFS_TYPE_REGS, "unlink" },
-	{ LPROC_LL_SYMLINK,	LPROCFS_TYPE_REGS, "symlink" },
-	{ LPROC_LL_MKDIR,	  LPROCFS_TYPE_REGS, "mkdir" },
-	{ LPROC_LL_RMDIR,	  LPROCFS_TYPE_REGS, "rmdir" },
-	{ LPROC_LL_MKNOD,	  LPROCFS_TYPE_REGS, "mknod" },
-	{ LPROC_LL_RENAME,	 LPROCFS_TYPE_REGS, "rename" },
+	{ LPROC_LL_UNLINK,	   LPROCFS_TYPE_REGS, "unlink" },
+	{ LPROC_LL_SYMLINK,	   LPROCFS_TYPE_REGS, "symlink" },
+	{ LPROC_LL_MKDIR,	   LPROCFS_TYPE_REGS, "mkdir" },
+	{ LPROC_LL_RMDIR,	   LPROCFS_TYPE_REGS, "rmdir" },
+	{ LPROC_LL_MKNOD,	   LPROCFS_TYPE_REGS, "mknod" },
+	{ LPROC_LL_RENAME,	   LPROCFS_TYPE_REGS, "rename" },
 	/* special inode operation */
-	{ LPROC_LL_STAFS,	  LPROCFS_TYPE_REGS, "statfs" },
+	{ LPROC_LL_STAFS,	   LPROCFS_TYPE_REGS, "statfs" },
 	{ LPROC_LL_ALLOC_INODE,    LPROCFS_TYPE_REGS, "alloc_inode" },
 	{ LPROC_LL_SETXATTR,       LPROCFS_TYPE_REGS, "setxattr" },
 	{ LPROC_LL_GETXATTR,       LPROCFS_TYPE_REGS, "getxattr" },
@@ -1301,19 +1301,19 @@ void ll_stats_ops_tally(struct ll_sb_info *sbi, int op, int count)
 EXPORT_SYMBOL(ll_stats_ops_tally);
 
 static const char *ra_stat_string[] = {
-	[RA_STAT_HIT] = "hits",
-	[RA_STAT_MISS] = "misses",
-	[RA_STAT_DISTANT_READPAGE] = "readpage not consecutive",
-	[RA_STAT_MISS_IN_WINDOW] = "miss inside window",
-	[RA_STAT_FAILED_GRAB_PAGE] = "failed grab_cache_page",
-	[RA_STAT_FAILED_MATCH] = "failed lock match",
-	[RA_STAT_DISCARDED] = "read but discarded",
-	[RA_STAT_ZERO_LEN] = "zero length file",
-	[RA_STAT_ZERO_WINDOW] = "zero size window",
-	[RA_STAT_EOF] = "read-ahead to EOF",
-	[RA_STAT_MAX_IN_FLIGHT] = "hit max r-a issue",
-	[RA_STAT_WRONG_GRAB_PAGE] = "wrong page from grab_cache_page",
-	[RA_STAT_FAILED_REACH_END] = "failed to reach end"
+	[RA_STAT_HIT]			= "hits",
+	[RA_STAT_MISS]			= "misses",
+	[RA_STAT_DISTANT_READPAGE]	= "readpage not consecutive",
+	[RA_STAT_MISS_IN_WINDOW]	= "miss inside window",
+	[RA_STAT_FAILED_GRAB_PAGE]	= "failed grab_cache_page",
+	[RA_STAT_FAILED_MATCH]		= "failed lock match",
+	[RA_STAT_DISCARDED]		= "read but discarded",
+	[RA_STAT_ZERO_LEN]		= "zero length file",
+	[RA_STAT_ZERO_WINDOW]		= "zero size window",
+	[RA_STAT_EOF]			= "read-ahead to EOF",
+	[RA_STAT_MAX_IN_FLIGHT]		= "hit max r-a issue",
+	[RA_STAT_WRONG_GRAB_PAGE]	= "wrong page from grab_cache_page",
+	[RA_STAT_FAILED_REACH_END]	= "failed to reach end"
 };
 
 int ll_debugfs_register_super(struct super_block *sb, const char *name)

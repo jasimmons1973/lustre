@@ -309,7 +309,7 @@ stride_pg_count(pgoff_t st_off, unsigned long st_len, unsigned long st_pgs,
 static int ria_page_count(struct ra_io_arg *ria)
 {
 	u64 length = ria->ria_end >= ria->ria_start ?
-		       ria->ria_end - ria->ria_start + 1 : 0;
+		     ria->ria_end - ria->ria_start + 1 : 0;
 
 	return stride_pg_count(ria->ria_stoff, ria->ria_length,
 			       ria->ria_pages, ria->ria_start,

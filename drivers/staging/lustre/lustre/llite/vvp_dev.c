@@ -111,9 +111,9 @@ static void ll_thread_key_fini(const struct lu_context *ctx,
 }
 
 struct lu_context_key ll_thread_key = {
-	.lct_tags = LCT_CL_THREAD,
-	.lct_init = ll_thread_key_init,
-	.lct_fini = ll_thread_key_fini
+	.lct_tags	= LCT_CL_THREAD,
+	.lct_init	= ll_thread_key_init,
+	.lct_fini	= ll_thread_key_fini
 };
 
 static void *vvp_session_key_init(const struct lu_context *ctx,
@@ -136,9 +136,9 @@ static void vvp_session_key_fini(const struct lu_context *ctx,
 }
 
 struct lu_context_key vvp_session_key = {
-	.lct_tags = LCT_SESSION,
-	.lct_init = vvp_session_key_init,
-	.lct_fini = vvp_session_key_fini
+	.lct_tags	= LCT_SESSION,
+	.lct_init	= vvp_session_key_init,
+	.lct_fini	= vvp_session_key_fini
 };
 
 static void *vvp_thread_key_init(const struct lu_context *ctx,
@@ -161,24 +161,24 @@ static void vvp_thread_key_fini(const struct lu_context *ctx,
 }
 
 struct lu_context_key vvp_thread_key = {
-	.lct_tags = LCT_CL_THREAD,
-	.lct_init = vvp_thread_key_init,
-	.lct_fini = vvp_thread_key_fini
+	.lct_tags	= LCT_CL_THREAD,
+	.lct_init	= vvp_thread_key_init,
+	.lct_fini	= vvp_thread_key_fini
 };
 
 /* type constructor/destructor: vvp_type_{init,fini,start,stop}(). */
 LU_TYPE_INIT_FINI(vvp, &vvp_thread_key, &ll_thread_key, &vvp_session_key);
 
 static const struct lu_device_operations vvp_lu_ops = {
-	.ldo_object_alloc      = vvp_object_alloc
+	.ldo_object_alloc	= vvp_object_alloc
 };
 
 static struct lu_device *vvp_device_free(const struct lu_env *env,
 					 struct lu_device *d)
 {
-	struct vvp_device *vdv  = lu2vvp_dev(d);
-	struct cl_site    *site = lu2cl_site(d->ld_site);
-	struct lu_device  *next = cl2lu_dev(vdv->vdv_next);
+	struct vvp_device *vdv = lu2vvp_dev(d);
+	struct cl_site *site = lu2cl_site(d->ld_site);
+	struct lu_device *next = cl2lu_dev(vdv->vdv_next);
 
 	if (d->ld_site) {
 		cl_site_fini(site);
@@ -194,8 +194,8 @@ static struct lu_device *vvp_device_alloc(const struct lu_env *env,
 					  struct lustre_cfg *cfg)
 {
 	struct vvp_device *vdv;
-	struct lu_device  *lud;
-	struct cl_site    *site;
+	struct lu_device *lud;
+	struct cl_site *site;
 	int rc;
 
 	vdv = kzalloc(sizeof(*vdv), GFP_NOFS);
@@ -229,7 +229,7 @@ static struct lu_device *vvp_device_alloc(const struct lu_env *env,
 static int vvp_device_init(const struct lu_env *env, struct lu_device *d,
 			   const char *name, struct lu_device *next)
 {
-	struct vvp_device  *vdv;
+	struct vvp_device *vdv;
 	int rc;
 
 	vdv = lu2vvp_dev(d);
@@ -254,23 +254,23 @@ static struct lu_device *vvp_device_fini(const struct lu_env *env,
 }
 
 static const struct lu_device_type_operations vvp_device_type_ops = {
-	.ldto_init = vvp_type_init,
-	.ldto_fini = vvp_type_fini,
+	.ldto_init		= vvp_type_init,
+	.ldto_fini		= vvp_type_fini,
 
-	.ldto_start = vvp_type_start,
-	.ldto_stop  = vvp_type_stop,
+	.ldto_start		= vvp_type_start,
+	.ldto_stop		= vvp_type_stop,
 
-	.ldto_device_alloc = vvp_device_alloc,
+	.ldto_device_alloc	= vvp_device_alloc,
 	.ldto_device_free	= vvp_device_free,
 	.ldto_device_init	= vvp_device_init,
 	.ldto_device_fini	= vvp_device_fini,
 };
 
 struct lu_device_type vvp_device_type = {
-	.ldt_tags     = LU_DEVICE_CL,
-	.ldt_name     = LUSTRE_VVP_NAME,
-	.ldt_ops      = &vvp_device_type_ops,
-	.ldt_ctx_tags = LCT_CL_THREAD
+	.ldt_tags		= LU_DEVICE_CL,
+	.ldt_name		= LUSTRE_VVP_NAME,
+	.ldt_ops		= &vvp_device_type_ops,
+	.ldt_ctx_tags		= LCT_CL_THREAD
 };
 
 /**
@@ -312,8 +312,8 @@ void vvp_global_fini(void)
 int cl_sb_init(struct super_block *sb)
 {
 	struct ll_sb_info *sbi;
-	struct cl_device  *cl;
-	struct lu_env     *env;
+	struct cl_device *cl;
+	struct lu_env *env;
 	int rc = 0;
 	u16 refcheck;
 
@@ -336,10 +336,10 @@ int cl_sb_init(struct super_block *sb)
 int cl_sb_fini(struct super_block *sb)
 {
 	struct ll_sb_info *sbi;
-	struct lu_env     *env;
-	struct cl_device  *cld;
+	struct lu_env *env;
+	struct cl_device *cld;
 	u16 refcheck;
-	int		result;
+	int result;
 
 	sbi = ll_s2sbi(sb);
 	env = cl_env_get(&refcheck);
@@ -378,20 +378,20 @@ struct vvp_pgcache_id {
 struct vvp_seq_private {
 	struct ll_sb_info	*vsp_sbi;
 	struct lu_env		*vsp_env;
-	u16			vsp_refcheck;
+	u16			 vsp_refcheck;
 	struct cl_object	*vsp_clob;
-	struct vvp_pgcache_id	vsp_id;
+	struct vvp_pgcache_id	 vsp_id;
 	/*
 	 * prev_pos is the 'pos' of the last object returned
 	 * by ->start of ->next.
 	 */
-	loff_t			vsp_prev_pos;
+	loff_t			 vsp_prev_pos;
 };
 
 static int vvp_pgcache_obj_get(struct cfs_hash *hs, struct cfs_hash_bd *bd,
 			       struct hlist_node *hnode, void *data)
 {
-	struct vvp_pgcache_id   *id  = data;
+	struct vvp_pgcache_id *id = data;
 	struct lu_object_header *hdr = cfs_hash_object(hs, hnode);
 
 	if (lu_object_is_dying(hdr))
@@ -411,7 +411,7 @@ static struct cl_object *vvp_pgcache_obj(const struct lu_env *env,
 {
 	LASSERT(lu_device_is_cl(dev));
 
-	id->vpi_obj    = NULL;
+	id->vpi_obj = NULL;
 	id->vpi_curdep = id->vpi_depth;
 
 	cfs_hash_hlist_for_each(dev->ld_site->ls_obj_hash, id->vpi_bucket,
@@ -464,19 +464,19 @@ static struct page *vvp_pgcache_current(struct vvp_seq_private *priv)
 	}
 }
 
-#define seq_page_flag(seq, page, flag, has_flags) do {		  \
-	if (test_bit(PG_##flag, &(page)->flags)) {		  \
+#define seq_page_flag(seq, page, flag, has_flags) do {			\
+	if (test_bit(PG_##flag, &(page)->flags)) {			\
 		seq_printf(seq, "%s"#flag, has_flags ? "|" : "");       \
-		has_flags = 1;					  \
-	}							       \
+		has_flags = 1;						\
+	}								\
 } while (0)
 
 static void vvp_pgcache_page_show(const struct lu_env *env,
 				  struct seq_file *seq, struct cl_page *page)
 {
 	struct vvp_page *vpg;
-	struct page      *vmpage;
-	int	      has_flags;
+	struct page *vmpage;
+	int has_flags;
 
 	vpg = cl2vvp_page(cl_page_at(page, &vvp_device_type));
 	vmpage = vpg->vpg_page;
@@ -502,8 +502,8 @@ static void vvp_pgcache_page_show(const struct lu_env *env,
 static int vvp_pgcache_show(struct seq_file *f, void *v)
 {
 	struct vvp_seq_private *priv = f->private;
-	struct page		*vmpage = v;
-	struct cl_page		*page;
+	struct page *vmpage = v;
+	struct cl_page *page;
 
 	seq_printf(f, "%8lx@" DFID ": ", vmpage->index,
 		   PFID(lu_object_fid(&priv->vsp_clob->co_lu)));
@@ -575,10 +575,10 @@ static void vvp_pgcache_stop(struct seq_file *f, void *v)
 }
 
 static const struct seq_operations vvp_pgcache_ops = {
-	.start = vvp_pgcache_start,
-	.next  = vvp_pgcache_next,
-	.stop  = vvp_pgcache_stop,
-	.show  = vvp_pgcache_show
+	.start	= vvp_pgcache_start,
+	.next	= vvp_pgcache_next,
+	.stop	= vvp_pgcache_stop,
+	.show	= vvp_pgcache_show
 };
 
 static int vvp_dump_pgcache_seq_open(struct inode *inode, struct file *filp)
@@ -617,9 +617,9 @@ static int vvp_dump_pgcache_seq_release(struct inode *inode, struct file *file)
 }
 
 const struct file_operations vvp_dump_pgcache_file_ops = {
-	.owner   = THIS_MODULE,
-	.open    = vvp_dump_pgcache_seq_open,
-	.read    = seq_read,
-	.llseek	 = seq_lseek,
-	.release = vvp_dump_pgcache_seq_release,
+	.owner		= THIS_MODULE,
+	.open		= vvp_dump_pgcache_seq_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= vvp_dump_pgcache_seq_release,
 };

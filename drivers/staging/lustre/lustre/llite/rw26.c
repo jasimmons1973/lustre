@@ -67,9 +67,9 @@
 static void ll_invalidatepage(struct page *vmpage, unsigned int offset,
 			      unsigned int length)
 {
-	struct inode     *inode;
-	struct lu_env    *env;
-	struct cl_page   *page;
+	struct inode *inode;
+	struct lu_env *env;
+	struct cl_page *page;
 	struct cl_object *obj;
 
 	LASSERT(PageLocked(vmpage));
@@ -101,9 +101,9 @@ static void ll_invalidatepage(struct page *vmpage, unsigned int offset,
 
 static int ll_releasepage(struct page *vmpage, gfp_t gfp_mask)
 {
-	struct lu_env     *env;
-	struct cl_object  *obj;
-	struct cl_page    *page;
+	struct lu_env *env;
+	struct cl_object *obj;
+	struct cl_page *page;
 	struct address_space *mapping;
 	int result = 0;
 
@@ -177,9 +177,9 @@ static ssize_t ll_direct_IO_seg(const struct lu_env *env, struct cl_io *io,
 				loff_t file_offset, struct page **pages,
 				int page_count)
 {
-	struct cl_page    *clp;
-	struct cl_2queue  *queue;
-	struct cl_object  *obj = io->ci_obj;
+	struct cl_page *clp;
+	struct cl_2queue *queue;
+	struct cl_object *obj = io->ci_obj;
 	int i;
 	ssize_t rc = 0;
 	size_t page_size = cl_page_size(obj);
@@ -214,8 +214,8 @@ static ssize_t ll_direct_IO_seg(const struct lu_env *env, struct cl_io *io,
 			struct page *vmpage = cl_page_vmpage(clp);
 			struct page *src_page;
 			struct page *dst_page;
-			void       *src;
-			void       *dst;
+			void *src;
+			void *dst;
 
 			src_page = (rw == WRITE) ? pages[i] : vmpage;
 			dst_page = (rw == WRITE) ? vmpage : pages[i];
@@ -386,11 +386,11 @@ out:
 static int ll_prepare_partial_page(const struct lu_env *env, struct cl_io *io,
 				   struct cl_page *pg)
 {
-	struct cl_attr *attr   = vvp_env_thread_attr(env);
-	struct cl_object *obj  = io->ci_obj;
-	struct vvp_page *vpg   = cl_object_page_slice(obj, pg);
-	loff_t          offset = cl_offset(obj, vvp_index(vpg));
-	int             result;
+	struct cl_attr *attr = vvp_env_thread_attr(env);
+	struct cl_object *obj = io->ci_obj;
+	struct vvp_page *vpg = cl_object_page_slice(obj, pg);
+	loff_t offset = cl_offset(obj, vvp_index(vpg));
+	int result;
 
 	cl_object_attr_lock(obj);
 	result = cl_object_attr_get(env, obj, attr);
@@ -421,7 +421,7 @@ static int ll_write_begin(struct file *file, struct address_space *mapping,
 {
 	struct ll_cl_context *lcc;
 	const struct lu_env *env = NULL;
-	struct cl_io   *io;
+	struct cl_io *io;
 	struct cl_page *page = NULL;
 	struct cl_object *clob = ll_i2info(mapping->host)->lli_clob;
 	pgoff_t index = pos >> PAGE_SHIFT;
@@ -594,8 +594,7 @@ static int ll_write_end(struct file *file, struct address_space *mapping,
 #ifdef CONFIG_MIGRATION
 static int ll_migratepage(struct address_space *mapping,
 			  struct page *newpage, struct page *page,
-			  enum migrate_mode mode
-		)
+			  enum migrate_mode mode)
 {
 	/* Always fail page migration until we have a proper implementation */
 	return -EIO;
@@ -603,16 +602,16 @@ static int ll_migratepage(struct address_space *mapping,
 #endif
 
 const struct address_space_operations ll_aops = {
-	.readpage	= ll_readpage,
-	.direct_IO      = ll_direct_IO,
-	.writepage      = ll_writepage,
-	.writepages     = ll_writepages,
-	.set_page_dirty = __set_page_dirty_nobuffers,
-	.write_begin    = ll_write_begin,
-	.write_end      = ll_write_end,
-	.invalidatepage = ll_invalidatepage,
-	.releasepage    = (void *)ll_releasepage,
+	.readpage		= ll_readpage,
+	.direct_IO		= ll_direct_IO,
+	.writepage		= ll_writepage,
+	.writepages		= ll_writepages,
+	.set_page_dirty		= __set_page_dirty_nobuffers,
+	.write_begin		= ll_write_begin,
+	.write_end		= ll_write_end,
+	.invalidatepage		= ll_invalidatepage,
+	.releasepage		= (void *)ll_releasepage,
 #ifdef CONFIG_MIGRATION
-	.migratepage    = ll_migratepage,
+	.migratepage		= ll_migratepage,
 #endif
 };

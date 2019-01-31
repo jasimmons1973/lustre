@@ -76,14 +76,14 @@ void get_uuid2fsid(const char *name, int len, __kernel_fsid_t *fsid)
 struct inode *search_inode_for_lustre(struct super_block *sb,
 				      const struct lu_fid *fid)
 {
-	struct ll_sb_info     *sbi = ll_s2sbi(sb);
+	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	struct ptlrpc_request *req = NULL;
-	struct inode	  *inode = NULL;
-	int		   eadatalen = 0;
-	unsigned long	      hash = cl_fid_build_ino(fid,
-						      ll_need_32bit_api(sbi));
-	struct  md_op_data    *op_data;
-	int		   rc;
+	struct inode *inode = NULL;
+	int eadatalen = 0;
+	unsigned long hash = cl_fid_build_ino(fid,
+					      ll_need_32bit_api(sbi));
+	struct md_op_data *op_data;
+	int rc;
 
 	CDEBUG(D_INFO, "searching inode for:(%lu," DFID ")\n", hash, PFID(fid));
 
@@ -123,15 +123,15 @@ struct inode *search_inode_for_lustre(struct super_block *sb,
 }
 
 struct lustre_nfs_fid {
-	struct lu_fid   lnf_child;
-	struct lu_fid   lnf_parent;
+	struct lu_fid	lnf_child;
+	struct lu_fid	lnf_parent;
 };
 
 static struct dentry *
 ll_iget_for_nfs(struct super_block *sb,
 		struct lu_fid *fid, struct lu_fid *parent)
 {
-	struct inode  *inode;
+	struct inode *inode;
 	struct dentry *result;
 
 	if (!fid_is_sane(fid))
@@ -179,7 +179,7 @@ ll_iget_for_nfs(struct super_block *sb,
 
 /**
  * \a connectable - is nfsd will connect himself or this should be done
- *		  at lustre
+ *		    at lustre
  *
  * The return value is file handle type:
  * 1 -- contains child file handle;
@@ -297,12 +297,12 @@ static struct dentry *ll_fh_to_parent(struct super_block *sb, struct fid *fid,
 int ll_dir_get_parent_fid(struct inode *dir, struct lu_fid *parent_fid)
 {
 	struct ptlrpc_request *req = NULL;
-	struct ll_sb_info     *sbi;
-	struct mdt_body       *body;
+	struct ll_sb_info *sbi;
+	struct mdt_body *body;
 	static const char dotdot[] = "..";
-	struct md_op_data     *op_data;
-	int		   rc;
-	int		      lmmsize;
+	struct md_op_data *op_data;
+	int rc;
+	int lmmsize;
 
 	LASSERT(dir && S_ISDIR(dir->i_mode));
 
@@ -361,9 +361,9 @@ static struct dentry *ll_get_parent(struct dentry *dchild)
 }
 
 const struct export_operations lustre_export_operations = {
-	.get_parent = ll_get_parent,
-	.encode_fh  = ll_encode_fh,
-	.get_name   = ll_get_name,
-	.fh_to_dentry = ll_fh_to_dentry,
-	.fh_to_parent = ll_fh_to_parent,
+	.get_parent	= ll_get_parent,
+	.encode_fh	= ll_encode_fh,
+	.get_name	= ll_get_name,
+	.fh_to_dentry	= ll_fh_to_dentry,
+	.fh_to_parent	= ll_fh_to_parent,
 };

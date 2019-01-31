@@ -63,8 +63,8 @@ static struct vvp_io *cl2vvp_io(const struct lu_env *env,
 static bool can_populate_pages(const struct lu_env *env, struct cl_io *io,
 			       struct inode *inode)
 {
-	struct ll_inode_info	*lli = ll_i2info(inode);
-	struct vvp_io		*vio = vvp_env_io(env);
+	struct ll_inode_info *lli = ll_i2info(inode);
+	struct vvp_io *vio = vvp_env_io(env);
 	bool rc = true;
 
 	switch (io->ci_type) {
@@ -120,9 +120,9 @@ static int vvp_prep_size(const struct lu_env *env, struct cl_object *obj,
 			 struct cl_io *io, loff_t start, size_t count,
 			 int *exceed)
 {
-	struct cl_attr *attr  = vvp_env_thread_attr(env);
-	struct inode   *inode = vvp_object_inode(obj);
-	loff_t	  pos   = start + count - 1;
+	struct cl_attr *attr = vvp_env_thread_attr(env);
+	struct inode *inode = vvp_object_inode(obj);
+	loff_t pos = start + count - 1;
 	loff_t kms;
 	int result;
 
@@ -205,11 +205,11 @@ static int vvp_prep_size(const struct lu_env *env, struct cl_object *obj,
 
 static int vvp_io_one_lock_index(const struct lu_env *env, struct cl_io *io,
 				 u32 enqflags, enum cl_lock_mode mode,
-			  pgoff_t start, pgoff_t end)
+				 pgoff_t start, pgoff_t end)
 {
-	struct vvp_io          *vio   = vvp_env_io(env);
-	struct cl_lock_descr   *descr = &vio->vui_link.cill_descr;
-	struct cl_object       *obj   = io->ci_obj;
+	struct vvp_io *vio = vvp_env_io(env);
+	struct cl_lock_descr *descr = &vio->vui_link.cill_descr;
+	struct cl_object *obj = io->ci_obj;
 
 	CLOBINVRNT(env, obj, vvp_object_invariant(obj));
 
@@ -222,11 +222,11 @@ static int vvp_io_one_lock_index(const struct lu_env *env, struct cl_io *io,
 		descr->cld_gid  = vio->vui_fd->fd_grouplock.lg_gid;
 		enqflags |= CEF_LOCK_MATCH;
 	} else {
-		descr->cld_mode  = mode;
+		descr->cld_mode = mode;
 	}
-	descr->cld_obj   = obj;
+	descr->cld_obj = obj;
 	descr->cld_start = start;
-	descr->cld_end   = end;
+	descr->cld_end  = end;
 	descr->cld_enq_flags = enqflags;
 
 	cl_io_lock_add(env, io, &vio->vui_link);
@@ -267,8 +267,8 @@ static void vvp_io_write_iter_fini(const struct lu_env *env,
 static int vvp_io_fault_iter_init(const struct lu_env *env,
 				  const struct cl_io_slice *ios)
 {
-	struct vvp_io *vio   = cl2vvp_io(env, ios);
-	struct inode  *inode = vvp_object_inode(ios->cis_obj);
+	struct vvp_io *vio = cl2vvp_io(env, ios);
+	struct inode *inode = vvp_object_inode(ios->cis_obj);
 
 	LASSERT(inode == file_inode(vio->vui_fd->fd_file));
 	vio->u.fault.ft_mtime = inode->i_mtime.tv_sec;
@@ -277,9 +277,9 @@ static int vvp_io_fault_iter_init(const struct lu_env *env,
 
 static void vvp_io_fini(const struct lu_env *env, const struct cl_io_slice *ios)
 {
-	struct cl_io     *io  = ios->cis_io;
+	struct cl_io *io = ios->cis_io;
 	struct cl_object *obj = io->ci_obj;
-	struct vvp_io    *vio = cl2vvp_io(env, ios);
+	struct vvp_io *vio = cl2vvp_io(env, ios);
 	struct inode *inode = vvp_object_inode(obj);
 	int rc;
 
@@ -376,7 +376,7 @@ static void vvp_io_fini(const struct lu_env *env, const struct cl_io_slice *ios)
 static void vvp_io_fault_fini(const struct lu_env *env,
 			      const struct cl_io_slice *ios)
 {
-	struct cl_io   *io   = ios->cis_io;
+	struct cl_io *io = ios->cis_io;
 	struct cl_page *page = io->u.ci_fault.ft_page;
 
 	CLOBINVRNT(env, io->ci_obj, vvp_object_invariant(io->ci_obj));
@@ -405,13 +405,13 @@ static int vvp_mmap_locks(const struct lu_env *env,
 			  struct vvp_io *vio, struct cl_io *io)
 {
 	struct vvp_thread_info *cti = vvp_env_info(env);
-	struct mm_struct       *mm = current->mm;
+	struct mm_struct *mm = current->mm;
 	struct vm_area_struct  *vma;
-	struct cl_lock_descr   *descr = &cti->vti_descr;
+	struct cl_lock_descr *descr = &cti->vti_descr;
 	union ldlm_policy_data policy;
-	unsigned long	   addr;
-	ssize_t		 count;
-	int		 result = 0;
+	unsigned long addr;
+	ssize_t	count;
+	int result = 0;
 	struct iov_iter i;
 	struct iovec iov;
 
@@ -492,7 +492,7 @@ static void vvp_io_advance(const struct lu_env *env,
 			   size_t nob)
 {
 	struct cl_object *obj = ios->cis_io->ci_obj;
-	struct vvp_io	 *vio = cl2vvp_io(env, ios);
+	struct vvp_io *vio = cl2vvp_io(env, ios);
 
 	CLOBINVRNT(env, obj, vvp_object_invariant(obj));
 
@@ -533,7 +533,7 @@ static int vvp_io_rw_lock(const struct lu_env *env, struct cl_io *io,
 static int vvp_io_read_lock(const struct lu_env *env,
 			    const struct cl_io_slice *ios)
 {
-	struct cl_io	 *io = ios->cis_io;
+	struct cl_io *io = ios->cis_io;
 	struct cl_io_rw_common *rd = &io->u.ci_rd.rd;
 	int result;
 
@@ -546,7 +546,7 @@ static int vvp_io_read_lock(const struct lu_env *env,
 static int vvp_io_fault_lock(const struct lu_env *env,
 			     const struct cl_io_slice *ios)
 {
-	struct cl_io *io   = ios->cis_io;
+	struct cl_io *io = ios->cis_io;
 	struct vvp_io *vio = cl2vvp_io(env, ios);
 	/*
 	 * XXX LDLM_FL_CBPENDING
@@ -567,10 +567,10 @@ static int vvp_io_write_lock(const struct lu_env *env,
 
 	if (io->u.ci_wr.wr_append) {
 		start = 0;
-		end   = OBD_OBJECT_EOF;
+		end = OBD_OBJECT_EOF;
 	} else {
 		start = io->u.ci_wr.wr.crw_pos;
-		end   = start + io->u.ci_wr.wr.crw_count - 1;
+		end = start + io->u.ci_wr.wr.crw_count - 1;
 	}
 	return vvp_io_rw_lock(env, io, CLM_WRITE, start, end);
 }
@@ -589,7 +589,7 @@ static int vvp_io_setattr_iter_init(const struct lu_env *env,
 static int vvp_io_setattr_lock(const struct lu_env *env,
 			       const struct cl_io_slice *ios)
 {
-	struct cl_io  *io  = ios->cis_io;
+	struct cl_io *io = ios->cis_io;
 	u64 new_size;
 	u32 enqflags = 0;
 
@@ -619,7 +619,7 @@ static int vvp_io_setattr_lock(const struct lu_env *env,
 
 static int vvp_do_vmtruncate(struct inode *inode, size_t size)
 {
-	int     result;
+	int result;
 	/*
 	 * Only ll_inode_size_lock is taken at this level.
 	 */
@@ -637,9 +637,9 @@ static int vvp_do_vmtruncate(struct inode *inode, size_t size)
 static int vvp_io_setattr_time(const struct lu_env *env,
 			       const struct cl_io_slice *ios)
 {
-	struct cl_io       *io    = ios->cis_io;
-	struct cl_object   *obj   = io->ci_obj;
-	struct cl_attr     *attr  = vvp_env_thread_attr(env);
+	struct cl_io *io = ios->cis_io;
+	struct cl_object *obj = io->ci_obj;
+	struct cl_attr *attr = vvp_env_thread_attr(env);
 	int result;
 	unsigned valid = CAT_CTIME;
 
@@ -662,8 +662,8 @@ static int vvp_io_setattr_time(const struct lu_env *env,
 static int vvp_io_setattr_start(const struct lu_env *env,
 				const struct cl_io_slice *ios)
 {
-	struct cl_io	*io    = ios->cis_io;
-	struct inode	*inode = vvp_object_inode(io->ci_obj);
+	struct cl_io *io = ios->cis_io;
+	struct inode *inode = vvp_object_inode(io->ci_obj);
 	struct ll_inode_info *lli = ll_i2info(inode);
 
 	if (cl_io_is_trunc(io)) {
@@ -683,7 +683,7 @@ static int vvp_io_setattr_start(const struct lu_env *env,
 static void vvp_io_setattr_end(const struct lu_env *env,
 			       const struct cl_io_slice *ios)
 {
-	struct cl_io *io    = ios->cis_io;
+	struct cl_io *io = ios->cis_io;
 	struct inode *inode = vvp_object_inode(io->ci_obj);
 	struct ll_inode_info *lli = ll_i2info(inode);
 
@@ -716,18 +716,17 @@ static void vvp_io_setattr_fini(const struct lu_env *env,
 static int vvp_io_read_start(const struct lu_env *env,
 			     const struct cl_io_slice *ios)
 {
-	struct vvp_io     *vio   = cl2vvp_io(env, ios);
-	struct cl_io      *io    = ios->cis_io;
-	struct cl_object  *obj   = io->ci_obj;
-	struct inode      *inode = vvp_object_inode(obj);
+	struct vvp_io *vio = cl2vvp_io(env, ios);
+	struct cl_io *io = ios->cis_io;
+	struct cl_object *obj = io->ci_obj;
+	struct inode *inode = vvp_object_inode(obj);
 	struct ll_inode_info *lli = ll_i2info(inode);
-	struct file       *file  = vio->vui_fd->fd_file;
-
-	int     result;
-	loff_t  pos = io->u.ci_rd.rd.crw_pos;
-	long    cnt = io->u.ci_rd.rd.crw_count;
-	long    tot = vio->vui_tot_count;
-	int     exceed = 0;
+	struct file *file = vio->vui_fd->fd_file;
+	int result;
+	loff_t pos = io->u.ci_rd.rd.crw_pos;
+	long cnt = io->u.ci_rd.rd.crw_count;
+	long tot = vio->vui_tot_count;
+	int exceed = 0;
 
 	CLOBINVRNT(env, obj, vvp_object_invariant(obj));
 
@@ -956,10 +955,10 @@ int vvp_io_write_commit(const struct lu_env *env, struct cl_io *io)
 static int vvp_io_write_start(const struct lu_env *env,
 			      const struct cl_io_slice *ios)
 {
-	struct vvp_io      *vio   = cl2vvp_io(env, ios);
-	struct cl_io       *io    = ios->cis_io;
-	struct cl_object   *obj   = io->ci_obj;
-	struct inode       *inode = vvp_object_inode(obj);
+	struct vvp_io *vio = cl2vvp_io(env, ios);
+	struct cl_io *io = ios->cis_io;
+	struct cl_object *obj = io->ci_obj;
+	struct inode *inode = vvp_object_inode(obj);
 	struct ll_inode_info *lli = ll_i2info(inode);
 	bool lock_inode = !inode_is_locked(inode) && !IS_NOSEC(inode);
 	loff_t pos = io->u.ci_wr.wr.crw_pos;
@@ -1111,19 +1110,19 @@ static void mkwrite_commit_callback(const struct lu_env *env, struct cl_io *io,
 static int vvp_io_fault_start(const struct lu_env *env,
 			      const struct cl_io_slice *ios)
 {
-	struct vvp_io       *vio     = cl2vvp_io(env, ios);
-	struct cl_io	*io      = ios->cis_io;
-	struct cl_object    *obj     = io->ci_obj;
-	struct inode        *inode   = vvp_object_inode(obj);
+	struct vvp_io *vio = cl2vvp_io(env, ios);
+	struct cl_io *io = ios->cis_io;
+	struct cl_object *obj = io->ci_obj;
+	struct inode *inode = vvp_object_inode(obj);
 	struct ll_inode_info *lli = ll_i2info(inode);
-	struct cl_fault_io  *fio     = &io->u.ci_fault;
-	struct vvp_fault_io *cfio    = &vio->u.fault;
-	loff_t	       offset;
-	int		  result  = 0;
-	struct page	  *vmpage  = NULL;
-	struct cl_page      *page;
-	loff_t	       size;
-	pgoff_t		     last_index;
+	struct cl_fault_io *fio = &io->u.ci_fault;
+	struct vvp_fault_io *cfio = &vio->u.fault;
+	loff_t offset;
+	int result = 0;
+	struct page *vmpage = NULL;
+	struct cl_page *page;
+	loff_t size;
+	pgoff_t last_index;
 
 	down_read(&lli->lli_trunc_sem);
 
@@ -1318,40 +1317,40 @@ static const struct cl_io_operations vvp_io_ops = {
 	.op = {
 		[CIT_READ] = {
 			.cio_fini	= vvp_io_fini,
-			.cio_lock      = vvp_io_read_lock,
-			.cio_start     = vvp_io_read_start,
+			.cio_lock	= vvp_io_read_lock,
+			.cio_start	= vvp_io_read_start,
 			.cio_end	= vvp_io_rw_end,
 			.cio_advance	= vvp_io_advance,
 		},
 		[CIT_WRITE] = {
-			.cio_fini      = vvp_io_fini,
-			.cio_iter_init = vvp_io_write_iter_init,
-			.cio_iter_fini = vvp_io_write_iter_fini,
-			.cio_lock      = vvp_io_write_lock,
-			.cio_start     = vvp_io_write_start,
+			.cio_fini	= vvp_io_fini,
+			.cio_iter_init	= vvp_io_write_iter_init,
+			.cio_iter_fini	= vvp_io_write_iter_fini,
+			.cio_lock	= vvp_io_write_lock,
+			.cio_start	= vvp_io_write_start,
 			.cio_end	= vvp_io_rw_end,
-			.cio_advance   = vvp_io_advance,
+			.cio_advance	= vvp_io_advance,
 		},
 		[CIT_SETATTR] = {
-			.cio_fini       = vvp_io_setattr_fini,
-			.cio_iter_init  = vvp_io_setattr_iter_init,
-			.cio_lock       = vvp_io_setattr_lock,
-			.cio_start      = vvp_io_setattr_start,
+			.cio_fini	= vvp_io_setattr_fini,
+			.cio_iter_init	= vvp_io_setattr_iter_init,
+			.cio_lock	= vvp_io_setattr_lock,
+			.cio_start	= vvp_io_setattr_start,
 			.cio_end	= vvp_io_setattr_end
 		},
 		[CIT_FAULT] = {
-			.cio_fini      = vvp_io_fault_fini,
-			.cio_iter_init = vvp_io_fault_iter_init,
-			.cio_lock      = vvp_io_fault_lock,
-			.cio_start     = vvp_io_fault_start,
-			.cio_end       = vvp_io_fault_end,
+			.cio_fini	= vvp_io_fault_fini,
+			.cio_iter_init	= vvp_io_fault_iter_init,
+			.cio_lock	= vvp_io_fault_lock,
+			.cio_start	= vvp_io_fault_start,
+			.cio_end	= vvp_io_fault_end,
 		},
 		[CIT_FSYNC] = {
-			.cio_start  = vvp_io_fsync_start,
-			.cio_fini   = vvp_io_fini
+			.cio_start	= vvp_io_fsync_start,
+			.cio_fini	= vvp_io_fini
 		},
 		[CIT_MISC] = {
-			.cio_fini   = vvp_io_fini
+			.cio_fini	= vvp_io_fini
 		},
 		[CIT_LADVISE] = {
 			.cio_fini	= vvp_io_fini
@@ -1363,9 +1362,9 @@ static const struct cl_io_operations vvp_io_ops = {
 int vvp_io_init(const struct lu_env *env, struct cl_object *obj,
 		struct cl_io *io)
 {
-	struct vvp_io      *vio   = vvp_env_io(env);
-	struct inode       *inode = vvp_object_inode(obj);
-	int		 result;
+	struct vvp_io *vio = vvp_env_io(env);
+	struct inode *inode = vvp_object_inode(obj);
+	int result;
 
 	CLOBINVRNT(env, obj, vvp_object_invariant(obj));
 

@@ -53,12 +53,12 @@ struct page;
  */
 struct vvp_io {
 	/** super class */
-	struct cl_io_slice     vui_cl;
-	struct cl_io_lock_link vui_link;
+	struct cl_io_slice	vui_cl;
+	struct cl_io_lock_link	vui_link;
 	/**
 	 * I/O vector information to or from which read/write is going.
 	 */
-	struct iov_iter *vui_iter;
+	struct iov_iter		*vui_iter;
 	/**
 	 * Total size for the left IO.
 	 */
@@ -70,30 +70,30 @@ struct vvp_io {
 			 * Inode modification time that is checked across DLM
 			 * lock request.
 			 */
-			time64_t	    ft_mtime;
-			struct vm_area_struct *ft_vma;
+			time64_t		ft_mtime;
+			struct vm_area_struct	*ft_vma;
 			/**
 			 *  locked page returned from vvp_io
 			 */
-			struct page	    *ft_vmpage;
+			struct page		*ft_vmpage;
 			/**
 			 * kernel fault info
 			 */
-			struct vm_fault *ft_vmf;
+			struct vm_fault		*ft_vmf;
 			/**
 			 * fault API used bitflags for return code.
 			 */
-			unsigned int    ft_flags;
+			unsigned int		ft_flags;
 			/**
 			 * check that flags are from filemap_fault
 			 */
-			bool		ft_flags_valid;
+			bool			ft_flags_valid;
 		} fault;
 		struct {
-			struct cl_page_list vui_queue;
-			unsigned long vui_written;
-			int vui_from;
-			int vui_to;
+			struct cl_page_list	vui_queue;
+			unsigned long		vui_written;
+			int			vui_from;
+			int			vui_to;
 		} write;
 	} u;
 
@@ -108,10 +108,10 @@ struct vvp_io {
 	struct kiocb		*vui_iocb;
 
 	/* Readahead state. */
-	pgoff_t	vui_ra_start;
-	pgoff_t	vui_ra_count;
+	pgoff_t			vui_ra_start;
+	pgoff_t			vui_ra_count;
 	/* Set when vui_ra_{start,count} have been initialized. */
-	bool		vui_ra_valid;
+	bool			vui_ra_valid;
 };
 
 extern struct lu_device_type vvp_device_type;
@@ -131,7 +131,7 @@ struct vvp_thread_info {
 
 static inline struct vvp_thread_info *vvp_env_info(const struct lu_env *env)
 {
-	struct vvp_thread_info      *vti;
+	struct vvp_thread_info *vti;
 
 	vti = lu_context_key_get(&env->le_ctx, &vvp_thread_key);
 	LASSERT(vti);
@@ -166,7 +166,7 @@ static inline struct cl_io *vvp_env_thread_io(const struct lu_env *env)
 }
 
 struct vvp_session {
-	struct vvp_io cs_ios;
+	struct vvp_io	cs_ios;
 };
 
 static inline struct vvp_session *vvp_env_session(const struct lu_env *env)
@@ -189,8 +189,8 @@ static inline struct vvp_io *vvp_env_io(const struct lu_env *env)
  */
 struct vvp_object {
 	struct cl_object_header vob_header;
-	struct cl_object        vob_cl;
-	struct inode           *vob_inode;
+	struct cl_object	vob_cl;
+	struct inode	       *vob_inode;
 
 	/**
 	 * Number of transient pages.  This is no longer protected by i_sem,
@@ -223,12 +223,12 @@ struct vvp_object {
  * VVP-private page state.
  */
 struct vvp_page {
-	struct cl_page_slice vpg_cl;
-	unsigned int	vpg_defer_uptodate:1,
-			vpg_ra_updated:1,
-			vpg_ra_used:1;
+	struct cl_page_slice	vpg_cl;
+	unsigned int		vpg_defer_uptodate:1,
+				vpg_ra_updated:1,
+				vpg_ra_used:1;
 	/** VM page */
-	struct page	  *vpg_page;
+	struct page		*vpg_page;
 };
 
 static inline struct vvp_page *cl2vvp_page(const struct cl_page_slice *slice)
@@ -242,12 +242,12 @@ static inline pgoff_t vvp_index(struct vvp_page *vvp)
 }
 
 struct vvp_device {
-	struct cl_device    vdv_cl;
-	struct cl_device   *vdv_next;
+	struct cl_device	vdv_cl;
+	struct cl_device	*vdv_next;
 };
 
 struct vvp_lock {
-	struct cl_lock_slice vlk_cl;
+	struct cl_lock_slice	vlk_cl;
 };
 
 void *ccc_key_init(const struct lu_context *ctx,

@@ -200,13 +200,13 @@ static u16 ll_dirent_type_get(struct lu_dirent *ent)
 int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
 		struct dir_context *ctx)
 {
-	struct ll_sb_info    *sbi	= ll_i2sbi(inode);
-	u64		   pos		= *ppos;
+	struct ll_sb_info *sbi = ll_i2sbi(inode);
+	u64 pos = *ppos;
 	bool is_api32 = ll_need_32bit_api(sbi);
-	int		   is_hash64 = sbi->ll_flags & LL_SBI_64BIT_HASH;
-	struct page	  *page;
-	bool		   done = false;
-	int		   rc = 0;
+	int is_hash64 = sbi->ll_flags & LL_SBI_64BIT_HASH;
+	struct page *page;
+	bool done = false;
+	int rc = 0;
 
 	page = ll_get_dir_page(inode, op_data, pos);
 
@@ -225,11 +225,11 @@ int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
 		dp = page_address(page);
 		for (ent = lu_dirent_start(dp); ent && !done;
 		     ent = lu_dirent_next(ent)) {
-			u16	  type;
-			int	    namelen;
-			struct lu_fid  fid;
-			u64	  lhash;
-			u64	  ino;
+			u16 type;
+			int namelen;
+			struct lu_fid fid;
+			u64 lhash;
+			u64 ino;
 
 			hash = le64_to_cpu(ent->lde_hash);
 			if (hash < pos)
@@ -291,14 +291,14 @@ int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
 
 static int ll_readdir(struct file *filp, struct dir_context *ctx)
 {
-	struct inode		*inode	= file_inode(filp);
-	struct ll_file_data	*lfd	= LUSTRE_FPRIVATE(filp);
-	struct ll_sb_info	*sbi	= ll_i2sbi(inode);
+	struct inode *inode = file_inode(filp);
+	struct ll_file_data *lfd = LUSTRE_FPRIVATE(filp);
+	struct ll_sb_info *sbi	= ll_i2sbi(inode);
 	u64 pos = lfd ? lfd->lfd_pos : 0;
-	int			hash64	= sbi->ll_flags & LL_SBI_64BIT_HASH;
+	int hash64 = sbi->ll_flags & LL_SBI_64BIT_HASH;
 	bool api32 = ll_need_32bit_api(sbi);
 	struct md_op_data *op_data;
-	int			rc;
+	int rc;
 
 	CDEBUG(D_VFSTRACE,
 	       "VFS Op:inode=" DFID "(%p) pos/size %lu/%llu 32bit_api %d\n",
@@ -626,7 +626,7 @@ int ll_dir_getstripe(struct inode *inode, void **plmm, int *plmm_size,
 		     struct ptlrpc_request **request, u64 valid)
 {
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
-	struct mdt_body   *body;
+	struct mdt_body *body;
 	struct lov_mds_md *lmm = NULL;
 	struct ptlrpc_request *req = NULL;
 	int rc, lmmsize;
@@ -744,8 +744,8 @@ int ll_get_mdt_idx(struct inode *inode)
  */
 static int ll_ioc_copy_start(struct super_block *sb, struct hsm_copy *copy)
 {
-	struct ll_sb_info		*sbi = ll_s2sbi(sb);
-	struct hsm_progress_kernel	 hpk;
+	struct ll_sb_info *sbi = ll_s2sbi(sb);
+	struct hsm_progress_kernel hpk;
 	int rc2, rc = 0;
 
 	/* Forge a hsm_progress based on data from copy. */
@@ -759,8 +759,8 @@ static int ll_ioc_copy_start(struct super_block *sb, struct hsm_copy *copy)
 
 	/* For archive request, we need to read the current file version. */
 	if (copy->hc_hai.hai_action == HSMA_ARCHIVE) {
-		struct inode	*inode;
-		u64		 data_version = 0;
+		struct inode *inode;
+		u64 data_version = 0;
 
 		/* Get inode for this fid */
 		inode = search_inode_for_lustre(sb, &copy->hc_hai.hai_fid);
@@ -819,8 +819,8 @@ progress:
  */
 static int ll_ioc_copy_end(struct super_block *sb, struct hsm_copy *copy)
 {
-	struct ll_sb_info		*sbi = ll_s2sbi(sb);
-	struct hsm_progress_kernel	 hpk;
+	struct ll_sb_info *sbi = ll_s2sbi(sb);
+	struct hsm_progress_kernel hpk;
 	int rc2, rc = 0;
 
 	/* If you modify the logic here, also check llapi_hsm_copy_end(). */
@@ -844,8 +844,8 @@ static int ll_ioc_copy_end(struct super_block *sb, struct hsm_copy *copy)
 	if (((copy->hc_hai.hai_action == HSMA_ARCHIVE) ||
 	     (copy->hc_hai.hai_action == HSMA_RESTORE)) &&
 	    (copy->hc_errval == 0)) {
-		struct inode	*inode;
-		u64		 data_version = 0;
+		struct inode *inode;
+		u64 data_version = 0;
 
 		/* Get lsm for this fid */
 		inode = search_inode_for_lustre(sb, &copy->hc_hai.hai_fid);
@@ -1160,13 +1160,13 @@ out_free:
 	}
 	case LL_IOC_LMV_SETSTRIPE: {
 		struct lmv_user_md  *lum;
-		char		*buf = NULL;
-		char		*filename;
-		int		 namelen = 0;
-		int		 lumlen = 0;
+		char *buf = NULL;
+		char *filename;
+		int namelen = 0;
+		int lumlen = 0;
 		umode_t mode;
-		int		 len;
-		int		 rc;
+		int len;
+		int rc;
 
 		rc = obd_ioctl_getdata(&buf, &len, (void __user *)arg);
 		if (rc)
@@ -1428,21 +1428,21 @@ skip_lmm:
 			struct lov_user_mds_data __user *lmdp;
 			lstat_t st = { 0 };
 
-			st.st_dev     = inode->i_sb->s_dev;
-			st.st_mode    = body->mbo_mode;
-			st.st_nlink   = body->mbo_nlink;
-			st.st_uid     = body->mbo_uid;
-			st.st_gid     = body->mbo_gid;
-			st.st_rdev    = body->mbo_rdev;
-			st.st_size    = body->mbo_size;
+			st.st_dev = inode->i_sb->s_dev;
+			st.st_mode = body->mbo_mode;
+			st.st_nlink = body->mbo_nlink;
+			st.st_uid = body->mbo_uid;
+			st.st_gid = body->mbo_gid;
+			st.st_rdev = body->mbo_rdev;
+			st.st_size = body->mbo_size;
 			st.st_blksize = PAGE_SIZE;
-			st.st_blocks  = body->mbo_blocks;
-			st.st_atime   = body->mbo_atime;
-			st.st_mtime   = body->mbo_mtime;
-			st.st_ctime   = body->mbo_ctime;
-			st.st_ino     = cl_fid_build_ino(&body->mbo_fid1,
-							 sbi->ll_flags &
-							 LL_SBI_32BIT_API);
+			st.st_blocks = body->mbo_blocks;
+			st.st_atime = body->mbo_atime;
+			st.st_mtime = body->mbo_mtime;
+			st.st_ctime = body->mbo_ctime;
+			st.st_ino = cl_fid_build_ino(&body->mbo_fid1,
+						     sbi->ll_flags &
+						     LL_SBI_32BIT_API);
 
 			lmdp = (struct lov_user_mds_data __user *)arg;
 			if (copy_to_user(&lmdp->lmd_st, &st, sizeof(st))) {
@@ -1538,7 +1538,7 @@ out_quotactl:
 	}
 	case LL_IOC_HSM_REQUEST: {
 		struct hsm_user_request	*hur;
-		ssize_t			 totalsize;
+		ssize_t	totalsize;
 
 		hur = memdup_user((void __user *)arg, sizeof(*hur));
 		if (IS_ERR(hur))
@@ -1592,8 +1592,8 @@ out_quotactl:
 		return rc;
 	}
 	case LL_IOC_HSM_PROGRESS: {
-		struct hsm_progress_kernel	hpk;
-		struct hsm_progress		hp;
+		struct hsm_progress_kernel hpk;
+		struct hsm_progress hp;
 
 		if (copy_from_user(&hp, (void __user *)arg, sizeof(hp)))
 			return -EFAULT;
@@ -1622,7 +1622,7 @@ out_quotactl:
 
 	case LL_IOC_HSM_COPY_START: {
 		struct hsm_copy	*copy;
-		int		 rc;
+		int rc;
 
 		copy = memdup_user((char __user *)arg, sizeof(*copy));
 		if (IS_ERR(copy))
@@ -1637,7 +1637,7 @@ out_quotactl:
 	}
 	case LL_IOC_HSM_COPY_END: {
 		struct hsm_copy	*copy;
-		int		 rc;
+		int rc;
 
 		copy = memdup_user((char __user *)arg, sizeof(*copy));
 		if (IS_ERR(copy))
@@ -1756,11 +1756,11 @@ static int ll_dir_release(struct inode *inode, struct file *file)
 }
 
 const struct file_operations ll_dir_operations = {
-	.llseek   = ll_dir_seek,
-	.open     = ll_dir_open,
-	.release  = ll_dir_release,
-	.read     = generic_read_dir,
-	.iterate_shared  = ll_readdir,
-	.unlocked_ioctl   = ll_dir_ioctl,
-	.fsync    = ll_fsync,
+	.llseek			= ll_dir_seek,
+	.open			= ll_dir_open,
+	.release		= ll_dir_release,
+	.read			= generic_read_dir,
+	.iterate_shared		= ll_readdir,
+	.unlocked_ioctl		= ll_dir_ioctl,
+	.fsync			= ll_fsync,
 };

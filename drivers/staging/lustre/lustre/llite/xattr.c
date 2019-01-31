@@ -631,45 +631,45 @@ ssize_t ll_listxattr(struct dentry *dentry, char *buffer, size_t size)
 }
 
 static const struct xattr_handler ll_user_xattr_handler = {
-	.prefix = XATTR_USER_PREFIX,
-	.flags = XATTR_USER_T,
-	.get = ll_xattr_get_common,
-	.set = ll_xattr_set_common,
+	.prefix		= XATTR_USER_PREFIX,
+	.flags		= XATTR_USER_T,
+	.get		= ll_xattr_get_common,
+	.set		= ll_xattr_set_common,
 };
 
 static const struct xattr_handler ll_trusted_xattr_handler = {
-	.prefix = XATTR_TRUSTED_PREFIX,
-	.flags = XATTR_TRUSTED_T,
-	.get = ll_xattr_get,
-	.set = ll_xattr_set,
+	.prefix		= XATTR_TRUSTED_PREFIX,
+	.flags		= XATTR_TRUSTED_T,
+	.get		= ll_xattr_get,
+	.set		= ll_xattr_set,
 };
 
 static const struct xattr_handler ll_security_xattr_handler = {
-	.prefix = XATTR_SECURITY_PREFIX,
-	.flags = XATTR_SECURITY_T,
-	.get = ll_xattr_get_common,
-	.set = ll_xattr_set_common,
+	.prefix		= XATTR_SECURITY_PREFIX,
+	.flags		= XATTR_SECURITY_T,
+	.get		= ll_xattr_get_common,
+	.set		= ll_xattr_set_common,
 };
 
 static const struct xattr_handler ll_acl_access_xattr_handler = {
-	.name = XATTR_NAME_POSIX_ACL_ACCESS,
-	.flags = XATTR_ACL_ACCESS_T,
-	.get = ll_xattr_get_common,
-	.set = ll_xattr_set_common,
+	.name		= XATTR_NAME_POSIX_ACL_ACCESS,
+	.flags		= XATTR_ACL_ACCESS_T,
+	.get		= ll_xattr_get_common,
+	.set		= ll_xattr_set_common,
 };
 
 static const struct xattr_handler ll_acl_default_xattr_handler = {
-	.name = XATTR_NAME_POSIX_ACL_DEFAULT,
-	.flags = XATTR_ACL_DEFAULT_T,
-	.get = ll_xattr_get_common,
-	.set = ll_xattr_set_common,
+	.name		= XATTR_NAME_POSIX_ACL_DEFAULT,
+	.flags		= XATTR_ACL_DEFAULT_T,
+	.get		= ll_xattr_get_common,
+	.set		= ll_xattr_set_common,
 };
 
 static const struct xattr_handler ll_lustre_xattr_handler = {
-	.prefix = XATTR_LUSTRE_PREFIX,
-	.flags = XATTR_LUSTRE_T,
-	.get = ll_xattr_get,
-	.set = ll_xattr_set,
+	.prefix		= XATTR_LUSTRE_PREFIX,
+	.flags		= XATTR_LUSTRE_T,
+	.get		= ll_xattr_get,
+	.set		= ll_xattr_set,
 };
 
 const struct xattr_handler *ll_xattr_handlers[] = {

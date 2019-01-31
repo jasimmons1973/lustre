@@ -61,25 +61,25 @@ enum se_stat {
  */
 struct sa_entry {
 	/* link into sai_interim_entries or sai_entries */
-	struct list_head	      se_list;
+	struct list_head	se_list;
 	/* link into sai hash table locally */
-	struct list_head	      se_hash;
+	struct list_head	se_hash;
 	/* entry index in the sai */
-	u64		   se_index;
+	u64			se_index;
 	/* low layer ldlm lock handle */
-	u64		   se_handle;
+	u64			se_handle;
 	/* entry status */
 	enum se_stat		se_state;
 	/* entry size, contains name */
-	int		     se_size;
+	int			se_size;
 	/* pointer to async getattr enqueue info */
-	struct md_enqueue_info *se_minfo;
+	struct md_enqueue_info	*se_minfo;
 	/* pointer to the async getattr request */
-	struct ptlrpc_request  *se_req;
+	struct ptlrpc_request	*se_req;
 	/* pointer to the target inode */
-	struct inode	   *se_inode;
+	struct inode		*se_inode;
 	/* entry name */
-	struct qstr	     se_qstr;
+	struct qstr		se_qstr;
 	/* entry fid */
 	struct lu_fid		se_fid;
 };
@@ -175,9 +175,9 @@ sa_alloc(struct dentry *parent, struct ll_statahead_info *sai, u64 index,
 	 const char *name, int len, const struct lu_fid *fid)
 {
 	struct ll_inode_info *lli;
-	struct sa_entry   *entry;
-	int		   entry_size;
-	char		 *dname;
+	struct sa_entry *entry;
+	int entry_size;
+	char *dname;
 
 	entry_size = sizeof(struct sa_entry) + (len & ~3) + 4;
 	entry = kzalloc(entry_size, GFP_NOFS);
@@ -368,9 +368,9 @@ sa_make_ready(struct ll_statahead_info *sai, struct sa_entry *entry, int ret)
 static void ll_agl_add(struct ll_statahead_info *sai,
 		       struct inode *inode, int index)
 {
-	struct ll_inode_info *child  = ll_i2info(inode);
+	struct ll_inode_info *child = ll_i2info(inode);
 	struct ll_inode_info *parent = ll_i2info(sai->sai_dentry->d_inode);
-	int		   added  = 0;
+	int added = 0;
 
 	spin_lock(&child->lli_agl_lock);
 	if (child->lli_agl_index == 0) {
@@ -398,7 +398,7 @@ static struct ll_statahead_info *ll_sai_alloc(struct dentry *dentry)
 {
 	struct ll_inode_info *lli = ll_i2info(dentry->d_inode);
 	struct ll_statahead_info *sai;
-	int		       i;
+	int i;
 
 	sai = kzalloc(sizeof(*sai), GFP_NOFS);
 	if (!sai)
@@ -491,9 +491,9 @@ static void ll_sai_put(struct ll_statahead_info *sai)
 /* Do NOT forget to drop inode refcount when into sai_agls. */
 static void ll_agl_trigger(struct inode *inode, struct ll_statahead_info *sai)
 {
-	struct ll_inode_info *lli   = ll_i2info(inode);
-	u64		 index = lli->lli_agl_index;
-	int		   rc;
+	struct ll_inode_info *lli = ll_i2info(inode);
+	u64 index = lli->lli_agl_index;
+	int rc;
 
 	LASSERT(list_empty(&lli->lli_agl_list));
 
@@ -569,12 +569,12 @@ static void sa_instantiate(struct ll_statahead_info *sai,
 			   struct sa_entry *entry)
 {
 	struct inode *dir = sai->sai_dentry->d_inode;
-	struct inode	   *child;
+	struct inode *child;
 	struct md_enqueue_info *minfo;
-	struct lookup_intent   *it;
-	struct ptlrpc_request  *req;
+	struct lookup_intent *it;
+	struct ptlrpc_request *req;
 	struct mdt_body	*body;
-	int		     rc    = 0;
+	int rc = 0;
 
 	LASSERT(entry->se_handle != 0);
 
@@ -660,9 +660,9 @@ static void sa_handle_callback(struct ll_statahead_info *sai)
 static int ll_statahead_interpret(struct ptlrpc_request *req,
 				  struct md_enqueue_info *minfo, int rc)
 {
-	struct lookup_intent     *it  = &minfo->mi_it;
-	struct inode	     *dir = minfo->mi_dir;
-	struct ll_inode_info     *lli = ll_i2info(dir);
+	struct lookup_intent *it = &minfo->mi_it;
+	struct inode *dir = minfo->mi_dir;
+	struct ll_inode_info *lli = ll_i2info(dir);
 	struct ll_statahead_info *sai = lli->lli_sai;
 	struct sa_entry *entry = (struct sa_entry *)minfo->mi_cbdata;
 	u64 handle = 0;
@@ -738,9 +738,9 @@ static void sa_fini_data(struct md_enqueue_info *minfo)
 static struct md_enqueue_info *
 sa_prep_data(struct inode *dir, struct inode *child, struct sa_entry *entry)
 {
-	struct md_enqueue_info   *minfo;
+	struct md_enqueue_info *minfo;
 	struct ldlm_enqueue_info *einfo;
-	struct md_op_data	*op_data;
+	struct md_op_data *op_data;
 
 	minfo = kzalloc(sizeof(*minfo), GFP_NOFS);
 	if (!minfo)
@@ -762,11 +762,11 @@ sa_prep_data(struct inode *dir, struct inode *child, struct sa_entry *entry)
 	minfo->mi_cbdata = entry;
 
 	einfo = &minfo->mi_einfo;
-	einfo->ei_type   = LDLM_IBITS;
-	einfo->ei_mode   = it_to_lock_mode(&minfo->mi_it);
-	einfo->ei_cb_bl  = ll_md_blocking_ast;
-	einfo->ei_cb_cp  = ldlm_completion_ast;
-	einfo->ei_cb_gl  = NULL;
+	einfo->ei_type = LDLM_IBITS;
+	einfo->ei_mode = it_to_lock_mode(&minfo->mi_it);
+	einfo->ei_cb_bl = ll_md_blocking_ast;
+	einfo->ei_cb_cp = ldlm_completion_ast;
+	einfo->ei_cb_gl = NULL;
 	einfo->ei_cbdata = NULL;
 
 	return minfo;
@@ -775,8 +775,8 @@ sa_prep_data(struct inode *dir, struct inode *child, struct sa_entry *entry)
 /* async stat for file not found in dcache */
 static int sa_lookup(struct inode *dir, struct sa_entry *entry)
 {
-	struct md_enqueue_info   *minfo;
-	int		       rc;
+	struct md_enqueue_info *minfo;
+	int rc;
 
 	minfo = sa_prep_data(dir, NULL, entry);
 	if (IS_ERR(minfo))
@@ -799,10 +799,12 @@ static int sa_lookup(struct inode *dir, struct sa_entry *entry)
 static int sa_revalidate(struct inode *dir, struct sa_entry *entry,
 			 struct dentry *dentry)
 {
-	struct inode	     *inode = d_inode(dentry);
-	struct lookup_intent      it = { .it_op = IT_GETATTR,
-					 .it_lock_handle = 0 };
-	struct md_enqueue_info   *minfo;
+	struct inode *inode = d_inode(dentry);
+	struct lookup_intent it = {
+		.it_op = IT_GETATTR,
+		.it_lock_handle = 0
+	};
+	struct md_enqueue_info *minfo;
 	int rc;
 
 	if (unlikely(!inode))
@@ -841,12 +843,12 @@ static int sa_revalidate(struct inode *dir, struct sa_entry *entry,
 static void sa_statahead(struct dentry *parent, const char *name, int len,
 			 const struct lu_fid *fid)
 {
-	struct inode	     *dir    = d_inode(parent);
-	struct ll_inode_info     *lli    = ll_i2info(dir);
-	struct ll_statahead_info *sai    = lli->lli_sai;
-	struct dentry	    *dentry = NULL;
+	struct inode *dir = d_inode(parent);
+	struct ll_inode_info *lli = ll_i2info(dir);
+	struct ll_statahead_info *sai = lli->lli_sai;
+	struct dentry *dentry = NULL;
 	struct sa_entry *entry;
-	int		       rc;
+	int rc;
 
 	entry = sa_alloc(parent, sai, sai->sai_index, name, len, fid);
 	if (IS_ERR(entry))
@@ -875,10 +877,10 @@ static void sa_statahead(struct dentry *parent, const char *name, int len,
 /* async glimpse (agl) thread main function */
 static int ll_agl_thread(void *arg)
 {
-	struct dentry	    *parent = arg;
-	struct inode	     *dir    = d_inode(parent);
-	struct ll_inode_info     *plli   = ll_i2info(dir);
-	struct ll_inode_info     *clli;
+	struct dentry *parent = arg;
+	struct inode *dir = d_inode(parent);
+	struct ll_inode_info *plli = ll_i2info(dir);
+	struct ll_inode_info *clli;
 	/* We already own this reference, so it is safe to take it without a lock. */
 	struct ll_statahead_info *sai = plli->lli_sai;
 
@@ -929,7 +931,7 @@ static int ll_agl_thread(void *arg)
 /* start agl thread */
 static void ll_start_agl(struct dentry *parent, struct ll_statahead_info *sai)
 {
-	struct ll_inode_info  *plli;
+	struct ll_inode_info *plli;
 	struct task_struct *task;
 
 	CDEBUG(D_READA, "start agl thread: sai %p, parent %pd\n",
@@ -957,15 +959,15 @@ static void ll_start_agl(struct dentry *parent, struct ll_statahead_info *sai)
 /* statahead thread main function */
 static int ll_statahead_thread(void *arg)
 {
-	struct dentry	    *parent = arg;
-	struct inode	     *dir    = d_inode(parent);
-	struct ll_inode_info     *lli   = ll_i2info(dir);
-	struct ll_sb_info	*sbi    = ll_i2sbi(dir);
+	struct dentry *parent = arg;
+	struct inode *dir = d_inode(parent);
+	struct ll_inode_info *lli = ll_i2info(dir);
+	struct ll_sb_info *sbi = ll_i2sbi(dir);
 	struct ll_statahead_info *sai = lli->lli_sai;
-	struct page	      *page = NULL;
-	u64		     pos    = 0;
-	int		       first  = 0;
-	int		       rc     = 0;
+	struct page *page = NULL;
+	u64 pos = 0;
+	int first = 0;
+	int rc = 0;
 	struct md_op_data *op_data;
 
 	CDEBUG(D_READA, "statahead thread starting: sai %p, parent %pd\n",
@@ -980,7 +982,7 @@ static int ll_statahead_thread(void *arg)
 
 	while (pos != MDS_DIR_END_OFF && sai->sai_task) {
 		struct lu_dirpage *dp;
-		struct lu_dirent  *ent;
+		struct lu_dirent *ent;
 
 		sai->sai_in_readpage = 1;
 		page = ll_get_dir_page(dir, op_data, pos);
@@ -1225,11 +1227,11 @@ enum {
 /* file is first dirent under @dir */
 static int is_first_dirent(struct inode *dir, struct dentry *dentry)
 {
-	const struct qstr  *target = &dentry->d_name;
+	const struct qstr *target = &dentry->d_name;
 	struct md_op_data *op_data;
-	struct page	  *page;
-	u64		 pos    = 0;
-	int		   dot_de;
+	struct page *page;
+	u64 pos = 0;
+	int dot_de;
 	int rc = LS_NOT_FIRST_DE;
 
 	op_data = ll_prep_md_op_data(NULL, dir, dir, NULL, 0, 0,
@@ -1243,7 +1245,7 @@ static int is_first_dirent(struct inode *dir, struct dentry *dentry)
 
 	while (1) {
 		struct lu_dirpage *dp;
-		struct lu_dirent  *ent;
+		struct lu_dirent *ent;
 
 		if (IS_ERR(page)) {
 			struct ll_inode_info *lli = ll_i2info(dir);
@@ -1423,8 +1425,10 @@ static int revalidate_statahead_dentry(struct inode *dir,
 	if (smp_load_acquire(&entry->se_state) == SA_ENTRY_SUCC &&
 	    entry->se_inode) {
 		struct inode *inode = entry->se_inode;
-		struct lookup_intent it = { .it_op = IT_GETATTR,
-					    .it_lock_handle = entry->se_handle };
+		struct lookup_intent it = {
+			.it_op = IT_GETATTR,
+			.it_lock_handle = entry->se_handle
+		};
 		u64 bits;
 
 		rc = md_revalidate_lock(ll_i2mdexp(dir), &it,
@@ -1516,7 +1520,6 @@ static int start_statahead_thread(struct inode *dir, struct dentry *dentry)
 		rc = -EMFILE;
 		goto out;
 	}
-
 
 	sai = ll_sai_alloc(parent);
 	if (!sai) {

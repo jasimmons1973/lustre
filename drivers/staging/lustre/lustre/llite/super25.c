@@ -73,14 +73,14 @@ static void ll_destroy_inode(struct inode *inode)
 
 /* exported operations */
 struct super_operations lustre_super_operations = {
-	.alloc_inode   = ll_alloc_inode,
-	.destroy_inode = ll_destroy_inode,
-	.evict_inode   = ll_delete_inode,
-	.put_super     = ll_put_super,
-	.statfs	= ll_statfs,
-	.umount_begin  = ll_umount_begin,
-	.remount_fs    = ll_remount_fs,
-	.show_options  = ll_show_options,
+	.alloc_inode		= ll_alloc_inode,
+	.destroy_inode		= ll_destroy_inode,
+	.evict_inode		= ll_delete_inode,
+	.put_super		= ll_put_super,
+	.statfs			= ll_statfs,
+	.umount_begin		= ll_umount_begin,
+	.remount_fs		= ll_remount_fs,
+	.show_options		= ll_show_options,
 };
 
 /** This is the entry point for the mount call into Lustre.

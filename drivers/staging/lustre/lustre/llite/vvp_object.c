@@ -50,7 +50,7 @@
 
 int vvp_object_invariant(const struct cl_object *obj)
 {
-	struct inode *inode  = vvp_object_inode(obj);
+	struct inode *inode = vvp_object_inode(obj);
 	struct ll_inode_info *lli = ll_i2info(inode);
 
 	return (S_ISREG(inode->i_mode) || inode->i_mode == 0) &&
@@ -60,8 +60,8 @@ int vvp_object_invariant(const struct cl_object *obj)
 static int vvp_object_print(const struct lu_env *env, void *cookie,
 			    lu_printer_t p, const struct lu_object *o)
 {
-	struct vvp_object    *obj   = lu2vvp(o);
-	struct inode	 *inode = obj->vob_inode;
+	struct vvp_object *obj = lu2vvp(o);
+	struct inode *inode = obj->vob_inode;
 	struct ll_inode_info *lli;
 
 	(*p)(env, cookie, "(%d %d) inode: %p ",
@@ -209,13 +209,13 @@ static void vvp_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 }
 
 static const struct cl_object_operations vvp_ops = {
-	.coo_page_init = vvp_page_init,
-	.coo_lock_init = vvp_lock_init,
-	.coo_io_init   = vvp_io_init,
-	.coo_attr_get  = vvp_attr_get,
-	.coo_attr_update = vvp_attr_update,
-	.coo_conf_set  = vvp_conf_set,
-	.coo_prune     = vvp_prune,
+	.coo_page_init		= vvp_page_init,
+	.coo_lock_init		= vvp_lock_init,
+	.coo_io_init		= vvp_io_init,
+	.coo_attr_get		= vvp_attr_get,
+	.coo_attr_update	= vvp_attr_update,
+	.coo_conf_set		= vvp_conf_set,
+	.coo_prune		= vvp_prune,
 	.coo_glimpse		= vvp_object_glimpse,
 	.coo_req_attr_set	= vvp_req_attr_set
 };
@@ -235,8 +235,8 @@ static int vvp_object_init(const struct lu_env *env, struct lu_object *obj,
 {
 	struct vvp_device *dev = lu2vvp_dev(obj->lo_dev);
 	struct vvp_object *vob = lu2vvp(obj);
-	struct lu_object  *below;
-	struct lu_device  *under;
+	struct lu_object *below;
+	struct lu_device *under;
 	int result;
 
 	under = &dev->vdv_next->cd_lu_dev;
@@ -272,8 +272,8 @@ static const struct lu_object_operations vvp_lu_obj_ops = {
 struct vvp_object *cl_inode2vvp(struct inode *inode)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
-	struct cl_object     *obj = lli->lli_clob;
-	struct lu_object     *lu;
+	struct cl_object *obj = lli->lli_clob;
+	struct lu_object *lu;
 
 	lu = lu_object_locate(obj->co_lu.lo_header, &vvp_device_type);
 	LASSERT(lu);
@@ -285,7 +285,7 @@ struct lu_object *vvp_object_alloc(const struct lu_env *env,
 				   struct lu_device *dev)
 {
 	struct vvp_object *vob;
-	struct lu_object  *obj;
+	struct lu_object *obj;
 
 	vob = kmem_cache_zalloc(vvp_object_kmem, GFP_NOFS);
 	if (vob) {

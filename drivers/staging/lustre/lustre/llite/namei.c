@@ -53,7 +53,7 @@ static int ll_create_it(struct inode *dir, struct dentry *dentry,
 static int ll_test_inode(struct inode *inode, void *opaque)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
-	struct lustre_md     *md = opaque;
+	struct lustre_md *md = opaque;
 
 	if (unlikely(!(md->body->mbo_valid & OBD_MD_FLID))) {
 		CERROR("MDS body missing FID\n");
@@ -102,7 +102,7 @@ static int ll_set_inode(struct inode *inode, void *opaque)
 struct inode *ll_iget(struct super_block *sb, ino_t hash,
 		      struct lustre_md *md)
 {
-	struct inode	 *inode;
+	struct inode *inode;
 	int rc = 0;
 
 	LASSERT(hash != 0);
@@ -499,8 +499,9 @@ static int ll_lookup_it_finish(struct ptlrpc_request *request,
 		 */
 		/* Check that parent has UPDATE lock. */
 		struct lookup_intent parent_it = {
-					.it_op = IT_GETATTR,
-					.it_lock_handle = 0 };
+			.it_op = IT_GETATTR,
+			.it_lock_handle = 0
+		};
 		struct lu_fid fid = ll_i2info(parent)->lli_fid;
 
 		/* If it is striped directory, get the real stripe parent */
@@ -1255,28 +1256,28 @@ static int ll_rename(struct inode *src, struct dentry *src_dchild,
 }
 
 const struct inode_operations ll_dir_inode_operations = {
-	.mknod	      = ll_mknod,
-	.atomic_open	    = ll_atomic_open,
-	.lookup	     = ll_lookup_nd,
-	.create	     = ll_create_nd,
+	.mknod			= ll_mknod,
+	.atomic_open		= ll_atomic_open,
+	.lookup			= ll_lookup_nd,
+	.create			= ll_create_nd,
 	/* We need all these non-raw things for NFSD, to not patch it. */
-	.unlink	     = ll_unlink,
-	.mkdir	      = ll_mkdir,
-	.rmdir	      = ll_rmdir,
-	.symlink	    = ll_symlink,
-	.link	       = ll_link,
-	.rename		= ll_rename,
-	.setattr	    = ll_setattr,
-	.getattr	    = ll_getattr,
-	.permission	 = ll_inode_permission,
-	.listxattr	  = ll_listxattr,
-	.get_acl	    = ll_get_acl,
+	.unlink			= ll_unlink,
+	.mkdir			= ll_mkdir,
+	.rmdir			= ll_rmdir,
+	.symlink		= ll_symlink,
+	.link			= ll_link,
+	.rename			= ll_rename,
+	.setattr		= ll_setattr,
+	.getattr		= ll_getattr,
+	.permission		= ll_inode_permission,
+	.listxattr		= ll_listxattr,
+	.get_acl		= ll_get_acl,
 };
 
 const struct inode_operations ll_special_inode_operations = {
-	.setattr	= ll_setattr,
-	.getattr	= ll_getattr,
-	.permission     = ll_inode_permission,
-	.listxattr      = ll_listxattr,
-	.get_acl	    = ll_get_acl,
+	.setattr		= ll_setattr,
+	.getattr		= ll_getattr,
+	.permission		= ll_inode_permission,
+	.listxattr		= ll_listxattr,
+	.get_acl		= ll_get_acl,
 };

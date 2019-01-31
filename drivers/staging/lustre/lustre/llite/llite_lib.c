@@ -185,25 +185,25 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	data->ocd_grant_blkbits = PAGE_SHIFT;
 
 	/* indicate the features supported by this client */
-	data->ocd_connect_flags = OBD_CONNECT_IBITS    | OBD_CONNECT_NODEVOH  |
-				  OBD_CONNECT_ATTRFID  |
-				  OBD_CONNECT_VERSION  | OBD_CONNECT_BRW_SIZE |
-				  OBD_CONNECT_CANCELSET | OBD_CONNECT_FID     |
-				  OBD_CONNECT_AT       | OBD_CONNECT_LOV_V3   |
-				  OBD_CONNECT_VBR	| OBD_CONNECT_FULL20  |
+	data->ocd_connect_flags = OBD_CONNECT_IBITS	| OBD_CONNECT_NODEVOH  |
+				  OBD_CONNECT_ATTRFID	|
+				  OBD_CONNECT_VERSION	| OBD_CONNECT_BRW_SIZE |
+				  OBD_CONNECT_CANCELSET | OBD_CONNECT_FID      |
+				  OBD_CONNECT_AT	| OBD_CONNECT_LOV_V3   |
+				  OBD_CONNECT_VBR	| OBD_CONNECT_FULL20   |
 				  OBD_CONNECT_64BITHASH |
 				  OBD_CONNECT_EINPROGRESS |
-				  OBD_CONNECT_JOBSTATS | OBD_CONNECT_LVB_TYPE |
-				  OBD_CONNECT_LAYOUTLOCK |
-				  OBD_CONNECT_PINGLESS |
-				  OBD_CONNECT_MAX_EASIZE |
-				  OBD_CONNECT_FLOCK_DEAD |
+				  OBD_CONNECT_JOBSTATS	| OBD_CONNECT_LVB_TYPE |
+				  OBD_CONNECT_LAYOUTLOCK  |
+				  OBD_CONNECT_PINGLESS	|
+				  OBD_CONNECT_MAX_EASIZE  |
+				  OBD_CONNECT_FLOCK_DEAD  |
 				  OBD_CONNECT_DISP_STRIPE | OBD_CONNECT_LFSCK |
 				  OBD_CONNECT_OPEN_BY_FID |
-				  OBD_CONNECT_DIR_STRIPE |
-				  OBD_CONNECT_BULK_MBITS |
-				  OBD_CONNECT_SUBTREE |
-				  OBD_CONNECT_FLAGS2 | OBD_CONNECT_MULTIMODRPCS;
+				  OBD_CONNECT_DIR_STRIPE  |
+				  OBD_CONNECT_BULK_MBITS  |
+				  OBD_CONNECT_SUBTREE	  |
+				  OBD_CONNECT_FLAGS2	  | OBD_CONNECT_MULTIMODRPCS;
 
 	data->ocd_connect_flags2 = 0;
 
@@ -382,9 +382,9 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 				  OBD_CONNECT_VBR	| OBD_CONNECT_FULL20   |
 				  OBD_CONNECT_64BITHASH | OBD_CONNECT_MAXBYTES |
 				  OBD_CONNECT_EINPROGRESS |
-				  OBD_CONNECT_JOBSTATS | OBD_CONNECT_LVB_TYPE |
-				  OBD_CONNECT_LAYOUTLOCK |
-				  OBD_CONNECT_PINGLESS | OBD_CONNECT_LFSCK |
+				  OBD_CONNECT_JOBSTATS	| OBD_CONNECT_LVB_TYPE |
+				  OBD_CONNECT_LAYOUTLOCK  |
+				  OBD_CONNECT_PINGLESS	| OBD_CONNECT_LFSCK |
 				  OBD_CONNECT_BULK_MBITS;
 
 	data->ocd_connect_flags2 = 0;
@@ -913,13 +913,13 @@ int ll_fill_super(struct super_block *sb)
 	struct lustre_profile *lprof = NULL;
 	struct lustre_sb_info *lsi = s2lsi(sb);
 	struct ll_sb_info *sbi;
-	char  *dt = NULL, *md = NULL;
-	char  *profilenm = get_profile_name(sb);
+	char *dt = NULL, *md = NULL;
+	char *profilenm = get_profile_name(sb);
 	struct config_llog_instance *cfg;
 	char name[MAX_STRING_SIZE];
 	char *ptr;
 	int len;
-	int    err;
+	int err;
 	static atomic_t ll_bdi_num = ATOMIC_INIT(0);
 
 	CDEBUG(D_VFSTRACE, "VFS Op: sb %p\n", sb);
@@ -2073,7 +2073,7 @@ int ll_iocontrol(struct inode *inode, struct file *file,
 
 int ll_flush_ctx(struct inode *inode)
 {
-	struct ll_sb_info  *sbi = ll_i2sbi(inode);
+	struct ll_sb_info *sbi = ll_i2sbi(inode);
 
 	CDEBUG(D_SEC, "flush context for user %d\n",
 	       from_kuid(&init_user_ns, current_uid()));
@@ -2186,10 +2186,10 @@ int ll_remount_fs(struct super_block *sb, int *flags, char *data)
  */
 void ll_open_cleanup(struct super_block *sb, struct ptlrpc_request *open_req)
 {
-	struct mdt_body			*body;
-	struct md_op_data		*op_data;
-	struct ptlrpc_request		*close_req = NULL;
-	struct obd_export		*exp	   = ll_s2sbi(sb)->ll_md_exp;
+	struct mdt_body	*body;
+	struct md_op_data *op_data;
+	struct ptlrpc_request *close_req = NULL;
+	struct obd_export *exp = ll_s2sbi(sb)->ll_md_exp;
 
 	body = req_capsule_server_get(&open_req->rq_pill, &RMF_MDT_BODY);
 	op_data = kzalloc(sizeof(*op_data), GFP_NOFS);

@@ -65,7 +65,7 @@ blkcnt_t dirty_cnt(struct inode *inode)
 {
 	blkcnt_t cnt = 0;
 	struct vvp_object *vob = cl_inode2vvp(inode);
-	void	      *results[1];
+	void *results[1];
 
 	if (inode->i_mapping)
 		cnt += radix_tree_gang_lookup_tag(&inode->i_mapping->i_pages,
@@ -80,7 +80,7 @@ blkcnt_t dirty_cnt(struct inode *inode)
 int cl_glimpse_lock(const struct lu_env *env, struct cl_io *io,
 		    struct inode *inode, struct cl_object *clob, int agl)
 {
-	const struct lu_fid  *fid   = lu_object_fid(&clob->co_lu);
+	const struct lu_fid *fid = lu_object_fid(&clob->co_lu);
 	struct cl_lock *lock = vvp_env_lock(env);
 	struct cl_lock_descr *descr = &lock->cll_descr;
 	int result = 0;
@@ -140,10 +140,10 @@ int cl_glimpse_lock(const struct lu_env *env, struct cl_io *io,
 static int cl_io_get(struct inode *inode, struct lu_env **envout,
 		     struct cl_io **ioout, u16 *refcheck)
 {
-	struct lu_env	  *env;
-	struct cl_io	   *io;
-	struct ll_inode_info	*lli = ll_i2info(inode);
-	struct cl_object       *clob = lli->lli_clob;
+	struct lu_env *env;
+	struct cl_io *io;
+	struct ll_inode_info *lli = ll_i2info(inode);
+	struct cl_object *clob = lli->lli_clob;
 	int result;
 
 	if (S_ISREG(inode->i_mode)) {
@@ -175,9 +175,9 @@ int __cl_glimpse_size(struct inode *inode, int agl)
 	 * cl_glimpse_size(), which doesn't make sense: glimpse locks are not
 	 * blocking anyway.
 	 */
-	struct lu_env	  *env = NULL;
-	struct cl_io	   *io  = NULL;
-	int		     result;
+	struct lu_env *env = NULL;
+	struct cl_io *io  = NULL;
+	int result;
 	u16 refcheck;
 
 	result = cl_io_get(inode, &env, &io, &refcheck);

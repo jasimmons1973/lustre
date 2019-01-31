@@ -1119,7 +1119,7 @@ static void ll_io_init(struct cl_io *io, const struct file *file, int write)
 				      file->f_flags & O_DIRECT ||
 				      IS_SYNC(inode);
 	}
-	io->ci_obj     = ll_i2info(inode)->lli_clob;
+	io->ci_obj = ll_i2info(inode)->lli_clob;
 	io->ci_lockreq = CILR_MAYBE;
 	if (ll_file_nolock(file)) {
 		io->ci_lockreq = CILR_NEVER;
@@ -1137,10 +1137,10 @@ ll_file_io_generic(const struct lu_env *env, struct vvp_io_args *args,
 		   loff_t *ppos, size_t count)
 {
 	struct ll_inode_info *lli = ll_i2info(file_inode(file));
-	struct ll_file_data  *fd  = LUSTRE_FPRIVATE(file);
+	struct ll_file_data *fd = LUSTRE_FPRIVATE(file);
 	struct vvp_io *vio = vvp_env_io(env);
 	struct range_lock range;
-	struct cl_io	 *io;
+	struct cl_io *io;
 	ssize_t result = 0;
 	int rc = 0;
 
@@ -1311,9 +1311,9 @@ ll_do_fast_read(const struct lu_env *env, struct kiocb *iocb,
 
 static ssize_t ll_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 {
-	struct lu_env      *env;
+	struct lu_env *env;
 	struct vvp_io_args *args;
-	ssize_t	     result;
+	ssize_t result;
 	u16 refcheck;
 	ssize_t rc2;
 
@@ -1346,9 +1346,9 @@ out:
  */
 static ssize_t ll_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 {
-	struct lu_env      *env;
+	struct lu_env *env;
 	struct vvp_io_args *args;
-	ssize_t	     result;
+	ssize_t result;
 	u16 refcheck;
 
 	env = cl_env_get(&refcheck);
@@ -1393,7 +1393,7 @@ int ll_lov_getstripe_ea_info(struct inode *inode, const char *filename,
 			     struct ptlrpc_request **request)
 {
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
-	struct mdt_body  *body;
+	struct mdt_body *body;
 	struct lov_mds_md *lmm = NULL;
 	struct ptlrpc_request *req = NULL;
 	struct md_op_data *op_data;
@@ -1439,7 +1439,7 @@ int ll_lov_getstripe_ea_info(struct inode *inode, const char *filename,
 
 	/*
 	 * This is coming from the MDS, so is probably in
-	 * little endian.  We convert it to host endian before
+	 * little endian. We convert it to host endian before
 	 * passing it to userspace.
 	 */
 	if (cpu_to_le32(LOV_MAGIC) != LOV_MAGIC) {
@@ -1483,11 +1483,11 @@ out:
 static int ll_lov_setea(struct inode *inode, struct file *file,
 			void __user *arg)
 {
-	u64			 flags = MDS_OPEN_HAS_OBJS | FMODE_WRITE;
-	struct lov_user_md	*lump;
-	int			 lum_size = sizeof(struct lov_user_md) +
-					    sizeof(struct lov_user_ost_data);
-	int			 rc;
+	u64 flags = MDS_OPEN_HAS_OBJS | FMODE_WRITE;
+	struct lov_user_md *lump;
+	int lum_size = sizeof(struct lov_user_md) +
+		       sizeof(struct lov_user_ost_data);
+	int rc;
 
 	if (!capable(CAP_SYS_ADMIN))
 		return -EPERM;
@@ -1562,11 +1562,11 @@ out:
 static int
 ll_get_grouplock(struct inode *inode, struct file *file, unsigned long arg)
 {
-	struct ll_inode_info   *lli = ll_i2info(inode);
-	struct ll_file_data    *fd = LUSTRE_FPRIVATE(file);
+	struct ll_inode_info *lli = ll_i2info(inode);
+	struct ll_file_data *fd = LUSTRE_FPRIVATE(file);
 	struct cl_object *obj = lli->lli_clob;
-	struct ll_grouplock    grouplock;
-	int		     rc;
+	struct ll_grouplock grouplock;
+	int rc;
 
 	if (arg == 0) {
 		CWARN("group id for group lock must not be 0\n");
@@ -1635,9 +1635,9 @@ ll_get_grouplock(struct inode *inode, struct file *file, unsigned long arg)
 static int ll_put_grouplock(struct inode *inode, struct file *file,
 			    unsigned long arg)
 {
-	struct ll_inode_info   *lli = ll_i2info(inode);
-	struct ll_file_data    *fd = LUSTRE_FPRIVATE(file);
-	struct ll_grouplock    grouplock;
+	struct ll_inode_info *lli = ll_i2info(inode);
+	struct ll_file_data *fd = LUSTRE_FPRIVATE(file);
+	struct ll_grouplock grouplock;
 
 	spin_lock(&lli->lli_lock);
 	if (!(fd->fd_flags & LL_FILE_GROUP_LOCKED)) {
@@ -1931,12 +1931,12 @@ struct ll_swap_stack {
 static int ll_swap_layouts(struct file *file1, struct file *file2,
 			   struct lustre_swap_layouts *lsl)
 {
-	struct mdc_swap_layouts	 msl;
-	struct md_op_data	*op_data;
-	u32			 gid;
-	u64			 dv;
-	struct ll_swap_stack	*llss = NULL;
-	int			 rc;
+	struct mdc_swap_layouts msl;
+	struct md_op_data *op_data;
+	u32 gid;
+	u64 dv;
+	struct ll_swap_stack *llss = NULL;
+	int rc;
 
 	llss = kzalloc(sizeof(*llss), GFP_KERNEL);
 	if (!llss)
@@ -2041,8 +2041,8 @@ free:
 
 int ll_hsm_state_set(struct inode *inode, struct hsm_state_set *hss)
 {
-	struct md_op_data	*op_data;
-	int			 rc;
+	struct md_op_data *op_data;
+	int rc;
 
 	/* Detect out-of range masks */
 	if ((hss->hss_setmask | hss->hss_clearmask) & ~HSM_FLAGS_MASK)
@@ -2076,9 +2076,9 @@ int ll_hsm_state_set(struct inode *inode, struct hsm_state_set *hss)
 static int ll_hsm_import(struct inode *inode, struct file *file,
 			 struct hsm_user_import *hui)
 {
-	struct hsm_state_set	*hss = NULL;
-	struct iattr		*attr = NULL;
-	int			 rc;
+	struct hsm_state_set *hss = NULL;
+	struct iattr *attr = NULL;
+	int rc;
 
 	if (!S_ISREG(inode->i_mode))
 		return -EINVAL;
@@ -2303,9 +2303,9 @@ out_fsxattr:
 static long
 ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	struct inode		*inode = file_inode(file);
-	struct ll_file_data	*fd = LUSTRE_FPRIVATE(file);
-	int			 flags, rc;
+	struct inode *inode = file_inode(file);
+	struct ll_file_data *fd = LUSTRE_FPRIVATE(file);
+	int flags, rc;
 
 	CDEBUG(D_VFSTRACE, "VFS Op:inode=" DFID "(%p),cmd=%x\n",
 	       PFID(ll_inode2fid(inode)), inode, cmd);
@@ -2434,7 +2434,7 @@ out:
 		return ll_fid2path(inode, (void __user *)arg);
 	case LL_IOC_DATA_VERSION: {
 		struct ioc_data_version	idv;
-		int			rc;
+		int rc;
 
 		if (copy_from_user(&idv, (char __user *)arg, sizeof(idv)))
 			return -EFAULT;
@@ -2464,9 +2464,9 @@ out:
 	case OBD_IOC_GETMDNAME:
 		return ll_get_obd_name(inode, cmd, arg);
 	case LL_IOC_HSM_STATE_GET: {
-		struct md_op_data	*op_data;
-		struct hsm_user_state	*hus;
-		int			 rc;
+		struct md_op_data *op_data;
+		struct hsm_user_state *hus;
+		int rc;
 
 		hus = kzalloc(sizeof(*hus), GFP_KERNEL);
 		if (!hus)
@@ -2490,8 +2490,8 @@ out:
 		return rc;
 	}
 	case LL_IOC_HSM_STATE_SET: {
-		struct hsm_state_set	*hss;
-		int			 rc;
+		struct hsm_state_set *hss;
+		int rc;
 
 		hss = memdup_user((char __user *)arg, sizeof(*hss));
 		if (IS_ERR(hss))
@@ -2503,9 +2503,9 @@ out:
 		return rc;
 	}
 	case LL_IOC_HSM_ACTION: {
-		struct md_op_data		*op_data;
-		struct hsm_current_action	*hca;
-		int				 rc;
+		struct md_op_data *op_data;
+		struct hsm_current_action *hca;
+		int rc;
 
 		hca = kzalloc(sizeof(*hca), GFP_KERNEL);
 		if (!hca)
@@ -3564,56 +3564,56 @@ int ll_inode_permission(struct inode *inode, int mask)
 
 /* -o localflock - only provides locally consistent flock locks */
 const struct file_operations ll_file_operations = {
-	.read_iter = ll_file_read_iter,
-	.write_iter = ll_file_write_iter,
-	.unlocked_ioctl = ll_file_ioctl,
-	.open	   = ll_file_open,
-	.release	= ll_file_release,
-	.mmap	   = ll_file_mmap,
-	.llseek	 = ll_file_seek,
-	.splice_read    = generic_file_splice_read,
-	.fsync	  = ll_fsync,
-	.flush	  = ll_flush
+	.read_iter		= ll_file_read_iter,
+	.write_iter		= ll_file_write_iter,
+	.unlocked_ioctl		= ll_file_ioctl,
+	.open			= ll_file_open,
+	.release		= ll_file_release,
+	.mmap			= ll_file_mmap,
+	.llseek			= ll_file_seek,
+	.splice_read		= generic_file_splice_read,
+	.fsync			= ll_fsync,
+	.flush			= ll_flush
 };
 
 const struct file_operations ll_file_operations_flock = {
-	.read_iter    = ll_file_read_iter,
-	.write_iter   = ll_file_write_iter,
-	.unlocked_ioctl = ll_file_ioctl,
-	.open	   = ll_file_open,
-	.release	= ll_file_release,
-	.mmap	   = ll_file_mmap,
-	.llseek	 = ll_file_seek,
-	.splice_read    = generic_file_splice_read,
-	.fsync	  = ll_fsync,
-	.flush	  = ll_flush,
-	.flock	  = ll_file_flock,
-	.lock	   = ll_file_flock
+	.read_iter		= ll_file_read_iter,
+	.write_iter		= ll_file_write_iter,
+	.unlocked_ioctl		= ll_file_ioctl,
+	.open			= ll_file_open,
+	.release		= ll_file_release,
+	.mmap			= ll_file_mmap,
+	.llseek			= ll_file_seek,
+	.splice_read		= generic_file_splice_read,
+	.fsync			= ll_fsync,
+	.flush			= ll_flush,
+	.flock			= ll_file_flock,
+	.lock			= ll_file_flock
 };
 
 /* These are for -o noflock - to return ENOSYS on flock calls */
 const struct file_operations ll_file_operations_noflock = {
-	.read_iter    = ll_file_read_iter,
-	.write_iter   = ll_file_write_iter,
-	.unlocked_ioctl = ll_file_ioctl,
-	.open	   = ll_file_open,
-	.release	= ll_file_release,
-	.mmap	   = ll_file_mmap,
-	.llseek	 = ll_file_seek,
-	.splice_read    = generic_file_splice_read,
-	.fsync	  = ll_fsync,
-	.flush	  = ll_flush,
-	.flock	  = ll_file_noflock,
-	.lock	   = ll_file_noflock
+	.read_iter		= ll_file_read_iter,
+	.write_iter		= ll_file_write_iter,
+	.unlocked_ioctl		= ll_file_ioctl,
+	.open			= ll_file_open,
+	.release		= ll_file_release,
+	.mmap			= ll_file_mmap,
+	.llseek			= ll_file_seek,
+	.splice_read		= generic_file_splice_read,
+	.fsync			= ll_fsync,
+	.flush			= ll_flush,
+	.flock			= ll_file_noflock,
+	.lock			= ll_file_noflock
 };
 
 const struct inode_operations ll_file_inode_operations = {
-	.setattr	= ll_setattr,
-	.getattr	= ll_getattr,
-	.permission	= ll_inode_permission,
-	.listxattr	= ll_listxattr,
-	.fiemap		= ll_fiemap,
-	.get_acl	= ll_get_acl,
+	.setattr		= ll_setattr,
+	.getattr		= ll_getattr,
+	.permission		= ll_inode_permission,
+	.listxattr		= ll_listxattr,
+	.fiemap			= ll_fiemap,
+	.get_acl		= ll_get_acl,
 };
 
 int ll_layout_conf(struct inode *inode, const struct cl_object_conf *conf)
@@ -3746,7 +3746,7 @@ static int ll_layout_lock_set(struct lustre_handle *lockh, enum ldlm_mode mode,
 			      struct inode *inode)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
-	struct ll_sb_info    *sbi = ll_i2sbi(inode);
+	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	struct ldlm_lock *lock;
 	struct cl_object_conf conf;
 	int rc = 0;
@@ -3834,10 +3834,10 @@ out:
  */
 static int ll_layout_intent(struct inode *inode, struct layout_intent *intent)
 {
-	struct ll_inode_info  *lli = ll_i2info(inode);
-	struct ll_sb_info     *sbi = ll_i2sbi(inode);
-	struct md_op_data     *op_data;
-	struct lookup_intent   it;
+	struct ll_inode_info *lli = ll_i2info(inode);
+	struct ll_sb_info *sbi = ll_i2sbi(inode);
+	struct md_op_data *op_data;
+	struct lookup_intent it;
 	struct ptlrpc_request *req;
 	int rc;
 
@@ -3966,7 +3966,7 @@ int ll_layout_write_intent(struct inode *inode, u64 start, u64 end)
 int ll_layout_restore(struct inode *inode, loff_t offset, u64 length)
 {
 	struct hsm_user_request	*hur;
-	int			 len, rc;
+	int len, rc;
 
 	len = sizeof(struct hsm_user_request) +
 	      sizeof(struct hsm_user_item);

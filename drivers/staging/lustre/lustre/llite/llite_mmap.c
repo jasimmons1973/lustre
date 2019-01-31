@@ -90,11 +90,11 @@ static struct cl_io *
 ll_fault_io_init(struct lu_env *env, struct vm_area_struct *vma,
 		 pgoff_t index, unsigned long *ra_flags)
 {
-	struct file	       *file = vma->vm_file;
-	struct inode	       *inode = file_inode(file);
-	struct cl_io	       *io;
-	struct cl_fault_io     *fio;
-	int			rc;
+	struct file *file = vma->vm_file;
+	struct inode *inode = file_inode(file);
+	struct cl_io *io;
+	struct cl_fault_io *fio;
+	int rc;
 
 	if (ll_file_nolock(file))
 		return ERR_PTR(-EOPNOTSUPP);
@@ -105,7 +105,7 @@ restart:
 	LASSERT(io->ci_obj);
 
 	fio = &io->u.ci_fault;
-	fio->ft_index      = index;
+	fio->ft_index = index;
 	fio->ft_executable = vma->vm_flags & VM_EXEC;
 
 	/*
@@ -146,14 +146,14 @@ restart:
 static int __ll_page_mkwrite(struct vm_area_struct *vma, struct page *vmpage,
 			     bool *retry)
 {
-	struct lu_env	   *env;
-	struct cl_io	    *io;
-	struct vvp_io	   *vio;
-	int		      result;
+	struct lu_env *env;
+	struct cl_io *io;
+	struct vvp_io *vio;
+	int result;
 	u16 refcheck;
-	sigset_t	     old, new;
-	struct inode	     *inode;
-	struct ll_inode_info     *lli;
+	sigset_t old, new;
+	struct inode *inode;
+	struct ll_inode_info *lli;
 
 	env = cl_env_get(&refcheck);
 	if (IS_ERR(env))
@@ -173,7 +173,7 @@ static int __ll_page_mkwrite(struct vm_area_struct *vma, struct page *vmpage,
 	io->u.ci_fault.ft_writable = 1;
 
 	vio = vvp_env_io(env);
-	vio->u.fault.ft_vma    = vma;
+	vio->u.fault.ft_vma = vma;
 	vio->u.fault.ft_vmpage = vmpage;
 
 	siginitsetinv(&new, sigmask(SIGKILL) | sigmask(SIGTERM));
@@ -263,13 +263,13 @@ static inline vm_fault_t to_fault_error(int result)
  */
 static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 {
-	struct lu_env	   *env;
-	struct cl_io	    *io;
-	struct vvp_io	   *vio = NULL;
-	struct page	     *vmpage;
-	unsigned long	    ra_flags;
-	int		      result = 0;
-	vm_fault_t		fault_ret = 0;
+	struct lu_env *env;
+	struct cl_io *io;
+	struct vvp_io *vio = NULL;
+	struct page *vmpage;
+	unsigned long ra_flags;
+	int result = 0;
+	vm_fault_t fault_ret = 0;
 	u16 refcheck;
 
 	env = cl_env_get(&refcheck);
@@ -307,8 +307,8 @@ static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 	result = io->ci_result;
 	if (result == 0) {
 		vio = vvp_env_io(env);
-		vio->u.fault.ft_vma       = vma;
-		vio->u.fault.ft_vmpage    = NULL;
+		vio->u.fault.ft_vma = vma;
+		vio->u.fault.ft_vmpage = NULL;
 		vio->u.fault.ft_vmf = vmf;
 		vio->u.fault.ft_flags = 0;
 		vio->u.fault.ft_flags_valid = false;
@@ -444,7 +444,7 @@ static vm_fault_t ll_page_mkwrite(struct vm_fault *vmf)
  */
 static void ll_vm_open(struct vm_area_struct *vma)
 {
-	struct inode *inode    = file_inode(vma->vm_file);
+	struct inode *inode = file_inode(vma->vm_file);
 	struct vvp_object *vob = cl_inode2vvp(inode);
 
 	LASSERT(atomic_read(&vob->vob_mmap_cnt) >= 0);
@@ -456,8 +456,8 @@ static void ll_vm_open(struct vm_area_struct *vma)
  */
 static void ll_vm_close(struct vm_area_struct *vma)
 {
-	struct inode      *inode = file_inode(vma->vm_file);
-	struct vvp_object *vob   = cl_inode2vvp(inode);
+	struct inode *inode = file_inode(vma->vm_file);
+	struct vvp_object *vob = cl_inode2vvp(inode);
 
 	atomic_dec(&vob->vob_mmap_cnt);
 	LASSERT(atomic_read(&vob->vob_mmap_cnt) >= 0);

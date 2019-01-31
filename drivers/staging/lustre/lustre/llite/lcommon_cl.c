@@ -83,8 +83,8 @@ int cl_setattr_ost(struct cl_object *obj, const struct iattr *attr,
 		   enum op_xvalid xvalid, unsigned int attr_flags)
 {
 	struct lu_env *env;
-	struct cl_io  *io;
-	int	    result;
+	struct cl_io *io;
+	int result;
 	u16 refcheck;
 
 	env = cl_env_get(&refcheck);
@@ -137,11 +137,11 @@ again:
  */
 int cl_file_inode_init(struct inode *inode, struct lustre_md *md)
 {
-	struct lu_env	*env;
+	struct lu_env *env;
 	struct ll_inode_info *lli;
-	struct cl_object     *clob;
-	struct lu_site       *site;
-	struct lu_fid	*fid;
+	struct cl_object *clob;
+	struct lu_site *site;
+	struct lu_fid *fid;
 	struct cl_object_conf conf = {
 		.coc_inode = inode,
 		.u = {
@@ -159,8 +159,8 @@ int cl_file_inode_init(struct inode *inode, struct lustre_md *md)
 		return PTR_ERR(env);
 
 	site = ll_i2sbi(inode)->ll_site;
-	lli  = ll_i2info(inode);
-	fid  = &lli->lli_fid;
+	lli = ll_i2info(inode);
+	fid = &lli->lli_fid;
 	LASSERT(fid_is_sane(fid));
 
 	if (!lli->lli_clob) {
@@ -207,7 +207,7 @@ int cl_file_inode_init(struct inode *inode, struct lustre_md *md)
 static void cl_object_put_last(struct lu_env *env, struct cl_object *obj)
 {
 	struct lu_object_header *header = obj->co_lu.lo_header;
-	wait_queue_entry_t	   waiter;
+	wait_queue_entry_t waiter;
 
 	if (unlikely(atomic_read(&header->loh_ref) != 1)) {
 		struct lu_site *site = obj->co_lu.lo_dev->ld_site;
@@ -234,9 +234,9 @@ static void cl_object_put_last(struct lu_env *env, struct cl_object *obj)
 
 void cl_inode_fini(struct inode *inode)
 {
-	struct lu_env	   *env;
-	struct ll_inode_info    *lli  = ll_i2info(inode);
-	struct cl_object	*clob = lli->lli_clob;
+	struct lu_env *env;
+	struct ll_inode_info *lli = ll_i2info(inode);
+	struct cl_object *clob = lli->lli_clob;
 	u16 refcheck;
 	int emergency;
 
