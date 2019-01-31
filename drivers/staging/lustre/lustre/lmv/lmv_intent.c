@@ -54,15 +54,15 @@ static int lmv_intent_remote(struct obd_export *exp, struct lookup_intent *it,
 			     ldlm_blocking_callback cb_blocking,
 			     u64 extra_lock_flags)
 {
-	struct obd_device	*obd = exp->exp_obd;
-	struct lmv_obd		*lmv = &obd->u.lmv;
-	struct ptlrpc_request	*req = NULL;
-	struct lustre_handle	plock;
-	struct md_op_data	*op_data;
-	struct lmv_tgt_desc	*tgt;
-	struct mdt_body		*body;
-	int			pmode;
-	int			rc = 0;
+	struct obd_device *obd = exp->exp_obd;
+	struct lmv_obd *lmv = &obd->u.lmv;
+	struct ptlrpc_request *req = NULL;
+	struct lustre_handle plock;
+	struct md_op_data *op_data;
+	struct lmv_tgt_desc *tgt;
+	struct mdt_body	*body;
+	int pmode;
+	int rc = 0;
 
 	body = req_capsule_server_get(&(*reqp)->rq_pill, &RMF_MDT_BODY);
 	if (!body)
@@ -264,11 +264,11 @@ static int lmv_intent_open(struct obd_export *exp, struct md_op_data *op_data,
 			   ldlm_blocking_callback cb_blocking,
 			   u64 extra_lock_flags)
 {
-	struct obd_device	*obd = exp->exp_obd;
-	struct lmv_obd		*lmv = &obd->u.lmv;
-	struct lmv_tgt_desc	*tgt;
-	struct mdt_body		*body;
-	int			rc;
+	struct obd_device *obd = exp->exp_obd;
+	struct lmv_obd *lmv = &obd->u.lmv;
+	struct lmv_tgt_desc *tgt;
+	struct mdt_body	*body;
+	int rc;
 
 	if (it->it_flags & MDS_OPEN_BY_FID) {
 		LASSERT(fid_is_sane(&op_data->op_fid2));
@@ -356,11 +356,11 @@ static int lmv_intent_lookup(struct obd_export *exp,
 			     u64 extra_lock_flags)
 {
 	struct lmv_stripe_md *lsm = op_data->op_mea1;
-	struct obd_device      *obd = exp->exp_obd;
-	struct lmv_obd	 *lmv = &obd->u.lmv;
-	struct lmv_tgt_desc    *tgt = NULL;
+	struct obd_device *obd = exp->exp_obd;
+	struct lmv_obd *lmv = &obd->u.lmv;
+	struct lmv_tgt_desc *tgt = NULL;
 	struct mdt_body	*body;
-	int		     rc = 0;
+	int rc = 0;
 
 	/*
 	 * If it returns ERR_PTR(-EBADFD) then it is an unknown hash type
@@ -477,7 +477,7 @@ int lmv_intent_lock(struct obd_export *exp, struct md_op_data *op_data,
 		    ldlm_blocking_callback cb_blocking,
 		    u64 extra_lock_flags)
 {
-	int		rc;
+	int rc;
 
 	LASSERT(fid_is_sane(&op_data->op_fid1));
 

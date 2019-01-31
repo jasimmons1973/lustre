@@ -78,8 +78,8 @@ LUSTRE_RO_ATTR(desc_uuid);
 
 static void *lmv_tgt_seq_start(struct seq_file *p, loff_t *pos)
 {
-	struct obd_device       *dev = p->private;
-	struct lmv_obd	  *lmv = &dev->u.lmv;
+	struct obd_device *dev = p->private;
+	struct lmv_obd *lmv = &dev->u.lmv;
 
 	while (*pos < lmv->tgts_size) {
 		if (lmv->tgts[*pos])
@@ -96,8 +96,8 @@ static void lmv_tgt_seq_stop(struct seq_file *p, void *v)
 
 static void *lmv_tgt_seq_next(struct seq_file *p, void *v, loff_t *pos)
 {
-	struct obd_device       *dev = p->private;
-	struct lmv_obd	  *lmv = &dev->u.lmv;
+	struct obd_device *dev = p->private;
+	struct lmv_obd *lmv = &dev->u.lmv;
 
 	++*pos;
 	while (*pos < lmv->tgts_size) {
@@ -106,12 +106,12 @@ static void *lmv_tgt_seq_next(struct seq_file *p, void *v, loff_t *pos)
 		++*pos;
 	}
 
-	return  NULL;
+	return NULL;
 }
 
 static int lmv_tgt_seq_show(struct seq_file *p, void *v)
 {
-	struct lmv_tgt_desc     *tgt = v;
+	struct lmv_tgt_desc *tgt = v;
 
 	if (!tgt)
 		return 0;
@@ -123,16 +123,16 @@ static int lmv_tgt_seq_show(struct seq_file *p, void *v)
 }
 
 static const struct seq_operations lmv_tgt_sops = {
-	.start		 = lmv_tgt_seq_start,
-	.stop		  = lmv_tgt_seq_stop,
-	.next		  = lmv_tgt_seq_next,
-	.show		  = lmv_tgt_seq_show,
+	.start		= lmv_tgt_seq_start,
+	.stop		= lmv_tgt_seq_stop,
+	.next		= lmv_tgt_seq_next,
+	.show		= lmv_tgt_seq_show,
 };
 
 static int lmv_target_seq_open(struct inode *inode, struct file *file)
 {
-	struct seq_file	 *seq;
-	int		     rc;
+	struct seq_file *seq;
+	int rc;
 
 	rc = seq_open(file, &lmv_tgt_sops);
 	if (rc)
