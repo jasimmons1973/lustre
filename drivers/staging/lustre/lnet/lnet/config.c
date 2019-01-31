@@ -82,7 +82,7 @@ lnet_issep(char c)
 }
 
 bool
-lnet_net_unique(__u32 net_id, struct list_head *netlist,
+lnet_net_unique(u32 net_id, struct list_head *netlist,
 		struct lnet_net **net)
 {
 	struct lnet_net *net_l;
@@ -136,7 +136,7 @@ lnet_ni_unique_ni(char *iface_list[LNET_INTERFACES_NUM], char *iface)
 }
 
 static bool
-in_array(__u32 *array, __u32 size, __u32 value)
+in_array(u32 *array, u32 size, u32 value)
 {
 	int i;
 
@@ -149,9 +149,9 @@ in_array(__u32 *array, __u32 size, __u32 value)
 }
 
 static int
-lnet_net_append_cpts(__u32 *cpts, __u32 ncpts, struct lnet_net *net)
+lnet_net_append_cpts(u32 *cpts, u32 ncpts, struct lnet_net *net)
 {
-	__u32 *added_cpts = NULL;
+	u32 *added_cpts = NULL;
 	int i, j = 0, rc = 0;
 
 	/*
@@ -193,8 +193,8 @@ lnet_net_append_cpts(__u32 *cpts, __u32 ncpts, struct lnet_net *net)
 
 	/* append the new cpts if any to the list of cpts in the net */
 	if (j > 0) {
-		__u32 *array = NULL, *loc;
-		__u32 total_entries = j + net->net_ncpts;
+		u32 *array = NULL, *loc;
+		u32 total_entries = j + net->net_ncpts;
 
 		array = kmalloc_array(total_entries, sizeof(*net->net_cpts),
 				      GFP_KERNEL);
@@ -220,7 +220,7 @@ failed:
 }
 
 static void
-lnet_net_remove_cpts(__u32 *cpts, __u32 ncpts, struct lnet_net *net)
+lnet_net_remove_cpts(u32 *cpts, u32 ncpts, struct lnet_net *net)
 {
 	struct lnet_ni *ni;
 	int rc;
@@ -344,7 +344,7 @@ lnet_net_free(struct lnet_net *net)
 }
 
 struct lnet_net *
-lnet_net_alloc(__u32 net_id, struct list_head *net_list)
+lnet_net_alloc(u32 net_id, struct list_head *net_list)
 {
 	struct lnet_net *net;
 
@@ -525,7 +525,7 @@ failed:
 }
 
 struct lnet_ni *
-lnet_ni_alloc_w_cpt_array(struct lnet_net *net, __u32 *cpts, __u32 ncpts,
+lnet_ni_alloc_w_cpt_array(struct lnet_net *net, u32 *cpts, u32 ncpts,
 			  char *iface)
 {
 	struct lnet_ni *ni;
@@ -573,7 +573,7 @@ lnet_parse_networks(struct list_head *netlist, char *networks,
 	char *str;
 	struct lnet_net *net;
 	struct lnet_ni *ni = NULL;
-	__u32 net_id;
+	u32 net_id;
 	int nnets = 0;
 
 	if (!networks) {
@@ -1098,7 +1098,7 @@ lnet_parse_route(char *str, int *im_a_router)
 	struct list_head gateways;
 	struct list_head *tmp1;
 	struct list_head *tmp2;
-	__u32 net;
+	u32 net;
 	lnet_nid_t nid;
 	struct lnet_text_buf *ltb;
 	struct lnet_text_buf *ltb1, *ltb2;
@@ -1107,7 +1107,7 @@ lnet_parse_route(char *str, int *im_a_router)
 	char *token = str;
 	int ntokens = 0;
 	int myrc = -1;
-	__u32 hops;
+	u32 hops;
 	int got_hops = 0;
 	unsigned int priority = 0;
 
@@ -1276,7 +1276,7 @@ lnet_parse_routes(char *routes, int *im_a_router)
 }
 
 static int
-lnet_match_network_token(char *token, int len, __u32 *ipaddrs, int nip)
+lnet_match_network_token(char *token, int len, u32 *ipaddrs, int nip)
 {
 	LIST_HEAD(list);
 	int rc;
@@ -1295,7 +1295,7 @@ lnet_match_network_token(char *token, int len, __u32 *ipaddrs, int nip)
 }
 
 static int
-lnet_match_network_tokens(char *net_entry, __u32 *ipaddrs, int nip)
+lnet_match_network_tokens(char *net_entry, u32 *ipaddrs, int nip)
 {
 	static char tokens[LNET_SINGLE_TEXTBUF_NOB];
 
@@ -1352,11 +1352,11 @@ lnet_match_network_tokens(char *net_entry, __u32 *ipaddrs, int nip)
 	return 1;
 }
 
-static __u32
+static u32
 lnet_netspec2net(char *netspec)
 {
 	char *bracket = strchr(netspec, '(');
-	__u32 net;
+	u32 net;
 
 	if (bracket)
 		*bracket = 0;
@@ -1379,7 +1379,7 @@ lnet_splitnets(char *source, struct list_head *nets)
 	struct lnet_text_buf *tb2;
 	char *sep;
 	char *bracket;
-	__u32 net;
+	u32 net;
 
 	LASSERT(!list_empty(nets));
 	LASSERT(nets->next == nets->prev);     /* single entry */
@@ -1447,7 +1447,7 @@ lnet_splitnets(char *source, struct list_head *nets)
 }
 
 static int
-lnet_match_networks(char **networksp, char *ip2nets, __u32 *ipaddrs, int nip)
+lnet_match_networks(char **networksp, char *ip2nets, u32 *ipaddrs, int nip)
 {
 	static char networks[LNET_SINGLE_TEXTBUF_NOB];
 	static char source[LNET_SINGLE_TEXTBUF_NOB];
@@ -1459,8 +1459,8 @@ lnet_match_networks(char **networksp, char *ip2nets, __u32 *ipaddrs, int nip)
 	struct list_head *t2;
 	struct lnet_text_buf *tb;
 	struct lnet_text_buf *tb2;
-	__u32 net1;
-	__u32 net2;
+	u32 net1;
+	u32 net2;
 	int len;
 	int count;
 	int dup;
@@ -1563,10 +1563,10 @@ lnet_match_networks(char **networksp, char *ip2nets, __u32 *ipaddrs, int nip)
 }
 
 static int
-lnet_ipaddr_enumerate(__u32 **ipaddrsp)
+lnet_ipaddr_enumerate(u32 **ipaddrsp)
 {
 	struct net_device *dev;
-	__u32 *ipaddrs;
+	u32 *ipaddrs;
 	int nalloc = 64;
 	int nip;
 
@@ -1594,7 +1594,7 @@ lnet_ipaddr_enumerate(__u32 **ipaddrsp)
 		}
 
 		if (nip >= nalloc) {
-			__u32 *ipaddrs2;
+			u32 *ipaddrs2;
 			nalloc += nalloc;
 			ipaddrs2 = krealloc(ipaddrs, nalloc * sizeof(*ipaddrs2),
 					    GFP_KERNEL);
@@ -1622,7 +1622,7 @@ lnet_ipaddr_enumerate(__u32 **ipaddrsp)
 int
 lnet_parse_ip2nets(char **networksp, char *ip2nets)
 {
-	__u32 *ipaddrs = NULL;
+	u32 *ipaddrs = NULL;
 	int nip = lnet_ipaddr_enumerate(&ipaddrs);
 	int rc;
 

@@ -104,7 +104,7 @@ static atomic_t lnet_dlc_seq_no = ATOMIC_INIT(0);
 static int lnet_ping(struct lnet_process_id id, signed long timeout,
 		     struct lnet_process_id __user *ids, int n_ids);
 
-static int lnet_discover(struct lnet_process_id id, __u32 force,
+static int lnet_discover(struct lnet_process_id id, u32 force,
 			 struct lnet_process_id __user *ids, int n_ids);
 
 static int
@@ -420,7 +420,7 @@ static void lnet_assert_wire_constants(void)
 }
 
 static struct lnet_lnd *
-lnet_find_lnd_by_type(__u32 type)
+lnet_find_lnd_by_type(u32 type)
 {
 	struct lnet_lnd *lnd;
 
@@ -632,7 +632,7 @@ lnet_res_containers_create(int type)
 }
 
 struct lnet_libhandle *
-lnet_res_lh_lookup(struct lnet_res_container *rec, __u64 cookie)
+lnet_res_lh_lookup(struct lnet_res_container *rec, u64 cookie)
 {
 	/* ALWAYS called with lnet_res_lock held */
 	struct list_head *head;
@@ -803,7 +803,7 @@ lnet_unprepare(void)
 }
 
 struct lnet_ni  *
-lnet_net2ni_locked(__u32 net_id, int cpt)
+lnet_net2ni_locked(u32 net_id, int cpt)
 {
 	struct lnet_ni *ni;
 	struct lnet_net *net;
@@ -822,7 +822,7 @@ lnet_net2ni_locked(__u32 net_id, int cpt)
 }
 
 struct lnet_ni *
-lnet_net2ni_addref(__u32 net)
+lnet_net2ni_addref(u32 net)
 {
 	struct lnet_ni *ni;
 
@@ -837,7 +837,7 @@ lnet_net2ni_addref(__u32 net)
 EXPORT_SYMBOL(lnet_net2ni_addref);
 
 struct lnet_net *
-lnet_get_net_locked(__u32 net_id)
+lnet_get_net_locked(u32 net_id)
 {
 	struct lnet_net *net;
 
@@ -852,7 +852,7 @@ lnet_get_net_locked(__u32 net_id)
 unsigned int
 lnet_nid_cpt_hash(lnet_nid_t nid, unsigned int number)
 {
-	__u64 key = nid;
+	u64 key = nid;
 	unsigned int val;
 
 	LASSERT(number >= 1 && number <= LNET_CPT_NUMBER);
@@ -920,7 +920,7 @@ lnet_cpt_of_nid(lnet_nid_t nid, struct lnet_ni *ni)
 EXPORT_SYMBOL(lnet_cpt_of_nid);
 
 int
-lnet_islocalnet(__u32 net_id)
+lnet_islocalnet(u32 net_id)
 {
 	struct lnet_net *net;
 	int cpt;
@@ -2234,7 +2234,7 @@ static void
 lnet_fill_ni_info(struct lnet_ni *ni, struct lnet_ioctl_config_ni *cfg_ni,
 		  struct lnet_ioctl_config_lnd_tunables *tun,
 		  struct lnet_ioctl_element_stats *stats,
-		  __u32 tun_size)
+		  u32 tun_size)
 {
 	size_t min_size = 0;
 	int i;
@@ -2471,7 +2471,7 @@ int
 lnet_get_ni_config(struct lnet_ioctl_config_ni *cfg_ni,
 		   struct lnet_ioctl_config_lnd_tunables *tun,
 		   struct lnet_ioctl_element_stats *stats,
-		   __u32 tun_size)
+		   u32 tun_size)
 {
 	struct lnet_ni *ni;
 	int cpt;
@@ -2848,7 +2848,7 @@ out_unlock_clean:
 }
 
 int
-lnet_dyn_del_net(__u32 net_id)
+lnet_dyn_del_net(u32 net_id)
 {
 	struct lnet_net *net;
 	struct lnet_ping_buffer *pbuf;
@@ -2980,7 +2980,7 @@ LNetCtl(unsigned int cmd, void *arg)
 		struct lnet_ioctl_config_ni *cfg_ni;
 		struct lnet_ioctl_config_lnd_tunables *tun = NULL;
 		struct lnet_ioctl_element_stats *stats;
-		__u32 tun_size;
+		u32 tun_size;
 
 		cfg_ni = arg;
 
@@ -3522,7 +3522,7 @@ static int lnet_ping(struct lnet_process_id id, signed long timeout,
 }
 
 static int
-lnet_discover(struct lnet_process_id id, __u32 force,
+lnet_discover(struct lnet_process_id id, u32 force,
 	      struct lnet_process_id __user *ids,
 	      int n_ids)
 {

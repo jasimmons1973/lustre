@@ -64,7 +64,7 @@ struct lnet_msg {
 	lnet_nid_t		msg_initiator;
 	/* where is it from, it's only for building event */
 	lnet_nid_t		msg_from;
-	__u32			msg_type;
+	u32			msg_type;
 
 	/*
 	 * hold parameters in case message is with held due
@@ -123,7 +123,7 @@ struct lnet_msg {
 
 struct lnet_libhandle {
 	struct list_head	lh_hash_chain;
-	__u64			lh_cookie;
+	u64			lh_cookie;
 };
 
 #define lh_entry(ptr, type, member) \
@@ -146,8 +146,8 @@ struct lnet_me {
 	struct lnet_process_id	 me_match_id;
 	unsigned int		 me_portal;
 	unsigned int		 me_pos;	/* hash offset in mt_hash */
-	__u64			 me_match_bits;
-	__u64			 me_ignore_bits;
+	u64			 me_match_bits;
+	u64			 me_ignore_bits;
 	enum lnet_unlink	 me_unlink;
 	struct lnet_libmd	*me_md;
 };
@@ -199,7 +199,7 @@ struct lnet_lnd {
 	int			lnd_refcount;	/* # active instances */
 
 	/* fields initialised by the LND */
-	__u32			lnd_type;
+	u32			lnd_type;
 
 	int  (*lnd_startup)(struct lnet_ni *ni);
 	void (*lnd_shutdown)(struct lnet_ni *ni);
@@ -306,13 +306,13 @@ struct lnet_net {
 	 * (net_type << 16) | net_num.
 	 * net_type can be one of the enumerated types defined in
 	 * lnet/include/lnet/nidstr.h */
-	__u32			net_id;
+	u32			net_id;
 
 	/* total number of CPTs in the array */
-	__u32			net_ncpts;
+	u32			net_ncpts;
 
 	/* cumulative CPTs of all NIs in this net */
-	__u32			*net_cpts;
+	u32			*net_cpts;
 
 	/* network tunables */
 	struct lnet_ioctl_config_lnd_cmn_tunables net_tunables;
@@ -343,7 +343,7 @@ struct lnet_ni {
 	int			ni_ncpts;
 
 	/* bond NI on some CPTs */
-	__u32			*ni_cpts;
+	u32			*ni_cpts;
 
 	/* interface's NID */
 	lnet_nid_t		ni_nid;
@@ -497,7 +497,7 @@ struct lnet_peer_ni {
 	/* sequence number used to round robin over peer nis within a net */
 	u32			lpni_seq;
 	/* sequence number used to round robin over gateways */
-	__u32			lpni_gw_seq;
+	u32			lpni_gw_seq;
 	/* health flag */
 	bool			lpni_healthy;
 	/* returned RC ping features. Protected with lpni_lock */
@@ -559,13 +559,13 @@ struct lnet_peer {
 	int			lp_data_nnis;
 
 	/* NI config sequence number of peer */
-	__u32			lp_peer_seqno;
+	u32			lp_peer_seqno;
 
 	/* Local NI config sequence number acked by peer */
-	__u32			lp_node_seqno;
+	u32			lp_node_seqno;
 
 	/* Local NI config sequence number sent to peer */
-	__u32			lp_node_seqno_sent;
+	u32			lp_node_seqno_sent;
 
 	/* Ping error encountered during discovery. */
 	int			lp_ping_error;
@@ -645,7 +645,7 @@ struct lnet_peer_net {
 	struct lnet_peer	*lpn_peer;
 
 	/* Net ID */
-	__u32			lpn_net_id;
+	u32			lpn_net_id;
 
 	/* reference count */
 	atomic_t		lpn_refcount;
@@ -706,13 +706,13 @@ struct lnet_route {
 	/* router node */
 	struct lnet_peer_ni	*lr_gateway;
 	/* remote network number */
-	__u32			lr_net;
+	u32			lr_net;
 	/* sequence for round-robin */
 	int			lr_seq;
 	/* number of down NIs */
 	unsigned int		lr_downis;
 	/* how far I am */
-	__u32			lr_hops;
+	u32			lr_hops;
 	/* route priority */
 	unsigned int		lr_priority;
 };
@@ -727,7 +727,7 @@ struct lnet_remotenet {
 	/* routes to me */
 	struct list_head	lrn_routes;
 	/* my net number */
-	__u32			lrn_net;
+	u32			lrn_net;
 };
 
 /** lnet message has credit and can be submitted to lnd for send/receive */
@@ -788,7 +788,7 @@ enum lnet_match_flags {
 
 /* parameter for matching operations (GET, PUT) */
 struct lnet_match_info {
-	__u64			mi_mbits;
+	u64			mi_mbits;
 	struct lnet_process_id	mi_id;
 	unsigned int		mi_cpt;
 	unsigned int		mi_opc;
@@ -807,8 +807,8 @@ struct lnet_match_info {
  */
 #define LNET_MT_HASH_IGNORE		LNET_MT_HASH_SIZE
 /*
- * __u64 has 2^6 bits, so need 2^(LNET_MT_HASH_BITS - LNET_MT_BITS_U64) which
- * is 4 __u64s as bit-map, and add an extra __u64 (only use one bit) for the
+ * u64 has 2^6 bits, so need 2^(LNET_MT_HASH_BITS - LNET_MT_BITS_U64) which
+ * is 4 u64s as bit-map, and add an extra u64 (only use one bit) for the
  * ME-list with ignore-bits, which is mtable::mt_hash[LNET_MT_HASH_IGNORE]
  */
 #define LNET_MT_BITS_U64		6	/* 2^6 bits */
@@ -826,7 +826,7 @@ struct lnet_match_table {
 	 */
 	unsigned int		 mt_enabled;
 	/* bitmap to flag whether MEs on mt_hash are exhausted or not */
-	__u64			 mt_exhausted[LNET_MT_EXHAUSTED_BMAP];
+	u64			 mt_exhausted[LNET_MT_EXHAUSTED_BMAP];
 	struct list_head	*mt_mhash;	/* matching hash */
 };
 
@@ -866,7 +866,7 @@ struct lnet_portal {
 /* resource container (ME, MD, EQ) */
 struct lnet_res_container {
 	unsigned int		 rec_type;	/* container type */
-	__u64			 rec_lh_cookie;	/* cookie generator */
+	u64			 rec_lh_cookie;	/* cookie generator */
 	struct list_head	 rec_active;	/* active resource list */
 	struct list_head	*rec_lh_hash;	/* handle hash */
 };
@@ -949,11 +949,11 @@ struct lnet {
 	/* remote networks with routes to them */
 	struct list_head		 *ln_remote_nets_hash;
 	/* validity stamp */
-	__u64				  ln_remote_nets_version;
+	u64				  ln_remote_nets_version;
 	/* list of all known routers */
 	struct list_head		  ln_routers;
 	/* validity stamp */
-	__u64				  ln_routers_version;
+	u64				  ln_routers_version;
 	/* percpt router buffer pools */
 	struct lnet_rtrbufpool		**ln_rtrpools;
 
@@ -1019,7 +1019,7 @@ struct lnet {
 	int				  ln_routing;	/* am I a router? */
 	lnet_pid_t			  ln_pid;	/* requested pid */
 	/* uniquely identifies this ni in this epoch */
-	__u64				  ln_interface_cookie;
+	u64				  ln_interface_cookie;
 	/* registered LNDs */
 	struct list_head		  ln_lnds;
 

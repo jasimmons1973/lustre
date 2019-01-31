@@ -41,7 +41,7 @@ MODULE_PARM_DESC(portal_rotor, "redirect PUTs to different cpu-partitions");
 
 static int
 lnet_ptl_match_type(unsigned int index, struct lnet_process_id match_id,
-		    __u64 mbits, __u64 ignore_bits)
+		    u64 mbits, u64 ignore_bits)
 {
 	struct lnet_portal *ptl = the_lnet.ln_portals[index];
 	int unique;
@@ -213,7 +213,7 @@ lnet_try_match_md(struct lnet_libmd *md,
 }
 
 static struct lnet_match_table *
-lnet_match2mt(struct lnet_portal *ptl, struct lnet_process_id id, __u64 mbits)
+lnet_match2mt(struct lnet_portal *ptl, struct lnet_process_id id, u64 mbits)
 {
 	if (LNET_CPT_NUMBER == 1)
 		return ptl->ptl_mtables[0]; /* the only one */
@@ -225,7 +225,7 @@ lnet_match2mt(struct lnet_portal *ptl, struct lnet_process_id id, __u64 mbits)
 
 struct lnet_match_table *
 lnet_mt_of_attach(unsigned int index, struct lnet_process_id id,
-		  __u64 mbits, __u64 ignore_bits, enum lnet_ins_pos pos)
+		  u64 mbits, u64 ignore_bits, enum lnet_ins_pos pos)
 {
 	struct lnet_portal *ptl;
 	struct lnet_match_table	*mtable;
@@ -316,7 +316,7 @@ lnet_mt_of_match(struct lnet_match_info *info, struct lnet_msg *msg)
 static int
 lnet_mt_test_exhausted(struct lnet_match_table *mtable, int pos)
 {
-	__u64 *bmap;
+	u64 *bmap;
 	int i;
 
 	if (!lnet_ptl_is_wildcard(the_lnet.ln_portals[mtable->mt_portal]))
@@ -324,7 +324,7 @@ lnet_mt_test_exhausted(struct lnet_match_table *mtable, int pos)
 
 	if (pos < 0) { /* check all bits */
 		for (i = 0; i < LNET_MT_EXHAUSTED_BMAP; i++) {
-			if (mtable->mt_exhausted[i] != (__u64)(-1))
+			if (mtable->mt_exhausted[i] != (u64)(-1))
 				return 0;
 		}
 		return 1;
@@ -341,7 +341,7 @@ lnet_mt_test_exhausted(struct lnet_match_table *mtable, int pos)
 static void
 lnet_mt_set_exhausted(struct lnet_match_table *mtable, int pos, int exhausted)
 {
-	__u64 *bmap;
+	u64 *bmap;
 
 	LASSERT(lnet_ptl_is_wildcard(the_lnet.ln_portals[mtable->mt_portal]));
 	LASSERT(pos <= LNET_MT_HASH_IGNORE);
@@ -358,7 +358,7 @@ lnet_mt_set_exhausted(struct lnet_match_table *mtable, int pos, int exhausted)
 
 struct list_head *
 lnet_mt_match_head(struct lnet_match_table *mtable,
-		   struct lnet_process_id id, __u64 mbits)
+		   struct lnet_process_id id, u64 mbits)
 {
 	struct lnet_portal *ptl = the_lnet.ln_portals[mtable->mt_portal];
 	unsigned long hash = mbits;

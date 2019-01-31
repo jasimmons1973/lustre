@@ -56,7 +56,7 @@ lnet_acceptor_port(void)
 EXPORT_SYMBOL(lnet_acceptor_port);
 
 static inline int
-lnet_accept_magic(__u32 magic, __u32 constant)
+lnet_accept_magic(u32 magic, u32 constant)
 {
 	return (magic == constant ||
 		magic == __swab32(constant));
@@ -96,7 +96,7 @@ EXPORT_SYMBOL(lnet_acceptor_timeout);
 
 void
 lnet_connect_console_error(int rc, lnet_nid_t peer_nid,
-			   __u32 peer_ip, int peer_port)
+			   u32 peer_ip, int peer_port)
 {
 	switch (rc) {
 	/* "normal" errors */
@@ -142,7 +142,7 @@ EXPORT_SYMBOL(lnet_connect_console_error);
 
 int
 lnet_connect(struct socket **sockp, lnet_nid_t peer_nid,
-	     __u32 local_ip, __u32 peer_ip, int peer_port)
+	     u32 local_ip, u32 peer_ip, int peer_port)
 {
 	struct lnet_acceptor_connreq cr;
 	struct socket *sock;
@@ -205,10 +205,10 @@ lnet_connect(struct socket **sockp, lnet_nid_t peer_nid,
 EXPORT_SYMBOL(lnet_connect);
 
 static int
-lnet_accept(struct socket *sock, __u32 magic)
+lnet_accept(struct socket *sock, u32 magic)
 {
 	struct lnet_acceptor_connreq cr;
-	__u32 peer_ip;
+	u32 peer_ip;
 	int peer_port;
 	int rc;
 	int flip;
@@ -328,8 +328,8 @@ lnet_acceptor(void *arg)
 {
 	struct socket *newsock;
 	int rc;
-	__u32 magic;
-	__u32 peer_ip;
+	u32 magic;
+	u32 peer_ip;
 	int peer_port;
 	int secure = (int)((long)arg);
 

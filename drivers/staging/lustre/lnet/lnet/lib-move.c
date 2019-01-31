@@ -94,7 +94,7 @@ void lnet_incr_stats(struct lnet_element_stats *stats,
 	}
 }
 
-__u32 lnet_sum_stats(struct lnet_element_stats *stats,
+u32 lnet_sum_stats(struct lnet_element_stats *stats,
 		     enum lnet_stats_type stats_type)
 {
 	struct lnet_comm_count *counts = get_stats_counts(stats, stats_type);
@@ -1845,7 +1845,7 @@ send:
 	 */
 	cpt2 = lnet_cpt_of_nid_locked(best_lpni->lpni_nid, best_ni);
 	if (cpt != cpt2) {
-		__u32 seq = lnet_get_dlc_seq_locked();
+		u32 seq = lnet_get_dlc_seq_locked();
 		lnet_net_unlock(cpt);
 		cpt = cpt2;
 		lnet_net_lock(cpt);
@@ -1962,7 +1962,7 @@ lnet_send(lnet_nid_t src_nid, struct lnet_msg *msg, lnet_nid_t rtr_nid)
 
 void
 lnet_drop_message(struct lnet_ni *ni, int cpt, void *private, unsigned int nob,
-		  __u32 msg_type)
+		  u32 msg_type)
 {
 	lnet_net_lock(cpt);
 	lnet_incr_stats(&ni->ni_stats, msg_type, LNET_STATS_TYPE_DROP);
@@ -2383,8 +2383,8 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr, lnet_nid_t from_nid,
 	lnet_nid_t dest_nid;
 	lnet_nid_t src_nid;
 	struct lnet_peer_ni *lpni;
-	__u32 payload_length;
-	__u32 type;
+	u32 payload_length;
+	u32 type;
 
 	LASSERT(!in_interrupt());
 
@@ -2418,7 +2418,7 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr, lnet_nid_t from_nid,
 	case LNET_MSG_PUT:
 	case LNET_MSG_REPLY:
 		if (payload_length >
-		   (__u32)(for_me ? LNET_MAX_PAYLOAD : LNET_MTU)) {
+		   (u32)(for_me ? LNET_MAX_PAYLOAD : LNET_MTU)) {
 			CERROR("%s, src %s: bad %s payload %d (%d max expected)\n",
 			       libcfs_nid2str(from_nid),
 			       libcfs_nid2str(src_nid),
@@ -2741,8 +2741,8 @@ lnet_recv_delayed_msg_list(struct list_head *head)
 int
 LNetPut(lnet_nid_t self, struct lnet_handle_md mdh, enum lnet_ack_req ack,
 	struct lnet_process_id target, unsigned int portal,
-	__u64 match_bits, unsigned int offset,
-	__u64 hdr_data)
+	u64 match_bits, unsigned int offset,
+	u64 hdr_data)
 {
 	struct lnet_msg *msg;
 	struct lnet_libmd *md;
@@ -2948,7 +2948,7 @@ EXPORT_SYMBOL(lnet_set_reply_msg_len);
 int
 LNetGet(lnet_nid_t self, struct lnet_handle_md mdh,
 	struct lnet_process_id target, unsigned int portal,
-	__u64 match_bits, unsigned int offset)
+	u64 match_bits, unsigned int offset)
 {
 	struct lnet_msg *msg;
 	struct lnet_libmd *md;
@@ -3037,14 +3037,14 @@ EXPORT_SYMBOL(LNetGet);
  * \retval -EHOSTUNREACH If \a dstnid is not reachable.
  */
 int
-LNetDist(lnet_nid_t dstnid, lnet_nid_t *srcnidp, __u32 *orderp)
+LNetDist(lnet_nid_t dstnid, lnet_nid_t *srcnidp, u32 *orderp)
 {
 	struct lnet_ni *ni = NULL;
 	struct lnet_remotenet *rnet;
-	__u32 dstnet = LNET_NIDNET(dstnid);
+	u32 dstnet = LNET_NIDNET(dstnid);
 	int hops;
 	int cpt;
-	__u32 order = 2;
+	u32 order = 2;
 	struct list_head *rn_list;
 
 	/*
@@ -3098,8 +3098,8 @@ LNetDist(lnet_nid_t dstnid, lnet_nid_t *srcnidp, __u32 *orderp)
 		if (rnet->lrn_net == dstnet) {
 			struct lnet_route *route;
 			struct lnet_route *shortest = NULL;
-			__u32 shortest_hops = LNET_UNDEFINED_HOPS;
-			__u32 route_hops;
+			u32 shortest_hops = LNET_UNDEFINED_HOPS;
+			u32 route_hops;
 
 			LASSERT(!list_empty(&rnet->lrn_routes));
 

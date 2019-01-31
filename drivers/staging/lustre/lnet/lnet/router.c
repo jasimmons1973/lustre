@@ -247,7 +247,7 @@ lnet_rtr_decref_locked(struct lnet_peer_ni *lp)
 }
 
 struct lnet_remotenet *
-lnet_find_rnet_locked(__u32 net)
+lnet_find_rnet_locked(u32 net)
 {
 	struct lnet_remotenet *rnet;
 	struct list_head *rn_list;
@@ -273,7 +273,7 @@ static void lnet_shuffle_seed(void)
 	/* Nodes with small feet have little entropy
 	 * the NID for this node gives the most entropy in the low bits */
 	while ((ni = lnet_get_next_ni_locked(NULL, ni))) {
-		__u32 lnd_type, seed;
+		u32 lnd_type, seed;
 		lnd_type = LNET_NETTYP(LNET_NIDNET(ni->ni_nid));
 		if (lnd_type != LOLND) {
 			seed = (LNET_NIDADDR(ni->ni_nid) | lnd_type);
@@ -313,7 +313,7 @@ lnet_add_route_to_rnet(struct lnet_remotenet *rnet, struct lnet_route *route)
 }
 
 int
-lnet_add_route(__u32 net, __u32 hops, lnet_nid_t gateway,
+lnet_add_route(u32 net, u32 hops, lnet_nid_t gateway,
 	       unsigned int priority)
 {
 	struct lnet_remotenet *rnet;
@@ -479,7 +479,7 @@ lnet_check_routes(void)
 }
 
 int
-lnet_del_route(__u32 net, lnet_nid_t gw_nid)
+lnet_del_route(u32 net, lnet_nid_t gw_nid)
 {
 	struct lnet_peer_ni *gateway;
 	struct lnet_remotenet *rnet;
@@ -585,8 +585,8 @@ int lnet_get_rtr_pool_cfg(int idx, struct lnet_ioctl_pool_cfg *pool_cfg)
 }
 
 int
-lnet_get_route(int idx, __u32 *net, __u32 *hops,
-	       lnet_nid_t *gateway, __u32 *alive, __u32 *priority)
+lnet_get_route(int idx, u32 *net, u32 *hops,
+	       lnet_nid_t *gateway, u32 *alive, u32 *priority)
 {
 	struct lnet_remotenet *rnet;
 	struct lnet_route *route;
@@ -836,7 +836,7 @@ lnet_wait_known_routerstate(void)
 }
 
 void
-lnet_router_ni_update_locked(struct lnet_peer_ni *gw, __u32 net)
+lnet_router_ni_update_locked(struct lnet_peer_ni *gw, u32 net)
 {
 	struct lnet_route *rte;
 
@@ -1274,7 +1274,7 @@ lnet_router_checker(void *arg)
 	struct lnet_peer_ni *rtr;
 
 	while (the_lnet.ln_rc_state == LNET_RC_STATE_RUNNING) {
-		__u64 version;
+		u64 version;
 		int cpt;
 		int cpt2;
 

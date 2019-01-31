@@ -146,7 +146,7 @@ lnet_sock_read(struct socket *sock, void *buffer, int nob, int timeout)
 EXPORT_SYMBOL(lnet_sock_read);
 
 static int
-lnet_sock_create(struct socket **sockp, int *fatal, __u32 local_ip,
+lnet_sock_create(struct socket **sockp, int *fatal, u32 local_ip,
 		 int local_port)
 {
 	struct sockaddr_in locaddr;
@@ -233,7 +233,7 @@ lnet_sock_setbuf(struct socket *sock, int txbufsize, int rxbufsize)
 EXPORT_SYMBOL(lnet_sock_setbuf);
 
 int
-lnet_sock_getaddr(struct socket *sock, bool remote, __u32 *ip, int *port)
+lnet_sock_getaddr(struct socket *sock, bool remote, u32 *ip, int *port)
 {
 	struct sockaddr_in sin;
 	int rc;
@@ -272,7 +272,7 @@ lnet_sock_getbuf(struct socket *sock, int *txbufsize, int *rxbufsize)
 EXPORT_SYMBOL(lnet_sock_getbuf);
 
 int
-lnet_sock_listen(struct socket **sockp, __u32 local_ip, int local_port,
+lnet_sock_listen(struct socket **sockp, u32 local_ip, int local_port,
 		 int backlog)
 {
 	int fatal;
@@ -337,8 +337,8 @@ failed:
 }
 
 int
-lnet_sock_connect(struct socket **sockp, int *fatal, __u32 local_ip,
-		  int local_port, __u32 peer_ip, int peer_port)
+lnet_sock_connect(struct socket **sockp, int *fatal, u32 local_ip,
+		  int local_port, u32 peer_ip, int peer_port)
 {
 	struct sockaddr_in srvaddr;
 	int rc;

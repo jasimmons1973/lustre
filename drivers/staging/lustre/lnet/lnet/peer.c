@@ -697,17 +697,17 @@ lnet_get_next_peer_ni_locked(struct lnet_peer *peer,
 
 /* Call with the ln_api_mutex held */
 int
-lnet_get_peer_list(__u32 *countp, __u32 *sizep,
+lnet_get_peer_list(u32 *countp, u32 *sizep,
 		   struct lnet_process_id __user *ids)
 {
 	struct lnet_process_id id;
 	struct lnet_peer_table *ptable;
 	struct lnet_peer *lp;
-	__u32 count = 0;
-	__u32 size = 0;
+	u32 count = 0;
+	u32 size = 0;
 	int lncpt;
 	int cpt;
-	__u32 i;
+	u32 i;
 	int rc;
 
 	rc = -ESHUTDOWN;
@@ -3234,12 +3234,12 @@ lnet_debug_peer(lnet_nid_t nid)
 /* Gathering information for userspace. */
 
 int
-lnet_get_peer_ni_info(__u32 peer_index, __u64 *nid,
+lnet_get_peer_ni_info(u32 peer_index, u64 *nid,
 		      char aliveness[LNET_MAX_STR_LEN],
-		      __u32 *cpt_iter, __u32 *refcount,
-		      __u32 *ni_peer_tx_credits, __u32 *peer_tx_credits,
-		      __u32 *peer_rtr_credits, __u32 *peer_min_rtr_credits,
-		      __u32 *peer_tx_qnob)
+		      u32 *cpt_iter, u32 *refcount,
+		      u32 *ni_peer_tx_credits, u32 *peer_tx_credits,
+		      u32 *peer_rtr_credits, u32 *peer_min_rtr_credits,
+		      u32 *peer_tx_qnob)
 {
 	struct lnet_peer_table *peer_table;
 	struct lnet_peer_ni *lp;
@@ -3305,7 +3305,7 @@ int lnet_get_peer_info(struct lnet_ioctl_peer_cfg *cfg, void __user *bulk)
 	struct lnet_peer_ni *lpni;
 	struct lnet_peer *lp;
 	lnet_nid_t nid;
-	__u32 size;
+	u32 size;
 	int rc;
 
 	lp = lnet_find_peer(cfg->prcfg_prim_nid);

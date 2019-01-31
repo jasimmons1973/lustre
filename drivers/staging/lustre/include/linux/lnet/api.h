@@ -76,7 +76,7 @@ int LNetNIFini(void);
  * @{
  */
 int LNetGetId(unsigned int index, struct lnet_process_id *id);
-int LNetDist(lnet_nid_t nid, lnet_nid_t *srcnid, __u32 *order);
+int LNetDist(lnet_nid_t nid, lnet_nid_t *srcnid, u32 *order);
 lnet_nid_t LNetPrimaryNID(lnet_nid_t nid);
 
 /** @} lnet_addr */
@@ -96,16 +96,16 @@ lnet_nid_t LNetPrimaryNID(lnet_nid_t nid);
  */
 int LNetMEAttach(unsigned int      portal,
 		 struct lnet_process_id match_id_in,
-		 __u64		   match_bits_in,
-		 __u64		   ignore_bits_in,
+		 u64		   match_bits_in,
+		 u64		   ignore_bits_in,
 		 enum lnet_unlink unlink_in,
 		 enum lnet_ins_pos pos_in,
 		 struct lnet_handle_me *handle_out);
 
 int LNetMEInsert(struct lnet_handle_me current_in,
 		 struct lnet_process_id match_id_in,
-		 __u64		   match_bits_in,
-		 __u64		   ignore_bits_in,
+		 u64		   match_bits_in,
+		 u64		   ignore_bits_in,
 		 enum lnet_unlink unlink_in,
 		 enum lnet_ins_pos position_in,
 		 struct lnet_handle_me *handle_out);
@@ -186,15 +186,15 @@ int LNetPut(lnet_nid_t	      self,
 	    enum lnet_ack_req ack_req_in,
 	    struct lnet_process_id target_in,
 	    unsigned int      portal_in,
-	    __u64	      match_bits_in,
+	    u64 match_bits_in,
 	    unsigned int      offset_in,
-	    __u64	      hdr_data_in);
+	    u64	hdr_data_in);
 
 int LNetGet(lnet_nid_t	      self,
 	    struct lnet_handle_md md_in,
 	    struct lnet_process_id target_in,
 	    unsigned int      portal_in,
-	    __u64	      match_bits_in,
+	    u64	match_bits_in,
 	    unsigned int      offset_in);
 /** @} lnet_data */
 
