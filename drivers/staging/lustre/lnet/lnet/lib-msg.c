@@ -528,10 +528,9 @@ again:
 
 	container->msc_finalizers[my_slot] = current;
 
-	while (!list_empty(&container->msc_finalizing)) {
-		msg = list_entry(container->msc_finalizing.next,
-				 struct lnet_msg, msg_list);
-
+	while ((msg = list_first_entry_or_null(&container->msc_finalizing,
+					       struct lnet_msg,
+					       msg_list)) != NULL) {
 		list_del(&msg->msg_list);
 
 		/*
@@ -561,15 +560,14 @@ void
 lnet_msg_container_cleanup(struct lnet_msg_container *container)
 {
 	int count = 0;
+	struct lnet_msg *msg;
 
 	if (!container->msc_init)
 		return;
 
-	while (!list_empty(&container->msc_active)) {
-		struct lnet_msg *msg;
-
-		msg = list_entry(container->msc_active.next,
-				 struct lnet_msg, msg_activelist);
+	while ((msg = list_first_entry_or_null(&container->msc_active,
+					       struct lnet_msg,
+					       msg_activelist)) != NULL) {
 		LASSERT(msg->msg_onactivelist);
 		msg->msg_onactivelist = 0;
 		list_del(&msg->msg_activelist);

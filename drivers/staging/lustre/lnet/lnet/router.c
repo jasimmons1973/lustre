@@ -1220,9 +1220,9 @@ lnet_prune_rc_data(int wait_unlink)
 
 		lnet_net_unlock(LNET_LOCK_EX);
 
-		while (!list_empty(&head)) {
-			rcd = list_entry(head.next,
-					 struct lnet_rc_data, rcd_list);
+		while ((rcd = list_first_entry_or_null(&head,
+						       struct lnet_rc_data,
+						       rcd_list)) != NULL) {
 			list_del_init(&rcd->rcd_list);
 			lnet_destroy_rc_data(rcd);
 		}
@@ -1397,7 +1397,7 @@ lnet_rtrpool_free_bufs(struct lnet_rtrbufpool *rbp, int cpt)
 
 	/* Free buffers on the free list. */
 	while (!list_empty(&tmp)) {
-		rb = list_entry(tmp.next, struct lnet_rtrbuf, rb_list);
+		rb = list_first_entry(&tmp, struct lnet_rtrbuf, rb_list);
 		list_del(&rb->rb_list);
 		lnet_destroy_rtrbuf(rb, npages);
 	}
@@ -1481,8 +1481,9 @@ lnet_rtrpool_adjust_bufs(struct lnet_rtrbufpool *rbp, int nbufs, int cpt)
 	return 0;
 
 failed:
-	while (!list_empty(&rb_list)) {
-		rb = list_entry(rb_list.next, struct lnet_rtrbuf, rb_list);
+	while ((rb = list_first_entry_or_null(&rb_list,
+					      struct lnet_rtrbuf,
+					      rb_list)) != NULL) {
 		list_del(&rb->rb_list);
 		lnet_destroy_rtrbuf(rb, npages);
 	}
