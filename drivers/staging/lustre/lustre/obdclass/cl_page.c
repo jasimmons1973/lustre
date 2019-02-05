@@ -132,7 +132,7 @@ struct cl_page *cl_page_alloc(const struct lu_env *env,
 			      enum cl_page_type type)
 {
 	struct cl_page *page;
-	struct lu_object_header *head;
+	struct cl_object *o2;
 
 	page = kzalloc(cl_object_header(o)->coh_page_bufsize, GFP_NOFS);
 	if (page) {
@@ -149,11 +149,10 @@ struct cl_page *cl_page_alloc(const struct lu_env *env,
 		INIT_LIST_HEAD(&page->cp_layers);
 		INIT_LIST_HEAD(&page->cp_batch);
 		lu_ref_init(&page->cp_reference);
-		head = o->co_lu.lo_header;
-		list_for_each_entry(o, &head->loh_layers, co_lu.lo_linkage) {
-			if (o->co_ops->coo_page_init) {
-				result = o->co_ops->coo_page_init(env, o, page,
-								  ind);
+		cl_object_for_each(o2, o) {
+			if (o2->co_ops->coo_page_init) {
+				result = o2->co_ops->coo_page_init(env, o2, page,
+								   ind);
 				if (result != 0) {
 					__cl_page_delete(env, page);
 					cl_page_free(env, page);
