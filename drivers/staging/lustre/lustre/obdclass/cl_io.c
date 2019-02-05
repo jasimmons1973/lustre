@@ -42,6 +42,7 @@
 #include <obd_support.h>
 #include <lustre_fid.h>
 #include <linux/list.h>
+#include <linux/list_sort.h>
 #include <linux/sched.h>
 #include <cl_object.h>
 #include "cl_internal.h"
@@ -213,57 +214,17 @@ int cl_io_rw_init(const struct lu_env *env, struct cl_io *io,
 }
 EXPORT_SYMBOL(cl_io_rw_init);
 
-static int cl_lock_descr_sort(const struct cl_lock_descr *d0,
-			      const struct cl_lock_descr *d1)
+static int cl_lock_descr_cmp(void *priv,
+			     struct list_head *a, struct list_head *b)
 {
+	const struct cl_io_lock_link *l0 = list_entry(a, struct cl_io_lock_link, cill_linkage);
+	const struct cl_io_lock_link *l1 = list_entry(b, struct cl_io_lock_link, cill_linkage);
+
+	const struct cl_lock_descr *d0 = &l0->cill_descr;
+	const struct cl_lock_descr *d1 = &l1->cill_descr;
+
 	return lu_fid_cmp(lu_object_fid(&d0->cld_obj->co_lu),
 			  lu_object_fid(&d1->cld_obj->co_lu));
-}
-
-/*
- * Sort locks in lexicographical order of their (fid, start-offset) pairs.
- */
-static void cl_io_locks_sort(struct cl_io *io)
-{
-	int done = 0;
-
-	/* hidden treasure: bubble sort for now. */
-	do {
-		struct cl_io_lock_link *curr;
-		struct cl_io_lock_link *prev;
-		struct cl_io_lock_link *temp;
-
-		done = 1;
-		prev = NULL;
-
-		list_for_each_entry_safe(curr, temp,
-					 &io->ci_lockset.cls_todo,
-					 cill_linkage) {
-			if (prev) {
-				switch (cl_lock_descr_sort(&prev->cill_descr,
-							   &curr->cill_descr)) {
-				case 0:
-					/*
-					 * IMPOSSIBLE: Identical locks are
-					 *	     already removed at
-					 *	     this point.
-					 */
-				default:
-					LBUG();
-				case 1:
-					list_move_tail(&curr->cill_linkage,
-						       &prev->cill_linkage);
-					done = 0;
-					continue; /* don't change prev: it's
-						   * still "previous"
-						   */
-				case -1: /* already in order */
-					break;
-				}
-			}
-			prev = curr;
-		}
-	} while (!done);
 }
 
 static void cl_lock_descr_merge(struct cl_lock_descr *d0,
@@ -347,7 +308,11 @@ int cl_io_lock(const struct lu_env *env, struct cl_io *io)
 	}
 
 	if (result == 0) {
-		cl_io_locks_sort(io);
+		/*
+		 * Sort locks in lexicographical order of their (fid,
+		 * start-offset) pairs to avoid deadlocks.
+		 */
+		list_sort(NULL, &io->ci_lockset.cls_todo, cl_lock_descr_cmp);
 		result = cl_lockset_lock(env, io, &io->ci_lockset);
 	}
 	if (result != 0)
