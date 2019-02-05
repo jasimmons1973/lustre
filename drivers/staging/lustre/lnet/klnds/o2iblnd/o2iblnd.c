@@ -1386,8 +1386,8 @@ static void kiblnd_destroy_fmr_pool_list(struct list_head *head)
 {
 	struct kib_fmr_pool *fpo;
 
-	while (!list_empty(head)) {
-		fpo = list_entry(head->next, struct kib_fmr_pool, fpo_list);
+	while ((fpo = list_first_entry_or_null(head, struct kib_fmr_pool,
+					       fpo_list)) != NULL) {
 		list_del(&fpo->fpo_list);
 		kiblnd_destroy_fmr_pool(fpo);
 	}
@@ -1544,14 +1544,16 @@ out_fpo:
 static void kiblnd_fail_fmr_poolset(struct kib_fmr_poolset *fps,
 				    struct list_head *zombies)
 {
+	struct kib_fmr_pool *fpo;
+
 	if (!fps->fps_net) /* initialized? */
 		return;
 
 	spin_lock(&fps->fps_lock);
 
-	while (!list_empty(&fps->fps_pool_list)) {
-		struct kib_fmr_pool *fpo = list_entry(fps->fps_pool_list.next,
-						 struct kib_fmr_pool, fpo_list);
+	while ((fpo = list_first_entry_or_null(&fps->fps_pool_list,
+					       struct kib_fmr_pool,
+					       fpo_list)) != NULL) {
 		fpo->fpo_failed = 1;
 		list_del(&fpo->fpo_list);
 		if (!fpo->fpo_map_count)
@@ -1853,8 +1855,9 @@ static void kiblnd_destroy_pool_list(struct list_head *head)
 {
 	struct kib_pool *pool;
 
-	while (!list_empty(head)) {
-		pool = list_entry(head->next, struct kib_pool, po_list);
+	while ((pool = list_first_entry_or_null(head,
+						struct kib_pool,
+						po_list)) != NULL) {
 		list_del(&pool->po_list);
 
 		LASSERT(pool->po_owner);
@@ -1864,13 +1867,15 @@ static void kiblnd_destroy_pool_list(struct list_head *head)
 
 static void kiblnd_fail_poolset(struct kib_poolset *ps, struct list_head *zombies)
 {
+	struct kib_pool *po;
+
 	if (!ps->ps_net) /* initialized? */
 		return;
 
 	spin_lock(&ps->ps_lock);
-	while (!list_empty(&ps->ps_pool_list)) {
-		struct kib_pool *po = list_entry(ps->ps_pool_list.next,
-					    struct kib_pool, po_list);
+	while ((po = list_first_entry_or_null(&ps->ps_pool_list,
+					      struct kib_pool,
+					      po_list)) == NULL) {
 		po->po_failed = 1;
 		list_del(&po->po_list);
 		if (!po->po_allocated)
