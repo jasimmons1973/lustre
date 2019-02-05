@@ -1047,7 +1047,6 @@ void cl_sync_io_init(struct cl_sync_io *anchor, int nr)
 	memset(anchor, 0, sizeof(*anchor));
 	init_waitqueue_head(&anchor->csi_waitq);
 	atomic_set(&anchor->csi_sync_nr, nr);
-	atomic_set(&anchor->csi_barrier, nr > 0);
 	anchor->csi_sync_rc = 0;
 }
 EXPORT_SYMBOL(cl_sync_io_init);
@@ -1080,11 +1079,10 @@ int cl_sync_io_wait(const struct lu_env *env, struct cl_sync_io *anchor,
 	} else {
 		rc = anchor->csi_sync_rc;
 	}
+	/* We take the lock to ensure that cl_sync_io_note() has finished */
+	spin_lock(&anchor->csi_waitq.lock);
 	LASSERT(atomic_read(&anchor->csi_sync_nr) == 0);
-
-	/* wait until cl_sync_io_note() has done wakeup */
-	while (unlikely(atomic_read(&anchor->csi_barrier) != 0))
-		cpu_relax();
+	spin_unlock(&anchor->csi_waitq.lock);
 
 	return rc;
 }
@@ -1104,11 +1102,16 @@ void cl_sync_io_note(const struct lu_env *env, struct cl_sync_io *anchor,
 	 * IO.
 	 */
 	LASSERT(atomic_read(&anchor->csi_sync_nr) > 0);
-	if (atomic_dec_and_test(&anchor->csi_sync_nr)) {
+	if (atomic_dec_and_lock(&anchor->csi_sync_nr,
+				&anchor->csi_waitq.lock)) {
 
-		wake_up_all(&anchor->csi_waitq);
-		/* it's safe to nuke or reuse anchor now */
-		atomic_set(&anchor->csi_barrier, 0);
+		/*
+		 * Holding the lock across both the decrement and
+		 * the wakeup ensures cl_sync_io_wait() doesn't complete
+		 * before the wakeup completes.
+		 */
+		wake_up_all_locked(&anchor->csi_waitq);
+		spin_unlock(&anchor->csi_waitq.lock);
 
 		/* Can't access anchor any more */
 	}
