@@ -2255,8 +2255,9 @@ static int ptlrpc_hr_main(void *arg)
 		while (!list_empty(&replies)) {
 			struct ptlrpc_reply_state *rs;
 
-			rs = list_entry(replies.prev, struct ptlrpc_reply_state,
-					rs_list);
+			rs = list_last_entry(&replies,
+					     struct ptlrpc_reply_state,
+					     rs_list);
 			list_del_init(&rs->rs_list);
 			ptlrpc_handle_rs(rs);
 		}

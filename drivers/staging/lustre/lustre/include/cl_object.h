@@ -2329,7 +2329,7 @@ do {									\
 static inline struct cl_page *cl_page_list_last(struct cl_page_list *plist)
 {
 	LASSERT(plist->pl_nr > 0);
-	return list_entry(plist->pl_pages.prev, struct cl_page, cp_batch);
+	return list_last_entry(&plist->pl_pages, struct cl_page, cp_batch);
 }
 
 static inline struct cl_page *cl_page_list_first(struct cl_page_list *plist)

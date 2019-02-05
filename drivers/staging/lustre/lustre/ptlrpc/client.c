@@ -1464,9 +1464,9 @@ static int after_reply(struct ptlrpc_request *req)
 		if (!list_empty(&imp->imp_replay_list)) {
 			struct ptlrpc_request *last;
 
-			last = list_entry(imp->imp_replay_list.prev,
-					  struct ptlrpc_request,
-					  rq_replay_list);
+			last = list_last_entry(&imp->imp_replay_list,
+					       struct ptlrpc_request,
+					       rq_replay_list);
 			/*
 			 * Requests with rq_replay stay on the list even if no
 			 * commit is expected.
