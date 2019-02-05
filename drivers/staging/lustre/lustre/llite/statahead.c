@@ -643,8 +643,8 @@ static void sa_handle_callback(struct ll_statahead_info *sai)
 			spin_unlock(&lli->lli_sa_lock);
 			break;
 		}
-		entry = list_entry(sai->sai_interim_entries.next,
-				   struct sa_entry, se_list);
+		entry = list_first_entry(&sai->sai_interim_entries,
+					 struct sa_entry, se_list);
 		list_del_init(&entry->se_list);
 		spin_unlock(&lli->lli_sa_lock);
 
@@ -893,9 +893,10 @@ static int ll_agl_thread(void *arg)
 		/* The statahead thread maybe help to process AGL entries,
 		 * so check whether list empty again.
 		 */
-		if (!list_empty(&sai->sai_agls)) {
-			clli = list_entry(sai->sai_agls.next,
-					  struct ll_inode_info, lli_agl_list);
+		clli = list_first_entry_or_null(&sai->sai_agls,
+						struct ll_inode_info,
+						lli_agl_list);
+		if (clli) {
 			list_del_init(&clli->lli_agl_list);
 			spin_unlock(&plli->lli_agl_lock);
 			ll_agl_trigger(&clli->lli_vfs_inode, sai);
@@ -912,9 +913,9 @@ static int ll_agl_thread(void *arg)
 
 	spin_lock(&plli->lli_agl_lock);
 	sai->sai_agl_valid = 0;
-	while (!list_empty(&sai->sai_agls)) {
-		clli = list_entry(sai->sai_agls.next,
-				  struct ll_inode_info, lli_agl_list);
+	while ((clli = list_first_entry_or_null(&sai->sai_agls,
+						struct ll_inode_info,
+						lli_agl_list)) != NULL) {
 		list_del_init(&clli->lli_agl_list);
 		spin_unlock(&plli->lli_agl_lock);
 		clli->lli_agl_index = 0;
@@ -1055,9 +1056,9 @@ static int ll_statahead_thread(void *arg)
 				       !agl_list_empty(sai)) {
 					struct ll_inode_info *clli;
 
-					clli = list_entry(sai->sai_agls.next,
-							  struct ll_inode_info,
-							  lli_agl_list);
+					clli = list_first_entry(&sai->sai_agls,
+								struct ll_inode_info,
+								lli_agl_list);
 					list_del_init(&clli->lli_agl_list);
 					spin_unlock(&lli->lli_agl_lock);
 

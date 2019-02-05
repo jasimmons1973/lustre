@@ -96,16 +96,15 @@ cl_page_at_trusted(const struct cl_page *page,
 static void cl_page_free(const struct lu_env *env, struct cl_page *page)
 {
 	struct cl_object *obj = page->cp_obj;
+	struct cl_page_slice *slice;
 
 	PASSERT(env, page, list_empty(&page->cp_batch));
 	PASSERT(env, page, !page->cp_owner);
 	PASSERT(env, page, page->cp_state == CPS_FREEING);
 
-	while (!list_empty(&page->cp_layers)) {
-		struct cl_page_slice *slice;
-
-		slice = list_entry(page->cp_layers.next,
-				   struct cl_page_slice, cpl_linkage);
+	while ((slice = list_first_entry_or_null(&page->cp_layers,
+						 struct cl_page_slice,
+						 cpl_linkage)) != NULL) {
 		list_del_init(page->cp_layers.next);
 		if (unlikely(slice->cpl_ops->cpo_fini))
 			slice->cpl_ops->cpo_fini(env, slice);

@@ -939,6 +939,8 @@ void class_unlink_export(struct obd_export *exp)
 /* Import management functions */
 static void class_import_destroy(struct obd_import *imp)
 {
+	struct obd_import_conn *imp_conn;
+
 	CDEBUG(D_IOCTL, "destroying import %p for %s\n", imp,
 	       imp->imp_obd->obd_name);
 
@@ -946,11 +948,9 @@ static void class_import_destroy(struct obd_import *imp)
 
 	ptlrpc_put_connection_superhack(imp->imp_connection);
 
-	while (!list_empty(&imp->imp_conn_list)) {
-		struct obd_import_conn *imp_conn;
-
-		imp_conn = list_entry(imp->imp_conn_list.next,
-				      struct obd_import_conn, oic_item);
+	while ((imp_conn = list_first_entry_or_null(&imp->imp_conn_list,
+						    struct obd_import_conn,
+						    oic_item)) != NULL) {
 		list_del_init(&imp_conn->oic_item);
 		ptlrpc_put_connection_superhack(imp_conn->oic_conn);
 		kfree(imp_conn);
@@ -1356,8 +1356,9 @@ void obd_put_request_slot(struct client_obd *cli)
 	/* If there is free slot, wakeup the first waiter. */
 	if (!list_empty(&cli->cl_loi_read_list) &&
 	    likely(cli->cl_r_in_flight < cli->cl_max_rpcs_in_flight)) {
-		orsw = list_entry(cli->cl_loi_read_list.next,
-				  struct obd_request_slot_waiter, orsw_entry);
+		orsw = list_first_entry(&cli->cl_loi_read_list,
+					struct obd_request_slot_waiter,
+					orsw_entry);
 		list_del_init(&orsw->orsw_entry);
 		cli->cl_r_in_flight++;
 		wake_up(&orsw->orsw_waitq);
@@ -1409,11 +1410,12 @@ int obd_set_max_rpcs_in_flight(struct client_obd *cli, u32 max)
 
 	/* We increase the max_rpcs_in_flight, then wakeup some waiters. */
 	for (i = 0; i < diff; i++) {
-		if (list_empty(&cli->cl_loi_read_list))
+		orsw = list_first_entry_or_null(&cli->cl_loi_read_list,
+						struct obd_request_slot_waiter,
+						orsw_entry);
+		if (!orsw)
 			break;
 
-		orsw = list_entry(cli->cl_loi_read_list.next,
-				  struct obd_request_slot_waiter, orsw_entry);
 		list_del_init(&orsw->orsw_entry);
 		cli->cl_r_in_flight++;
 		wake_up(&orsw->orsw_waitq);

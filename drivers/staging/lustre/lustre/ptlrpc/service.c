@@ -299,9 +299,9 @@ ptlrpc_server_post_idle_rqbds(struct ptlrpc_service_part *svcpt)
 			return posted;
 		}
 
-		rqbd = list_entry(svcpt->scp_rqbd_idle.next,
-				  struct ptlrpc_request_buffer_desc,
-				  rqbd_list);
+		rqbd = list_first_entry(&svcpt->scp_rqbd_idle,
+					struct ptlrpc_request_buffer_desc,
+					rqbd_list);
 		list_del(&rqbd->rqbd_list);
 
 		/* assume we will post successfully */
@@ -769,9 +769,9 @@ static void ptlrpc_server_drop_request(struct ptlrpc_request *req)
 		 * I expect only about 1 or 2 rqbds need to be recycled here
 		 */
 		while (svcpt->scp_hist_nrqbds > svc->srv_hist_nrqbds_cpt_max) {
-			rqbd = list_entry(svcpt->scp_hist_rqbds.next,
-					  struct ptlrpc_request_buffer_desc,
-					  rqbd_list);
+			rqbd = list_first_entry(&svcpt->scp_hist_rqbds,
+						struct ptlrpc_request_buffer_desc,
+						rqbd_list);
 
 			list_del(&rqbd->rqbd_list);
 			svcpt->scp_hist_nrqbds--;
@@ -1240,9 +1240,9 @@ static void ptlrpc_at_check_timed(struct ptlrpc_service_part *svcpt)
 	/* we took additional refcount so entries can't be deleted from list, no
 	 * locking is needed
 	 */
-	while (!list_empty(&work_list)) {
-		rq = list_entry(work_list.next, struct ptlrpc_request,
-				rq_timed_list);
+	while ((rq = list_first_entry_or_null(&work_list,
+					      struct ptlrpc_request,
+					      rq_timed_list)) != NULL) {
 		list_del_init(&rq->rq_timed_list);
 
 		if (ptlrpc_at_send_early_reply(rq) == 0)
@@ -1485,8 +1485,8 @@ ptlrpc_server_handle_req_in(struct ptlrpc_service_part *svcpt,
 		return 0;
 	}
 
-	req = list_entry(svcpt->scp_req_incoming.next,
-			 struct ptlrpc_request, rq_list);
+	req = list_first_entry(&svcpt->scp_req_incoming,
+			       struct ptlrpc_request, rq_list);
 	list_del_init(&req->rq_list);
 	svcpt->scp_nreqs_incoming--;
 	/* Consider this still a "queued" request as far as stats are
@@ -2345,9 +2345,9 @@ static void ptlrpc_svcpt_stop_threads(struct ptlrpc_service_part *svcpt)
 
 	wake_up_all(&svcpt->scp_waitq);
 
-	while (!list_empty(&svcpt->scp_threads)) {
-		thread = list_entry(svcpt->scp_threads.next,
-				    struct ptlrpc_thread, t_link);
+	while ((thread = list_first_entry_or_null(&svcpt->scp_threads,
+						  struct ptlrpc_thread,
+						  t_link)) != NULL) {
 		if (thread_is_stopped(thread)) {
 			list_del(&thread->t_link);
 			list_add(&thread->t_link, &zombie);
@@ -2365,9 +2365,9 @@ static void ptlrpc_svcpt_stop_threads(struct ptlrpc_service_part *svcpt)
 
 	spin_unlock(&svcpt->scp_lock);
 
-	while (!list_empty(&zombie)) {
-		thread = list_entry(zombie.next,
-				    struct ptlrpc_thread, t_link);
+	while ((thread = list_first_entry_or_null(&zombie,
+						  struct ptlrpc_thread,
+						  t_link)) != NULL) {
 		list_del(&thread->t_link);
 		kfree(thread);
 	}
@@ -2707,9 +2707,9 @@ ptlrpc_service_purge_all(struct ptlrpc_service *svc)
 			break;
 
 		spin_lock(&svcpt->scp_rep_lock);
-		while (!list_empty(&svcpt->scp_rep_active)) {
-			rs = list_entry(svcpt->scp_rep_active.next,
-					struct ptlrpc_reply_state, rs_list);
+		while ((rs = list_first_entry_or_null(&svcpt->scp_rep_active,
+						      struct ptlrpc_reply_state,
+						      rs_list)) != NULL) {
 			spin_lock(&rs->rs_lock);
 			ptlrpc_schedule_difficult_reply(rs);
 			spin_unlock(&rs->rs_lock);
@@ -2720,10 +2720,9 @@ ptlrpc_service_purge_all(struct ptlrpc_service *svc)
 		 * all unlinked) and no service threads, so I'm the only
 		 * thread noodling the request queue now
 		 */
-		while (!list_empty(&svcpt->scp_req_incoming)) {
-			req = list_entry(svcpt->scp_req_incoming.next,
-					 struct ptlrpc_request, rq_list);
-
+		while ((req = list_first_entry_or_null(&svcpt->scp_req_incoming,
+						       struct ptlrpc_request,
+						       rq_list)) != NULL) {
 			list_del(&req->rq_list);
 			svcpt->scp_nreqs_incoming--;
 			ptlrpc_server_finish_request(svcpt, req);
@@ -2746,18 +2745,17 @@ ptlrpc_service_purge_all(struct ptlrpc_service *svc)
 		 * references them any more...
 		 */
 
-		while (!list_empty(&svcpt->scp_rqbd_idle)) {
-			rqbd = list_entry(svcpt->scp_rqbd_idle.next,
-					  struct ptlrpc_request_buffer_desc,
-					  rqbd_list);
+		while ((rqbd = list_first_entry_or_null(
+				&svcpt->scp_rqbd_idle,
+				struct ptlrpc_request_buffer_desc,
+				rqbd_list)) != NULL) {
 			ptlrpc_free_rqbd(rqbd);
 		}
 		ptlrpc_wait_replies(svcpt);
 
-		while (!list_empty(&svcpt->scp_rep_idle)) {
-			rs = list_entry(svcpt->scp_rep_idle.next,
-					struct ptlrpc_reply_state,
-					rs_list);
+		while ((rs = list_first_entry_or_null(&svcpt->scp_rep_idle,
+						      struct ptlrpc_reply_state,
+						      rs_list)) != NULL) {
 			list_del(&rs->rs_list);
 			kvfree(rs);
 		}
