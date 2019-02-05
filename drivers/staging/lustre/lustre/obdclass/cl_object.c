@@ -649,8 +649,8 @@ static struct lu_env *cl_env_obtain(void *debug)
 	if (cl_envs[cpu].cec_count > 0) {
 		int rc;
 
-		cle = container_of(cl_envs[cpu].cec_envs.next, struct cl_env,
-				   ce_linkage);
+		cle = list_first_entry(&cl_envs[cpu].cec_envs, struct cl_env,
+				       ce_linkage);
 		list_del_init(&cle->ce_linkage);
 		cl_envs[cpu].cec_count--;
 		read_unlock(&cl_envs[cpu].cec_guard);
@@ -748,9 +748,12 @@ unsigned int cl_env_cache_purge(unsigned int nr)
 
 	for_each_possible_cpu(i) {
 		write_lock(&cl_envs[i].cec_guard);
-		for (; !list_empty(&cl_envs[i].cec_envs) && nr > 0; --nr) {
-			cle = container_of(cl_envs[i].cec_envs.next,
-					   struct cl_env, ce_linkage);
+		for (; nr >0 &&
+			     (cle = list_first_entry_or_null(
+				     &cl_envs[i].cec_envs,
+				     struct cl_env,
+				     ce_linkage)) != NULL;
+		     --nr) {
 			list_del_init(&cle->ce_linkage);
 			LASSERT(cl_envs[i].cec_count > 0);
 			cl_envs[i].cec_count--;

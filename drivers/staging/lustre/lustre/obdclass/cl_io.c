@@ -93,8 +93,8 @@ void cl_io_fini(const struct lu_env *env, struct cl_io *io)
 	LINVRNT(cl_io_invariant(io));
 
 	while (!list_empty(&io->ci_layers)) {
-		slice = container_of(io->ci_layers.prev, struct cl_io_slice,
-				     cis_linkage);
+		slice = list_last_entry(&io->ci_layers, struct cl_io_slice,
+					cis_linkage);
 		list_del_init(&slice->cis_linkage);
 		if (slice->cis_iop->op[io->ci_type].cio_fini)
 			slice->cis_iop->op[io->ci_type].cio_fini(env, slice);

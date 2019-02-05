@@ -690,8 +690,8 @@ int cl_page_is_vmlocked(const struct lu_env *env, const struct cl_page *pg)
 	const struct cl_page_slice *slice;
 	int result;
 
-	slice = container_of(pg->cp_layers.next,
-			     const struct cl_page_slice, cpl_linkage);
+	slice = list_first_entry(&pg->cp_layers,
+				 const struct cl_page_slice, cpl_linkage);
 	PASSERT(env, pg, slice->cpl_ops->cpo_is_vmlocked);
 	/*
 	 * Call ->cpo_is_vmlocked() directly instead of going through

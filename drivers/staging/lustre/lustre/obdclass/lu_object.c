@@ -349,7 +349,7 @@ static void lu_object_free(const struct lu_env *env, struct lu_object *o)
 		 * lives as long as possible and ->loo_object_free() methods
 		 * can look at its contents.
 		 */
-		o = container_of(splice.prev, struct lu_object, lo_linkage);
+		o = list_last_entry(&splice, struct lu_object, lo_linkage);
 		list_del_init(&o->lo_linkage);
 		o->lo_ops->loo_object_free(env, o);
 	}
@@ -432,9 +432,8 @@ again:
 		 * Free everything on the dispose list. This is safe against
 		 * races due to the reasons described in lu_object_put().
 		 */
-		while (!list_empty(&dispose)) {
-			h = container_of(dispose.next,
-					 struct lu_object_header, loh_lru);
+		while ((h = list_first_entry_or_null(
+				&dispose, struct lu_object_header, loh_lru)) != NULL) {
 			list_del_init(&h->loh_lru);
 			lu_object_free(env, lu_object_top(h));
 			lprocfs_counter_incr(s->ls_stats, LU_SS_LRU_PURGED);

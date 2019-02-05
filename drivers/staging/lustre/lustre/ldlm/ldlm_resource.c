@@ -987,8 +987,8 @@ struct ldlm_namespace *ldlm_namespace_first_locked(enum ldlm_side client)
 {
 	LASSERT(mutex_is_locked(ldlm_namespace_lock(client)));
 	LASSERT(!list_empty(ldlm_namespace_list(client)));
-	return container_of(ldlm_namespace_list(client)->next,
-		struct ldlm_namespace, ns_list_chain);
+	return list_first_entry(ldlm_namespace_list(client),
+				struct ldlm_namespace, ns_list_chain);
 }
 
 /** Create and initialize new resource. */
