@@ -210,9 +210,9 @@ srpc_service_fini(struct srpc_service *svc)
 			else
 				break;
 
-			while (!list_empty(q)) {
-				buf = list_entry(q->next, struct srpc_buffer,
-						 buf_list);
+			while ((buf = list_first_entry_or_null(
+					q, struct srpc_buffer,
+					buf_list)) != NULL) {
 				list_del(&buf->buf_list);
 				kfree(buf);
 			}
@@ -220,10 +220,9 @@ srpc_service_fini(struct srpc_service *svc)
 
 		LASSERT(list_empty(&scd->scd_rpc_active));
 
-		while (!list_empty(&scd->scd_rpc_free)) {
-			rpc = list_entry(scd->scd_rpc_free.next,
-					 struct srpc_server_rpc,
-					 srpc_list);
+		while ((rpc = list_first_entry_or_null(&scd->scd_rpc_free,
+						       struct srpc_server_rpc,
+						       srpc_list)) != NULL) {
 			list_del(&rpc->srpc_list);
 			kfree(rpc);
 		}
@@ -674,8 +673,8 @@ srpc_finish_service(struct srpc_service *sv)
 			continue;
 		}
 
-		rpc = list_entry(scd->scd_rpc_active.next,
-				 struct srpc_server_rpc, srpc_list);
+		rpc = list_first_entry(&scd->scd_rpc_active,
+				       struct srpc_server_rpc, srpc_list);
 		CNETERR("Active RPC %p on shutdown: sv %s, peer %s, wi %s, ev fired %d type %d status %d lnet %d\n",
 			rpc, sv->sv_name, libcfs_id2str(rpc->srpc_peer),
 			swi_state2str(rpc->srpc_wi.swi_state),
@@ -943,8 +942,8 @@ srpc_server_rpc_done(struct srpc_server_rpc *rpc, int status)
 	LASSERT(rpc->srpc_ev.ev_fired);
 
 	if (!sv->sv_shuttingdown && !list_empty(&scd->scd_buf_blocked)) {
-		buffer = list_entry(scd->scd_buf_blocked.next,
-				    struct srpc_buffer, buf_list);
+		buffer = list_first_entry(&scd->scd_buf_blocked,
+					  struct srpc_buffer, buf_list);
 		list_del(&buffer->buf_list);
 
 		srpc_init_server_rpc(rpc, scd, buffer);
@@ -1535,9 +1534,9 @@ srpc_lnet_ev_handler(struct lnet_event *ev)
 		}
 
 		if (!list_empty(&scd->scd_rpc_free)) {
-			srpc = list_entry(scd->scd_rpc_free.next,
-					  struct srpc_server_rpc,
-					  srpc_list);
+			srpc = list_first_entry(&scd->scd_rpc_free,
+						struct srpc_server_rpc,
+						srpc_list);
 			list_del(&srpc->srpc_list);
 
 			srpc_init_server_rpc(srpc, scd, buffer);

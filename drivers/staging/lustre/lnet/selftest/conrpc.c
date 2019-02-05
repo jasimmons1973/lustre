@@ -1362,9 +1362,8 @@ lstcon_rpc_cleanup_wait(void)
 
 	spin_unlock(&console_session.ses_rpc_lock);
 
-	while (!list_empty(&zlist)) {
-		crpc = list_entry(zlist.next, struct lstcon_rpc, crp_link);
-
+	while ((crpc = list_first_entry_or_null(&zlist, struct lstcon_rpc,
+					       crp_link)) != NULL) {
 		list_del(&crpc->crp_link);
 		kfree(crpc);
 	}

@@ -125,8 +125,8 @@ stt_expire_list(struct list_head *slot, time64_t now)
 	int expired = 0;
 	struct stt_timer *timer;
 
-	while (!list_empty(slot)) {
-		timer = list_entry(slot->next, struct stt_timer, stt_list);
+	while ((timer = list_first_entry_or_null(slot, struct stt_timer,
+						 stt_list)) != NULL) {
 
 		if (timer->stt_expires > now)
 			break;

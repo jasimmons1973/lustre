@@ -628,16 +628,16 @@ sfw_destroy_test_instance(struct sfw_test_instance *tsi)
 	LASSERT(list_empty(&tsi->tsi_active_rpcs));
 	LASSERT(!sfw_test_active(tsi));
 
-	while (!list_empty(&tsi->tsi_units)) {
-		tsu = list_entry(tsi->tsi_units.next,
-				 struct sfw_test_unit, tsu_list);
+	while ((tsu = list_first_entry_or_null(&tsi->tsi_units,
+					       struct sfw_test_unit,
+					       tsu_list)) != NULL) {
 		list_del(&tsu->tsu_list);
 		kfree(tsu);
 	}
 
-	while (!list_empty(&tsi->tsi_free_rpcs)) {
-		rpc = list_entry(tsi->tsi_free_rpcs.next,
-				 struct srpc_client_rpc, crpc_list);
+	while ((rpc = list_first_entry_or_null(&tsi->tsi_free_rpcs,
+					       struct srpc_client_rpc,
+					       crpc_list)) != NULL) {
 		list_del(&rpc->crpc_list);
 		kfree(rpc);
 	}
@@ -655,9 +655,9 @@ sfw_destroy_batch(struct sfw_batch *tsb)
 	LASSERT(!sfw_batch_active(tsb));
 	LASSERT(list_empty(&tsb->bat_list));
 
-	while (!list_empty(&tsb->bat_tests)) {
-		tsi = list_entry(tsb->bat_tests.next,
-				 struct sfw_test_instance, tsi_list);
+	while ((tsi = list_first_entry_or_null(&tsb->bat_tests,
+					       struct sfw_test_instance,
+					       tsi_list)) != NULL) {
 		list_del_init(&tsi->tsi_list);
 		sfw_destroy_test_instance(tsi);
 	}
@@ -673,9 +673,9 @@ sfw_destroy_session(struct sfw_session *sn)
 	LASSERT(list_empty(&sn->sn_list));
 	LASSERT(sn != sfw_data.fw_session);
 
-	while (!list_empty(&sn->sn_batches)) {
-		batch = list_entry(sn->sn_batches.next,
-				   struct sfw_batch, bat_list);
+	while ((batch = list_first_entry_or_null(&sn->sn_batches,
+						 struct sfw_batch,
+						 bat_list)) != NULL) {
 		list_del_init(&batch->bat_list);
 		sfw_destroy_batch(batch);
 	}
@@ -1389,8 +1389,8 @@ sfw_create_rpc(struct lnet_process_id peer, int service,
 	LASSERT(service <= SRPC_FRAMEWORK_SERVICE_MAX_ID);
 
 	if (!nbulkiov && !list_empty(&sfw_data.fw_zombie_rpcs)) {
-		rpc = list_entry(sfw_data.fw_zombie_rpcs.next,
-				 struct srpc_client_rpc, crpc_list);
+		rpc = list_first_entry(&sfw_data.fw_zombie_rpcs,
+				       struct srpc_client_rpc, crpc_list);
 		list_del(&rpc->crpc_list);
 
 		srpc_init_client_rpc(rpc, peer, service, 0, 0,
@@ -1722,6 +1722,7 @@ sfw_shutdown(void)
 {
 	struct srpc_service *sv;
 	struct sfw_test_case	*tsc;
+	struct srpc_client_rpc *rpc;
 	int i;
 
 	spin_lock(&sfw_data.fw_lock);
@@ -1757,11 +1758,9 @@ sfw_shutdown(void)
 		srpc_remove_service(sv);
 	}
 
-	while (!list_empty(&sfw_data.fw_zombie_rpcs)) {
-		struct srpc_client_rpc *rpc;
-
-		rpc = list_entry(sfw_data.fw_zombie_rpcs.next,
-				 struct srpc_client_rpc, crpc_list);
+	while ((rpc = list_first_entry_or_null(&sfw_data.fw_zombie_rpcs,
+					       struct srpc_client_rpc,
+					       crpc_list)) != NULL) {
 		list_del(&rpc->crpc_list);
 
 		kfree(rpc);
@@ -1775,10 +1774,9 @@ sfw_shutdown(void)
 		srpc_wait_service_shutdown(sv);
 	}
 
-	while (!list_empty(&sfw_data.fw_tests)) {
-		tsc = list_entry(sfw_data.fw_tests.next,
-				 struct sfw_test_case, tsc_list);
-
+	while ((tsc = list_first_entry_or_null(&sfw_data.fw_tests,
+					       struct sfw_test_case,
+					       tsc_list)) != NULL) {
 		srpc_wait_service_shutdown(tsc->tsc_srv_service);
 
 		list_del(&tsc->tsc_list);

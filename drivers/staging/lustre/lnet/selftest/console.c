@@ -330,11 +330,10 @@ lstcon_group_move(struct lstcon_group *old, struct lstcon_group *new)
 {
 	struct lstcon_ndlink *ndl;
 
-	while (!list_empty(&old->grp_ndl_list)) {
-		ndl = list_entry(old->grp_ndl_list.next,
-				 struct lstcon_ndlink, ndl_link);
+	while ((ndl = list_first_entry_or_null(&old->grp_ndl_list,
+					       struct lstcon_ndlink,
+					       ndl_link)) != NULL)
 		lstcon_group_ndlink_move(old, new, ndl);
-	}
 }
 
 static int
@@ -1095,9 +1094,9 @@ lstcon_batch_destroy(struct lstcon_batch *bat)
 
 	list_del(&bat->bat_link);
 
-	while (!list_empty(&bat->bat_test_list)) {
-		test = list_entry(bat->bat_test_list.next,
-				  struct lstcon_test, tes_link);
+	while ((test = list_first_entry_or_null(&bat->bat_test_list,
+						struct lstcon_test,
+						tes_link)) != NULL) {
 		LASSERT(list_empty(&test->tes_trans_list));
 
 		list_del(&test->tes_link);
@@ -1110,17 +1109,17 @@ lstcon_batch_destroy(struct lstcon_batch *bat)
 
 	LASSERT(list_empty(&bat->bat_trans_list));
 
-	while (!list_empty(&bat->bat_cli_list)) {
-		ndl = list_entry(bat->bat_cli_list.next,
-				 struct lstcon_ndlink, ndl_link);
+	while ((ndl = list_first_entry_or_null(&bat->bat_cli_list,
+					       struct lstcon_ndlink,
+					       ndl_link)) != NULL) {
 		list_del_init(&ndl->ndl_link);
 
 		lstcon_ndlink_release(ndl);
 	}
 
-	while (!list_empty(&bat->bat_srv_list)) {
-		ndl = list_entry(bat->bat_srv_list.next,
-				 struct lstcon_ndlink, ndl_link);
+	while ((ndl = list_first_entry_or_null(&bat->bat_srv_list,
+					       struct lstcon_ndlink,
+					       ndl_link)) != NULL) {
 		list_del_init(&ndl->ndl_link);
 
 		lstcon_ndlink_release(ndl);
@@ -1844,17 +1843,15 @@ lstcon_session_end(void)
 	console_session.ses_feats_updated = 0;
 
 	/* destroy all batches */
-	while (!list_empty(&console_session.ses_bat_list)) {
-		bat = list_entry(console_session.ses_bat_list.next,
-				 struct lstcon_batch, bat_link);
-
+	while ((bat = list_first_entry_or_null(&console_session.ses_bat_list,
+					       struct lstcon_batch,
+					       bat_link)) != NULL)
 		lstcon_batch_destroy(bat);
-	}
 
 	/* destroy all groups */
-	while (!list_empty(&console_session.ses_grp_list)) {
-		grp = list_entry(console_session.ses_grp_list.next,
-				 struct lstcon_group, grp_link);
+	while ((grp = list_first_entry_or_null(&console_session.ses_grp_list,
+					       struct lstcon_group,
+					       grp_link)) != NULL) {
 		LASSERT(grp->grp_ref == 1);
 
 		lstcon_group_decref(grp);

@@ -468,11 +468,11 @@ EXPORT_SYMBOL(cfs_expr_list_values);
 void
 cfs_expr_list_free(struct cfs_expr_list *expr_list)
 {
-	while (!list_empty(&expr_list->el_exprs)) {
-		struct cfs_range_expr *expr;
+	struct cfs_range_expr *expr;
 
-		expr = list_entry(expr_list->el_exprs.next,
-				  struct cfs_range_expr, re_link);
+	while ((expr = list_first_entry_or_null(&expr_list->el_exprs,
+						struct cfs_range_expr,
+						re_link)) != NULL) {
 		list_del(&expr->re_link);
 		kfree(expr);
 	}
@@ -553,8 +553,8 @@ cfs_expr_list_free_list(struct list_head *list)
 {
 	struct cfs_expr_list *el;
 
-	while (!list_empty(list)) {
-		el = list_entry(list->next, struct cfs_expr_list, el_link);
+	while ((el = list_first_entry_or_null(list, struct cfs_expr_list,
+					      el_link)) != NULL) {
 		list_del(&el->el_link);
 		cfs_expr_list_free(el);
 	}
