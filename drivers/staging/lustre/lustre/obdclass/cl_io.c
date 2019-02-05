@@ -668,7 +668,7 @@ int cl_io_submit_sync(const struct lu_env *env, struct cl_io *io,
 		pg->cp_sync_io = anchor;
 	}
 
-	cl_sync_io_init(anchor, queue->c2_qin.pl_nr, &cl_sync_io_end);
+	cl_sync_io_init(anchor, queue->c2_qin.pl_nr);
 	rc = cl_io_submit_rw(env, io, iot, queue);
 	if (rc == 0) {
 		/*
@@ -1039,31 +1039,16 @@ void cl_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 }
 EXPORT_SYMBOL(cl_req_attr_set);
 
-/* cl_sync_io_callback assumes the caller must call cl_sync_io_wait() to
- * wait for the IO to finish.
- */
-void cl_sync_io_end(const struct lu_env *env, struct cl_sync_io *anchor)
-{
-	wake_up_all(&anchor->csi_waitq);
-
-	/* it's safe to nuke or reuse anchor now */
-	atomic_set(&anchor->csi_barrier, 0);
-}
-EXPORT_SYMBOL(cl_sync_io_end);
-
 /**
  * Initialize synchronous io wait anchor
  */
-void cl_sync_io_init(struct cl_sync_io *anchor, int nr,
-		     void (*end)(const struct lu_env *, struct cl_sync_io *))
+void cl_sync_io_init(struct cl_sync_io *anchor, int nr)
 {
 	memset(anchor, 0, sizeof(*anchor));
 	init_waitqueue_head(&anchor->csi_waitq);
 	atomic_set(&anchor->csi_sync_nr, nr);
 	atomic_set(&anchor->csi_barrier, nr > 0);
 	anchor->csi_sync_rc = 0;
-	anchor->csi_end_io = end;
-	LASSERT(end);
 }
 EXPORT_SYMBOL(cl_sync_io_init);
 
@@ -1120,8 +1105,11 @@ void cl_sync_io_note(const struct lu_env *env, struct cl_sync_io *anchor,
 	 */
 	LASSERT(atomic_read(&anchor->csi_sync_nr) > 0);
 	if (atomic_dec_and_test(&anchor->csi_sync_nr)) {
-		LASSERT(anchor->csi_end_io);
-		anchor->csi_end_io(env, anchor);
+
+		wake_up_all(&anchor->csi_waitq);
+		/* it's safe to nuke or reuse anchor now */
+		atomic_set(&anchor->csi_barrier, 0);
+
 		/* Can't access anchor any more */
 	}
 }

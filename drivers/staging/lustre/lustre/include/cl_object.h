@@ -2395,18 +2395,13 @@ struct cl_sync_io {
 	atomic_t		csi_barrier;
 	/** completion to be signaled when transfer is complete. */
 	wait_queue_head_t	csi_waitq;
-	/** callback to invoke when this IO is finished */
-	void			(*csi_end_io)(const struct lu_env *,
-					      struct cl_sync_io *);
 };
 
-void cl_sync_io_init(struct cl_sync_io *anchor, int nr,
-		     void (*end)(const struct lu_env *, struct cl_sync_io *));
+void cl_sync_io_init(struct cl_sync_io *anchor, int nr);
 int  cl_sync_io_wait(const struct lu_env *env, struct cl_sync_io *anchor,
 		     long timeout);
 void cl_sync_io_note(const struct lu_env *env, struct cl_sync_io *anchor,
 		     int ioret);
-void cl_sync_io_end(const struct lu_env *env, struct cl_sync_io *anchor);
 
 /** @} cl_sync_io */
 
