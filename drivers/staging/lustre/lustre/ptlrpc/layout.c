@@ -50,7 +50,6 @@
 #include <uapi/linux/lustre/lustre_idl.h>
 
 #include <llog_swab.h>
-#include <lustre_debug.h>
 #include <lustre_swab.h>
 #include <uapi/linux/lustre/lustre_ver.h>
 #include <obd.h>

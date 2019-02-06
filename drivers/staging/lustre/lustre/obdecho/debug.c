@@ -40,7 +40,7 @@
 #include <asm/unaligned.h>
 
 #include <obd_support.h>
-#include <lustre_debug.h>
+#include "echo_internal.h"
 #include <lustre_net.h>
 
 #define LPDS sizeof(u64)

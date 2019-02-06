@@ -39,4 +39,8 @@
 /* block size to use for data verification */
 #define OBD_ECHO_BLOCK_SIZE	(4 << 10)
 
+/* debug.c */
+int block_debug_setup(void *addr, int len, u64 off, u64 id);
+int block_debug_check(char *who, void *addr, int len, u64 off, u64 id);
+
 #endif
