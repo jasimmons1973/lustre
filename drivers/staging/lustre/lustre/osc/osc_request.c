@@ -2959,7 +2959,7 @@ static int osc_cleanup(struct obd_device *obd)
 
 	/* lru cleanup */
 	if (cli->cl_cache) {
-		LASSERT(atomic_read(&cli->cl_cache->ccc_users) > 0);
+		LASSERT(refcount_read(&cli->cl_cache->ccc_users) > 0);
 		spin_lock(&cli->cl_cache->ccc_lru_lock);
 		list_del_init(&cli->cl_lru_osc);
 		spin_unlock(&cli->cl_cache->ccc_lru_lock);
