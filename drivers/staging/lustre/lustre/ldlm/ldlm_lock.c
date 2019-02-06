@@ -1998,7 +1998,7 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 				   ldlm_lockname[lock->l_req_mode],
 				   lock->l_flags, nid,
 				   lock->l_remote_handle.cookie,
-				   exp ? atomic_read(&exp->exp_refcount) : -99,
+				   exp ? refcount_read(&exp->exp_refcount) : -99,
 				   lock->l_pid, lock->l_callback_timeout,
 				   lock->l_lvb_type);
 		va_end(args);
@@ -2024,7 +2024,7 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 				   lock->l_req_extent.end,
 				   lock->l_flags, nid,
 				   lock->l_remote_handle.cookie,
-				   exp ? atomic_read(&exp->exp_refcount) : -99,
+				   exp ? refcount_read(&exp->exp_refcount) : -99,
 				   lock->l_pid, lock->l_callback_timeout,
 				   lock->l_lvb_type);
 		break;
@@ -2046,7 +2046,7 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 				   lock->l_policy_data.l_flock.end,
 				   lock->l_flags, nid,
 				   lock->l_remote_handle.cookie,
-				   exp ? atomic_read(&exp->exp_refcount) : -99,
+				   exp ? refcount_read(&exp->exp_refcount) : -99,
 				   lock->l_pid, lock->l_callback_timeout);
 		break;
 
@@ -2065,7 +2065,7 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 				   ldlm_typename[resource->lr_type],
 				   lock->l_flags, nid,
 				   lock->l_remote_handle.cookie,
-				   exp ? atomic_read(&exp->exp_refcount) : -99,
+				   exp ? refcount_read(&exp->exp_refcount) : -99,
 				   lock->l_pid, lock->l_callback_timeout,
 				   lock->l_lvb_type);
 		break;
@@ -2084,7 +2084,7 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 				   ldlm_typename[resource->lr_type],
 				   lock->l_flags, nid,
 				   lock->l_remote_handle.cookie,
-				   exp ? atomic_read(&exp->exp_refcount) : -99,
+				   exp ? refcount_read(&exp->exp_refcount) : -99,
 				   lock->l_pid, lock->l_callback_timeout,
 				   lock->l_lvb_type);
 		break;
