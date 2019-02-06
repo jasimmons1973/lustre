@@ -717,7 +717,7 @@ enum cl_page_type {
  */
 struct cl_page {
 	/** Reference counter. */
-	atomic_t			 cp_ref;
+	refcount_t			 cp_ref;
 	/** An object this page is a part of. Immutable after creation. */
 	struct cl_object		*cp_obj;
 	/** vmpage */
@@ -1021,7 +1021,7 @@ static inline struct page *cl_page_vmpage(struct cl_page *page)
  */
 static inline bool __page_in_use(const struct cl_page *page, int refc)
 {
-	return (atomic_read(&page->cp_ref) > refc + 1);
+	return (refcount_read(&page->cp_ref) > refc + 1);
 }
 
 /**

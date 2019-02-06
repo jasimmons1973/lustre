@@ -157,15 +157,16 @@ static void vvp_page_delete(const struct lu_env *env,
 	struct inode *inode = vmpage->mapping->host;
 	struct cl_object *obj = slice->cpl_obj;
 	struct cl_page *page = slice->cpl_page;
-	int refc;
 
 	LASSERT(PageLocked(vmpage));
 	LASSERT((struct cl_page *)vmpage->private == page);
 	LASSERT(inode == vvp_object_inode(obj));
 
 	/* Drop the reference count held in vvp_page_init */
-	refc = atomic_dec_return(&page->cp_ref);
-	LASSERTF(refc >= 1, "page = %p, refc = %d\n", page, refc);
+	if (refcount_dec_and_test(&page->cp_ref)) {
+		/* It mustn't reach zero here! */
+		LASSERTF(0, "page = %p, refc reached zero\n", page);
+	}
 
 	ClearPagePrivate(vmpage);
 	vmpage->private = 0;
@@ -507,7 +508,7 @@ int vvp_page_init(const struct lu_env *env, struct cl_object *obj,
 
 	if (page->cp_type == CPT_CACHEABLE) {
 		/* in cache, decref in vvp_page_delete */
-		atomic_inc(&page->cp_ref);
+		refcount_inc(&page->cp_ref);
 		SetPagePrivate(vmpage);
 		vmpage->private = (unsigned long)page;
 		cl_page_slice_add(page, &vpg->vpg_cl, obj, index,

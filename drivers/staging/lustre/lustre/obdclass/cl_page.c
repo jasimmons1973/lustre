@@ -67,8 +67,8 @@ static void __cl_page_delete(const struct lu_env *env, struct cl_page *pg);
  */
 static void cl_page_get_trust(struct cl_page *page)
 {
-	LASSERT(atomic_read(&page->cp_ref) > 0);
-	atomic_inc(&page->cp_ref);
+	LASSERT(refcount_read(&page->cp_ref) > 0);
+	refcount_inc(&page->cp_ref);
 }
 
 /**
@@ -135,7 +135,7 @@ struct cl_page *cl_page_alloc(const struct lu_env *env,
 	if (page) {
 		int result = 0;
 
-		atomic_set(&page->cp_ref, 1);
+		refcount_set(&page->cp_ref, 1);
 		page->cp_obj = o;
 		cl_object_get(o);
 		lu_object_ref_add_at(&o->co_lu, &page->cp_obj_ref, "cl_page",
@@ -310,12 +310,12 @@ EXPORT_SYMBOL(cl_page_get);
 void cl_page_put(const struct lu_env *env, struct cl_page *page)
 {
 	CL_PAGE_HEADER(D_TRACE, env, page, "%d\n",
-		       atomic_read(&page->cp_ref));
+		       refcount_read(&page->cp_ref));
 
-	if (atomic_dec_and_test(&page->cp_ref)) {
+	if (refcount_dec_and_test(&page->cp_ref)) {
 		LASSERT(page->cp_state == CPS_FREEING);
 
-		LASSERT(atomic_read(&page->cp_ref) == 0);
+		LASSERT(refcount_read(&page->cp_ref) == 0);
 		PASSERT(env, page, !page->cp_owner);
 		PASSERT(env, page, list_empty(&page->cp_batch));
 		/*
@@ -869,7 +869,7 @@ void cl_page_header_print(const struct lu_env *env, void *cookie,
 {
 	(*printer)(env, cookie,
 		   "page@%p[%d %p %d %d %p]\n",
-		   pg, atomic_read(&pg->cp_ref), pg->cp_obj,
+		   pg, refcount_read(&pg->cp_ref), pg->cp_obj,
 		   pg->cp_state, pg->cp_type,
 		   pg->cp_owner);
 }
