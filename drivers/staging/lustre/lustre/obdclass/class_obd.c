@@ -520,7 +520,7 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 	}
 
 	switch (cmd) {
-	case OBD_IOC_NO_TRANSNO: {
+	case OBD_IOC_NO_TRANSNO:
 		if (!obd->obd_attached) {
 			CERROR("Device %d not attached\n", obd->obd_minor);
 			err = -ENODEV;
@@ -530,18 +530,16 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 		       obd->obd_name);
 		obd->obd_no_transno = 1;
 		err = 0;
-		goto out;
-	}
+		break;
 
-	default: {
+	default:
 		err = obd_iocontrol(cmd, obd->obd_self_export, len, data, NULL);
 		if (err)
 			goto out;
 
 		if (copy_to_user((void __user *)arg, data, len))
 			err = -EFAULT;
-		goto out;
-	}
+		break;
 	}
 
  out:
