@@ -1130,13 +1130,11 @@ static long ll_dir_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	}
 	case IOC_MDC_LOOKUP: {
 		int namelen, len = 0;
-		char *buf = NULL;
 		char *filename;
 
-		rc = obd_ioctl_getdata(&buf, &len, (void __user *)arg);
+		rc = obd_ioctl_getdata(&data, &len, (void __user *)arg);
 		if (rc)
 			return rc;
-		data = (void *)buf;
 
 		filename = data->ioc_inlbuf1;
 		namelen = strlen(filename);
@@ -1155,12 +1153,11 @@ static long ll_dir_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			goto out_free;
 		}
 out_free:
-		kvfree(buf);
+		kvfree(data);
 		return rc;
 	}
 	case LL_IOC_LMV_SETSTRIPE: {
 		struct lmv_user_md  *lum;
-		char *buf = NULL;
 		char *filename;
 		int namelen = 0;
 		int lumlen = 0;
@@ -1168,11 +1165,10 @@ out_free:
 		int len;
 		int rc;
 
-		rc = obd_ioctl_getdata(&buf, &len, (void __user *)arg);
+		rc = obd_ioctl_getdata(&data, &len, (void __user *)arg);
 		if (rc)
 			return rc;
 
-		data = (void *)buf;
 		if (!data->ioc_inlbuf1 || !data->ioc_inlbuf2 ||
 		    data->ioc_inllen1 == 0 || data->ioc_inllen2 == 0) {
 			rc = -EINVAL;
@@ -1205,7 +1201,7 @@ out_free:
 #endif
 		rc = ll_dir_setdirstripe(dentry, lum, filename, mode);
 lmv_out_free:
-		kvfree(buf);
+		kvfree(data);
 		return rc;
 	}
 	case LL_IOC_LMV_SET_DEFAULT_STRIPE: {
@@ -1651,18 +1647,16 @@ out_quotactl:
 		return rc;
 	}
 	case LL_IOC_MIGRATE: {
-		char *buf = NULL;
 		const char *filename;
 		int namelen = 0;
 		int len;
 		int rc;
 		int mdtidx;
 
-		rc = obd_ioctl_getdata(&buf, &len, (void __user *)arg);
+		rc = obd_ioctl_getdata(&data, &len, (void __user *)arg);
 		if (rc < 0)
 			return rc;
 
-		data = (struct obd_ioctl_data *)buf;
 		if (!data->ioc_inlbuf1 || !data->ioc_inlbuf2 ||
 		    !data->ioc_inllen1 || !data->ioc_inllen2) {
 			rc = -EINVAL;
@@ -1684,7 +1678,7 @@ out_quotactl:
 
 		rc = ll_migrate(inode, file, mdtidx, filename, namelen - 1);
 migrate_free:
-		kvfree(buf);
+		kvfree(data);
 
 		return rc;
 	}

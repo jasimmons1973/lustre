@@ -229,7 +229,7 @@ static int obd_ioctl_is_invalid(struct obd_ioctl_data *data)
 }
 
 /* buffer MUST be at least the size of obd_ioctl_hdr */
-int obd_ioctl_getdata(char **buf, int *len, void __user *arg)
+int obd_ioctl_getdata(struct obd_ioctl_data **datap, int *len, void __user *arg)
 {
 	struct obd_ioctl_data *data;
 	struct obd_ioctl_hdr hdr;
@@ -261,16 +261,16 @@ int obd_ioctl_getdata(char **buf, int *len, void __user *arg)
 	 * obdfilter-survey is an example, which relies on ioctl. So we'd
 	 * better avoid vmalloc on ioctl path. LU-66
 	 */
-	*buf = kvzalloc(hdr.ioc_len, GFP_KERNEL);
-	if (!*buf) {
+	data = kvzalloc(hdr.ioc_len, GFP_KERNEL);
+	if (!data) {
 		CERROR("Cannot allocate control buffer of len %d\n",
 		       hdr.ioc_len);
 		return -EINVAL;
 	}
 	*len = hdr.ioc_len;
-	data = (struct obd_ioctl_data *)*buf;
+	*datap = data;
 
-	if (copy_from_user(*buf, arg, hdr.ioc_len)) {
+	if (copy_from_user(data, arg, hdr.ioc_len)) {
 		err = -EFAULT;
 		goto free_buf;
 	}
@@ -307,14 +307,13 @@ int obd_ioctl_getdata(char **buf, int *len, void __user *arg)
 	return 0;
 
 free_buf:
-	kvfree(*buf);
+	kvfree(data);
 	return err;
 }
 EXPORT_SYMBOL(obd_ioctl_getdata);
 
 int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 {
-	char *buf = NULL;
 	struct obd_ioctl_data *data;
 	struct libcfs_debug_ioctl_data *debug_data;
 	struct obd_device *obd = NULL;
@@ -329,11 +328,10 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 	}
 
 	CDEBUG(D_IOCTL, "cmd = %x\n", cmd);
-	if (obd_ioctl_getdata(&buf, &len, (void __user *)arg)) {
+	if (obd_ioctl_getdata(&data, &len, (void __user *)arg)) {
 		CERROR("OBD ioctl: data error\n");
 		return -EINVAL;
 	}
-	data = (struct obd_ioctl_data *)buf;
 
 	switch (cmd) {
 	case OBD_IOC_PROCESS_CFG: {
@@ -542,7 +540,7 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 	}
 
  out:
-	kvfree(buf);
+	kvfree(data);
 	return err;
 } /* class_handle_ioctl */
 

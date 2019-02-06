@@ -1039,27 +1039,24 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	case OBD_IOC_LOV_GET_CONFIG: {
 		struct obd_ioctl_data *data;
 		struct lov_desc *desc;
-		char *buf = NULL;
 		u32 *genp;
 
 		len = 0;
-		if (obd_ioctl_getdata(&buf, &len, uarg))
+		if (obd_ioctl_getdata(&data, &len, uarg))
 			return -EINVAL;
 
-		data = (struct obd_ioctl_data *)buf;
-
 		if (sizeof(*desc) > data->ioc_inllen1) {
-			kvfree(buf);
+			kvfree(data);
 			return -EINVAL;
 		}
 
 		if (sizeof(uuidp->uuid) * count > data->ioc_inllen2) {
-			kvfree(buf);
+			kvfree(data);
 			return -EINVAL;
 		}
 
 		if (sizeof(u32) * count > data->ioc_inllen3) {
-			kvfree(buf);
+			kvfree(data);
 			return -EINVAL;
 		}
 
@@ -1076,9 +1073,9 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 			*genp = lov->lov_tgts[i]->ltd_gen;
 		}
 
-		if (copy_to_user(uarg, buf, len))
+		if (copy_to_user(uarg, data, len))
 			rc = -EFAULT;
-		kvfree(buf);
+		kvfree(data);
 		break;
 	}
 	case OBD_IOC_QUOTACTL: {

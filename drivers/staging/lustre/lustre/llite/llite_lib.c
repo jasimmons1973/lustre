@@ -2295,7 +2295,6 @@ int ll_obd_statfs(struct inode *inode, void __user *arg)
 {
 	struct ll_sb_info *sbi = NULL;
 	struct obd_export *exp;
-	char *buf = NULL;
 	struct obd_ioctl_data *data = NULL;
 	u32 type;
 	int len = 0, rc;
@@ -2311,11 +2310,10 @@ int ll_obd_statfs(struct inode *inode, void __user *arg)
 		goto out_statfs;
 	}
 
-	rc = obd_ioctl_getdata(&buf, &len, arg);
+	rc = obd_ioctl_getdata(&data, &len, arg);
 	if (rc)
 		goto out_statfs;
 
-	data = (void *)buf;
 	if (!data->ioc_inlbuf1 || !data->ioc_inlbuf2 ||
 	    !data->ioc_pbuf1 || !data->ioc_pbuf2) {
 		rc = -EINVAL;
@@ -2340,11 +2338,11 @@ int ll_obd_statfs(struct inode *inode, void __user *arg)
 		goto out_statfs;
 	}
 
-	rc = obd_iocontrol(IOC_OBD_STATFS, exp, len, buf, NULL);
+	rc = obd_iocontrol(IOC_OBD_STATFS, exp, len, data, NULL);
 	if (rc)
 		goto out_statfs;
 out_statfs:
-	kvfree(buf);
+	kvfree(data);
 	return rc;
 }
 
