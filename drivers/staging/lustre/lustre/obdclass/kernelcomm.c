@@ -49,7 +49,7 @@
  * @param payload Payload data.  First field of payload is always
  *   struct kuc_hdr
  */
-int libcfs_kkuc_msg_put(struct file *filp, void *payload)
+static int libcfs_kkuc_msg_put(struct file *filp, void *payload)
 {
 	struct kuc_hdr *kuch = (struct kuc_hdr *)payload;
 	ssize_t count = kuch->kuc_msglen;
@@ -80,7 +80,6 @@ int libcfs_kkuc_msg_put(struct file *filp, void *payload)
 
 	return rc;
 }
-EXPORT_SYMBOL(libcfs_kkuc_msg_put);
 
 /*
  * Broadcast groups are global across all mounted filesystems;

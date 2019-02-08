@@ -46,7 +46,6 @@ typedef int (*libcfs_kkuc_cb_t)(void *data, void *cb_arg);
 
 /* Kernel methods */
 void libcfs_kkuc_init(void);
-int libcfs_kkuc_msg_put(struct file *fp, void *payload);
 int libcfs_kkuc_group_put(unsigned int group, void *payload);
 int libcfs_kkuc_group_add(struct file *fp, int uid, unsigned int group,
 			  void *data, size_t data_len);
