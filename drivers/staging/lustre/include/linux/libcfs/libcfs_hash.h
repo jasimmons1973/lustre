@@ -304,25 +304,25 @@ struct cfs_hash_ops {
 	unsigned int (*hs_hash)(struct cfs_hash *hs, const void *key,
 				unsigned int mask);
 	/** return key address of @hnode */
-	void *   (*hs_key)(struct hlist_node *hnode);
+	void *	(*hs_key)(struct hlist_node *hnode);
 	/** copy key from @hnode to @key */
-	void     (*hs_keycpy)(struct hlist_node *hnode, void *key);
+	void	(*hs_keycpy)(struct hlist_node *hnode, void *key);
 	/**
 	 *  compare @key with key of @hnode
 	 *  returns 1 on a match
 	 */
-	int      (*hs_keycmp)(const void *key, struct hlist_node *hnode);
+	int	(*hs_keycmp)(const void *key, struct hlist_node *hnode);
 	/** return object address of @hnode, i.e: container_of(...hnode) */
-	void *   (*hs_object)(struct hlist_node *hnode);
+	void *	(*hs_object)(struct hlist_node *hnode);
 	/** get refcount of item, always called with holding bucket-lock */
-	void     (*hs_get)(struct cfs_hash *hs, struct hlist_node *hnode);
+	void	(*hs_get)(struct cfs_hash *hs, struct hlist_node *hnode);
 	/** release refcount of item */
-	void     (*hs_put)(struct cfs_hash *hs, struct hlist_node *hnode);
+	void	(*hs_put)(struct cfs_hash *hs, struct hlist_node *hnode);
 	/** release refcount of item, always called with holding bucket-lock */
-	void     (*hs_put_locked)(struct cfs_hash *hs,
-				  struct hlist_node *hnode);
+	void	(*hs_put_locked)(struct cfs_hash *hs,
+				 struct hlist_node *hnode);
 	/** it's called before removing of @hnode */
-	void     (*hs_exit)(struct cfs_hash *hs, struct hlist_node *hnode);
+	void	(*hs_exit)(struct cfs_hash *hs, struct hlist_node *hnode);
 };
 
 /** total number of buckets in @hs */
@@ -460,8 +460,8 @@ static inline int
 cfs_hash_bkt_size(struct cfs_hash *hs)
 {
 	return offsetof(struct cfs_hash_bucket, hsb_head[0]) +
-	       hs->hs_hops->hop_hhead_size(hs) * CFS_HASH_BKT_NHLIST(hs) +
-	       hs->hs_extra_bytes;
+		hs->hs_hops->hop_hhead_size(hs) * CFS_HASH_BKT_NHLIST(hs) +
+		hs->hs_extra_bytes;
 }
 
 static inline unsigned
@@ -703,7 +703,7 @@ void *cfs_hash_del(struct cfs_hash *hs, const void *key,
 void *cfs_hash_del_key(struct cfs_hash *hs, const void *key);
 
 /* Hash lookup/for_each functions */
-#define CFS_HASH_LOOP_HOG       1024
+#define CFS_HASH_LOOP_HOG	1024
 
 typedef int (*cfs_hash_for_each_cb_t)(struct cfs_hash *hs,
 				      struct cfs_hash_bd *bd,

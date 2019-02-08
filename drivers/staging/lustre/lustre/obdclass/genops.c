@@ -334,9 +334,9 @@ struct obd_device *class_newdev(const char *type_name, const char *name,
 
 	llog_group_init(&newdev->obd_olg);
 	/* Detach drops this */
-        atomic_set(&newdev->obd_refcount, 1);
-        lu_ref_init(&newdev->obd_reference);
-        lu_ref_add(&newdev->obd_reference, "newdev", newdev);
+	atomic_set(&newdev->obd_refcount, 1);
+	lu_ref_init(&newdev->obd_reference);
+	lu_ref_add(&newdev->obd_reference, "newdev", newdev);
 
 	newdev->obd_conn_inprogress = 0;
 

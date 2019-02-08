@@ -92,9 +92,9 @@ EXPORT_SYMBOL(libcfs_next_nidstring);
  * <nidrange>        :== <addrrange> '@' <net>
  * <addrrange>       :== '*' |
  *                       <ipaddr_range> |
- *			 <cfs_expr_list>
+ *                       <cfs_expr_list>
  * <ipaddr_range>    :== <cfs_expr_list>.<cfs_expr_list>.<cfs_expr_list>.
- *			 <cfs_expr_list>
+ *                       <cfs_expr_list>
  * <cfs_expr_list>   :== <number> |
  *                       <expr_list>
  * <expr_list>       :== '[' <range_expr> [ ',' <range_expr>] ']'

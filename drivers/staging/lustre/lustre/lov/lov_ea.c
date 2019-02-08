@@ -536,7 +536,7 @@ void dump_lsm(unsigned int level, const struct lov_stripe_md *lsm)
 		       DEXT ": id: %u, flags: %x, magic 0x%08X, layout_gen %u, stripe count %u, sstripe size %u, pool: [" LOV_POOLNAMEF "]\n",
 		       PEXT(&lse->lsme_extent), lse->lsme_id, lse->lsme_flags,
 		       lse->lsme_magic, lse->lsme_layout_gen,
-                       lse->lsme_stripe_count, lse->lsme_stripe_size,
+		       lse->lsme_stripe_count, lse->lsme_stripe_size,
 		       lse->lsme_pool_name);
 		if (!lsme_inited(lse) ||
 		    lse->lsme_pattern & LOV_PATTERN_F_RELEASED)

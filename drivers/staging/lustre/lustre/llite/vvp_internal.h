@@ -204,7 +204,7 @@ struct vvp_object {
 	 *
 	 * \see ll_vm_open(), ll_vm_close().
 	 */
-	atomic_t                vob_mmap_cnt;
+	atomic_t		vob_mmap_cnt;
 
 	/**
 	 * various flags

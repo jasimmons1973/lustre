@@ -289,9 +289,9 @@ struct lnet_counters {
 	__u64	drop_length;
 } __packed;
 
-#define LNET_NI_STATUS_UP      0x15aac0de
-#define LNET_NI_STATUS_DOWN    0xdeadface
-#define LNET_NI_STATUS_INVALID 0x00000000
+#define LNET_NI_STATUS_UP	0x15aac0de
+#define LNET_NI_STATUS_DOWN	0xdeadface
+#define LNET_NI_STATUS_INVALID	0x00000000
 
 #define LNET_INTERFACES_NUM		16
 
@@ -596,7 +596,7 @@ enum lnet_event_kind {
 	LNET_EVENT_UNLINK,
 };
 
-#define LNET_SEQ_GT(a, b)      (((signed long)((a) - (b))) > 0)
+#define LNET_SEQ_GT(a, b)	(((signed long)((a) - (b))) > 0)
 
 /**
  * Information about an event on a MD.
@@ -650,7 +650,7 @@ struct lnet_event {
 	 * The message type, to ensure a handler for LNET_EVENT_SEND can
 	 * distinguish between LNET_MSG_GET and LNET_MSG_PUT.
 	 */
-	__u32               msg_type;
+	__u32			msg_type;
 	/**
 	 * Indicates the completion status of the operation. It's 0 for
 	 * successful operations, otherwise it's an error code.

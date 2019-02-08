@@ -68,11 +68,11 @@ extern unsigned int libcfs_panic_on_lbug;
 #if !defined(__x86_64__)
 # ifdef __ia64__
 #  define CDEBUG_STACK() (THREAD_SIZE -					\
-			  ((unsigned long)__builtin_dwarf_cfa() &       \
+			  ((unsigned long)__builtin_dwarf_cfa() &	\
 			   (THREAD_SIZE - 1)))
 # else
 #  define CDEBUG_STACK() (THREAD_SIZE -					\
-			  ((unsigned long)__builtin_frame_address(0) &  \
+			  ((unsigned long)__builtin_frame_address(0) &	\
 			   (THREAD_SIZE - 1)))
 # endif /* __ia64__ */
 
@@ -87,7 +87,7 @@ do {									\
 		(msgdata)->msg_mask = mask;				\
 		(msgdata)->msg_cdls = cdls;				\
 		dump_stack();						\
-	      /*panic("LBUG");*/					\
+		/*panic("LBUG");*/					\
 	}								\
 } while (0)
 #define CFS_CHECK_STACK(msgdata, mask, cdls)  __CHECK_STACK(msgdata, mask, cdls)
@@ -120,22 +120,22 @@ struct libcfs_debug_msg_data {
 
 #define LIBCFS_DEBUG_MSG_DATA_INIT(data, mask, cdls)			\
 do {									\
-	(data)->msg_subsys = DEBUG_SUBSYSTEM;				\
-	(data)->msg_file   = __FILE__;					\
-	(data)->msg_fn     = __func__;					\
-	(data)->msg_line   = __LINE__;					\
-	(data)->msg_cdls   = (cdls);					\
-	(data)->msg_mask   = (mask);					\
+	(data)->msg_subsys	= DEBUG_SUBSYSTEM;			\
+	(data)->msg_file	= __FILE__;				\
+	(data)->msg_fn		= __func__;				\
+	(data)->msg_line	= __LINE__;				\
+	(data)->msg_cdls	= (cdls);				\
+	(data)->msg_mask	= (mask);				\
 } while (0)
 
 #define LIBCFS_DEBUG_MSG_DATA_DECL(dataname, mask, cdls)		\
 	static struct libcfs_debug_msg_data dataname = {		\
-	       .msg_subsys = DEBUG_SUBSYSTEM,				\
-	       .msg_file   = __FILE__,					\
-	       .msg_fn     = __func__,					\
-	       .msg_line   = __LINE__,					\
-	       .msg_cdls   = (cdls)	 };				\
-	dataname.msg_mask   = (mask)
+		.msg_subsys	= DEBUG_SUBSYSTEM,			\
+		.msg_file	= __FILE__,				\
+		.msg_fn		= __func__,				\
+		.msg_line	= __LINE__,				\
+		.msg_cdls	= (cdls)	 };			\
+	dataname.msg_mask	= (mask)
 
 /**
  * Filters out logging messages based on mask and subsystem.

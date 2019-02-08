@@ -2636,7 +2636,7 @@ out:
 			return -EFAULT;
 
 		return ll_file_futimes_3(file, &lfu);
-        }
+	}
 	case LL_IOC_LADVISE: {
 		struct llapi_ladvise_hdr *ladvise_hdr;
 		int alloc_size = sizeof(*ladvise_hdr);

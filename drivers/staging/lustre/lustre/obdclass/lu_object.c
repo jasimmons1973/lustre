@@ -73,7 +73,7 @@ struct lu_site_bkt_data {
 	 *
 	 * \see htable_lookup().
 	 */
-	wait_queue_head_t	       lsb_marche_funebre;
+	wait_queue_head_t		lsb_marche_funebre;
 };
 
 enum {
@@ -935,10 +935,10 @@ static void lu_obj_hop_put_locked(struct cfs_hash *hs, struct hlist_node *hnode)
 static struct cfs_hash_ops lu_site_hash_ops = {
 	.hs_hash	= lu_obj_hop_hash,
 	.hs_key		= lu_obj_hop_key,
-	.hs_keycmp      = lu_obj_hop_keycmp,
-	.hs_object      = lu_obj_hop_object,
+	.hs_keycmp	= lu_obj_hop_keycmp,
+	.hs_object	= lu_obj_hop_object,
 	.hs_get		= lu_obj_hop_get,
-	.hs_put_locked  = lu_obj_hop_put_locked,
+	.hs_put_locked	= lu_obj_hop_put_locked,
 };
 
 static void lu_dev_add_linkage(struct lu_site *s, struct lu_device *d)

@@ -611,7 +611,7 @@ void lnet_counters_reset(void);
 unsigned int lnet_iov_nob(unsigned int niov, struct kvec *iov);
 int lnet_extract_iov(int dst_niov, struct kvec *dst,
 		     int src_niov, const struct kvec *src,
-		      unsigned int offset, unsigned int len);
+		     unsigned int offset, unsigned int len);
 
 unsigned int lnet_kiov_nob(unsigned int niov, struct bio_vec *iov);
 int lnet_extract_kiov(int dst_niov, struct bio_vec *dst,
@@ -827,7 +827,7 @@ void lnet_incr_stats(struct lnet_element_stats *stats,
 		     enum lnet_stats_type stats_type);
 
 u32 lnet_sum_stats(struct lnet_element_stats *stats,
-		     enum lnet_stats_type stats_type);
+		   enum lnet_stats_type stats_type);
 
 void lnet_usr_translate_stats(struct lnet_ioctl_element_msg_stats *msg_stats,
 			      struct lnet_element_stats *stats);

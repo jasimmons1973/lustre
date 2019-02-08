@@ -74,25 +74,25 @@
 #define IBLND_N_SCHED_HIGH		4
 
 struct kib_tunables {
-	int *kib_dev_failover;           /* HCA failover */
-	unsigned int *kib_service;       /* IB service number */
+	int *kib_dev_failover;		/* HCA failover */
+	unsigned int *kib_service;	/* IB service number */
 	int *kib_min_reconnect_interval; /* first failed connection retry... */
 	int *kib_max_reconnect_interval; /* exponentially increasing to this */
-	int *kib_cksum;                  /* checksum struct kib_msg? */
-	int *kib_timeout;                /* comms timeout (seconds) */
-	int *kib_keepalive;              /* keepalive timeout (seconds) */
-	int *kib_ntx;                    /* # tx descs */
-	char **kib_default_ipif;         /* default IPoIB interface */
+	int *kib_cksum;			/* checksum struct kib_msg? */
+	int *kib_timeout;		/* comms timeout (seconds) */
+	int *kib_keepalive;		/* keepalive timeout (seconds) */
+	int *kib_ntx;			/* # tx descs */
+	char **kib_default_ipif;	/* default IPoIB interface */
 	int *kib_retry_count;
 	int *kib_rnr_retry_count;
-	int *kib_ib_mtu;                 /* IB MTU */
-	int *kib_require_priv_port;      /* accept only privileged ports */
-	int *kib_use_priv_port; /* use privileged port for active connect */
-	int *kib_nscheds;                /* # threads on each CPT */
-	int *kib_wrq_sge;		 /* # sg elements per wrq */
-	bool *kib_use_fastreg_gaps;	 /* enable discontiguous fastreg
-					  * fragment support
-					  */
+	int *kib_ib_mtu;		/* IB MTU */
+	int *kib_require_priv_port;	/* accept only privileged ports */
+	int *kib_use_priv_port;		/* use privileged port for active connect */
+	int *kib_nscheds;		/* # threads on each CPT */
+	int *kib_wrq_sge;		/* # sg elements per wrq */
+	bool *kib_use_fastreg_gaps;	/* enable discontiguous fastreg
+					 * fragment support
+					 */
 };
 
 extern struct kib_tunables  kiblnd_tunables;
@@ -164,11 +164,11 @@ struct kib_dev {
 	int			ibd_nnets;	/* # nets extant */
 
 	time64_t		ibd_next_failover;
-	int			ibd_failed_failover; /* # failover failures */
-	unsigned int		ibd_failover;        /* failover in progress */
-	unsigned int		ibd_can_failover;    /* IPoIB interface is a
-						      * bonding master
-						      */
+	int			ibd_failed_failover;	/* # failover failures */
+	unsigned int		ibd_failover;		/* failover in progress */
+	unsigned int		ibd_can_failover;	/* IPoIB interface is a
+							 * bonding master
+							 */
 	struct list_head	ibd_nets;
 	struct kib_hca_dev	*ibd_hdev;
 	enum kib_dev_caps	ibd_dev_caps;
@@ -330,8 +330,8 @@ struct kib_sched_info {
 
 struct kib_data {
 	int			kib_init;	    /* initialisation state */
-	int			kib_shutdown;       /* shut down? */
-	struct list_head	kib_devs;           /* IB devices extant */
+	int			kib_shutdown;	    /* shut down? */
+	struct list_head	kib_devs;	    /* IB devices extant */
 	struct list_head	kib_failed_devs;    /* list head of failed devices */
 	wait_queue_head_t	kib_failover_waitq; /* schedulers sleep here */
 	atomic_t		kib_nthreads;	    /* # live threads */
@@ -540,7 +540,7 @@ struct kib_conn {
 	int			ibc_state;	/* what's happening */
 	int			ibc_nsends_posted;	/* # uncompleted sends */
 	int			ibc_noops_posted;	/* # uncompleted NOOPs */
-	int			ibc_credits;     /* # credits I have */
+	int			ibc_credits;		/* # credits I have */
 	int			ibc_outstanding_credits; /* # credits to return */
 	int			ibc_reserved_credits; /* # ACK/DONE msg credits */
 	int			ibc_comms_error; /* set on comms error */
@@ -581,13 +581,13 @@ struct kib_conn {
 #define IBLND_CONN_DISCONNECTED		5	 /* disconnected */
 
 struct kib_peer_ni {
-	struct list_head	ibp_list;        /* stash on global peer_ni list */
-	lnet_nid_t		ibp_nid;         /* who's on the other end(s) */
-	struct lnet_ni		*ibp_ni;         /* LNet interface */
-	struct list_head	ibp_conns;       /* all active connections */
-	struct kib_conn		*ibp_next_conn;  /* next connection to send on for
-						  * round robin */
-	struct list_head	ibp_tx_queue;	 /* msgs waiting for a conn */
+	struct list_head	ibp_list;	/* stash on global peer_ni list */
+	lnet_nid_t		ibp_nid;	/* who's on the other end(s) */
+	struct lnet_ni		*ibp_ni;	/* LNet interface */
+	struct list_head	ibp_conns;	/* all active connections */
+	struct kib_conn		*ibp_next_conn; /* next connection to send on for
+						 * round robin */
+	struct list_head	ibp_tx_queue;	/* msgs waiting for a conn */
 	u64			ibp_incarnation; /* incarnation of peer_ni */
 	/* when (in seconds) I was last alive */
 	time64_t		ibp_last_alive;

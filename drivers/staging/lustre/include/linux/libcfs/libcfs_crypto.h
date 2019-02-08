@@ -33,17 +33,17 @@
 struct page;
 
 struct cfs_crypto_hash_type {
-	char		*cht_name;      /*< hash algorithm name, equal to
+	char		*cht_name;	/*< hash algorithm name, equal to
 					 * format name for crypto api
 					 */
-	unsigned int    cht_key;	/*< init key by default (valid for
+	unsigned int	cht_key;	/*< init key by default (valid for
 					 * 4 bytes context like crc32, adler
 					 */
-	unsigned int    cht_size;       /**< hash digest size */
+	unsigned int	cht_size;	/**< hash digest size */
 };
 
 enum cfs_crypto_hash_alg {
-	CFS_HASH_ALG_NULL       = 0,
+	CFS_HASH_ALG_NULL	= 0,
 	CFS_HASH_ALG_ADLER32,
 	CFS_HASH_ALG_CRC32,
 	CFS_HASH_ALG_CRC32C,
@@ -54,7 +54,7 @@ enum cfs_crypto_hash_alg {
 	CFS_HASH_ALG_SHA384,
 	CFS_HASH_ALG_SHA512,
 	CFS_HASH_ALG_MAX,
-	CFS_HASH_ALG_SPEED_MAX = CFS_HASH_ALG_MD5,
+	CFS_HASH_ALG_SPEED_MAX	= CFS_HASH_ALG_MD5,
 	CFS_HASH_ALG_UNKNOWN	= 0xff
 };
 

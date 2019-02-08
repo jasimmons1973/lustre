@@ -443,14 +443,14 @@ struct luda_type {
 };
 
 #ifndef IFSHIFT
-#define IFSHIFT                 12
+#define IFSHIFT		12
 #endif
 
 #ifndef IFTODT
-#define IFTODT(type)		(((type) & S_IFMT) >> IFSHIFT)
+#define IFTODT(type)	(((type) & S_IFMT) >> IFSHIFT)
 #endif
 #ifndef DTTOIF
-#define DTTOIF(dirtype)		((dirtype) << IFSHIFT)
+#define DTTOIF(dirtype)	((dirtype) << IFSHIFT)
 #endif
 
 struct lu_dirpage {
@@ -551,8 +551,8 @@ static inline void lustre_handle_copy(struct lustre_handle *tgt,
 }
 
 /* flags for lm_flags */
-#define MSGHDR_AT_SUPPORT	       0x1
-#define MSGHDR_CKSUM_INCOMPAT18	 0x2
+#define MSGHDR_AT_SUPPORT	0x1
+#define MSGHDR_CKSUM_INCOMPAT18	0x2
 
 #define lustre_msg lustre_msg_v2
 /* we depend on this structure to be 8-byte aligned */
@@ -570,7 +570,7 @@ struct lustre_msg_v2 {
 };
 
 /* without gss, ptlrpc_body is put at the first buffer. */
-#define PTLRPC_NUM_VERSIONS     4
+#define PTLRPC_NUM_VERSIONS	4
 
 struct ptlrpc_body_v3 {
 	struct lustre_handle pb_handle;
@@ -578,8 +578,8 @@ struct ptlrpc_body_v3 {
 	__u32 pb_version;
 	__u32 pb_opc;
 	__u32 pb_status;
-	__u64 pb_last_xid; /* highest replied XID without lower unreplied XID */
-	__u16 pb_tag;      /* virtual slot idx for multiple modifying RPCs */
+	__u64 pb_last_xid;	/* highest replied XID without lower unreplied XID */
+	__u16 pb_tag;		/* virtual slot idx for multiple modifying RPCs */
 	__u16 pb_padding0;
 	__u32 pb_padding1;
 	__u64 pb_last_committed;
@@ -587,13 +587,13 @@ struct ptlrpc_body_v3 {
 	__u32 pb_flags;
 	__u32 pb_op_flags;
 	__u32 pb_conn_cnt;
-	__u32 pb_timeout;  /* for req, the deadline, for rep, the service est */
-	__u32 pb_service_time; /* for rep, actual service time */
+	__u32 pb_timeout;	/* for req, the deadline, for rep, the service est */
+	__u32 pb_service_time;	/* for rep, actual service time */
 	__u32 pb_limit;
 	__u64 pb_slv;
 	/* VBR: pre-versions */
 	__u64 pb_pre_versions[PTLRPC_NUM_VERSIONS];
-	__u64 pb_mbits; /**< match bits for bulk request */
+	__u64 pb_mbits;		/**< match bits for bulk request */
 	/* padding for future needs */
 	__u64 pb_padding64_0;
 	__u64 pb_padding64_1;
@@ -601,7 +601,7 @@ struct ptlrpc_body_v3 {
 	char  pb_jobid[LUSTRE_JOBID_SIZE];
 };
 
-#define ptlrpc_body     ptlrpc_body_v3
+#define ptlrpc_body	ptlrpc_body_v3
 
 struct ptlrpc_body_v2 {
 	struct lustre_handle pb_handle;
@@ -609,8 +609,8 @@ struct ptlrpc_body_v2 {
 	__u32 pb_version;
 	__u32 pb_opc;
 	__u32 pb_status;
-	__u64 pb_last_xid; /* highest replied XID without lower unreplied XID */
-	__u16 pb_tag;      /* virtual slot idx for multiple modifying RPCs */
+	__u64 pb_last_xid;	/* highest replied XID without lower unreplied XID */
+	__u16 pb_tag;		/* virtual slot idx for multiple modifying RPCs */
 	__u16 pb_padding0;
 	__u32 pb_padding1;
 	__u64 pb_last_committed;
@@ -618,10 +618,10 @@ struct ptlrpc_body_v2 {
 	__u32 pb_flags;
 	__u32 pb_op_flags;
 	__u32 pb_conn_cnt;
-	__u32 pb_timeout;  /* for req, the deadline, for rep, the service est */
-	__u32 pb_service_time; /* for rep, actual service time, also used for
-				* net_latency of req
-				*/
+	__u32 pb_timeout;	/* for req, the deadline, for rep, the service est */
+	__u32 pb_service_time;	/* for rep, actual service time, also used for
+				 * net_latency of req
+				 */
 	__u32 pb_limit;
 	__u64 pb_slv;
 	/* VBR: pre-versions */
@@ -881,66 +881,66 @@ enum cksum_type {
 
 /* opcodes */
 enum ost_cmd {
-	OST_REPLY      =  0,       /* reply ? */
-	OST_GETATTR    =  1,
-	OST_SETATTR    =  2,
-	OST_READ       =  3,
-	OST_WRITE      =  4,
-	OST_CREATE     =  5,
-	OST_DESTROY    =  6,
-	OST_GET_INFO   =  7,
-	OST_CONNECT    =  8,
-	OST_DISCONNECT =  9,
-	OST_PUNCH      = 10,
-	OST_OPEN       = 11,
-	OST_CLOSE      = 12,
-	OST_STATFS     = 13,
-	OST_SYNC       = 16,
-	OST_SET_INFO   = 17,
-	OST_QUOTACHECK = 18, /* not used since 2.4 */
-	OST_QUOTACTL   = 19,
+	OST_REPLY	=  0,	/* reply ? */
+	OST_GETATTR	=  1,
+	OST_SETATTR	=  2,
+	OST_READ	=  3,
+	OST_WRITE	=  4,
+	OST_CREATE	=  5,
+	OST_DESTROY	=  6,
+	OST_GET_INFO	=  7,
+	OST_CONNECT	=  8,
+	OST_DISCONNECT	=  9,
+	OST_PUNCH	= 10,
+	OST_OPEN	= 11,
+	OST_CLOSE	= 12,
+	OST_STATFS	= 13,
+	OST_SYNC	= 16,
+	OST_SET_INFO	= 17,
+	OST_QUOTACHECK	= 18,	/* not used since 2.4 */
+	OST_QUOTACTL	= 19,
 	OST_QUOTA_ADJUST_QUNIT = 20, /* not used since 2.4 */
-	OST_LADVISE    = 21,
+	OST_LADVISE	= 21,
 	OST_LAST_OPC /* must be < 33 to avoid MDS_GETATTR */
 };
 #define OST_FIRST_OPC  OST_REPLY
 
 enum obdo_flags {
-	OBD_FL_INLINEDATA   = 0x00000001,
-	OBD_FL_OBDMDEXISTS  = 0x00000002,
-	OBD_FL_DELORPHAN    = 0x00000004, /* if set in o_flags delete orphans */
-	OBD_FL_NORPC        = 0x00000008, /* set in o_flags do in OSC not OST */
-	OBD_FL_IDONLY       = 0x00000010, /* set in o_flags only adjust obj id*/
-	OBD_FL_RECREATE_OBJS = 0x00000020, /* recreate missing obj */
-	OBD_FL_DEBUG_CHECK  = 0x00000040, /* echo client/server debug check */
-	OBD_FL_NO_PRJQUOTA  = 0x00000080, /* the object's project is over
-					   * quota
-					   */
-	OBD_FL_NO_USRQUOTA  = 0x00000100, /* the object's owner is over quota */
-	OBD_FL_NO_GRPQUOTA  = 0x00000200, /* the object's group is over quota */
-	OBD_FL_CREATE_CROW  = 0x00000400, /* object should be create on write */
-	OBD_FL_SRVLOCK      = 0x00000800, /* delegate DLM locking to server */
-	OBD_FL_CKSUM_CRC32  = 0x00001000, /* CRC32 checksum type */
-	OBD_FL_CKSUM_ADLER  = 0x00002000, /* ADLER checksum type */
-	OBD_FL_CKSUM_CRC32C = 0x00004000, /* CRC32C checksum type */
-	OBD_FL_CKSUM_RSVD2  = 0x00008000, /* for future cksum types */
-	OBD_FL_CKSUM_RSVD3  = 0x00010000, /* for future cksum types */
-	OBD_FL_SHRINK_GRANT = 0x00020000, /* object shrink the grant */
-	OBD_FL_MMAP         = 0x00040000, /* object is mmapped on the client.
-					   * XXX: obsoleted - reserved for old
-					   * clients prior than 2.2
-					   */
-	OBD_FL_RECOV_RESEND = 0x00080000, /* recoverable resent */
-	OBD_FL_NOSPC_BLK    = 0x00100000, /* no more block space on OST */
-	OBD_FL_FLUSH        = 0x00200000, /* flush pages on the OST */
-	OBD_FL_SHORT_IO     = 0x00400000, /* short io request */
+	OBD_FL_INLINEDATA	= 0x00000001,
+	OBD_FL_OBDMDEXISTS	= 0x00000002,
+	OBD_FL_DELORPHAN	= 0x00000004, /* if set in o_flags delete orphans */
+	OBD_FL_NORPC		= 0x00000008, /* set in o_flags do in OSC not OST */
+	OBD_FL_IDONLY		= 0x00000010, /* set in o_flags only adjust obj id*/
+	OBD_FL_RECREATE_OBJS	= 0x00000020, /* recreate missing obj */
+	OBD_FL_DEBUG_CHECK	= 0x00000040, /* echo client/server debug check */
+	OBD_FL_NO_PRJQUOTA	= 0x00000080, /* the object's project is over
+					       * quota
+					       */
+	OBD_FL_NO_USRQUOTA	= 0x00000100, /* the object's owner is over quota */
+	OBD_FL_NO_GRPQUOTA	= 0x00000200, /* the object's group is over quota */
+	OBD_FL_CREATE_CROW	= 0x00000400, /* object should be create on write */
+	OBD_FL_SRVLOCK		= 0x00000800, /* delegate DLM locking to server */
+	OBD_FL_CKSUM_CRC32	= 0x00001000, /* CRC32 checksum type */
+	OBD_FL_CKSUM_ADLER	= 0x00002000, /* ADLER checksum type */
+	OBD_FL_CKSUM_CRC32C	= 0x00004000, /* CRC32C checksum type */
+	OBD_FL_CKSUM_RSVD2	= 0x00008000, /* for future cksum types */
+	OBD_FL_CKSUM_RSVD3	= 0x00010000, /* for future cksum types */
+	OBD_FL_SHRINK_GRANT	= 0x00020000, /* object shrink the grant */
+	OBD_FL_MMAP		= 0x00040000, /* object is mmapped on the client.
+					       * XXX: obsoleted - reserved for old
+					       * clients prior than 2.2
+					       */
+	OBD_FL_RECOV_RESEND	= 0x00080000, /* recoverable resent */
+	OBD_FL_NOSPC_BLK	= 0x00100000, /* no more block space on OST */
+	OBD_FL_FLUSH		= 0x00200000, /* flush pages on the OST */
+	OBD_FL_SHORT_IO		= 0x00400000, /* short io request */
 	/* OBD_FL_LOCAL_MASK = 0xF0000000, was local-only flags until 2.10 */
 
 	/* Note that while these checksum values are currently separate bits,
 	 * in 2.x we can actually allow all values from 1-31 if we wanted.
 	 */
-	OBD_FL_CKSUM_ALL    = OBD_FL_CKSUM_CRC32 | OBD_FL_CKSUM_ADLER |
-			      OBD_FL_CKSUM_CRC32C,
+	OBD_FL_CKSUM_ALL	= (OBD_FL_CKSUM_CRC32 | OBD_FL_CKSUM_ADLER |
+				   OBD_FL_CKSUM_CRC32C),
 };
 
 /*
@@ -1233,9 +1233,9 @@ struct niobuf_remote {
  */
 #define OST_LVB_ERR_INIT 0xffbadbad80000000ULL
 #define OST_LVB_ERR_MASK 0xffbadbad00000000ULL
-#define OST_LVB_IS_ERR(blocks)					  \
+#define OST_LVB_IS_ERR(blocks)					\
 	((blocks & OST_LVB_ERR_MASK) == OST_LVB_ERR_MASK)
-#define OST_LVB_SET_ERR(blocks, rc)				     \
+#define OST_LVB_SET_ERR(blocks, rc)				\
 	do { blocks = OST_LVB_ERR_INIT + rc; } while (0)
 #define OST_LVB_GET_ERR(blocks)    (int)(blocks - OST_LVB_ERR_INIT)
 
@@ -1316,9 +1316,9 @@ struct ldlm_gl_lquota_desc {
 /* LVB used with quota (global and per-ID) locks */
 struct lquota_lvb {
 	__u64	lvb_flags;	/* see LQUOTA_FL* above */
-	__u64	lvb_id_may_rel; /* space that might be released later */
-	__u64	lvb_id_rel;     /* space released by the slave for this ID */
-	__u64	lvb_id_qunit;   /* current qunit value */
+	__u64	lvb_id_may_rel;	/* space that might be released later */
+	__u64	lvb_id_rel;	/* space released by the slave for this ID */
+	__u64	lvb_id_qunit;	/* current qunit value */
 	__u64	lvb_pad1;
 };
 
@@ -1488,17 +1488,17 @@ static inline int ll_inode_to_ext_flags(int iflags)
 
 static inline int ll_xflags_to_inode_flags(int xflags)
 {
-	return ((xflags & FS_XFLAG_SYNC) ? S_SYNC : 0) |
-	       ((xflags & FS_XFLAG_NOATIME) ? S_NOATIME : 0) |
-	       ((xflags & FS_XFLAG_APPEND) ? S_APPEND : 0) |
+	return ((xflags & FS_XFLAG_SYNC)      ? S_SYNC      : 0) |
+	       ((xflags & FS_XFLAG_NOATIME)   ? S_NOATIME   : 0) |
+	       ((xflags & FS_XFLAG_APPEND)    ? S_APPEND    : 0) |
 	       ((xflags & FS_XFLAG_IMMUTABLE) ? S_IMMUTABLE : 0);
 }
 
 static inline int ll_inode_flags_to_xflags(int flags)
 {
-	return ((flags & S_SYNC) ? FS_XFLAG_SYNC : 0) |
-	       ((flags & S_NOATIME) ? FS_XFLAG_NOATIME : 0) |
-	       ((flags & S_APPEND) ? FS_XFLAG_APPEND : 0) |
+	return ((flags & S_SYNC)      ? FS_XFLAG_SYNC      : 0) |
+	       ((flags & S_NOATIME)   ? FS_XFLAG_NOATIME   : 0) |
+	       ((flags & S_APPEND)    ? FS_XFLAG_APPEND    : 0) |
 	       ((flags & S_IMMUTABLE) ? FS_XFLAG_IMMUTABLE : 0);
 }
 
@@ -1583,7 +1583,7 @@ struct mdt_rec_setattr {
 	__s64		sa_ctime;
 	__u32		sa_attr_flags;
 	__u32		sa_mode;
-	__u32		sa_bias;      /* some operation flags */
+	__u32		sa_bias;	/* some operation flags */
 	__u32		sa_projid;
 	__u32		sa_padding_4;
 	__u32		sa_padding_5;
@@ -1698,17 +1698,17 @@ struct mdt_rec_create {
 	__s64		cr_time;
 	__u64		cr_rdev;
 	__u64		cr_ioepoch;
-	__u64		cr_padding_1;   /* rr_blocks */
+	__u64		cr_padding_1;	/* rr_blocks */
 	__u32		cr_mode;
 	__u32		cr_bias;
 	/* use of helpers set/get_mrc_cr_flags() is needed to access
 	 * 64 bits cr_flags [cr_flags_l, cr_flags_h], this is done to
 	 * extend cr_flags size without breaking 1.8 compat
 	 */
-	__u32		cr_flags_l;     /* for use with open, low  32 bits  */
-	__u32		cr_flags_h;     /* for use with open, high 32 bits */
-	__u32		cr_umask;       /* umask for create */
-	__u32		cr_padding_4;   /* rr_padding_4 */
+	__u32		cr_flags_l;	/* for use with open, low  32 bits  */
+	__u32		cr_flags_h;	/* for use with open, high 32 bits */
+	__u32		cr_umask;	/* umask for create */
+	__u32		cr_padding_4;	/* rr_padding_4 */
 };
 
 /* instance of mdt_reint_rec */
@@ -1726,16 +1726,16 @@ struct mdt_rec_link {
 	struct lu_fid   lk_fid1;
 	struct lu_fid   lk_fid2;
 	__s64		lk_time;
-	__u64		lk_padding_1;   /* rr_atime */
-	__u64		lk_padding_2;   /* rr_ctime */
-	__u64		lk_padding_3;   /* rr_size */
-	__u64		lk_padding_4;   /* rr_blocks */
+	__u64		lk_padding_1;	/* rr_atime */
+	__u64		lk_padding_2;	/* rr_ctime */
+	__u64		lk_padding_3;	/* rr_size */
+	__u64		lk_padding_4;	/* rr_blocks */
 	__u32		lk_bias;
-	__u32		lk_padding_5;   /* rr_mode */
-	__u32		lk_padding_6;   /* rr_flags */
-	__u32		lk_padding_7;   /* rr_padding_2 */
-	__u32		lk_padding_8;   /* rr_padding_3 */
-	__u32		lk_padding_9;   /* rr_padding_4 */
+	__u32		lk_padding_5;	/* rr_mode */
+	__u32		lk_padding_6;	/* rr_flags */
+	__u32		lk_padding_7;	/* rr_padding_2 */
+	__u32		lk_padding_8;	/* rr_padding_3 */
+	__u32		lk_padding_9;	/* rr_padding_4 */
 };
 
 /* instance of mdt_reint_rec */
@@ -1753,16 +1753,16 @@ struct mdt_rec_unlink {
 	struct lu_fid   ul_fid1;
 	struct lu_fid   ul_fid2;
 	__s64		ul_time;
-	__u64		ul_padding_2;   /* rr_atime */
-	__u64		ul_padding_3;   /* rr_ctime */
-	__u64		ul_padding_4;   /* rr_size */
-	__u64		ul_padding_5;   /* rr_blocks */
+	__u64		ul_padding_2;	/* rr_atime */
+	__u64		ul_padding_3;	/* rr_ctime */
+	__u64		ul_padding_4;	/* rr_size */
+	__u64		ul_padding_5;	/* rr_blocks */
 	__u32		ul_bias;
 	__u32		ul_mode;
-	__u32		ul_padding_6;   /* rr_flags */
-	__u32		ul_padding_7;   /* rr_padding_2 */
-	__u32		ul_padding_8;   /* rr_padding_3 */
-	__u32		ul_padding_9;   /* rr_padding_4 */
+	__u32		ul_padding_6;	/* rr_flags */
+	__u32		ul_padding_7;	/* rr_padding_2 */
+	__u32		ul_padding_8;	/* rr_padding_3 */
+	__u32		ul_padding_9;	/* rr_padding_4 */
 };
 
 /* instance of mdt_reint_rec */
@@ -1777,19 +1777,19 @@ struct mdt_rec_rename {
 	__u32		rn_suppgid1_h;
 	__u32		rn_suppgid2;
 	__u32		rn_suppgid2_h;
-	struct lu_fid   rn_fid1;
-	struct lu_fid   rn_fid2;
+	struct lu_fid	rn_fid1;
+	struct lu_fid	rn_fid2;
 	__s64		rn_time;
-	__u64		rn_padding_1;   /* rr_atime */
-	__u64		rn_padding_2;   /* rr_ctime */
-	__u64		rn_padding_3;   /* rr_size */
-	__u64		rn_padding_4;   /* rr_blocks */
+	__u64		rn_padding_1;	/* rr_atime */
+	__u64		rn_padding_2;	/* rr_ctime */
+	__u64		rn_padding_3;	/* rr_size */
+	__u64		rn_padding_4;	/* rr_blocks */
 	__u32		rn_bias;	/* some operation flags */
 	__u32		rn_mode;	/* cross-ref rename has mode */
-	__u32		rn_padding_5;   /* rr_flags */
-	__u32		rn_padding_6;   /* rr_padding_2 */
-	__u32		rn_padding_7;   /* rr_padding_3 */
-	__u32		rn_padding_8;   /* rr_padding_4 */
+	__u32		rn_padding_5;	/* rr_flags */
+	__u32		rn_padding_6;	/* rr_padding_2 */
+	__u32		rn_padding_7;	/* rr_padding_3 */
+	__u32		rn_padding_8;	/* rr_padding_4 */
 };
 
 /* instance of mdt_reint_rec */
@@ -1804,21 +1804,21 @@ struct mdt_rec_setxattr {
 	__u32		sx_suppgid1_h;
 	__u32		sx_suppgid2;
 	__u32		sx_suppgid2_h;
-	struct lu_fid   sx_fid;
-	__u64		sx_padding_1;   /* These three are rr_fid2 */
+	struct lu_fid	sx_fid;
+	__u64		sx_padding_1;	/* These three are rr_fid2 */
 	__u32		sx_padding_2;
 	__u32		sx_padding_3;
 	__u64		sx_valid;
 	__s64		sx_time;
-	__u64		sx_padding_5;   /* rr_ctime */
-	__u64		sx_padding_6;   /* rr_size */
-	__u64		sx_padding_7;   /* rr_blocks */
+	__u64		sx_padding_5;	/* rr_ctime */
+	__u64		sx_padding_6;	/* rr_size */
+	__u64		sx_padding_7;	/* rr_blocks */
 	__u32		sx_size;
 	__u32		sx_flags;
-	__u32		sx_padding_8;   /* rr_flags */
-	__u32		sx_padding_9;   /* rr_padding_2 */
-	__u32		sx_padding_10;  /* rr_padding_3 */
-	__u32		sx_padding_11;  /* rr_padding_4 */
+	__u32		sx_padding_8;	/* rr_flags */
+	__u32		sx_padding_9;	/* rr_padding_2 */
+	__u32		sx_padding_10;	/* rr_padding_3 */
+	__u32		sx_padding_11;	/* rr_padding_4 */
 };
 
 /*
@@ -1858,13 +1858,13 @@ struct mdt_rec_reint {
 /* lmv structures */
 struct lmv_desc {
 	__u32 ld_tgt_count;		/* how many MDS's */
-	__u32 ld_active_tgt_count;	 /* how many active */
-	__u32 ld_default_stripe_count;     /* how many objects are used */
-	__u32 ld_pattern;		  /* default hash pattern */
+	__u32 ld_active_tgt_count;	/* how many active */
+	__u32 ld_default_stripe_count;	/* how many objects are used */
+	__u32 ld_pattern;		/* default hash pattern */
 	__u64 ld_default_hash_size;
 	__u64 ld_padding_1;		/* also fix lustre_swab_lmv_desc */
 	__u32 ld_padding_2;		/* also fix lustre_swab_lmv_desc */
-	__u32 ld_qos_maxage;		    /* in second */
+	__u32 ld_qos_maxage;		/* in second */
 	__u32 ld_padding_3;		/* also fix lustre_swab_lmv_desc */
 	__u32 ld_padding_4;		/* also fix lustre_swab_lmv_desc */
 	struct obd_uuid ld_uuid;
@@ -2038,20 +2038,20 @@ struct lov_desc {
 	struct obd_uuid ld_uuid;
 };
 
-#define ld_magic ld_active_tgt_count       /* for swabbing from llogs */
+#define ld_magic ld_active_tgt_count	/* for swabbing from llogs */
 
 /*
  *   LDLM requests:
  */
 /* opcodes -- MUST be distinct from OST/MDS opcodes */
 enum ldlm_cmd {
-	LDLM_ENQUEUE     = 101,
-	LDLM_CONVERT     = 102,
-	LDLM_CANCEL      = 103,
+	LDLM_ENQUEUE	 = 101,
+	LDLM_CONVERT	 = 102,
+	LDLM_CANCEL	 = 103,
 	LDLM_BL_CALLBACK = 104,
 	LDLM_CP_CALLBACK = 105,
 	LDLM_GL_CALLBACK = 106,
-	LDLM_SET_INFO    = 107,
+	LDLM_SET_INFO	 = 107,
 	LDLM_LAST_OPC
 };
 #define LDLM_FIRST_OPC LDLM_ENQUEUE
@@ -2067,25 +2067,25 @@ struct ldlm_res_id {
 
 /* lock types */
 enum ldlm_mode {
-	LCK_MINMODE = 0,
-	LCK_EX      = 1,
-	LCK_PW      = 2,
-	LCK_PR      = 4,
-	LCK_CW      = 8,
-	LCK_CR      = 16,
-	LCK_NL      = 32,
-	LCK_GROUP   = 64,
-	LCK_COS     = 128,
+	LCK_MINMODE	= 0,
+	LCK_EX		= 1,
+	LCK_PW		= 2,
+	LCK_PR		= 4,
+	LCK_CW		= 8,
+	LCK_CR		= 16,
+	LCK_NL		= 32,
+	LCK_GROUP	= 64,
+	LCK_COS		= 128,
 	LCK_MAXMODE
 };
 
-#define LCK_MODE_NUM    8
+#define LCK_MODE_NUM	8
 
 enum ldlm_type {
-	LDLM_PLAIN     = 10,
-	LDLM_EXTENT    = 11,
-	LDLM_FLOCK     = 12,
-	LDLM_IBITS     = 13,
+	LDLM_PLAIN	= 10,
+	LDLM_EXTENT	= 11,
+	LDLM_FLOCK	= 12,
+	LDLM_IBITS	= 13,
 	LDLM_MAX_TYPE
 };
 
@@ -2150,7 +2150,7 @@ struct ldlm_intent {
 
 struct ldlm_resource_desc {
 	enum ldlm_type lr_type;
-	__u32 lr_padding;       /* also fix lustre_swab_ldlm_resource_desc */
+	__u32 lr_padding;	/* also fix lustre_swab_ldlm_resource_desc */
 	struct ldlm_res_id lr_name;
 };
 
@@ -2173,7 +2173,7 @@ struct ldlm_request {
 
 struct ldlm_reply {
 	__u32 lock_flags;
-	__u32 lock_padding;     /* also fix lustre_swab_ldlm_reply */
+	__u32 lock_padding;	/* also fix lustre_swab_ldlm_reply */
 	struct ldlm_lock_desc lock_desc;
 	struct lustre_handle lock_handle;
 	__u64  lock_policy_res1;
@@ -2206,9 +2206,9 @@ struct mgs_send_param {
 };
 
 /* We pass this info to the MGS so it can write config logs */
-#define MTI_NAME_MAXLEN  64
+#define MTI_NAME_MAXLEN	 64
 #define MTI_PARAM_MAXLEN 4096
-#define MTI_NIDS_MAX     32
+#define MTI_NIDS_MAX	 32
 struct mgs_target_info {
 	__u32		mti_lustre_ver;
 	__u32		mti_stripe_index;
@@ -2695,8 +2695,8 @@ enum sec_cmd {
 /*
  * capa related definitions
  */
-#define CAPA_HMAC_MAX_LEN       64
-#define CAPA_HMAC_KEY_MAX_LEN   56
+#define CAPA_HMAC_MAX_LEN	64
+#define CAPA_HMAC_KEY_MAX_LEN	56
 
 /* NB take care when changing the sequence of elements this struct,
  * because the offset info is used in find_capa()
@@ -2716,34 +2716,34 @@ struct lustre_capa {
 
 /** lustre_capa::lc_opc */
 enum {
-	CAPA_OPC_BODY_WRITE   = 1 << 0,  /**< write object data */
-	CAPA_OPC_BODY_READ    = 1 << 1,  /**< read object data */
-	CAPA_OPC_INDEX_LOOKUP = 1 << 2,  /**< lookup object fid */
-	CAPA_OPC_INDEX_INSERT = 1 << 3,  /**< insert object fid */
-	CAPA_OPC_INDEX_DELETE = 1 << 4,  /**< delete object fid */
-	CAPA_OPC_OSS_WRITE    = 1 << 5,  /**< write oss object data */
-	CAPA_OPC_OSS_READ     = 1 << 6,  /**< read oss object data */
-	CAPA_OPC_OSS_TRUNC    = 1 << 7,  /**< truncate oss object */
-	CAPA_OPC_OSS_DESTROY  = 1 << 8,  /**< destroy oss object */
-	CAPA_OPC_META_WRITE   = 1 << 9,  /**< write object meta data */
-	CAPA_OPC_META_READ    = 1 << 10, /**< read object meta data */
+	CAPA_OPC_BODY_WRITE	= 1 << 0,  /**< write object data */
+	CAPA_OPC_BODY_READ	= 1 << 1,  /**< read object data */
+	CAPA_OPC_INDEX_LOOKUP	= 1 << 2,  /**< lookup object fid */
+	CAPA_OPC_INDEX_INSERT	= 1 << 3,  /**< insert object fid */
+	CAPA_OPC_INDEX_DELETE	= 1 << 4,  /**< delete object fid */
+	CAPA_OPC_OSS_WRITE	= 1 << 5,  /**< write oss object data */
+	CAPA_OPC_OSS_READ	= 1 << 6,  /**< read oss object data */
+	CAPA_OPC_OSS_TRUNC	= 1 << 7,  /**< truncate oss object */
+	CAPA_OPC_OSS_DESTROY	= 1 << 8,  /**< destroy oss object */
+	CAPA_OPC_META_WRITE	= 1 << 9,  /**< write object meta data */
+	CAPA_OPC_META_READ	= 1 << 10, /**< read object meta data */
 };
 
 #define CAPA_OPC_OSS_RW (CAPA_OPC_OSS_READ | CAPA_OPC_OSS_WRITE)
-#define CAPA_OPC_MDS_ONLY						   \
+#define CAPA_OPC_MDS_ONLY						\
 	(CAPA_OPC_BODY_WRITE | CAPA_OPC_BODY_READ | CAPA_OPC_INDEX_LOOKUP | \
 	 CAPA_OPC_INDEX_INSERT | CAPA_OPC_INDEX_DELETE)
-#define CAPA_OPC_OSS_ONLY						   \
-	(CAPA_OPC_OSS_WRITE | CAPA_OPC_OSS_READ | CAPA_OPC_OSS_TRUNC |      \
+#define CAPA_OPC_OSS_ONLY						\
+	(CAPA_OPC_OSS_WRITE | CAPA_OPC_OSS_READ | CAPA_OPC_OSS_TRUNC |	\
 	 CAPA_OPC_OSS_DESTROY)
 #define CAPA_OPC_MDS_DEFAULT ~CAPA_OPC_OSS_ONLY
 #define CAPA_OPC_OSS_DEFAULT ~(CAPA_OPC_MDS_ONLY | CAPA_OPC_OSS_ONLY)
 
 struct lustre_capa_key {
-	__u64   lk_seq;       /**< mds# */
-	__u32   lk_keyid;     /**< key# */
-	__u32   lk_padding;
-	__u8    lk_key[CAPA_HMAC_KEY_MAX_LEN];    /**< key */
+	__u64	lk_seq;				/**< mds# */
+	__u32	lk_keyid;			/**< key# */
+	__u32	lk_padding;
+	__u8	lk_key[CAPA_HMAC_KEY_MAX_LEN];	/**< key */
 } __packed;
 
 /** The link ea holds 1 \a link_ea_entry for each hardlink */
@@ -2751,7 +2751,7 @@ struct lustre_capa_key {
 struct link_ea_header {
 	__u32 leh_magic;
 	__u32 leh_reccount;
-	__u64 leh_len;      /* total size */
+	__u64 leh_len;		/* total size */
 	__u32 leh_overflow_time;
 	__u32 leh_padding;
 };
@@ -2787,13 +2787,13 @@ struct getparent {
 } __packed;
 
 enum {
-	LAYOUT_INTENT_ACCESS    = 0,	/** generic access */
-	LAYOUT_INTENT_READ      = 1,	/** not used */
-	LAYOUT_INTENT_WRITE     = 2,	/** write file, for comp layout */
-	LAYOUT_INTENT_GLIMPSE   = 3,	/** not used */
-	LAYOUT_INTENT_TRUNC     = 4,	/** truncate file, for comp layout */
-	LAYOUT_INTENT_RELEASE   = 5,	/** reserved for HSM release */
-	LAYOUT_INTENT_RESTORE   = 6	/** reserved for HSM restore */
+	LAYOUT_INTENT_ACCESS	= 0,	/** generic access */
+	LAYOUT_INTENT_READ	= 1,	/** not used */
+	LAYOUT_INTENT_WRITE	= 2,	/** write file, for comp layout */
+	LAYOUT_INTENT_GLIMPSE	= 3,	/** not used */
+	LAYOUT_INTENT_TRUNC	= 4,	/** truncate file, for comp layout */
+	LAYOUT_INTENT_RELEASE	= 5,	/** reserved for HSM release */
+	LAYOUT_INTENT_RESTORE	= 6	/** reserved for HSM restore */
 };
 
 /* enqueue layout lock with intent */

@@ -335,9 +335,9 @@ static void ldlm_ns_release(struct kobject *kobj)
 }
 
 static struct kobj_type ldlm_ns_ktype = {
-	.default_attrs  = ldlm_ns_attrs,
-	.sysfs_ops      = &lustre_sysfs_ops,
-	.release        = ldlm_ns_release,
+	.default_attrs	= ldlm_ns_attrs,
+	.sysfs_ops	= &lustre_sysfs_ops,
+	.release	= ldlm_ns_release,
 };
 
 static void ldlm_namespace_debugfs_unregister(struct ldlm_namespace *ns)

@@ -209,7 +209,7 @@ static int ll_adjust_lum(struct inode *inode, struct lov_user_md *lump)
 	if (lump->lmm_magic == LOV_USER_MAGIC_COMP_V1) {
 		entry_count = comp_v1->lcm_entry_count;
 		is_composite = true;
-        }
+	}
 
 	for (i = 0; i < entry_count; i++) {
 		if (lump->lmm_magic == LOV_USER_MAGIC_COMP_V1) {

@@ -47,10 +47,10 @@ int __cfs_fail_check_set(u32 id, u32 value, int set);
 int __cfs_fail_timeout_set(u32 id, u32 value, int ms, int set);
 
 enum {
-	CFS_FAIL_LOC_NOSET      = 0,
-	CFS_FAIL_LOC_ORSET      = 1,
-	CFS_FAIL_LOC_RESET      = 2,
-	CFS_FAIL_LOC_VALUE      = 3
+	CFS_FAIL_LOC_NOSET	= 0,
+	CFS_FAIL_LOC_ORSET	= 1,
+	CFS_FAIL_LOC_RESET	= 2,
+	CFS_FAIL_LOC_VALUE	= 3
 };
 
 /* Failure injection control */
@@ -76,8 +76,8 @@ enum {
 static inline bool CFS_FAIL_PRECHECK(u32 id)
 {
 	return cfs_fail_loc &&
-	       ((cfs_fail_loc & CFS_FAIL_MASK_LOC) == (id & CFS_FAIL_MASK_LOC) ||
-		(cfs_fail_loc & id & CFS_FAULT));
+		((cfs_fail_loc & CFS_FAIL_MASK_LOC) == (id & CFS_FAIL_MASK_LOC) ||
+		 (cfs_fail_loc & id & CFS_FAULT));
 }
 
 static inline int cfs_fail_check_set(u32 id, u32 value,

@@ -692,10 +692,10 @@ static inline int it_to_lock_mode(struct lookup_intent *it)
 
 enum md_op_flags {
 	MF_MDC_CANCEL_FID1	= BIT(0),
-	MF_MDC_CANCEL_FID2      = BIT(1),
-	MF_MDC_CANCEL_FID3      = BIT(2),
-	MF_MDC_CANCEL_FID4      = BIT(3),
-	MF_GET_MDT_IDX          = BIT(4),
+	MF_MDC_CANCEL_FID2	= BIT(1),
+	MF_MDC_CANCEL_FID3	= BIT(2),
+	MF_MDC_CANCEL_FID4	= BIT(3),
+	MF_GET_MDT_IDX		= BIT(4),
 };
 
 enum md_cli_flags {
@@ -746,7 +746,7 @@ struct md_op_data {
 	u32			op_flags;
 
 	/* Various operation flags. */
-	enum mds_op_bias        op_bias;
+	enum mds_op_bias	op_bias;
 
 	/* Used by readdir */
 	u64			op_offset;

@@ -141,7 +141,7 @@ void  cfs_array_free(void *vars);
 #define LASSERT_ATOMIC_GT_LT(a, v1, v2)				\
 do {								\
 	int __v = atomic_read(a);				\
-	LASSERTF(__v > v1 && __v < v2, "value: %d\n", __v);     \
+	LASSERTF(__v > v1 && __v < v2, "value: %d\n", __v);	\
 } while (0)
 
 /** assert value of @a is great than @v1 and little/equal to @v2 */

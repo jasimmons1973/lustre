@@ -372,7 +372,7 @@ enum {
 
 struct cfs_percpt_lock {
 	/* cpu-partition-table for this lock */
-	struct cfs_cpt_table     *pcl_cptab;
+	struct cfs_cpt_table	 *pcl_cptab;
 	/* exclusively locked */
 	unsigned int		  pcl_locked;
 	/* private lock table */

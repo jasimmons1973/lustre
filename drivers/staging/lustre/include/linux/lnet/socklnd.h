@@ -41,7 +41,7 @@
 struct ksock_hello_msg {
 	u32		kshm_magic;	/* magic number of socklnd message */
 	u32		kshm_version;	/* version of socklnd message */
-	lnet_nid_t      kshm_src_nid;	/* sender's nid */
+	lnet_nid_t	kshm_src_nid;	/* sender's nid */
 	lnet_nid_t	kshm_dst_nid;	/* destination nid */
 	lnet_pid_t	kshm_src_pid;	/* sender's pid */
 	lnet_pid_t	kshm_dst_pid;	/* destination pid */

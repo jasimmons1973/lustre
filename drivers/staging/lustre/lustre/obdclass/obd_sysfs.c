@@ -105,7 +105,7 @@ static ssize_t static_uintvalue_store(struct kobject *kobj,
 }
 
 #define LUSTRE_STATIC_UINT_ATTR(name, value)				\
-static struct static_lustre_uintvalue_attr lustre_sattr_##name =        \
+static struct static_lustre_uintvalue_attr lustre_sattr_##name =	\
 	{ __ATTR(name, 0644, static_uintvalue_show,			\
 		 static_uintvalue_store), value }
 

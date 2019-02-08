@@ -58,7 +58,7 @@
 					 */
 #define LSTIO_GROUP_DEL		0xC13	/* delete group */
 #define LSTIO_NODES_ADD		0xC14	/* add nodes to specified group */
-#define LSTIO_GROUP_UPDATE      0xC15	/* update group */
+#define LSTIO_GROUP_UPDATE	0xC15	/* update group */
 #define LSTIO_BATCH_ADD		0xC20	/* add batch */
 #define LSTIO_BATCH_START	0xC21	/* start batch */
 #define LSTIO_BATCH_STOP	0xC22	/* stop batch */
@@ -100,9 +100,9 @@ struct lstcon_ndlist_ent {
 };				/*** node_list entry, for list_batch command */
 
 struct lstcon_test_ent {
-	int	tse_type;       /* test type */
-	int	tse_loop;       /* loop count */
-	int	tse_concur;     /* concurrency of test */
+	int	tse_type;	/* test type */
+	int	tse_loop;	/* loop count */
+	int	tse_concur;	/* concurrency of test */
 };				/* test summary entry, for
 				 * list_batch command
 				 */
@@ -520,9 +520,9 @@ enum lst_brw_flags {
 
 struct lst_test_bulk_param {
 	int	blk_opc;	/* bulk operation code */
-	int	blk_size;       /* size (bytes) */
-	int	blk_time;       /* time of running the test*/
-	int	blk_flags;      /* reserved flags */
+	int	blk_size;	/* size (bytes) */
+	int	blk_time;	/* time of running the test*/
+	int	blk_flags;	/* reserved flags */
 	int	blk_cli_off;	/* bulk offset on client */
 	int	blk_srv_off;	/* reserved: bulk offset on server */
 };

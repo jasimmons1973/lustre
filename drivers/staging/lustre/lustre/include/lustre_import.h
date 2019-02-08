@@ -69,9 +69,9 @@ struct adaptive_timeout {
 
 struct ptlrpc_at_array {
 	struct list_head	*paa_reqs_array; /** array to hold requests */
-	u32			paa_size;        /** the size of array */
-	u32			paa_count;       /** the total count of reqs */
-	time64_t		paa_deadline;    /** the earliest deadline of reqs */
+	u32			paa_size;	 /** the size of array */
+	u32			paa_count;	 /** the total count of reqs */
+	time64_t		paa_deadline;	 /** the earliest deadline of reqs */
 	u32			*paa_reqs_count; /** the count of reqs in each entry */
 };
 

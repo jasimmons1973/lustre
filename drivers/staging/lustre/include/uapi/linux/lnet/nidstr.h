@@ -44,7 +44,7 @@ enum {
 	/*GMLND		= 3, removed v2_0_0-rc1a-16-gc660aac	*/
 	/*PTLLND	= 4, removed v2_7_50			*/
 	O2IBLND		= 5,
-	/*CIBLND        = 6, removed v2_0_0-rc1a-175-gd2b8a0e	*/
+	/*CIBLND	= 6, removed v2_0_0-rc1a-175-gd2b8a0e	*/
 	/*OPENIBLND	= 7, removed v2_0_0-rc1a-175-gd2b8a0e	*/
 	/*IIBLND	= 8, removed v2_0_0-rc1a-175-gd2b8a0e	*/
 	LOLND		= 9,
@@ -57,8 +57,8 @@ enum {
 
 struct list_head;
 
-#define LNET_NIDSTR_COUNT  1024    /* # of nidstrings */
-#define LNET_NIDSTR_SIZE   32      /* size of each one (see below for usage) */
+#define LNET_NIDSTR_COUNT	1024	/* # of nidstrings */
+#define LNET_NIDSTR_SIZE	32	/* size of each one (see below for usage) */
 
 /* support decl needed by both kernel and user space */
 char *libcfs_next_nidstring(void);

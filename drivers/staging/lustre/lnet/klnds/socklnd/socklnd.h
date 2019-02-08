@@ -54,15 +54,15 @@
 #define SOCKNAL_NSCHEDS		3
 #define SOCKNAL_NSCHEDS_HIGH	(SOCKNAL_NSCHEDS << 1)
 
-#define SOCKNAL_PEER_HASH_SIZE  101   /* # peer_ni lists */
-#define SOCKNAL_RESCHED         100   /* # scheduler loops before reschedule */
-#define SOCKNAL_INSANITY_RECONN 5000  /* connd is trying on reconn infinitely */
-#define SOCKNAL_ENOMEM_RETRY    1     /* seconds between retries */
+#define SOCKNAL_PEER_HASH_SIZE	101   /* # peer_ni lists */
+#define SOCKNAL_RESCHED		100   /* # scheduler loops before reschedule */
+#define SOCKNAL_INSANITY_RECONN	5000  /* connd is trying on reconn infinitely */
+#define SOCKNAL_ENOMEM_RETRY	1     /* seconds between retries */
 
-#define SOCKNAL_SINGLE_FRAG_TX  0     /* disable multi-fragment sends */
-#define SOCKNAL_SINGLE_FRAG_RX  0     /* disable multi-fragment receives */
+#define SOCKNAL_SINGLE_FRAG_TX	0     /* disable multi-fragment sends */
+#define SOCKNAL_SINGLE_FRAG_RX	0     /* disable multi-fragment receives */
 
-#define SOCKNAL_VERSION_DEBUG   0     /* enable protocol version debugging */
+#define SOCKNAL_VERSION_DEBUG	0     /* enable protocol version debugging */
 
 /*
  * risk kmap deadlock on multi-frag I/O (backs off to single-frag if disabled).
@@ -461,31 +461,31 @@ extern struct ksock_tunables ksocknal_tunables;
 
 struct ksock_proto {
 	/* version number of protocol */
-	int        pro_version;
+	int	pro_version;
 
 	/* handshake function */
-	int        (*pro_send_hello)(struct ksock_conn *, struct ksock_hello_msg *);
+	int	(*pro_send_hello)(struct ksock_conn *, struct ksock_hello_msg *);
 
 	/* handshake function */
-	int        (*pro_recv_hello)(struct ksock_conn *, struct ksock_hello_msg *, int);
+	int	(*pro_recv_hello)(struct ksock_conn *, struct ksock_hello_msg *, int);
 
 	/* message pack */
-	void       (*pro_pack)(struct ksock_tx *);
+	void	(*pro_pack)(struct ksock_tx *);
 
 	/* message unpack */
-	void       (*pro_unpack)(struct ksock_msg *);
+	void	(*pro_unpack)(struct ksock_msg *);
 
 	/* queue tx on the connection */
 	struct ksock_tx *(*pro_queue_tx_msg)(struct ksock_conn *, struct ksock_tx *);
 
 	/* queue ZC ack on the connection */
-	int        (*pro_queue_tx_zcack)(struct ksock_conn *, struct ksock_tx *, u64);
+	int	(*pro_queue_tx_zcack)(struct ksock_conn *, struct ksock_tx *, u64);
 
 	/* handle ZC request */
-	int        (*pro_handle_zcreq)(struct ksock_conn *, u64, int);
+	int	(*pro_handle_zcreq)(struct ksock_conn *, u64, int);
 
 	/* handle ZC ACK */
-	int        (*pro_handle_zcack)(struct ksock_conn *, u64, u64);
+	int	(*pro_handle_zcack)(struct ksock_conn *, u64, u64);
 
 	/*
 	 * msg type matches the connection type:
@@ -494,7 +494,7 @@ struct ksock_proto {
 	 *   return MATCH_YES : matching type
 	 *   return MATCH_MAY : can be backup
 	 */
-	int        (*pro_match_tx)(struct ksock_conn *, struct ksock_tx *, int);
+	int	(*pro_match_tx)(struct ksock_conn *, struct ksock_tx *, int);
 };
 
 extern struct ksock_proto ksocknal_protocol_v1x;

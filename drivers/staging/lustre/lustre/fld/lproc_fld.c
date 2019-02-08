@@ -139,7 +139,7 @@ fld_debugfs_cache_flush_release(struct inode *inode, struct file *file)
 
 static const struct file_operations fld_debugfs_cache_flush_fops = {
 	.owner		= THIS_MODULE,
-	.open           = simple_open,
+	.open		= simple_open,
 	.write		= fld_debugfs_cache_flush_write,
 	.release	= fld_debugfs_cache_flush_release,
 };
