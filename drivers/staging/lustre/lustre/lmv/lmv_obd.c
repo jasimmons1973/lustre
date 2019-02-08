@@ -273,8 +273,6 @@ static int lmv_init_ea_size(struct obd_export *exp, u32 easize, u32 def_easize)
 	return rc;
 }
 
-#define MAX_STRING_SIZE 128
-
 static int lmv_connect_mdc(struct obd_device *obd, struct lmv_tgt_desc *tgt)
 {
 	struct lmv_obd *lmv = &obd->u.lmv;

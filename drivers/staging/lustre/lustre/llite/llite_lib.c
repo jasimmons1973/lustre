@@ -906,8 +906,6 @@ void ll_lli_init(struct ll_inode_info *lli)
 	memset(lli->lli_jobid, 0, LUSTRE_JOBID_SIZE);
 }
 
-#define MAX_STRING_SIZE 128
-
 int ll_fill_super(struct super_block *sb)
 {
 	struct lustre_profile *lprof = NULL;
@@ -916,7 +914,7 @@ int ll_fill_super(struct super_block *sb)
 	char *dt = NULL, *md = NULL;
 	char *profilenm = get_profile_name(sb);
 	struct config_llog_instance *cfg;
-	char name[MAX_STRING_SIZE];
+	char name[MAX_OBD_NAME];
 	char *ptr;
 	int len;
 	int err;
@@ -960,7 +958,7 @@ int ll_fill_super(struct super_block *sb)
 		len -= 7;
 
 	/* Mount info */
-	snprintf(name, MAX_STRING_SIZE, "%.*s-%px", len,
+	snprintf(name, sizeof(name), "%.*s-%px", len,
 		 lsi->lsi_lmd->lmd_profile, sb);
 
 	/* Call ll_debugsfs_register_super() before lustre_process_log()

@@ -304,8 +304,6 @@ static int lprocfs_no_percpu_stats;
 module_param(lprocfs_no_percpu_stats, int, 0644);
 MODULE_PARM_DESC(lprocfs_no_percpu_stats, "Do not alloc percpu data for lprocfs stats");
 
-#define MAX_STRING_SIZE 128
-
 /* lprocfs API calls */
 
 static const struct file_operations lprocfs_generic_fops = { };

@@ -1187,8 +1187,6 @@ static struct lprocfs_vars lprocfs_llite_obd_vars[] = {
 	{ NULL }
 };
 
-#define MAX_STRING_SIZE 128
-
 static struct attribute *llite_attrs[] = {
 	&lustre_attr_blocksize.attr,
 	&lustre_attr_stat_blocksize.attr,
@@ -1433,8 +1431,6 @@ void ll_debugfs_unregister_super(struct super_block *sb)
 	lprocfs_free_stats(&sbi->ll_ra_stats);
 	lprocfs_free_stats(&sbi->ll_stats);
 }
-
-#undef MAX_STRING_SIZE
 
 #define pct(a, b) (b ? a * 100 / b : 0)
 

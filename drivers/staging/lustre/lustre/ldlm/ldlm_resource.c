@@ -392,8 +392,6 @@ static int ldlm_namespace_debugfs_register(struct ldlm_namespace *ns)
 	return 0;
 }
 
-#undef MAX_STRING_SIZE
-
 struct ldlm_resource *ldlm_resource_getref(struct ldlm_resource *res)
 {
 	LASSERT(res);
