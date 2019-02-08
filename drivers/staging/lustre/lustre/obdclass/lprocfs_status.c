@@ -1585,22 +1585,6 @@ int lprocfs_write_frac_u64_helper(const char __user *buffer,
 }
 EXPORT_SYMBOL(lprocfs_write_frac_u64_helper);
 
-static char *lprocfs_strnstr(const char *s1, const char *s2, size_t len)
-{
-	size_t l2;
-
-	l2 = strlen(s2);
-	if (!l2)
-		return (char *)s1;
-	while (len >= l2) {
-		len--;
-		if (!memcmp(s1, s2, l2))
-			return (char *)s1;
-		s1++;
-	}
-	return NULL;
-}
-
 /**
  * Find the string \a name in the input \a buffer, and return a pointer to the
  * value immediately following \a name, reducing \a count appropriately.
@@ -1612,8 +1596,7 @@ char *lprocfs_find_named_value(const char *buffer, const char *name,
 	char *val;
 	size_t buflen = *count;
 
-	/* there is no strnstr() in rhel5 and ubuntu kernels */
-	val = lprocfs_strnstr(buffer, name, buflen);
+	val = strnstr(buffer, name, buflen);
 	if (!val)
 		return (char *)buffer;
 
