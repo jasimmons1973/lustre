@@ -65,7 +65,7 @@ static struct llog_handle *llog_alloc_handle(void)
 
 	init_rwsem(&loghandle->lgh_lock);
 	INIT_LIST_HEAD(&loghandle->u.phd.phd_entry);
-	atomic_set(&loghandle->lgh_refcount, 1);
+	kref_init(&loghandle->lgh_refcount);
 
 	return loghandle;
 }
@@ -73,8 +73,11 @@ static struct llog_handle *llog_alloc_handle(void)
 /*
  * Free llog handle and header data if exists. Used in llog_close() only
  */
-static void llog_free_handle(struct llog_handle *loghandle)
+static void llog_free_handle(struct kref *kref)
 {
+	struct llog_handle *loghandle = container_of(kref, struct llog_handle,
+						     lgh_refcount);
+
 	/* failed llog_init_handle */
 	if (!loghandle->lgh_hdr)
 		goto out;
@@ -90,14 +93,13 @@ out:
 
 void llog_handle_get(struct llog_handle *loghandle)
 {
-	atomic_inc(&loghandle->lgh_refcount);
+	kref_get(&loghandle->lgh_refcount);
 }
 
 void llog_handle_put(struct llog_handle *loghandle)
 {
-	LASSERT(atomic_read(&loghandle->lgh_refcount) > 0);
-	if (atomic_dec_and_test(&loghandle->lgh_refcount))
-		llog_free_handle(loghandle);
+	LASSERT(kref_read(&loghandle->lgh_refcount) > 0);
+	kref_put(&loghandle->lgh_refcount, llog_free_handle);
 }
 
 static int llog_read_header(const struct lu_env *env,
@@ -497,7 +499,7 @@ int llog_open(const struct lu_env *env, struct llog_ctxt *ctxt,
 		revert_creds(old_cred);
 
 	if (rc) {
-		llog_free_handle(*lgh);
+		llog_free_handle(&(*lgh)->lgh_refcount);
 		*lgh = NULL;
 	}
 	return rc;

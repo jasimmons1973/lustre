@@ -226,7 +226,7 @@ struct llog_handle {
 	char			*lgh_name;
 	void			*private_data;
 	struct llog_operations	*lgh_logops;
-	atomic_t		 lgh_refcount;
+	struct kref		 lgh_refcount;
 };
 
 #define LLOG_CTXT_FLAG_UNINITIALIZED     0x00000001
@@ -365,13 +365,6 @@ static inline int llog_next_block(const struct lu_env *env,
 }
 
 /* llog.c */
-int llog_declare_write_rec(const struct lu_env *env,
-			   struct llog_handle *handle,
-			   struct llog_rec_hdr *rec, int idx,
-			   struct thandle *th);
-int llog_write_rec(const struct lu_env *env, struct llog_handle *handle,
-		   struct llog_rec_hdr *rec, struct llog_cookie *logcookies,
-		   int numcookies, void *buf, int idx, struct thandle *th);
 int lustre_process_log(struct super_block *sb, char *logname,
 		       struct config_llog_instance *cfg);
 int lustre_end_log(struct super_block *sb, char *logname,
