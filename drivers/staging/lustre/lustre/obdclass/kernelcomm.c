@@ -133,7 +133,7 @@ int libcfs_kkuc_group_add(struct file *filp, int uid, unsigned int group,
 		return -EBADF;
 
 	/* freed in group_rem */
-	reg = kmalloc(sizeof(*reg) + data_len, 0);
+	reg = kmalloc(sizeof(*reg) + data_len, GFP_KERNEL);
 	if (!reg)
 		return -ENOMEM;
 
