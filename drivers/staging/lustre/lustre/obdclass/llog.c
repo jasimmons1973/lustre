@@ -64,7 +64,6 @@ static struct llog_handle *llog_alloc_handle(void)
 		return NULL;
 
 	init_rwsem(&loghandle->lgh_lock);
-	spin_lock_init(&loghandle->lgh_hdr_lock);
 	INIT_LIST_HEAD(&loghandle->u.phd.phd_entry);
 	atomic_set(&loghandle->lgh_refcount, 1);
 
