@@ -243,7 +243,7 @@ struct llog_ctxt {
 	struct llog_operations  *loc_logops;
 	struct llog_handle      *loc_handle;
 	struct mutex		 loc_mutex; /* protect loc_imp */
-	atomic_t		 loc_refcount;
+	refcount_t		 loc_refcount;
 	long			 loc_flags; /* flags, see above defines */
 	/*
 	 * llog chunk size, and llog record size can not be bigger than
@@ -267,9 +267,9 @@ static inline int llog_handle2ops(struct llog_handle *loghandle,
 
 static inline struct llog_ctxt *llog_ctxt_get(struct llog_ctxt *ctxt)
 {
-	atomic_inc(&ctxt->loc_refcount);
+	refcount_inc(&ctxt->loc_refcount);
 	CDEBUG(D_INFO, "GETting ctxt %p : new refcount %d\n", ctxt,
-	       atomic_read(&ctxt->loc_refcount));
+	       refcount_read(&ctxt->loc_refcount));
 	return ctxt;
 }
 
@@ -277,9 +277,10 @@ static inline void llog_ctxt_put(struct llog_ctxt *ctxt)
 {
 	if (!ctxt)
 		return;
-	LASSERT_ATOMIC_GT_LT(&ctxt->loc_refcount, 0, LI_POISON);
+	LASSERT(refcount_read(&ctxt->loc_refcount) > 0);
+	LASSERT(refcount_read(&ctxt->loc_refcount) < LI_POISON);
 	CDEBUG(D_INFO, "PUTting ctxt %p : new refcount %d\n", ctxt,
-	       atomic_read(&ctxt->loc_refcount) - 1);
+	       refcount_read(&ctxt->loc_refcount) - 1);
 	__llog_ctxt_put(NULL, ctxt);
 }
 

@@ -47,7 +47,7 @@ static struct llog_ctxt *llog_new_ctxt(struct obd_device *obd)
 		return NULL;
 
 	ctxt->loc_obd = obd;
-	atomic_set(&ctxt->loc_refcount, 1);
+	refcount_set(&ctxt->loc_refcount, 1);
 
 	return ctxt;
 }
@@ -71,11 +71,9 @@ int __llog_ctxt_put(const struct lu_env *env, struct llog_ctxt *ctxt)
 	struct obd_device *obd;
 	int rc = 0;
 
-	spin_lock(&olg->olg_lock);
-	if (!atomic_dec_and_test(&ctxt->loc_refcount)) {
-		spin_unlock(&olg->olg_lock);
+	if (!refcount_dec_and_lock(&ctxt->loc_refcount, &olg->olg_lock))
 		return rc;
-	}
+
 	olg->olg_ctxts[ctxt->loc_idx] = NULL;
 	spin_unlock(&olg->olg_lock);
 
@@ -116,8 +114,8 @@ int llog_cleanup(const struct lu_env *env, struct llog_ctxt *ctxt)
 	/*
 	 * Banlance the ctxt get when calling llog_cleanup()
 	 */
-	LASSERT(atomic_read(&ctxt->loc_refcount) < LI_POISON);
-	LASSERT(atomic_read(&ctxt->loc_refcount) > 1);
+	LASSERT(refcount_read(&ctxt->loc_refcount) < LI_POISON);
+	LASSERT(refcount_read(&ctxt->loc_refcount) > 1);
 	llog_ctxt_put(ctxt);
 
 	/*
