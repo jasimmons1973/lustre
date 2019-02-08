@@ -264,7 +264,7 @@ static const struct file_operations lov_debugfs_target_fops = {
 	.open		= lov_target_seq_open,
 	.read		= seq_read,
 	.llseek		= seq_lseek,
-	.release	= lprocfs_seq_release,
+	.release	= seq_release,
 };
 
 static struct attribute *lov_attrs[] = {

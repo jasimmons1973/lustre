@@ -306,18 +306,6 @@ MODULE_PARM_DESC(lprocfs_no_percpu_stats, "Do not alloc percpu data for lprocfs 
 
 #define MAX_STRING_SIZE 128
 
-int lprocfs_single_release(struct inode *inode, struct file *file)
-{
-	return single_release(inode, file);
-}
-EXPORT_SYMBOL(lprocfs_single_release);
-
-int lprocfs_seq_release(struct inode *inode, struct file *file)
-{
-	return seq_release(inode, file);
-}
-EXPORT_SYMBOL(lprocfs_seq_release);
-
 /* lprocfs API calls */
 
 static const struct file_operations lprocfs_generic_fops = { };
@@ -1364,7 +1352,7 @@ const struct file_operations lprocfs_stats_seq_fops = {
 	.read		= seq_read,
 	.write		= lprocfs_stats_seq_write,
 	.llseek		= seq_lseek,
-	.release	= lprocfs_seq_release,
+	.release	= seq_release,
 };
 EXPORT_SYMBOL_GPL(lprocfs_stats_seq_fops);
 

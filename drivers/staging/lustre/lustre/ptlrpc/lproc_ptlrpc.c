@@ -1093,7 +1093,7 @@ void ptlrpc_ldebugfs_register_service(struct dentry *entry,
 		.open		= ptlrpc_lprocfs_svc_req_history_open,
 		.read		= seq_read,
 		.llseek		= seq_lseek,
-		.release	= lprocfs_seq_release,
+		.release	= seq_release,
 	};
 
 	ptlrpc_ldebugfs_register(entry, svc->srv_name,
