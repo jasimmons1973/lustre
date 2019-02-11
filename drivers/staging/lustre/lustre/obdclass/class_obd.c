@@ -546,20 +546,6 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 	return err;
 } /* class_handle_ioctl */
 
-/*  opening /dev/obd */
-static int obd_class_open(struct inode *inode, struct file *file)
-{
-	try_module_get(THIS_MODULE);
-	return 0;
-}
-
-/*  closing /dev/obd */
-static int obd_class_release(struct inode *inode, struct file *file)
-{
-	module_put(THIS_MODULE);
-	return 0;
-}
-
 /* to control /dev/obd */
 static long obd_class_ioctl(struct file *filp, unsigned int cmd,
 			    unsigned long arg)
@@ -577,9 +563,7 @@ static long obd_class_ioctl(struct file *filp, unsigned int cmd,
 /* declare character device */
 static const struct file_operations obd_psdev_fops = {
 	.owner		= THIS_MODULE,
-	.unlocked_ioctl	= obd_class_ioctl,	/* unlocked_ioctl */
-	.open		= obd_class_open,	/* open */
-	.release	= obd_class_release,	/* release */
+	.unlocked_ioctl	= obd_class_ioctl,
 };
 
 /* modules setup */
