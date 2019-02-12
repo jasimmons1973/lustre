@@ -409,22 +409,7 @@ static void cfs_print_to_console(struct ptldebug_header *hdr, int mask,
 }
 
 int libcfs_debug_msg(struct libcfs_debug_msg_data *msgdata,
-		     const char *format, ...)
-{
-	va_list args;
-	int rc;
-
-	va_start(args, format);
-	rc = libcfs_debug_vmsg2(msgdata, format, args, NULL);
-	va_end(args);
-
-	return rc;
-}
-EXPORT_SYMBOL(libcfs_debug_msg);
-
-int libcfs_debug_vmsg2(struct libcfs_debug_msg_data *msgdata,
-		       const char *format1, va_list args,
-		       const char *format2, ...)
+		       const char *format, ...)
 {
 	struct cfs_trace_cpu_data *tcd = NULL;
 	struct ptldebug_header header = { 0 };
@@ -488,7 +473,7 @@ int libcfs_debug_vmsg2(struct libcfs_debug_msg_data *msgdata,
 		}
 
 		string_buf = (char *)page_address(tage->page) +
-			     tage->used + known_size;
+			tage->used + known_size;
 
 		max_nob = PAGE_SIZE - tage->used - known_size;
 		if (max_nob <= 0) {
@@ -500,22 +485,15 @@ int libcfs_debug_vmsg2(struct libcfs_debug_msg_data *msgdata,
 		}
 
 		needed = 0;
-		if (format1) {
-			va_copy(ap, args);
-			needed = vsnprintf(string_buf, max_nob, format1, ap);
-			va_end(ap);
-		}
 
-		if (format2) {
-			remain = max_nob - needed;
-			if (remain < 0)
-				remain = 0;
+		remain = max_nob - needed;
+		if (remain < 0)
+			remain = 0;
 
-			va_start(ap, format2);
-			needed += vsnprintf(string_buf + needed, remain,
-					    format2, ap);
-			va_end(ap);
-		}
+		va_start(ap, format);
+		needed += vsnprintf(string_buf + needed, remain,
+				    format, ap);
+		va_end(ap);
 
 		if (needed < max_nob) /* well. printing ok.. */
 			break;
@@ -600,22 +578,15 @@ console:
 		string_buf = cfs_trace_get_console_buffer();
 
 		needed = 0;
-		if (format1) {
-			va_copy(ap, args);
-			needed = vsnprintf(string_buf,
-					   CFS_TRACE_CONSOLE_BUFFER_SIZE,
-					   format1, ap);
+
+		remain = CFS_TRACE_CONSOLE_BUFFER_SIZE - needed;
+		if (remain > 0) {
+			va_start(ap, format);
+			needed += vsnprintf(string_buf + needed, remain,
+					    format, ap);
 			va_end(ap);
 		}
-		if (format2) {
-			remain = CFS_TRACE_CONSOLE_BUFFER_SIZE - needed;
-			if (remain > 0) {
-				va_start(ap, format2);
-				needed += vsnprintf(string_buf + needed, remain,
-						    format2, ap);
-				va_end(ap);
-			}
-		}
+
 		cfs_print_to_console(&header, mask,
 				     string_buf, needed, file, msgdata->msg_fn);
 
@@ -639,7 +610,7 @@ console:
 
 	return 0;
 }
-EXPORT_SYMBOL(libcfs_debug_vmsg2);
+EXPORT_SYMBOL(libcfs_debug_msg);
 
 void
 cfs_trace_assertion_failed(const char *str,
