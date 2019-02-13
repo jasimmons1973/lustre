@@ -136,33 +136,15 @@ void class_put_type(struct obd_type *type)
 
 static void class_sysfs_release(struct kobject *kobj)
 {
-	kfree(kobj);
+	struct obd_type *type = container_of(kobj, struct obd_type, typ_kobj);
+
+	kfree(type);
 }
 
 static struct kobj_type class_ktype = {
 	.sysfs_ops	= &lustre_sysfs_ops,
 	.release	= class_sysfs_release,
 };
-
-struct kobject *class_setup_tunables(const char *name)
-{
-	struct kobject *kobj;
-	int rc;
-
-	kobj = kzalloc(sizeof(*kobj), GFP_KERNEL);
-	if (!kobj)
-		return ERR_PTR(-ENOMEM);
-
-	kobj->kset = lustre_kset;
-	kobject_init(kobj, &class_ktype);
-	rc = kobject_add(kobj, &lustre_kset->kobj, "%s", name);
-	if (rc) {
-		kobject_put(kobj);
-		return ERR_PTR(rc);
-	}
-	return kobj;
-}
-EXPORT_SYMBOL(class_setup_tunables);
 
 #define CLASS_MAX_NAME 1024
 
@@ -181,10 +163,12 @@ int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 		return -EEXIST;
 	}
 
-	rc = -ENOMEM;
 	type = kzalloc(sizeof(*type), GFP_NOFS);
 	if (!type)
-		return rc;
+		return -ENOMEM;
+
+	type->typ_kobj.kset = lustre_kset;
+	kobject_init(&type->typ_kobj, &class_ktype);
 
 	type->typ_dt_ops = kzalloc(sizeof(*type->typ_dt_ops), GFP_NOFS);
 	type->typ_md_ops = kzalloc(sizeof(*type->typ_md_ops), GFP_NOFS);
@@ -205,19 +189,16 @@ int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 	type->typ_debugfs_entry = debugfs_create_dir(type->typ_name,
 						     debugfs_lustre_root);
 
-	type->typ_kobj = class_setup_tunables(type->typ_name);
-	if (IS_ERR(type->typ_kobj)) {
-		rc = PTR_ERR(type->typ_kobj);
+	rc = kobject_add(&type->typ_kobj, &lustre_kset->kobj, "%s", name);
+
+	if (rc)
 		goto failed;
-	}
 
 	if (ldt) {
 		type->typ_lu = ldt;
 		rc = lu_device_type_init(ldt);
-		if (rc != 0) {
-			kobject_put(type->typ_kobj);
+		if (rc != 0)
 			goto failed;
-		}
 	}
 
 	spin_lock(&obd_types_lock);
@@ -230,7 +211,8 @@ failed:
 	kfree(type->typ_name);
 	kfree(type->typ_md_ops);
 	kfree(type->typ_dt_ops);
-	kfree(type);
+	kobject_put(&type->typ_kobj);
+
 	return rc;
 }
 EXPORT_SYMBOL(class_register_type);
@@ -253,8 +235,6 @@ int class_unregister_type(const char *name)
 		return -EBUSY;
 	}
 
-	kobject_put(type->typ_kobj);
-
 	debugfs_remove_recursive(type->typ_debugfs_entry);
 
 	if (type->typ_lu)
@@ -266,7 +246,8 @@ int class_unregister_type(const char *name)
 	kfree(type->typ_name);
 	kfree(type->typ_dt_ops);
 	kfree(type->typ_md_ops);
-	kfree(type);
+	kobject_put(&type->typ_kobj);
+
 	return 0;
 } /* class_unregister_type */
 EXPORT_SYMBOL(class_unregister_type);
