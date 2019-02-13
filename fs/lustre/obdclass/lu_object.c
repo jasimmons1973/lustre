@@ -1267,7 +1267,7 @@ void lu_stack_fini(const struct lu_env *env, struct lu_device *top)
 		next = ldt->ldt_ops->ldto_device_free(env, scan);
 		type = ldt->ldt_obd_type;
 		if (type) {
-			type->typ_refcnt--;
+			atomic_dec(&type->typ_refcnt);
 			class_put_type(type);
 		}
 	}

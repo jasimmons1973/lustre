@@ -2542,7 +2542,7 @@ static int mdc_init_ea_size(struct obd_export *exp, u32 easize, u32 def_easize)
 static int mdc_precleanup(struct obd_device *obd)
 {
 	/* Failsafe, ok if racy */
-	if (obd->obd_type->typ_refcnt <= 1)
+	if (atomic_read(&obd->obd_type->typ_refcnt) <= 1)
 		libcfs_kkuc_group_rem(0, KUC_GRP_HSM);
 
 	mdc_changelog_cdev_finish(obd);

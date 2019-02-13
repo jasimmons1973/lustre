@@ -114,15 +114,17 @@ static struct obd_type *class_get_type(const char *name)
 		}
 	}
 	if (type) {
-		spin_lock(&type->obd_type_lock);
-		type->typ_refcnt++;
-		try_module_get(type->typ_dt_ops->owner);
-		spin_unlock(&type->obd_type_lock);
-		/* class_search_type() returned a counted reference,
-		 * but we don't need that count any more as
-		 * we have one through typ_refcnt.
-		 */
-		kobject_put(&type->typ_kobj);
+		if (try_module_get(type->typ_dt_ops->owner)) {
+			atomic_inc(&type->typ_refcnt);
+			/* class_search_type() returned a counted reference,
+			 * but we don't need that count any more as
+			 * we have one through typ_refcnt.
+			 */
+			kobject_put(&type->typ_kobj);
+		} else {
+			kobject_put(&type->typ_kobj);
+			type = NULL;
+		}
 	}
 	return type;
 }
@@ -130,10 +132,8 @@ static struct obd_type *class_get_type(const char *name)
 void class_put_type(struct obd_type *type)
 {
 	LASSERT(type);
-	spin_lock(&type->obd_type_lock);
-	type->typ_refcnt--;
 	module_put(type->typ_dt_ops->owner);
-	spin_unlock(&type->obd_type_lock);
+	atomic_dec(&type->typ_refcnt);
 }
 
 static void class_sysfs_release(struct kobject *kobj)
@@ -192,7 +192,6 @@ int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 	/* md_ops is optional */
 	if (md_ops)
 		*type->typ_md_ops = *md_ops;
-	spin_lock_init(&type->obd_type_lock);
 
 	rc = kobject_add(&type->typ_kobj, &lustre_kset->kobj, "%s", name);
 	if (rc)
@@ -226,8 +225,8 @@ int class_unregister_type(const char *name)
 		return -EINVAL;
 	}
 
-	if (type->typ_refcnt) {
-		CERROR("type %s has refcount (%d)\n", name, type->typ_refcnt);
+	if (atomic_read(&type->typ_refcnt)) {
+		CERROR("type %s has refcount (%d)\n", name, atomic_read(&type->typ_refcnt));
 		/* This is a bad situation, let's make the best of it */
 		/* Remove ops, but leave the name for debugging */
 		kfree(type->typ_dt_ops);
