@@ -147,7 +147,6 @@ static void class_sysfs_release(struct kobject *kobj)
 	list_del(&type->typ_chain);
 	spin_unlock(&obd_types_lock);
 
-	kfree(type->typ_name);
 	kfree(type->typ_md_ops);
 	kfree(type->typ_dt_ops);
 	kfree(type);
@@ -185,27 +184,23 @@ int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 
 	type->typ_dt_ops = kzalloc(sizeof(*type->typ_dt_ops), GFP_NOFS);
 	type->typ_md_ops = kzalloc(sizeof(*type->typ_md_ops), GFP_NOFS);
-	type->typ_name = kzalloc(strlen(name) + 1, GFP_NOFS);
 
 	if (!type->typ_dt_ops ||
-	    !type->typ_md_ops ||
-	    !type->typ_name)
+	    !type->typ_md_ops)
 		goto failed;
 
 	*type->typ_dt_ops = *dt_ops;
 	/* md_ops is optional */
 	if (md_ops)
 		*type->typ_md_ops = *md_ops;
-	strcpy(type->typ_name, name);
 	spin_lock_init(&type->obd_type_lock);
+
+	rc = kobject_add(&type->typ_kobj, &lustre_kset->kobj, "%s", name);
+	if (rc)
+		goto failed;
 
 	type->typ_debugfs_entry = debugfs_create_dir(type->typ_name,
 						     debugfs_lustre_root);
-
-	rc = kobject_add(&type->typ_kobj, &lustre_kset->kobj, "%s", name);
-
-	if (rc)
-		goto failed;
 
 	if (ldt) {
 		type->typ_lu = ldt;
@@ -533,7 +528,7 @@ struct obd_device *class_num2obd(int num)
  * otherwise any client connected to the tgt is returned.
  */
 struct obd_device *class_find_client_obd(struct obd_uuid *tgt_uuid,
-					 const char *typ_name,
+					 const char *type_name,
 					 struct obd_uuid *grp_uuid)
 {
 	int i;
@@ -544,8 +539,8 @@ struct obd_device *class_find_client_obd(struct obd_uuid *tgt_uuid,
 
 		if (!obd)
 			continue;
-		if ((strncmp(obd->obd_type->typ_name, typ_name,
-			     strlen(typ_name)) == 0)) {
+		if ((strncmp(obd->obd_type->typ_name, type_name,
+			     strlen(type_name)) == 0)) {
 			if (obd_uuid_equals(tgt_uuid,
 					    &obd->u.cli.cl_target_uuid) &&
 			    ((grp_uuid) ? obd_uuid_equals(grp_uuid,
@@ -1357,7 +1352,7 @@ EXPORT_SYMBOL(obd_get_max_rpcs_in_flight);
 int obd_set_max_rpcs_in_flight(struct client_obd *cli, u32 max)
 {
 	struct obd_request_slot_waiter *orsw;
-	const char *typ_name;
+	const char *type_name;
 	u32 old;
 	int diff;
 	int rc;
@@ -1366,8 +1361,8 @@ int obd_set_max_rpcs_in_flight(struct client_obd *cli, u32 max)
 	if (max > OBD_MAX_RIF_MAX || max < 1)
 		return -ERANGE;
 
-	typ_name = cli->cl_import->imp_obd->obd_type->typ_name;
-	if (!strcmp(typ_name, LUSTRE_MDC_NAME)) {
+	type_name = cli->cl_import->imp_obd->obd_type->typ_name;
+	if (!strcmp(type_name, LUSTRE_MDC_NAME)) {
 		/*
 		 * adjust max_mod_rpcs_in_flight to ensure it is always
 		 * strictly lower that max_rpcs_in_flight

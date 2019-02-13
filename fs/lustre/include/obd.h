@@ -103,12 +103,12 @@ struct obd_type {
 	struct obd_ops		*typ_dt_ops;
 	struct md_ops		*typ_md_ops;
 	struct dentry		*typ_debugfs_entry;
-	char			*typ_name;
 	int			 typ_refcnt;
 	struct lu_device_type	*typ_lu;
 	spinlock_t		 obd_type_lock;
 	struct kobject		 typ_kobj;
 };
+#define typ_name typ_kobj.name
 
 struct brw_page {
 	u64			off;
