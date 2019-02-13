@@ -138,6 +138,18 @@ static void class_sysfs_release(struct kobject *kobj)
 {
 	struct obd_type *type = container_of(kobj, struct obd_type, typ_kobj);
 
+	debugfs_remove_recursive(type->typ_debugfs_entry);
+
+	if (type->typ_lu)
+		lu_device_type_fini(type->typ_lu);
+
+	spin_lock(&obd_types_lock);
+	list_del(&type->typ_chain);
+	spin_unlock(&obd_types_lock);
+
+	kfree(type->typ_name);
+	kfree(type->typ_md_ops);
+	kfree(type->typ_dt_ops);
 	kfree(type);
 }
 
@@ -169,6 +181,7 @@ int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 
 	type->typ_kobj.kset = lustre_kset;
 	kobject_init(&type->typ_kobj, &class_ktype);
+	INIT_LIST_HEAD(&type->typ_chain);
 
 	type->typ_dt_ops = kzalloc(sizeof(*type->typ_dt_ops), GFP_NOFS);
 	type->typ_md_ops = kzalloc(sizeof(*type->typ_md_ops), GFP_NOFS);
@@ -208,9 +221,6 @@ int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 	return 0;
 
 failed:
-	kfree(type->typ_name);
-	kfree(type->typ_md_ops);
-	kfree(type->typ_dt_ops);
 	kobject_put(&type->typ_kobj);
 
 	return rc;
@@ -235,17 +245,6 @@ int class_unregister_type(const char *name)
 		return -EBUSY;
 	}
 
-	debugfs_remove_recursive(type->typ_debugfs_entry);
-
-	if (type->typ_lu)
-		lu_device_type_fini(type->typ_lu);
-
-	spin_lock(&obd_types_lock);
-	list_del(&type->typ_chain);
-	spin_unlock(&obd_types_lock);
-	kfree(type->typ_name);
-	kfree(type->typ_dt_ops);
-	kfree(type->typ_md_ops);
 	kobject_put(&type->typ_kobj);
 
 	return 0;
