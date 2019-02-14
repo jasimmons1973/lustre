@@ -2988,7 +2988,7 @@ static int osc_process_config(struct obd_device *obd, u32 len, void *buf)
 	return osc_process_config_base(obd, buf);
 }
 
-static struct obd_ops osc_obd_ops = {
+static const struct obd_ops osc_obd_ops = {
 	.owner		= THIS_MODULE,
 	.setup		= osc_setup,
 	.precleanup	= osc_precleanup,

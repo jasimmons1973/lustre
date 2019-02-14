@@ -3043,7 +3043,7 @@ static int lmv_merge_attr(struct obd_export *exp,
 	return 0;
 }
 
-static struct obd_ops lmv_obd_ops = {
+static const struct obd_ops lmv_obd_ops = {
 	.owner			= THIS_MODULE,
 	.setup			= lmv_setup,
 	.cleanup		= lmv_cleanup,
@@ -3060,7 +3060,7 @@ static struct obd_ops lmv_obd_ops = {
 	.quotactl		= lmv_quotactl
 };
 
-static struct md_ops lmv_md_ops = {
+static const struct md_ops lmv_md_ops = {
 	.get_root		= lmv_get_root,
 	.null_inode		= lmv_null_inode,
 	.close			= lmv_close,

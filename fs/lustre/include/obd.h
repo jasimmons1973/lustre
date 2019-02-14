@@ -99,8 +99,8 @@ struct obd_info {
 };
 
 struct obd_type {
-	struct obd_ops		*typ_dt_ops;
-	struct md_ops		*typ_md_ops;
+	const struct obd_ops	*typ_dt_ops;
+	const struct md_ops	*typ_md_ops;
 	struct dentry		*typ_debugfs_entry;
 	atomic_t		 typ_refcnt;
 	struct lu_device_type	*typ_lu;

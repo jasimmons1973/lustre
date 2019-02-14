@@ -1817,7 +1817,7 @@ out:
 	return rc;
 }
 
-static struct obd_ops mgc_obd_ops = {
+static const struct obd_ops mgc_obd_ops = {
 	.owner		= THIS_MODULE,
 	.setup		= mgc_setup,
 	.precleanup	= mgc_precleanup,

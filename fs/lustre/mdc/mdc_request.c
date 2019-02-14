@@ -2571,7 +2571,7 @@ static int mdc_process_config(struct obd_device *obd, u32 len, void *buf)
 	return count > 0 ? 0 : count;
 }
 
-static struct obd_ops mdc_obd_ops = {
+static const struct obd_ops mdc_obd_ops = {
 	.owner			= THIS_MODULE,
 	.setup			= mdc_setup,
 	.precleanup		= mdc_precleanup,
@@ -2593,7 +2593,7 @@ static struct obd_ops mdc_obd_ops = {
 	.quotactl		= mdc_quotactl,
 };
 
-static struct md_ops mdc_md_ops = {
+static const struct md_ops mdc_md_ops = {
 	.get_root		= mdc_get_root,
 	.null_inode		= mdc_null_inode,
 	.close			= mdc_close,

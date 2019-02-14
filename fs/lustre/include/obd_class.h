@@ -60,7 +60,8 @@ struct lu_device_type;
 
 /* genops.c */
 struct obd_export *class_conn2export(struct lustre_handle *conn);
-int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
+int class_register_type(const struct obd_ops *dt_ops,
+			const struct md_ops *md_ops,
 			const char *name, struct lu_device_type *ldt);
 int class_unregister_type(const char *name);
 

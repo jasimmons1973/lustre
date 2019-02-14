@@ -145,8 +145,6 @@ static void class_sysfs_release(struct kobject *kobj)
 	if (type->typ_lu)
 		lu_device_type_fini(type->typ_lu);
 
-	kfree(type->typ_md_ops);
-	kfree(type->typ_dt_ops);
 	kfree(type);
 }
 
@@ -157,7 +155,8 @@ static struct kobj_type class_ktype = {
 
 #define CLASS_MAX_NAME 1024
 
-int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
+int class_register_type(const struct obd_ops *dt_ops,
+			const struct md_ops *md_ops,
 			const char *name,
 			struct lu_device_type *ldt)
 {
@@ -181,17 +180,8 @@ int class_register_type(struct obd_ops *dt_ops, struct md_ops *md_ops,
 	type->typ_kobj.kset = lustre_kset;
 	kobject_init(&type->typ_kobj, &class_ktype);
 
-	type->typ_dt_ops = kzalloc(sizeof(*type->typ_dt_ops), GFP_NOFS);
-	type->typ_md_ops = kzalloc(sizeof(*type->typ_md_ops), GFP_NOFS);
-
-	if (!type->typ_dt_ops ||
-	    !type->typ_md_ops)
-		goto failed;
-
-	*type->typ_dt_ops = *dt_ops;
-	/* md_ops is optional */
-	if (md_ops)
-		*type->typ_md_ops = *md_ops;
+	type->typ_dt_ops = dt_ops;
+	type->typ_md_ops = md_ops;
 
 	rc = kobject_add(&type->typ_kobj, &lustre_kset->kobj, "%s", name);
 	if (rc)
@@ -229,8 +219,8 @@ int class_unregister_type(const char *name)
 		CERROR("type %s has refcount (%d)\n", name, atomic_read(&type->typ_refcnt));
 		/* This is a bad situation, let's make the best of it */
 		/* Remove ops, but leave the name for debugging */
-		kfree(type->typ_dt_ops);
-		kfree(type->typ_md_ops);
+		type->typ_dt_ops = NULL;
+		type->typ_md_ops = NULL;
 		kobject_put(&type->typ_kobj);
 		return -EBUSY;
 	}
