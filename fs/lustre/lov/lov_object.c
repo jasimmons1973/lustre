@@ -216,8 +216,8 @@ static int lov_init_raid0(const struct lu_env *env, struct lov_device *dev,
 	r0->lo_nr = lse->lsme_stripe_count;
 	LASSERT(r0->lo_nr <= lov_targets_nr(dev));
 
-	r0->lo_sub = kvzalloc(r0->lo_nr * sizeof(r0->lo_sub[0]),
-			      GFP_KERNEL);
+	r0->lo_sub = kzalloc(r0->lo_nr * sizeof(r0->lo_sub[0]),
+			      GFP_NOFS);
 	if (!r0->lo_sub)
 		return -ENOMEM;
 
@@ -302,7 +302,7 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 	comp->lo_entry_count = entry_count;
 
 	comp->lo_entries = kcalloc(entry_count, sizeof(*comp->lo_entries),
-				   GFP_KERNEL);
+				   GFP_NOFS);
 	if (!comp->lo_entries)
 		return -ENOMEM;
 

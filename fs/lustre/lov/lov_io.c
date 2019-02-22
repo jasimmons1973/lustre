@@ -54,7 +54,7 @@ static inline struct lov_io_sub *lov_sub_alloc(struct lov_io *lio, int index)
 		lio->lis_single_subio_index = index;
 		memset(sub, 0, sizeof(*sub));
 	} else {
-		sub = kzalloc(sizeof(*sub), GFP_KERNEL);
+		sub = kzalloc(sizeof(*sub), GFP_NOFS);
 	}
 
 	if (sub) {
