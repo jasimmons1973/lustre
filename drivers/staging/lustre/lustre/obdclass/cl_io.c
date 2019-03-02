@@ -83,7 +83,7 @@ static int cl_io_invariant(const struct cl_io *io)
 }
 
 /**
- * Finalize \a io, by calling cl_io_operations::cio_fini() bottom-to-top.
+ * Finalize @io, by calling cl_io_operations::cio_fini() bottom-to-top.
  */
 void cl_io_fini(const struct lu_env *env, struct cl_io *io)
 {
@@ -175,7 +175,7 @@ int cl_io_sub_init(const struct lu_env *env, struct cl_io *io,
 EXPORT_SYMBOL(cl_io_sub_init);
 
 /**
- * Initialize \a io, by calling cl_io_operations::cio_init() top-to-bottom.
+ * Initialize @io, by calling cl_io_operations::cio_init() top-to-bottom.
  *
  * Caller has to call cl_io_fini() after a call to cl_io_init(), no matter
  * what the latter returned.
@@ -413,7 +413,7 @@ void cl_io_iter_fini(const struct lu_env *env, struct cl_io *io)
 EXPORT_SYMBOL(cl_io_iter_fini);
 
 /**
- * Records that read or write io progressed \a nob bytes forward.
+ * Records that read or write io progressed @nob bytes forward.
  */
 static void cl_io_rw_advance(const struct lu_env *env, struct cl_io *io,
 			     size_t nob)
@@ -618,7 +618,7 @@ static void cl_page_list_assume(const struct lu_env *env,
 
 /**
  * Submit a sync_io and wait for the IO to be finished, or error happens.
- * If \a timeout is zero, it means to wait for the IO unconditionally.
+ * If @timeout is zero, it means to wait for the IO unconditionally.
  */
 int cl_io_submit_sync(const struct lu_env *env, struct cl_io *io,
 		      enum cl_req_type iot, struct cl_2queue *queue,
@@ -962,7 +962,7 @@ void cl_2queue_fini(const struct lu_env *env, struct cl_2queue *queue)
 EXPORT_SYMBOL(cl_2queue_fini);
 
 /**
- * Initialize a 2-queue to contain \a page in its incoming page list.
+ * Initialize a 2-queue to contain @page in its incoming page list.
  */
 void cl_2queue_init_page(struct cl_2queue *queue, struct cl_page *page)
 {
@@ -989,7 +989,7 @@ EXPORT_SYMBOL(cl_io_top);
 
 /**
  * Fills in attributes that are passed to server together with transfer. Only
- * attributes from \a flags may be touched. This can be called multiple times
+ * attributes from @flags may be touched. This can be called multiple times
  * for the same request.
  */
 void cl_req_attr_set(const struct lu_env *env, struct cl_object *obj,

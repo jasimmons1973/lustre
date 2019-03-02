@@ -549,16 +549,16 @@ EXPORT_SYMBOL(lprocfs_rd_conn_uuid);
  *
  * For global statistics, lock the stats structure to prevent concurrent update.
  *
- * \param[in] stats    statistics structure to lock
- * \param[in] opc      type of operation:
- *                     LPROCFS_GET_SMP_ID: "lock" and return current CPU index
- *                             for incrementing statistics for that CPU
- *                     LPROCFS_GET_NUM_CPU: "lock" and return number of used
- *                             CPU indices to iterate over all indices
- * \param[out] flags   CPU interrupt saved state for IRQ-safe locking
+ * @stats:	statistics structure to lock
+ * @opc:	type of operation:
+ *		LPROCFS_GET_SMP_ID: "lock" and return current CPU index
+ *				    for incrementing statistics for that CPU
+ *		LPROCFS_GET_NUM_CPU: "lock" and return number of used
+ *				     CPU indices to iterate over all indices
+ * @flags:	CPU interrupt saved state for IRQ-safe locking
  *
- * \retval cpuid of current thread or number of allocated structs
- * \retval negative on error (only for opc LPROCFS_GET_SMP_ID + per-CPU stats)
+ * Returns:	cpuid of current thread or number of allocated structs
+ *		negative on error (only for opc LPROCFS_GET_SMP_ID + per-CPU stats)
  */
 int lprocfs_stats_lock(struct lprocfs_stats *stats,
 		       enum lprocfs_stats_lock_ops opc,
@@ -602,9 +602,9 @@ int lprocfs_stats_lock(struct lprocfs_stats *stats,
  * This function must be called using the same arguments as used when calling
  * lprocfs_stats_lock() so that the correct operation can be performed.
  *
- * \param[in] stats    statistics structure to unlock
- * \param[in] opc      type of operation (current cpuid or number of structs)
- * \param[in] flags    CPU interrupt saved state for IRQ-safe locking
+ * @stats:	statistics structure to unlock
+ * @opc:	type of operation (current cpuid or number of structs)
+ * @flags:	CPU interrupt saved state for IRQ-safe locking
  */
 void lprocfs_stats_unlock(struct lprocfs_stats *stats,
 			  enum lprocfs_stats_lock_ops opc,
@@ -1584,9 +1584,9 @@ int lprocfs_write_frac_u64_helper(const char __user *buffer,
 EXPORT_SYMBOL(lprocfs_write_frac_u64_helper);
 
 /**
- * Find the string \a name in the input \a buffer, and return a pointer to the
- * value immediately following \a name, reducing \a count appropriately.
- * If \a name is not found the original \a buffer is returned.
+ * Find the string @name in the input @buffer, and return a pointer to the
+ * value immediately following @name, reducing @count appropriately.
+ * If @name is not found the original @buffer is returned.
  */
 char *lprocfs_find_named_value(const char *buffer, const char *name,
 			       size_t *count)

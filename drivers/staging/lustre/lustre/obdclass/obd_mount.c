@@ -56,12 +56,13 @@
  * Continue to process new statements appended to the logs
  * (whenever the config lock is revoked) until lustre_end_log
  * is called.
- * @param sb The superblock is used by the MGC to write to the local copy of
- *   the config log
- * @param logname The name of the llog to replicate from the MGS
- * @param cfg Since the same mgc may be used to follow multiple config logs
- *   (e.g. ost1, ost2, client), the config_llog_instance keeps the state for
- *   this log, and is added to the mgc's list of logs to follow.
+ * @sb:		The superblock is used by the MGC to write to the local copy of
+ *		the config log
+ * @logname:	The name of the llog to replicate from the MGS
+ * @cfg:	Since the same mgc may be used to follow multiple config logs
+ *		(e.g. ost1, ost2, client), the config_llog_instance keeps the
+ *		state for this log, and is added to the mgc's list of logs to
+ *		follow.
  */
 int lustre_process_log(struct super_block *sb, char *logname,
 		       struct config_llog_instance *cfg)
@@ -204,9 +205,9 @@ static DEFINE_MUTEX(mgc_start_lock);
 
 /** Set up a mgc obd to process startup logs
  *
- * \param sb [in] super block of the mgc obd
+ * @sb:		super block of the mgc obd
  *
- * \retval 0 success, otherwise error code
+ * Returns:	0 success, otherwise error code
  */
 int lustre_start_mgc(struct super_block *sb)
 {
@@ -588,11 +589,13 @@ EXPORT_SYMBOL(lustre_put_lsi);
  */
 
 /** Get the fsname ("lustre") from the server name ("lustre-OST003F").
- * @param [in] svname server name including type and index
- * @param [out] fsname Buffer to copy filesystem name prefix into.
- *  Must have at least 'strlen(fsname) + 1' chars.
- * @param [out] endptr if endptr isn't NULL it is set to end of fsname
- * rc < 0  on error
+ *
+ * @svname:	server name including type and index
+ * @fsname:	Buffer to copy filesystem name prefix into.
+ *		Must have at least 'strlen(fsname) + 1' chars.
+ * @endptr:	if endptr isn't NULL it is set to end of fsname
+ *
+ * Returns:	rc < 0  on error
  */
 static int server_name2fsname(const char *svname, char *fsname,
 			      const char **endptr)
@@ -910,15 +913,15 @@ static int lmd_parse_mgs(struct lustre_mount_data *lmd, char **ptr)
 }
 
 /**
- * Find the first delimiter (comma or colon) from the specified \a buf and
- * make \a *endh point to the string starting with the delimiter. The commas
+ * Find the first delimiter (comma or colon) from the specified @buf and
+ * make @*endh point to the string starting with the delimiter. The commas
  * in expression list [...] will be skipped.
  *
  * @buf		a delimiter-separated string
  * @endh	a pointer to a pointer that will point to the string
  *		starting with the delimiter
  *
- * RETURNS	true if delimiter is found, false if delimiter is not found
+ * Returns:	true if delimiter is found, false if delimiter is not found
  */
 static bool lmd_find_delimiter(char *buf, char **endh)
 {
@@ -964,15 +967,15 @@ try_again:
 
 /**
  * Find the first valid string delimited by comma or colon from the specified
- * \a buf and parse it to see whether it's a valid nid list. If yes, \a *endh
+ * @buf and parse it to see whether it's a valid nid list. If yes, @*endh
  * will point to the next string starting with the delimiter.
  *
- * \param[in] buf	a delimiter-separated string
- * \param[in] endh	a pointer to a pointer that will point to the string
- *			starting with the delimiter
+ * @buf:	a delimiter-separated string
+ * @endh:	a pointer to a pointer that will point to the string
+ *		starting with the delimiter
  *
- * \retval 0		if the string is a valid nid list
- * \retval 1		if the string is not a valid nid list
+ * Returns:	0	if the string is a valid nid list
+ *		1	if the string is not a valid nid list
  */
 static int lmd_parse_nidlist(char *buf, char **endh)
 {

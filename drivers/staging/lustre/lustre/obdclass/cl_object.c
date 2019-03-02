@@ -79,7 +79,7 @@ int cl_object_header_init(struct cl_object_header *h)
 EXPORT_SYMBOL(cl_object_header_init);
 
 /**
- * Returns a cl_object with a given \a fid.
+ * Returns a cl_object with a given @fid.
  *
  * Returns either cached or newly created object. Additional reference on the
  * returned object is acquired.
@@ -96,7 +96,7 @@ struct cl_object *cl_object_find(const struct lu_env *env,
 EXPORT_SYMBOL(cl_object_find);
 
 /**
- * Releases a reference on \a o.
+ * Releases a reference on @o.
  *
  * When last reference is released object is returned to the cache, unless
  * lu_object_header_flags::LU_OBJECT_HEARD_BANSHEE bit is set in its header.
@@ -110,10 +110,10 @@ void cl_object_put(const struct lu_env *env, struct cl_object *o)
 EXPORT_SYMBOL(cl_object_put);
 
 /**
- * Acquire an additional reference to the object \a o.
+ * Acquire an additional reference to the object @o.
  *
  * This can only be used to acquire _additional_ reference, i.e., caller
- * already has to possess at least one reference to \a o before calling this.
+ * already has to possess at least one reference to @o before calling this.
  *
  * \see cl_page_get(), cl_lock_get().
  */
@@ -124,7 +124,7 @@ void cl_object_get(struct cl_object *o)
 EXPORT_SYMBOL(cl_object_get);
 
 /**
- * Returns the top-object for a given \a o.
+ * Returns the top-object for a given @o.
  *
  * \see cl_io_top()
  */
@@ -144,7 +144,7 @@ EXPORT_SYMBOL(cl_object_top);
 
 /**
  * Returns pointer to the lock protecting data-attributes for the given object
- * \a o.
+ * @o.
  *
  * Data-attributes are protected by the cl_object_header::coh_attr_guard
  * spin-lock in the top-object.
@@ -181,10 +181,10 @@ void cl_object_attr_unlock(struct cl_object *o)
 EXPORT_SYMBOL(cl_object_attr_unlock);
 
 /**
- * Returns data-attributes of an object \a obj.
+ * Returns data-attributes of an object @obj.
  *
  * Every layer is asked (by calling cl_object_operations::coo_attr_get())
- * top-to-bottom to fill in parts of \a attr that this layer is responsible
+ * top-to-bottom to fill in parts of @attr that this layer is responsible
  * for.
  */
 int cl_object_attr_get(const struct lu_env *env, struct cl_object *obj,
@@ -210,9 +210,9 @@ int cl_object_attr_get(const struct lu_env *env, struct cl_object *obj,
 EXPORT_SYMBOL(cl_object_attr_get);
 
 /**
- * Updates data-attributes of an object \a obj.
+ * Updates data-attributes of an object @obj.
  *
- * Only attributes, mentioned in a validness bit-mask \a v are
+ * Only attributes, mentioned in a validness bit-mask @v are
  * updated. Calls cl_object_operations::coo_attr_update() on every layer,
  * bottom to top.
  */
@@ -242,7 +242,7 @@ EXPORT_SYMBOL(cl_object_attr_update);
 /**
  * Notifies layers (bottom-to-top) that glimpse AST was received.
  *
- * Layers have to fill \a lvb fields with information that will be shipped
+ * Layers have to fill @lvb fields with information that will be shipped
  * back to glimpse issuer.
  *
  * \see cl_lock_operations::clo_glimpse()
@@ -269,7 +269,7 @@ int cl_object_glimpse(const struct lu_env *env, struct cl_object *obj,
 EXPORT_SYMBOL(cl_object_glimpse);
 
 /**
- * Updates a configuration of an object \a obj.
+ * Updates a configuration of an object @obj.
  */
 int cl_conf_set(const struct lu_env *env, struct cl_object *obj,
 		const struct cl_object_conf *conf)
@@ -332,14 +332,14 @@ EXPORT_SYMBOL(cl_object_getstripe);
 /**
  * Get fiemap extents from file object.
  *
- * \param env [in]	lustre environment
- * \param obj [in]	file object
- * \param key [in]	fiemap request argument
- * \param fiemap [out]	fiemap extents mapping retrived
- * \param buflen [in]	max buffer length of @fiemap
+ * @env		lustre environment
+ * @obj		file object
+ * @key		fiemap request argument
+ * @fiemap	fiemap extents mapping retrived
+ * @buflen	max buffer length of @fiemap
  *
- * \retval 0	success
- * \retval < 0	error
+ * Return:	0 success
+ *		< 0 error
  */
 int cl_object_fiemap(const struct lu_env *env, struct cl_object *obj,
 		     struct ll_fiemap_info_key *key,
@@ -660,9 +660,9 @@ static inline struct cl_env *cl_env_container(struct lu_env *env)
  *
  * Allocations are amortized through the global cache of environments.
  *
- * \param refcheck pointer to a counter used to detect environment leaks. In
+ * @refcheck pointer to a counter used to detect environment leaks. In
  * the usual case cl_env_get() and cl_env_put() are called in the same lexical
- * scope and pointer to the same integer is passed as \a refcheck. This is
+ * scope and pointer to the same integer is passed as @refcheck. This is
  * used to detect missed cl_env_put().
  *
  * \see cl_env_put()
@@ -747,7 +747,7 @@ EXPORT_SYMBOL(cl_env_cache_purge);
 /**
  * Release an environment.
  *
- * Decrement \a env reference counter. When counter drops to 0, nothing in
+ * Decrement @env reference counter. When counter drops to 0, nothing in
  * this thread is using environment and it is returned to the allocation
  * cache, or freed straight away, if cache is large enough.
  */

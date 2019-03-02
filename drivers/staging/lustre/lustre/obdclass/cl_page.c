@@ -61,7 +61,7 @@ static void __cl_page_delete(const struct lu_env *env, struct cl_page *pg);
  * This function can be used to obtain initial reference to previously
  * unreferenced cached object. It can be called only if concurrent page
  * reclamation is somehow prevented, e.g., by keeping a lock on a VM page,
- * associated with \a page.
+ * associated with @page.
  *
  * Use with care! Not exported.
  */
@@ -165,8 +165,8 @@ struct cl_page *cl_page_alloc(const struct lu_env *env,
 }
 
 /**
- * Returns a cl_page with index \a idx at the object \a o, and associated with
- * the VM page \a vmpage.
+ * Returns a cl_page with index @idx at the object @o, and associated with
+ * the VM page @vmpage.
  *
  * This is the main entry point into the cl_page caching interface. First, a
  * cache (implemented as a per-object radix tree) is consulted. If page is
@@ -287,8 +287,8 @@ static void cl_page_state_set(const struct lu_env *env,
 /**
  * Acquires an additional reference to a page.
  *
- * This can be called only by caller already possessing a reference to \a
- * page.
+ * This can be called only by caller already possessing a reference to
+ * @page.
  *
  * \see cl_object_get(), cl_lock_get().
  */
@@ -415,11 +415,11 @@ EXPORT_SYMBOL(cl_page_is_owned);
  * \pre  !cl_page_is_owned(pg, io)
  * \post result == 0 iff cl_page_is_owned(pg, io)
  *
- * \retval 0   success
+ * Return:	0 success
  *
- * \retval -ve failure, e.g., page was destroyed (and landed in
- *	     cl_page_state::CPS_FREEING instead of cl_page_state::CPS_CACHED).
- *	     or, page was owned by another thread, or in IO.
+ *		-ve failure, e.g., page was destroyed (and landed in
+ *		cl_page_state::CPS_FREEING instead of cl_page_state::CPS_CACHED).
+ *		or, page was owned by another thread, or in IO.
  *
  * \see cl_page_disown()
  * \see cl_page_operations::cpo_own()
@@ -642,7 +642,7 @@ EXPORT_SYMBOL(cl_page_delete);
  *
  * Call cl_page_operations::cpo_export() through all layers top-to-bottom. The
  * layer responsible for VM interaction has to mark/clear page as up-to-date
- * by the \a uptodate argument.
+ * by the @uptodate argument.
  *
  * \see cl_page_operations::cpo_export()
  */
@@ -658,7 +658,7 @@ void cl_page_export(const struct lu_env *env, struct cl_page *pg, int uptodate)
 EXPORT_SYMBOL(cl_page_export);
 
 /**
- * Returns true, iff \a pg is VM locked in a suitable sense by the calling
+ * Returns true, if @pg is VM locked in a suitable sense by the calling
  * thread.
  */
 int cl_page_is_vmlocked(const struct lu_env *env, const struct cl_page *pg)
@@ -862,7 +862,7 @@ void cl_page_clip(const struct lu_env *env, struct cl_page *pg,
 EXPORT_SYMBOL(cl_page_clip);
 
 /**
- * Prints human readable representation of \a pg to the \a f.
+ * Prints human readable representation of @pg to the @f.
  */
 void cl_page_header_print(const struct lu_env *env, void *cookie,
 			  lu_printer_t printer, const struct cl_page *pg)
@@ -876,7 +876,7 @@ void cl_page_header_print(const struct lu_env *env, void *cookie,
 EXPORT_SYMBOL(cl_page_header_print);
 
 /**
- * Prints human readable representation of \a pg to the \a f.
+ * Prints human readable representation of @pg to the @f.
  */
 void cl_page_print(const struct lu_env *env, void *cookie,
 		   lu_printer_t printer, const struct cl_page *pg)
@@ -898,7 +898,7 @@ void cl_page_print(const struct lu_env *env, void *cookie,
 EXPORT_SYMBOL(cl_page_print);
 
 /**
- * Converts a byte offset within object \a obj into a page index.
+ * Converts a byte offset within object @obj into a page index.
  */
 loff_t cl_offset(const struct cl_object *obj, pgoff_t idx)
 {
@@ -910,7 +910,7 @@ loff_t cl_offset(const struct cl_object *obj, pgoff_t idx)
 EXPORT_SYMBOL(cl_offset);
 
 /**
- * Converts a page index into a byte offset within object \a obj.
+ * Converts a page index into a byte offset within object @obj.
  */
 pgoff_t cl_index(const struct cl_object *obj, loff_t offset)
 {

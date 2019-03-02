@@ -148,10 +148,11 @@ EXPORT_SYMBOL(cl_lock_cancel);
 
 /**
  * Enqueue a lock.
- * \param anchor: if we need to wait for resources before getting the lock,
- *		  use @anchor for the purpose.
- * \retval 0  enqueue successfully
- * \retval <0 error code
+ * @anchor	if we need to wait for resources before getting the lock,
+ *		use @anchor for the purpose.
+ *
+ * Return:	0 enqueue successfully
+ *		<0 error code
  */
 int cl_lock_enqueue(const struct lu_env *env, struct cl_io *io,
 		    struct cl_lock *lock, struct cl_sync_io *anchor)
@@ -250,7 +251,7 @@ void cl_lock_descr_print(const struct lu_env *env, void *cookie,
 EXPORT_SYMBOL(cl_lock_descr_print);
 
 /**
- * Prints human readable representation of \a lock to the \a f.
+ * Prints human readable representation of @lock to the @f.
  */
 void cl_lock_print(const struct lu_env *env, void *cookie,
 		   lu_printer_t printer, const struct cl_lock *lock)

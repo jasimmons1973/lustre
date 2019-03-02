@@ -276,12 +276,12 @@ EXPORT_SYMBOL(class_unregister_type);
  *
  * Allocate the new obd_device and initialize it.
  *
- * \param[in] type_name obd device type string.
- * \param[in] name      obd device name.
- * @uuid		obd device UUID.
+ * @type_name:		obd device type string.
+ * @name:		obd device name.
+ * @uuid:		obd device UUID.
  *
- * RETURN newdev	 pointer to created obd_device
- * RETURN ERR_PTR(errno) on error
+ * Returns:		newdev pointer to created obd_device
+ *			ERR_PTR(errno) on error
  */
 struct obd_device *class_newdev(const char *type_name, const char *name,
 				const char *uuid)
@@ -392,7 +392,7 @@ void class_free_dev(struct obd_device *obd)
 /**
  * Unregister obd device.
  *
- * Free slot in obd_dev[] used by \a obd.
+ * Free slot in obd_dev[] used by @obd.
  *
  * @new_obd	obd_device to be unregistered
  *
@@ -412,7 +412,7 @@ void class_unregister_device(struct obd_device *obd)
 /**
  * Register obd device.
  *
- * Find free slot in obd_devs[], fills it with \a new_obd.
+ * Find free slot in obd_devs[], fills it with @new_obd.
  *
  * @new_obd	obd_device to be registered
  *
@@ -523,10 +523,10 @@ int class_uuid2dev(struct obd_uuid *uuid)
 /**
  * Get obd device from ::obd_devs[]
  *
- * \param num [in] array index
+ * @num		array index
  *
- * \retval NULL if ::obd_devs[\a num] does not contains an obd device
- *	 otherwise return the obd device there.
+ * Return:	NULL if ::obd_devs[@num] does not contains an obd device
+ *		otherwise return the obd device there.
  */
 struct obd_device *class_num2obd(int num)
 {
@@ -617,7 +617,7 @@ struct obd_device *class_devices_in_group(struct obd_uuid *grp_uuid, int *next)
 EXPORT_SYMBOL(class_devices_in_group);
 
 /**
- * to notify sptlrpc log for \a fsname has changed, let every relevant OBD
+ * to notify sptlrpc log for @fsname has changed, let every relevant OBD
  * adjust sptlrpc settings accordingly.
  */
 int class_notify_sptlrpc_conf(const char *fsname, int namelen)

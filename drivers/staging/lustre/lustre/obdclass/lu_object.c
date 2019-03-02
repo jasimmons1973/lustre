@@ -359,7 +359,7 @@ static void lu_object_free(const struct lu_env *env, struct lu_object *o)
 }
 
 /**
- * Free \a nr objects from the cold end of the site LRU list.
+ * Free @nr objects from the cold end of the site LRU list.
  * if canblock is false, then don't block awaiting for another
  * instance of lu_site_purge() to complete
  */
@@ -552,7 +552,7 @@ void lu_object_header_print(const struct lu_env *env, void *cookie,
 EXPORT_SYMBOL(lu_object_header_print);
 
 /**
- * Print human readable representation of the \a o to the \a printer.
+ * Print human readable representation of the @o to the @printer.
  */
 void lu_object_print(const struct lu_env *env, void *cookie,
 		     lu_printer_t printer, const struct lu_object *o)
@@ -567,7 +567,7 @@ void lu_object_print(const struct lu_env *env, void *cookie,
 
 	list_for_each_entry(o, &top->loh_layers, lo_linkage) {
 		/*
-		 * print `.' \a depth times followed by type name and address
+		 * print `.' @depth times followed by type name and address
 		 */
 		(*printer)(env, cookie, "%*.*s%s@%p", depth, depth, ruler,
 			   o->lo_dev->ld_type->ldt_name, o);
@@ -621,7 +621,7 @@ static struct lu_object *htable_lookup(struct lu_site *s,
 }
 
 /**
- * Search cache for an object with the fid \a f. If such object is found,
+ * Search cache for an object with the fid @f. If such object is found,
  * return it. Otherwise, create new object, insert it into cache and return
  * it. In any case, additional reference is acquired on the returned object.
  */
@@ -661,7 +661,7 @@ static void lu_object_limit(const struct lu_env *env, struct lu_device *dev)
  * Core logic of lu_object_find*() functions.
  *
  * Much like lu_object_find(), but top level device of object is specifically
- * \a dev rather than top level device of the site. This interface allows
+ * @dev rather than top level device of the site. This interface allows
  * objects of different "stacking" to be created within the same site.
  */
 struct lu_object *lu_object_find_at(const struct lu_env *env,
@@ -821,7 +821,7 @@ lu_site_obj_print(struct cfs_hash *hs, struct cfs_hash_bd *bd,
 }
 
 /**
- * Print all objects in \a s.
+ * Print all objects in @s.
  */
 void lu_site_print(const struct lu_env *env, struct lu_site *s, void *cookie,
 		   lu_printer_t printer)
@@ -950,7 +950,7 @@ static void lu_dev_add_linkage(struct lu_site *s, struct lu_device *d)
 }
 
 /**
- * Initialize site \a s, with \a d as the top level device.
+ * Initialize site @s, with @d as the top level device.
  */
 int lu_site_init(struct lu_site *s, struct lu_device *top)
 {
@@ -1030,7 +1030,7 @@ int lu_site_init(struct lu_site *s, struct lu_device *top)
 EXPORT_SYMBOL(lu_site_init);
 
 /**
- * Finalize \a s and release its resources.
+ * Finalize @s and release its resources.
  */
 void lu_site_fini(struct lu_site *s)
 {
@@ -1074,7 +1074,7 @@ int lu_site_init_finish(struct lu_site *s)
 EXPORT_SYMBOL(lu_site_init_finish);
 
 /**
- * Acquire additional reference on device \a d
+ * Acquire additional reference on device @d
  */
 void lu_device_get(struct lu_device *d)
 {
@@ -1083,7 +1083,7 @@ void lu_device_get(struct lu_device *d)
 EXPORT_SYMBOL(lu_device_get);
 
 /**
- * Release reference on device \a d.
+ * Release reference on device @d.
  */
 void lu_device_put(struct lu_device *d)
 {
@@ -1093,7 +1093,7 @@ void lu_device_put(struct lu_device *d)
 EXPORT_SYMBOL(lu_device_put);
 
 /**
- * Initialize device \a d of type \a t.
+ * Initialize device @d of type @t.
  */
 int lu_device_init(struct lu_device *d, struct lu_device_type *t)
 {
@@ -1111,7 +1111,7 @@ int lu_device_init(struct lu_device *d, struct lu_device_type *t)
 EXPORT_SYMBOL(lu_device_init);
 
 /**
- * Finalize device \a d.
+ * Finalize device @d.
  */
 void lu_device_fini(struct lu_device *d)
 {
@@ -1134,8 +1134,8 @@ void lu_device_fini(struct lu_device *d)
 EXPORT_SYMBOL(lu_device_fini);
 
 /**
- * Initialize object \a o that is part of compound object \a h and was created
- * by device \a d.
+ * Initialize object @o that is part of compound object @h and was created
+ * by device @d.
  */
 int lu_object_init(struct lu_object *o, struct lu_object_header *h,
 		   struct lu_device *d)
@@ -1170,7 +1170,7 @@ void lu_object_fini(struct lu_object *o)
 EXPORT_SYMBOL(lu_object_fini);
 
 /**
- * Add object \a o as first layer of compound object \a h
+ * Add object @o as first layer of compound object @h
  *
  * This is typically called by the ->ldo_object_alloc() method of top-level
  * device.
@@ -1182,10 +1182,10 @@ void lu_object_add_top(struct lu_object_header *h, struct lu_object *o)
 EXPORT_SYMBOL(lu_object_add_top);
 
 /**
- * Add object \a o as a layer of compound object, going after \a before.
+ * Add object @o as a layer of compound object, going after @before.
  *
- * This is typically called by the ->ldo_object_alloc() method of \a
- * before->lo_dev.
+ * This is typically called by the ->ldo_object_alloc() method of
+ * @before->lo_dev.
  */
 void lu_object_add(struct lu_object *before, struct lu_object *o)
 {
@@ -1222,7 +1222,7 @@ EXPORT_SYMBOL(lu_object_header_fini);
 
 /**
  * Given a compound object, find its slice, corresponding to the device type
- * \a dtype.
+ * @dtype.
  */
 struct lu_object *lu_object_locate(struct lu_object_header *h,
 				   const struct lu_device_type *dtype)
@@ -1452,7 +1452,7 @@ void lu_context_key_quiesce_many(struct lu_context_key *k, ...)
 EXPORT_SYMBOL(lu_context_key_quiesce_many);
 
 /**
- * Return value associated with key \a key in context \a ctx.
+ * Return value associated with key @key in context @ctx.
  */
 void *lu_context_key_get(const struct lu_context *ctx,
 			 const struct lu_context_key *key)
@@ -1471,7 +1471,7 @@ static LIST_HEAD(lu_context_remembered);
 static DEFINE_SPINLOCK(lu_context_remembered_guard);
 
 /**
- * Destroy \a key in all remembered contexts. This is used to destroy key
+ * Destroy @key in all remembered contexts. This is used to destroy key
  * values in "shared" contexts (like service threads), when a module owning
  * the key is about to be unloaded.
  */
@@ -1646,7 +1646,7 @@ void lu_context_enter(struct lu_context *ctx)
 EXPORT_SYMBOL(lu_context_enter);
 
 /**
- * Called after exiting from \a ctx
+ * Called after exiting from @ctx
  */
 void lu_context_exit(struct lu_context *ctx)
 {

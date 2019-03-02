@@ -45,9 +45,10 @@
 
 /**
  * libcfs_kkuc_msg_put - send an message from kernel to userspace
- * @param fp to send the message to
- * @param payload Payload data.  First field of payload is always
- *   struct kuc_hdr
+ *
+ * @fp:		to send the message to
+ * @payload:	Payload data. First field of payload is always
+ *		struct kuc_hdr
  */
 static int libcfs_kkuc_msg_put(struct file *filp, void *payload)
 {
@@ -112,10 +113,11 @@ void libcfs_kkuc_init(void)
 }
 
 /** Add a receiver to a broadcast group
- * @param filp pipe to write into
- * @param uid identifier for this receiver
- * @param group group number
- * @param data user data
+ *
+ * @filp:	pipe to write into
+ * @uid:	identifier for this receiver
+ * @group:	group number
+ * @data:	user data
  */
 int libcfs_kkuc_group_add(struct file *filp, int uid, unsigned int group,
 			  void *data, size_t data_len)
@@ -233,9 +235,10 @@ EXPORT_SYMBOL(libcfs_kkuc_group_put);
 
 /**
  * Calls a callback function for each link of the given kuc group.
- * @param group the group to call the function on.
- * @param cb_func the function to be called.
- * @param cb_arg extra argument to be passed to the callback function.
+ *
+ * @group:	the group to call the function on.
+ * @cb_func:	the function to be called.
+ * @cb_arg:	extra argument to be passed to the callback function.
  */
 int libcfs_kkuc_group_foreach(unsigned int group, libcfs_kkuc_cb_t cb_func,
 			      void *cb_arg)
