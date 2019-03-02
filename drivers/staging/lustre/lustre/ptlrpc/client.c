@@ -65,7 +65,7 @@ static int ptlrpcd_check_work(struct ptlrpc_request *req);
 static int ptlrpc_unregister_reply(struct ptlrpc_request *request, int async);
 
 /**
- * Initialize passed in client structure \a cl.
+ * Initialize passed in client structure @cl.
  */
 void ptlrpc_init_client(int req_portal, int rep_portal, char *name,
 			struct ptlrpc_client *cl)
@@ -77,7 +77,7 @@ void ptlrpc_init_client(int req_portal, int rep_portal, char *name,
 EXPORT_SYMBOL(ptlrpc_init_client);
 
 /**
- * Return PortalRPC connection for remote uud \a uuid
+ * Return PortalRPC connection for remote uud @uuid
  */
 struct ptlrpc_connection *ptlrpc_uuid_to_connection(struct obd_uuid *uuid,
 						    lnet_nid_t nid4refnet)
@@ -167,8 +167,8 @@ free_desc:
 }
 
 /**
- * Prepare bulk descriptor for specified outgoing request \a req that
- * can fit \a nfrags * pages. \a type is bulk type. \a portal is where
+ * Prepare bulk descriptor for specified outgoing request @req that
+ * can fit @nfrags * pages. @type is bulk type. @portal is where
  * the bulk to be sent. Used on client-side.
  * Returns pointer to newly allocated initialized bulk descriptor or NULL on
  * error.
@@ -296,7 +296,7 @@ void ptlrpc_at_set_req_timeout(struct ptlrpc_request *req)
 		/*
 		 * non-AT settings
 		 *
-		 * \a imp_server_timeout means this is reverse import and
+		 * @imp_server_timeout means this is reverse import and
 		 * we send (currently only) ASTs to the client and cannot afford
 		 * to wait too long for the reply, otherwise the other client
 		 * (because of which we are sending this request) would
@@ -505,7 +505,7 @@ void ptlrpc_request_cache_free(struct ptlrpc_request *req)
 }
 
 /**
- * Wind down request pool \a pool.
+ * Wind down request pool @pool.
  * Frees all requests from the pool too
  */
 void ptlrpc_free_rq_pool(struct ptlrpc_request_pool *pool)
@@ -525,7 +525,7 @@ void ptlrpc_free_rq_pool(struct ptlrpc_request_pool *pool)
 EXPORT_SYMBOL(ptlrpc_free_rq_pool);
 
 /**
- * Allocates, initializes and adds \a num_rq requests to the pool \a pool
+ * Allocates, initializes and adds @num_rq requests to the pool @pool
  */
 int ptlrpc_add_rqs_to_pool(struct ptlrpc_request_pool *pool, int num_rq)
 {
@@ -568,9 +568,9 @@ EXPORT_SYMBOL(ptlrpc_add_rqs_to_pool);
 
 /**
  * Create and initialize new request pool with given attributes:
- * \a num_rq - initial number of requests to create for the pool
- * \a msgsize - maximum message size possible for requests in thid pool
- * \a populate_pool - function to be called when more requests need to be added
+ * @num_rq - initial number of requests to create for the pool
+ * @msgsize - maximum message size possible for requests in thid pool
+ * @populate_pool - function to be called when more requests need to be added
  *		    to the pool
  * Returns pointer to newly created pool or NULL on error.
  */
@@ -601,7 +601,7 @@ ptlrpc_init_rq_pool(int num_rq, int msgsize,
 EXPORT_SYMBOL(ptlrpc_init_rq_pool);
 
 /**
- * Fetches one request from pool \a pool
+ * Fetches one request from pool @pool
  */
 static struct ptlrpc_request *
 ptlrpc_prep_req_from_pool(struct ptlrpc_request_pool *pool)
@@ -643,7 +643,7 @@ ptlrpc_prep_req_from_pool(struct ptlrpc_request_pool *pool)
 }
 
 /**
- * Returns freed \a request to pool.
+ * Returns freed @request to pool.
  */
 static void __ptlrpc_free_req_to_pool(struct ptlrpc_request *request)
 {
@@ -816,8 +816,8 @@ int ptlrpc_request_pack(struct ptlrpc_request *request,
 EXPORT_SYMBOL(ptlrpc_request_pack);
 
 /**
- * Helper function to allocate new request on import \a imp
- * and possibly using existing request from pool \a pool if provided.
+ * Helper function to allocate new request on import @imp
+ * and possibly using existing request from pool @pool if provided.
  * Returns allocated request structure with import field filled or
  * NULL on error.
  */
@@ -852,7 +852,7 @@ struct ptlrpc_request *__ptlrpc_request_alloc(struct obd_import *imp,
 /**
  * Helper function for creating a request.
  * Calls __ptlrpc_request_alloc to allocate new request structure and inits
- * buffer structures according to capsule template \a format.
+ * buffer structures according to capsule template @format.
  * Returns allocated request structure pointer or NULL on error.
  */
 static struct ptlrpc_request *
@@ -872,8 +872,8 @@ ptlrpc_request_alloc_internal(struct obd_import *imp,
 }
 
 /**
- * Allocate new request structure for import \a imp and initialize its
- * buffer structure according to capsule template \a format.
+ * Allocate new request structure for import @imp and initialize its
+ * buffer structure according to capsule template @format.
  */
 struct ptlrpc_request *ptlrpc_request_alloc(struct obd_import *imp,
 					    const struct req_format *format)
@@ -883,8 +883,8 @@ struct ptlrpc_request *ptlrpc_request_alloc(struct obd_import *imp,
 EXPORT_SYMBOL(ptlrpc_request_alloc);
 
 /**
- * Allocate new request structure for import \a imp from pool \a pool and
- * initialize its buffer structure according to capsule template \a format.
+ * Allocate new request structure for import @imp from pool @pool and
+ * initialize its buffer structure according to capsule template @format.
  */
 struct ptlrpc_request *ptlrpc_request_alloc_pool(struct obd_import *imp,
 						 struct ptlrpc_request_pool *pool,
@@ -908,7 +908,7 @@ void ptlrpc_request_free(struct ptlrpc_request *request)
 EXPORT_SYMBOL(ptlrpc_request_free);
 
 /**
- * Allocate new request for operation \a opcode and immediately pack it for
+ * Allocate new request for operation @opcode and immediately pack it for
  * network transfer.
  * Only used for simple requests like OBD_PING where the only important
  * part of the request is operation itself.
@@ -1178,10 +1178,10 @@ static int ptlrpc_import_delay_req(struct obd_import *imp,
  * Decide if the error message should be printed to the console or not.
  * Makes its decision based on request type, status, and failure frequency.
  *
- * \param[in] req  request that failed and may need a console message
+ * @req:	request that failed and may need a console message
  *
- * \retval false if no message should be printed
- * \retval true  if console message should be printed
+ * Return:	false if no message should be printed
+ *		true if console message should be printed
  */
 static bool ptlrpc_console_allow(struct ptlrpc_request *req)
 {
@@ -1285,7 +1285,7 @@ u64 ptlrpc_known_replied_xid(struct obd_import *imp)
 }
 
 /**
- * Callback function called when client receives RPC reply for \a req.
+ * Callback function called when client receives RPC reply for @req.
  * Returns 0 on success or error code.
  * The return value would be assigned to req->rq_status by the caller
  * as request processing status.
@@ -1482,7 +1482,7 @@ static int after_reply(struct ptlrpc_request *req)
 }
 
 /**
- * Helper function to send request \a req over the network for the first time
+ * Helper function to send request @req over the network for the first time
  * Also adjusts request phase.
  * Returns 0 on success or error code.
  */
@@ -1629,7 +1629,7 @@ static inline int ptlrpc_set_producer(struct ptlrpc_request_set *set)
 }
 
 /**
- * this sends any unsent RPCs in \a set and returns 1 if all are sent
+ * this sends any unsent RPCs in @set and returns 1 if all are sent
  * and no more replies are expected.
  * (it is possible to get less replies than requests sent e.g. due to timed out
  * requests or requests that we had trouble to send out)
@@ -2046,7 +2046,7 @@ interpret:
 EXPORT_SYMBOL(ptlrpc_check_set);
 
 /**
- * Time out request \a req. is \a async_unlink is set, that means do not wait
+ * Time out request @req. is @async_unlink is set, that means do not wait
  * until LNet actually confirms network buffer unlinking.
  * Return 1 if we should give up further retrying attempts or 0 otherwise.
  */
@@ -2119,7 +2119,7 @@ int ptlrpc_expire_one_request(struct ptlrpc_request *req, int async_unlink)
 }
 
 /**
- * Time out all uncompleted requests in request set pointed by \a data
+ * Time out all uncompleted requests in request set pointed by @data
  * Called when wait_event_idle_timeout times out.
  */
 void ptlrpc_expired_set(struct ptlrpc_request_set *set)
@@ -2153,7 +2153,7 @@ void ptlrpc_expired_set(struct ptlrpc_request_set *set)
 
 /**
  * Interrupts (sets interrupted flag) all uncompleted requests in
- * a set \a data. Called when l_wait_event_abortable_timeout receives signal.
+ * a set @data. Called when l_wait_event_abortable_timeout receives signal.
  */
 static void ptlrpc_interrupted_set(struct ptlrpc_request_set *set)
 {
@@ -2343,7 +2343,7 @@ EXPORT_SYMBOL(ptlrpc_set_wait);
  * Called when request count reached zero and request needs to be freed.
  * Removes request from all sorts of sending/replay lists it might be on,
  * frees network buffers if any are present.
- * If \a locked is set, that means caller is already holding import imp_lock
+ * If @locked is set, that means caller is already holding import imp_lock
  * and so we no longer need to reobtain it (for certain lists manipulations)
  */
 static void __ptlrpc_free_req(struct ptlrpc_request *request, int locked)
@@ -2403,8 +2403,8 @@ static void __ptlrpc_free_req(struct ptlrpc_request *request, int locked)
 
 /**
  * Helper function
- * Drops one reference count for request \a request.
- * \a locked set indicates that caller holds import imp_lock.
+ * Drops one reference count for request @request.
+ * @locked set indicates that caller holds import imp_lock.
  * Frees the request when reference count reaches zero.
  *
  * RETURN 1	the request is freed
@@ -2466,7 +2466,7 @@ void ptlrpc_req_finished(struct ptlrpc_request *request)
 EXPORT_SYMBOL(ptlrpc_req_finished);
 
 /**
- * Returns xid of a \a request
+ * Returns xid of a @request
  */
 u64 ptlrpc_req_xid(struct ptlrpc_request *request)
 {
@@ -2699,7 +2699,7 @@ void ptlrpc_resend_req(struct ptlrpc_request *req)
 }
 
 /**
- * Grab additional reference on a request \a req
+ * Grab additional reference on a request @req
  */
 struct ptlrpc_request *ptlrpc_request_addref(struct ptlrpc_request *req)
 {
@@ -2949,7 +2949,7 @@ int ptlrpc_replay_req(struct ptlrpc_request *req)
 }
 
 /**
- * Aborts all in-flight request on import \a imp sending and delayed lists
+ * Aborts all in-flight request on import @imp sending and delayed lists
  */
 void ptlrpc_abort_inflight(struct obd_import *imp)
 {
@@ -3002,7 +3002,7 @@ void ptlrpc_abort_inflight(struct obd_import *imp)
 }
 
 /**
- * Abort all uncompleted requests in request set \a set
+ * Abort all uncompleted requests in request set @set
  */
 void ptlrpc_abort_set(struct ptlrpc_request_set *set)
 {

@@ -877,7 +877,7 @@ static void ptlrpc_server_finish_active_request(
 }
 
 /**
- * Sanity check request \a req.
+ * Sanity check request @req.
  * Return 0 if all is ok, error code otherwise.
  */
 static int ptlrpc_check_req(struct ptlrpc_request *req)
@@ -2375,7 +2375,7 @@ static void ptlrpc_svcpt_stop_threads(struct ptlrpc_service_part *svcpt)
 }
 
 /**
- * Stops all threads of a particular service \a svc
+ * Stops all threads of a particular service @svc
  */
 static void ptlrpc_stop_all_threads(struct ptlrpc_service *svc)
 {

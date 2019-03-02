@@ -568,7 +568,7 @@ static int sptlrpc_conf_merge_rule(struct sptlrpc_conf *conf,
 }
 
 /**
- * process one LCFG_SPTLRPC_CONF record. if \a conf is NULL, we
+ * process one LCFG_SPTLRPC_CONF record. if @conf is NULL, we
  * find one through the target name in the record inside conf_lock;
  * otherwise means caller already hold conf_lock.
  */

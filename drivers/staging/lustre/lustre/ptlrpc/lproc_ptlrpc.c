@@ -415,7 +415,7 @@ LUSTRE_RW_ATTR(threads_max);
 /**
  * Translates \e ptlrpc_nrs_pol_state values to human-readable strings.
  *
- * \param[in] state The policy state
+ * @state:	The policy state
  */
 static const char *nrs_state2str(enum ptlrpc_nrs_pol_state state)
 {
@@ -436,12 +436,12 @@ static const char *nrs_state2str(enum ptlrpc_nrs_pol_state state)
 }
 
 /**
- * Obtains status information for \a policy.
+ * Obtains status information for @policy.
  *
- * Information is copied in \a info.
+ * Information is copied in @info.
  *
- * \param[in] policy The policy
- * \param[out] info  Holds returned status information
+ * @policy:	The policy
+ * @info:	Holds returned status information
  */
 static void nrs_policy_get_info_locked(struct ptlrpc_nrs_policy *policy,
 				       struct ptlrpc_nrs_pol_info *info)

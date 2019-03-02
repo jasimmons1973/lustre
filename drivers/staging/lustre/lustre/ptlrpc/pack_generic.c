@@ -648,11 +648,11 @@ static inline u32 lustre_msg_buflen_v2(struct lustre_msg_v2 *m, u32 n)
 }
 
 /**
- * lustre_msg_buflen - return the length of buffer \a n in message \a m
- * \param m lustre_msg (request or reply) to look at
- * \param n message index (base 0)
+ * lustre_msg_buflen - return the length of buffer @n in message @m
+ * @m		lustre_msg (request or reply) to look at
+ * @n		message index (base 0)
  *
- * returns zero for non-existent message indices
+ * Return:	zero for non-existent message indices
  */
 u32 lustre_msg_buflen(struct lustre_msg *m, u32 n)
 {

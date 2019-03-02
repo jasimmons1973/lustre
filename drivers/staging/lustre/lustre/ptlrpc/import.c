@@ -56,7 +56,7 @@ struct ptlrpc_connect_async_args {
 };
 
 /**
- * Updates import \a imp current state to provided \a state value
+ * Updates import @imp current state to provided @state value
  * Helper function. Must be called under imp_lock.
  */
 static void __import_set_state(struct obd_import *imp,
@@ -435,7 +435,7 @@ int ptlrpc_reconnect_import(struct obd_import *imp)
 EXPORT_SYMBOL(ptlrpc_reconnect_import);
 
 /**
- * Connection on import \a imp is changed to another one (if more than one is
+ * Connection on import @imp is changed to another one (if more than one is
  * present). We typically chose connection that we have not tried to connect to
  * the longest
  */
@@ -579,7 +579,7 @@ static int ptlrpc_first_transno(struct obd_import *imp, u64 *transno)
 }
 
 /**
- * Attempt to (re)connect import \a imp. This includes all preparations,
+ * Attempt to (re)connect import @imp. This includes all preparations,
  * initializing CONNECT RPC request and passing it to ptlrpcd for
  * actual sending.
  * Returns 0 on success or error code.

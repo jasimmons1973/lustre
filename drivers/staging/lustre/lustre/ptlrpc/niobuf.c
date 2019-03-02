@@ -41,8 +41,8 @@
 #include "ptlrpc_internal.h"
 
 /**
- * Helper function. Sends \a len bytes from \a base at offset \a offset
- * over \a conn connection to portal \a portal.
+ * Helper function. Sends @len bytes from @base at offset @offset
+ * over @conn connection to portal @portal.
  * Returns 0 on success or error code.
  */
 static int ptl_send_buf(struct lnet_handle_md *mdh, void *base, int len,
@@ -343,8 +343,8 @@ static void ptlrpc_at_set_reply(struct ptlrpc_request *req, int flags)
 }
 
 /**
- * Send request reply from request \a req reply buffer.
- * \a flags defines reply types
+ * Send request reply from request @req reply buffer.
+ * @flags defines reply types
  * Returns 0 on success or error code
  */
 int ptlrpc_send_reply(struct ptlrpc_request *req, int flags)
@@ -443,7 +443,7 @@ int ptlrpc_reply(struct ptlrpc_request *req)
 }
 
 /**
- * For request \a req send an error reply back. Create empty
+ * For request @req send an error reply back. Create empty
  * reply buffers if necessary.
  */
 int ptlrpc_send_error(struct ptlrpc_request *req, int may_be_difficult)
@@ -474,8 +474,8 @@ int ptlrpc_error(struct ptlrpc_request *req)
 }
 
 /**
- * Send request \a request.
- * if \a noreply is set, don't expect any reply back and don't set up
+ * Send request @request.
+ * if @noreply is set, don't expect any reply back and don't set up
  * reply buffers.
  * Returns 0 on success or error code.
  */

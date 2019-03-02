@@ -771,8 +771,8 @@ struct req_msg_field {
 	const char  *rmf_name;
 	/**
 	 * Field length. (-1) means "variable length".  If the
-	 * \a RMF_F_STRUCT_ARRAY flag is set the field is also variable-length,
-	 * but the actual size must be a whole multiple of \a rmf_size.
+	 * @RMF_F_STRUCT_ARRAY flag is set the field is also variable-length,
+	 * but the actual size must be a whole multiple of @rmf_size.
 	 */
 	const int   rmf_size;
 	void	(*rmf_swabber)(void *);
@@ -786,13 +786,13 @@ enum rmf_flags {
 	 */
 	RMF_F_STRING = BIT(0),
 	/**
-	 * The field's buffer size need not match the declared \a rmf_size.
+	 * The field's buffer size need not match the declared @rmf_size.
 	 */
 	RMF_F_NO_SIZE_CHECK = BIT(1),
 	/**
-	 * The field's buffer size must be a whole multiple of the declared \a
-	 * rmf_size and the \a rmf_swabber function must work on the declared \a
-	 * rmf_size worth of bytes.
+	 * The field's buffer size must be a whole multiple of the declared
+	 * @rmf_size and the @rmf_swabber function must work on the declared
+	 * @rmf_size worth of bytes.
 	 */
 	RMF_F_STRUCT_ARRAY = BIT(2)
 };
@@ -1603,8 +1603,8 @@ EXPORT_SYMBOL(RQF_OST_LADVISE);
 #define FMT_FIELD(fmt, i, j) ((fmt)->rf_fields[(i)].d[(j)])
 
 /**
- * Initializes the capsule abstraction by computing and setting the \a rf_idx
- * field of RQFs and the \a rmf_offset field of RMFs.
+ * Initializes the capsule abstraction by computing and setting the @rf_idx
+ * field of RQFs and the @rmf_offset field of RMFs.
  */
 int req_layout_init(void)
 {
@@ -1643,11 +1643,11 @@ void req_layout_fini(void)
 EXPORT_SYMBOL(req_layout_fini);
 
 /**
- * Initializes the expected sizes of each RMF in a \a pill (\a rc_area) to -1.
+ * Initializes the expected sizes of each RMF in a @pill (@rc_area) to -1.
  *
  * Actual/expected field sizes are set elsewhere in functions in this file:
  * req_capsule_init(), req_capsule_server_pack(), req_capsule_set_size() and
- * req_capsule_msg_size().  The \a rc_area information is used by.
+ * req_capsule_msg_size().  The @rc_area information is used by.
  * ptlrpc_request_set_replen().
  */
 static void req_capsule_init_area(struct req_capsule *pill)
@@ -1663,7 +1663,7 @@ static void req_capsule_init_area(struct req_capsule *pill)
 /**
  * Initialize a pill.
  *
- * The \a location indicates whether the caller is executing on the client side
+ * The @location indicates whether the caller is executing on the client side
  * (RCL_CLIENT) or server side (RCL_SERVER)..
  */
 void req_capsule_init(struct req_capsule *pill,
@@ -1717,7 +1717,7 @@ static struct lustre_msg *__req_msg(const struct req_capsule *pill,
 }
 
 /**
- * Set the format (\a fmt) of a \a pill; format changes are not allowed here
+ * Set the format (@fmt) of a @pill; format changes are not allowed here
  * (see req_capsule_extend()).
  */
 void req_capsule_set(struct req_capsule *pill, const struct req_format *fmt)
@@ -1730,12 +1730,12 @@ void req_capsule_set(struct req_capsule *pill, const struct req_format *fmt)
 EXPORT_SYMBOL(req_capsule_set);
 
 /**
- * Fills in any parts of the \a rc_area of a \a pill that haven't been filled in
+ * Fills in any parts of the @rc_area of a @pill that haven't been filled in
  * yet.
 
- * \a rc_area is an array of REQ_MAX_FIELD_NR elements, used to store sizes of
- * variable-sized fields.  The field sizes come from the declared \a rmf_size
- * field of a \a pill's \a rc_fmt's RMF's.
+ * @rc_area is an array of REQ_MAX_FIELD_NR elements, used to store sizes of
+ * variable-sized fields.  The field sizes come from the declared @rmf_size
+ * field of a @pill's @rc_fmt's RMF's.
  */
 size_t req_capsule_filled_sizes(struct req_capsule *pill,
 				enum req_location loc)
@@ -1766,7 +1766,7 @@ EXPORT_SYMBOL(req_capsule_filled_sizes);
 /**
  * Capsule equivalent of lustre_pack_request() and lustre_pack_reply().
  *
- * This function uses the \a pill's \a rc_area as filled in by
+ * This function uses the @pill's @rc_area as filled in by
  * req_capsule_set_size() or req_capsule_filled_sizes() (the latter is called by
  * this function).
  */
@@ -1793,8 +1793,8 @@ int req_capsule_server_pack(struct req_capsule *pill)
 EXPORT_SYMBOL(req_capsule_server_pack);
 
 /**
- * Returns the PTLRPC request or reply (\a loc) buffer offset of a \a pill
- * corresponding to the given RMF (\a field).
+ * Returns the PTLRPC request or reply (@loc) buffer offset of a @pill
+ * corresponding to the given RMF (@field).
  */
 u32 __req_capsule_offset(const struct req_capsule *pill,
 			 const struct req_msg_field *field,
@@ -1886,13 +1886,13 @@ swabber_dumper_helper(struct req_capsule *pill,
 }
 
 /**
- * Returns the pointer to a PTLRPC request or reply (\a loc) buffer of a \a pill
- * corresponding to the given RMF (\a field).
+ * Returns the pointer to a PTLRPC request or reply (@loc) buffer of a @pill
+ * corresponding to the given RMF (@field).
  *
- * The buffer will be swabbed using the given \a swabber.  If \a swabber == NULL
- * then the \a rmf_swabber from the RMF will be used.  Soon there will be no
- * calls to __req_capsule_get() with a non-NULL \a swabber; \a swabber will then
- * be removed.  Fields with the \a RMF_F_STRUCT_ARRAY flag set will have each
+ * The buffer will be swabbed using the given @swabber.  If @swabber == NULL
+ * then the @rmf_swabber from the RMF will be used. Soon there will be no
+ * calls to __req_capsule_get() with a non-NULL @swabber; @swabber will then
+ * be removed.  Fields with the @RMF_F_STRUCT_ARRAY flag set will have each
  * element of the array swabbed.
  */
 static void *__req_capsule_get(struct req_capsule *pill,
@@ -1960,7 +1960,7 @@ static void *__req_capsule_get(struct req_capsule *pill,
 
 /**
  * Trivial wrapper around __req_capsule_get(), that returns the PTLRPC request
- * buffer corresponding to the given RMF (\a field) of a \a pill.
+ * buffer corresponding to the given RMF (@field) of a @pill.
  */
 void *req_capsule_client_get(struct req_capsule *pill,
 			     const struct req_msg_field *field)
@@ -1970,7 +1970,7 @@ void *req_capsule_client_get(struct req_capsule *pill,
 EXPORT_SYMBOL(req_capsule_client_get);
 
 /**
- * Same as req_capsule_client_get(), but with a \a swabber argument.
+ * Same as req_capsule_client_get(), but with a @swabber argument.
  *
  * Currently unused; will be removed when req_capsule_server_swab_get() is
  * unused too.
@@ -1986,8 +1986,8 @@ EXPORT_SYMBOL(req_capsule_client_swab_get);
 /**
  * Utility that combines req_capsule_set_size() and req_capsule_client_get().
  *
- * First the \a pill's request \a field's size is set (\a rc_area) using
- * req_capsule_set_size() with the given \a len.  Then the actual buffer is
+ * First the @pill's request @field's size is set (@rc_area) using
+ * req_capsule_set_size() with the given @len.  Then the actual buffer is
  * returned.
  */
 void *req_capsule_client_sized_get(struct req_capsule *pill,
@@ -2001,7 +2001,7 @@ EXPORT_SYMBOL(req_capsule_client_sized_get);
 
 /**
  * Trivial wrapper around __req_capsule_get(), that returns the PTLRPC reply
- * buffer corresponding to the given RMF (\a field) of a \a pill.
+ * buffer corresponding to the given RMF (@field) of a @pill.
  */
 void *req_capsule_server_get(struct req_capsule *pill,
 			     const struct req_msg_field *field)
@@ -2011,7 +2011,7 @@ void *req_capsule_server_get(struct req_capsule *pill,
 EXPORT_SYMBOL(req_capsule_server_get);
 
 /**
- * Same as req_capsule_server_get(), but with a \a swabber argument.
+ * Same as req_capsule_server_get(), but with a @swabber argument.
  *
  * Ideally all swabbing should be done pursuant to RMF definitions, with no
  * swabbing done outside this capsule abstraction.
@@ -2027,8 +2027,8 @@ EXPORT_SYMBOL(req_capsule_server_swab_get);
 /**
  * Utility that combines req_capsule_set_size() and req_capsule_server_get().
  *
- * First the \a pill's request \a field's size is set (\a rc_area) using
- * req_capsule_set_size() with the given \a len.  Then the actual buffer is
+ * First the @pill's request @field's size is set (@rc_area) using
+ * req_capsule_set_size() with the given @len.  Then the actual buffer is
  * returned.
  */
 void *req_capsule_server_sized_get(struct req_capsule *pill,
@@ -2050,8 +2050,8 @@ void *req_capsule_server_sized_swab_get(struct req_capsule *pill,
 EXPORT_SYMBOL(req_capsule_server_sized_swab_get);
 
 /**
- * Set the size of the PTLRPC request/reply (\a loc) buffer for the given \a
- * field of the given \a pill.
+ * Set the size of the PTLRPC request/reply (@loc) buffer for the given
+ * @field of the given @pill.
  *
  * This function must be used when constructing variable sized fields of a
  * request or reply.
@@ -2086,8 +2086,8 @@ void req_capsule_set_size(struct req_capsule *pill,
 EXPORT_SYMBOL(req_capsule_set_size);
 
 /**
- * Return the actual PTLRPC buffer length of a request or reply (\a loc)
- * for the given \a pill's given \a field.
+ * Return the actual PTLRPC buffer length of a request or reply (@loc)
+ * for the given @pill's given @field.
  *
  * NB: this function doesn't correspond with req_capsule_set_size(), which
  * actually sets the size in pill.rc_area[loc][offset], but this function
@@ -2106,8 +2106,8 @@ EXPORT_SYMBOL(req_capsule_get_size);
 
 /**
  * Wrapper around lustre_msg_size() that returns the PTLRPC size needed for the
- * given \a pill's request or reply (\a loc) given the field size recorded in
- * the \a pill's rc_area.
+ * given @pill's request or reply (@loc) given the field size recorded in
+ * the @pill's rc_area.
  *
  * See also req_capsule_set_size().
  */
@@ -2120,8 +2120,8 @@ u32 req_capsule_msg_size(struct req_capsule *pill, enum req_location loc)
 
 /**
  * While req_capsule_msg_size() computes the size of a PTLRPC request or reply
- * (\a loc) given a \a pill's \a rc_area, this function computes the size of a
- * PTLRPC request or reply given only an RQF (\a fmt).
+ * (@loc) given a @pill's @rc_area, this function computes the size of a
+ * PTLRPC request or reply given only an RQF (@fmt).
  *
  * This function should not be used for formats which contain variable size
  * fields.
@@ -2154,19 +2154,19 @@ u32 req_capsule_fmt_size(u32 magic, const struct req_format *fmt,
  * Changes the format of an RPC.
  *
  * The pill must already have been initialized, which means that it already has
- * a request format.  The new format \a fmt must be an extension of the pill's
+ * a request format.  The new format @fmt must be an extension of the pill's
  * old format.  Specifically: the new format must have as many request and reply
  * fields as the old one, and all fields shared by the old and new format must
  * be at least as large in the new format.
  *
  * The new format's fields may be of different "type" than the old format, but
  * only for fields that are "opaque" blobs: fields which have a) have no
- * \a rmf_swabber, b) \a rmf_flags == 0 or RMF_F_NO_SIZE_CHECK, and c) \a
- * rmf_size == -1 or \a rmf_flags == RMF_F_NO_SIZE_CHECK.  For example,
+ * @rmf_swabber, b) @rmf_flags == 0 or RMF_F_NO_SIZE_CHECK, and c)
+ * @rmf_size == -1 or @rmf_flags == RMF_F_NO_SIZE_CHECK.  For example,
  * OBD_SET_INFO has a key field and an opaque value field that gets interpreted
  * according to the key field.  When the value, according to the key, contains a
  * structure (or array thereof) to be swabbed, the format should be changed to
- * one where the value field has \a rmf_size/rmf_flags/rmf_swabber set
+ * one where the value field has @rmf_size/rmf_flags/rmf_swabber set
  * accordingly.
  */
 void req_capsule_extend(struct req_capsule *pill, const struct req_format *fmt)
@@ -2207,8 +2207,8 @@ void req_capsule_extend(struct req_capsule *pill, const struct req_format *fmt)
 EXPORT_SYMBOL(req_capsule_extend);
 
 /**
- * This function returns a non-zero value if the given \a field is present in
- * the format (\a rc_fmt) of \a pill's PTLRPC request or reply (\a loc), else it
+ * This function returns a non-zero value if the given @field is present in
+ * the format (@rc_fmt) of @pill's PTLRPC request or reply (@loc), else it
  * returns 0.
  */
 int req_capsule_has_field(const struct req_capsule *pill,
@@ -2222,8 +2222,8 @@ int req_capsule_has_field(const struct req_capsule *pill,
 EXPORT_SYMBOL(req_capsule_has_field);
 
 /**
- * Returns a non-zero value if the given \a field is present in the given \a
- * pill's PTLRPC request or reply (\a loc), else it returns 0.
+ * Returns a non-zero value if the given @field is present in the given
+ * @pill's PTLRPC request or reply (@loc), else it returns 0.
  */
 static int req_capsule_field_present(const struct req_capsule *pill,
 				     const struct req_msg_field *field,
@@ -2239,8 +2239,8 @@ static int req_capsule_field_present(const struct req_capsule *pill,
 }
 
 /**
- * This function shrinks the size of the _buffer_ of the \a pill's PTLRPC
- * request or reply (\a loc).
+ * This function shrinks the size of the _buffer_ of the @pill's PTLRPC
+ * request or reply (@loc).
  *
  * This is not the opposite of req_capsule_extend().
  */
