@@ -100,7 +100,7 @@ ldlm_flock_destroy(struct ldlm_lock *lock, enum ldlm_mode mode)
  * Process a granting attempt for flock lock.
  * Must be called under ns lock held.
  *
- * This function looks for any conflicts for \a lock in the granted or
+ * This function looks for any conflicts for @lock in the granted or
  * waiting queues. The lock is granted if no conflicts are found in
  * either queue.
  *
@@ -291,7 +291,7 @@ reprocess:
 
 	/* In case we're reprocessing the requested lock we can't destroy
 	 * it until after calling ldlm_add_ast_work_item() above so that laawi()
-	 * can bump the reference count on \a req. Otherwise \a req
+	 * can bump the reference count on @req. Otherwise @req
 	 * could be freed before the completion AST can be sent.
 	 */
 	if (added)
@@ -304,12 +304,12 @@ reprocess:
 /**
  * Flock completion callback function.
  *
- * \param lock [in,out]: A lock to be handled
- * \param flags    [in]: flags
- * \param *data    [in]: ldlm_work_cp_ast_lock() will use ldlm_cb_set_arg
+ * @lock	A lock to be handled
+ * @flags	flags
+ * @data	ldlm_work_cp_ast_lock() will use ldlm_cb_set_arg
  *
- * \retval 0    : success
- * \retval <0   : failure
+ * Return:	0 success
+ *		<0 failure
  */
 int
 ldlm_flock_completion_ast(struct ldlm_lock *lock, u64 flags, void *data)

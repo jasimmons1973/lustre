@@ -382,9 +382,9 @@ static inline void init_blwi(struct ldlm_bl_work_item *blwi,
 }
 
 /**
- * Queues a list of locks \a cancels containing \a count locks
- * for later processing by a blocking thread.  If \a count is zero,
- * then the lock referenced as \a lock is queued instead.
+ * Queues a list of locks @cancels containing @count locks
+ * for later processing by a blocking thread. If @count is zero,
+ * then the lock referenced as @lock is queued instead.
  *
  * The blocking thread would then call ->l_blocking_ast callback in the lock.
  * If list addition fails an error is returned and caller is supposed to

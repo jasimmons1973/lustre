@@ -99,7 +99,7 @@ static int import_set_conn(struct obd_import *imp, struct obd_uuid *uuid,
 			goto out_free;
 		}
 	}
-	/* No existing import connection found for \a uuid. */
+	/* No existing import connection found for @uuid. */
 	if (create) {
 		imp_conn->oic_conn = ptlrpc_conn;
 		imp_conn->oic_uuid = *uuid;
@@ -198,8 +198,8 @@ out:
 EXPORT_SYMBOL(client_import_del_conn);
 
 /**
- * Find conn UUID by peer NID. \a peer is a server NID. This function is used
- * to find a conn uuid of \a imp which can reach \a peer.
+ * Find conn UUID by peer NID. @peer is a server NID. This function is used
+ * to find a conn uuid of @imp which can reach @peer.
  */
 int client_import_find_conn(struct obd_import *imp, lnet_nid_t peer,
 			    struct obd_uuid *uuid)
@@ -654,7 +654,7 @@ out_disconnect:
 EXPORT_SYMBOL(client_disconnect_export);
 
 /**
- * Packs current SLV and Limit into \a req.
+ * Packs current SLV and Limit into @req.
  */
 int target_pack_pool_reply(struct ptlrpc_request *req)
 {

@@ -555,7 +555,7 @@ static struct ldlm_ns_hash_def ldlm_ns_hash_defs[] = {
 	},
 };
 
-/** Register \a ns in the list of namespaces */
+/** Register @ns in the list of namespaces */
 static void ldlm_namespace_register(struct ldlm_namespace *ns,
 				    enum ldlm_side client)
 {
@@ -857,13 +857,13 @@ force_wait:
 }
 
 /**
- * Performs various cleanups for passed \a ns to make it drop refc and be
+ * Performs various cleanups for passed @ns to make it drop refc and be
  * ready for freeing. Waits for refc == 0.
  *
  * The following is done:
- * (0) Unregister \a ns from its list to make inaccessible for potential
+ * (0) Unregister @ns from its list to make inaccessible for potential
  * users like pools thread and others;
- * (1) Clear all locks in \a ns.
+ * (1) Clear all locks in @ns.
  */
 void ldlm_namespace_free_prior(struct ldlm_namespace *ns,
 			       struct obd_import *imp,
@@ -897,7 +897,7 @@ void ldlm_namespace_free_prior(struct ldlm_namespace *ns,
 	}
 }
 
-/** Unregister \a ns from the list of namespaces. */
+/** Unregister @ns from the list of namespaces. */
 static void ldlm_namespace_unregister(struct ldlm_namespace *ns,
 				      enum ldlm_side client)
 {
@@ -913,9 +913,9 @@ static void ldlm_namespace_unregister(struct ldlm_namespace *ns,
 }
 
 /**
- * Performs freeing memory structures related to \a ns. This is only done
+ * Performs freeing memory structures related to @ns. This is only done
  * when ldlm_namespce_free_prior() successfully removed all resources
- * referencing \a ns and its refc == 0.
+ * referencing @ns and its refc == 0.
  */
 void ldlm_namespace_free_post(struct ldlm_namespace *ns)
 {
@@ -934,8 +934,8 @@ void ldlm_namespace_free_post(struct ldlm_namespace *ns)
 	ldlm_namespace_sysfs_unregister(ns);
 	cfs_hash_putref(ns->ns_rs_hash);
 	kfree(ns->ns_name);
-	/* Namespace \a ns should be not on list at this time, otherwise
-	 * this will cause issues related to using freed \a ns in poold
+	/* Namespace @ns should be not on list at this time, otherwise
+	 * this will cause issues related to using freed @ns in poold
 	 * thread.
 	 */
 	LASSERT(list_empty(&ns->ns_list_chain));

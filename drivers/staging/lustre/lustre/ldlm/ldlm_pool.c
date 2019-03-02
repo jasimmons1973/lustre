@@ -175,7 +175,7 @@ enum {
 
 /**
  * Calculates suggested grant_step in % of available locks for passed
- * \a period. This is later used in grant_plan calculations.
+ * @period. This is later used in grant_plan calculations.
  */
 static inline int ldlm_pool_t2gsp(unsigned int t)
 {
@@ -205,7 +205,7 @@ static inline int ldlm_pool_t2gsp(unsigned int t)
 }
 
 /**
- * Recalculates next stats on passed \a pl.
+ * Recalculates next stats on passed @pl.
  *
  * \pre ->pl_lock is locked.
  */
@@ -231,7 +231,7 @@ static void ldlm_pool_recalc_stats(struct ldlm_pool *pl)
 
 /**
  * Sets SLV and Limit from container_of(pl, struct ldlm_namespace,
- * ns_pool)->ns_obd tp passed \a pl.
+ * ns_pool)->ns_obd tp passed @pl.
  */
 static void ldlm_cli_pool_pop_slv(struct ldlm_pool *pl)
 {
@@ -250,7 +250,7 @@ static void ldlm_cli_pool_pop_slv(struct ldlm_pool *pl)
 }
 
 /**
- * Recalculates client size pool \a pl according to current SLV and Limit.
+ * Recalculates client size pool @pl according to current SLV and Limit.
  */
 static int ldlm_cli_pool_recalc(struct ldlm_pool *pl)
 {
@@ -312,7 +312,7 @@ out:
 /**
  * This function is main entry point for memory pressure handling on client
  * side.  Main goal of this function is to cancel some number of locks on
- * passed \a pl according to \a nr and \a gfp_mask.
+ * passed @pl according to @nr and @gfp_mask.
  */
 static int ldlm_cli_pool_shrink(struct ldlm_pool *pl,
 				int nr, gfp_t gfp_mask)
@@ -350,7 +350,7 @@ static const struct ldlm_pool_ops ldlm_cli_pool_ops = {
 
 /**
  * Pool recalc wrapper. Will call either client or server pool recalc callback
- * depending what pool \a pl is used.
+ * depending what pool @pl is used.
  */
 static int ldlm_pool_recalc(struct ldlm_pool *pl)
 {
@@ -691,7 +691,7 @@ void ldlm_pool_fini(struct ldlm_pool *pl)
 }
 
 /**
- * Add new taken ldlm lock \a lock into pool \a pl accounting.
+ * Add new taken ldlm lock @lock into pool @pl accounting.
  */
 void ldlm_pool_add(struct ldlm_pool *pl, struct ldlm_lock *lock)
 {
@@ -716,7 +716,7 @@ void ldlm_pool_add(struct ldlm_pool *pl, struct ldlm_lock *lock)
 }
 
 /**
- * Remove ldlm lock \a lock from pool \a pl accounting.
+ * Remove ldlm lock @lock from pool @pl accounting.
  */
 void ldlm_pool_del(struct ldlm_pool *pl, struct ldlm_lock *lock)
 {
@@ -734,7 +734,7 @@ void ldlm_pool_del(struct ldlm_pool *pl, struct ldlm_lock *lock)
 }
 
 /**
- * Returns current \a pl SLV.
+ * Returns current @pl SLV.
  *
  * \pre ->pl_lock is not locked.
  */
@@ -749,7 +749,7 @@ u64 ldlm_pool_get_slv(struct ldlm_pool *pl)
 }
 
 /**
- * Sets passed \a clv to \a pl.
+ * Sets passed @clv to @pl.
  *
  * \pre ->pl_lock is not locked.
  */
@@ -761,7 +761,7 @@ void ldlm_pool_set_clv(struct ldlm_pool *pl, u64 clv)
 }
 
 /**
- * Returns current LVF from \a pl.
+ * Returns current LVF from @pl.
  */
 u32 ldlm_pool_get_lvf(struct ldlm_pool *pl)
 {

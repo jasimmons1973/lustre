@@ -192,7 +192,7 @@ void ldlm_lock_put(struct ldlm_lock *lock)
 EXPORT_SYMBOL(ldlm_lock_put);
 
 /**
- * Removes LDLM lock \a lock from LRU. Assumes LRU is already locked.
+ * Removes LDLM lock @lock from LRU. Assumes LRU is already locked.
  */
 int ldlm_lock_remove_from_lru_nolock(struct ldlm_lock *lock)
 {
@@ -211,15 +211,16 @@ int ldlm_lock_remove_from_lru_nolock(struct ldlm_lock *lock)
 }
 
 /**
- * Removes LDLM lock \a lock from LRU. Obtains the LRU lock first.
+ * Removes LDLM lock @lock from LRU. Obtains the LRU lock first.
  *
- * If \a last_use is non-zero, it will remove the lock from LRU only if
+ * If @last_use is non-zero, it will remove the lock from LRU only if
  * it matches lock's l_last_used.
  *
- * \retval 0 if \a last_use is set, the lock is not in LRU list or \a last_use
- *           doesn't match lock's l_last_used;
- *           otherwise, the lock hasn't been in the LRU list.
- * \retval 1 the lock was in LRU list and removed.
+ * Return:	0 if @last_use is set, the lock is not in LRU list or
+ *		@last_use doesn't match lock's l_last_used;
+ *		otherwise, the lock hasn't been in the LRU list.
+ *
+ *		1 the lock was in LRU list and removed.
  */
 int ldlm_lock_remove_from_lru_check(struct ldlm_lock *lock, time_t last_use)
 {
@@ -235,7 +236,7 @@ int ldlm_lock_remove_from_lru_check(struct ldlm_lock *lock, time_t last_use)
 }
 
 /**
- * Adds LDLM lock \a lock to namespace LRU. Assumes LRU is already locked.
+ * Adds LDLM lock @lock to namespace LRU. Assumes LRU is already locked.
  */
 static void ldlm_lock_add_to_lru_nolock(struct ldlm_lock *lock)
 {
@@ -251,7 +252,7 @@ static void ldlm_lock_add_to_lru_nolock(struct ldlm_lock *lock)
 }
 
 /**
- * Adds LDLM lock \a lock to namespace LRU. Obtains necessary LRU locks
+ * Adds LDLM lock @lock to namespace LRU. Obtains necessary LRU locks
  * first.
  */
 static void ldlm_lock_add_to_lru(struct ldlm_lock *lock)
@@ -264,7 +265,7 @@ static void ldlm_lock_add_to_lru(struct ldlm_lock *lock)
 }
 
 /**
- * Moves LDLM lock \a lock that is already in namespace LRU to the tail of
+ * Moves LDLM lock @lock that is already in namespace LRU to the tail of
  * the LRU. Performs necessary LRU locking
  */
 static void ldlm_lock_touch_in_lru(struct ldlm_lock *lock)
@@ -323,7 +324,7 @@ static int ldlm_lock_destroy_internal(struct ldlm_lock *lock)
 }
 
 /**
- * Destroys a LDLM lock \a lock. Performs necessary locking first.
+ * Destroys a LDLM lock @lock. Performs necessary locking first.
  */
 static void ldlm_lock_destroy(struct ldlm_lock *lock)
 {
@@ -341,7 +342,7 @@ static void ldlm_lock_destroy(struct ldlm_lock *lock)
 }
 
 /**
- * Destroys a LDLM lock \a lock that is already locked.
+ * Destroys a LDLM lock @lock that is already locked.
  */
 void ldlm_lock_destroy_nolock(struct ldlm_lock *lock)
 {
@@ -426,7 +427,7 @@ static struct ldlm_lock *ldlm_lock_new(struct ldlm_resource *resource)
 }
 
 /**
- * Moves LDLM lock \a lock to another resource.
+ * Moves LDLM lock @lock to another resource.
  * This is used on client when server returns some other lock than requested
  * (typically as a result of intent operation)
  */
@@ -492,7 +493,7 @@ int ldlm_lock_change_resource(struct ldlm_namespace *ns, struct ldlm_lock *lock,
  */
 
 /**
- * Fills in handle for LDLM lock \a lock into supplied \a lockh
+ * Fills in handle for LDLM lock @lock into supplied @lockh
  * Does not take any references.
  */
 void ldlm_lock2handle(const struct ldlm_lock *lock, struct lustre_handle *lockh)
@@ -504,7 +505,7 @@ EXPORT_SYMBOL(ldlm_lock2handle);
 /**
  * Obtain a lock reference by handle.
  *
- * if \a flags: atomically get the lock and set the flags.
+ * if @flags: atomically get the lock and set the flags.
  *	      Return NULL if flag already set
  */
 struct ldlm_lock *__ldlm_handle2lock(const struct lustre_handle *handle,
@@ -563,7 +564,7 @@ EXPORT_SYMBOL(__ldlm_handle2lock);
 
 /**
  * Fill in "on the wire" representation for given LDLM lock into supplied
- * lock descriptor \a desc structure.
+ * lock descriptor @desc structure.
  */
 void ldlm_lock2desc(struct ldlm_lock *lock, struct ldlm_lock_desc *desc)
 {
@@ -632,8 +633,8 @@ static void ldlm_add_ast_work_item(struct ldlm_lock *lock,
 }
 
 /**
- * Add specified reader/writer reference to LDLM lock with handle \a lockh.
- * r/w reference type is determined by \a mode
+ * Add specified reader/writer reference to LDLM lock with handle @lockh.
+ * r/w reference type is determined by @mode
  * Calls ldlm_lock_addref_internal.
  */
 void ldlm_lock_addref(const struct lustre_handle *lockh, enum ldlm_mode mode)
@@ -649,8 +650,8 @@ EXPORT_SYMBOL(ldlm_lock_addref);
 
 /**
  * Helper function.
- * Add specified reader/writer reference to LDLM lock \a lock.
- * r/w reference type is determined by \a mode
+ * Add specified reader/writer reference to LDLM lock @lock.
+ * r/w reference type is determined by @mode
  * Removes lock from LRU if it is there.
  * Assumes the LDLM lock is already locked.
  */
@@ -672,12 +673,11 @@ void ldlm_lock_addref_internal_nolock(struct ldlm_lock *lock,
 }
 
 /**
- * Attempts to add reader/writer reference to a lock with handle \a lockh, and
+ * Attempts to add reader/writer reference to a lock with handle @lockh, and
  * fails if lock is already LDLM_FL_CBPENDING or destroyed.
  *
- * \retval 0 success, lock was addref-ed
- *
- * \retval -EAGAIN lock is being canceled.
+ * Return:	0 success, lock was addref-ed
+ *		-EAGAIN lock is being canceled.
  */
 int ldlm_lock_addref_try(const struct lustre_handle *lockh, enum ldlm_mode mode)
 {
@@ -701,7 +701,7 @@ int ldlm_lock_addref_try(const struct lustre_handle *lockh, enum ldlm_mode mode)
 EXPORT_SYMBOL(ldlm_lock_addref_try);
 
 /**
- * Add specified reader/writer reference to LDLM lock \a lock.
+ * Add specified reader/writer reference to LDLM lock @lock.
  * Locks LDLM lock and calls ldlm_lock_addref_internal_nolock to do the work.
  * Only called for local locks.
  */
@@ -713,7 +713,7 @@ void ldlm_lock_addref_internal(struct ldlm_lock *lock, enum ldlm_mode mode)
 }
 
 /**
- * Removes reader/writer reference for LDLM lock \a lock.
+ * Removes reader/writer reference for LDLM lock @lock.
  * Assumes LDLM lock is already locked.
  * only called in ldlm_flock_destroy and for local locks.
  * Does NOT add lock to LRU if no r/w references left to accommodate flock locks
@@ -739,7 +739,7 @@ void ldlm_lock_decref_internal_nolock(struct ldlm_lock *lock,
 }
 
 /**
- * Removes reader/writer reference for LDLM lock \a lock.
+ * Removes reader/writer reference for LDLM lock @lock.
  * Locks LDLM lock first.
  * If the lock is determined to be client lock on a client and r/w refcount
  * drops to zero and the lock is not blocked, the lock is added to LRU lock
@@ -814,7 +814,7 @@ void ldlm_lock_decref_internal(struct ldlm_lock *lock, enum ldlm_mode mode)
 }
 
 /**
- * Decrease reader/writer refcount for LDLM lock with handle \a lockh
+ * Decrease reader/writer refcount for LDLM lock with handle @lockh
  */
 void ldlm_lock_decref(const struct lustre_handle *lockh, enum ldlm_mode mode)
 {
@@ -828,7 +828,7 @@ EXPORT_SYMBOL(ldlm_lock_decref);
 
 /**
  * Decrease reader/writer refcount for LDLM lock with handle
- * \a lockh and mark it for subsequent cancellation once r/w refcount
+ * @lockh and mark it for subsequent cancellation once r/w refcount
  * drops to zero instead of putting into LRU.
  */
 void ldlm_lock_decref_and_cancel(const struct lustre_handle *lockh,
@@ -942,7 +942,7 @@ static void search_granted_lock(struct list_head *queue,
 
 /**
  * Add a lock into resource granted list after a position described by
- * \a prev.
+ * @prev.
  */
 static void ldlm_granted_list_add_lock(struct ldlm_lock *lock,
 				       struct sl_insert_point *prev)
@@ -1051,8 +1051,8 @@ struct lock_match_data {
  * Check if the given @lock meets the criteria for a match.
  * A reference on the lock is taken if matched.
  *
- * \param lock	test-against this lock
- * \param data	parameters
+ * @lock	test-against this lock
+ * @data	parameters
  */
 static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 {
@@ -1140,10 +1140,10 @@ static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 /**
  * Search for a lock with given parameters in interval trees.
  *
- * \param res	search for a lock in this resource
- * \param data	parameters
+ * @res		search for a lock in this resource
+ * @data	parameters
  *
- * \retval	a referenced lock or NULL.
+ * Return:	a referenced lock or NULL.
  */
 static struct ldlm_lock *search_itree(struct ldlm_resource *res,
 				      struct lock_match_data *data)
@@ -1170,10 +1170,10 @@ static struct ldlm_lock *search_itree(struct ldlm_resource *res,
 /**
  * Search for a lock with given properties in a queue.
  *
- * \param queue	search for a lock in this queue
- * \param data	parameters
+ * @queue	search for a lock in this queue
+ * @data	parameters
  *
- * \retval	a referenced lock or NULL.
+ * Return:	a referenced lock or NULL.
  */
 static struct ldlm_lock *search_queue(struct list_head *queue,
 				      struct lock_match_data *data)
@@ -1224,7 +1224,7 @@ EXPORT_SYMBOL(ldlm_lock_allow_match);
  * Attempt to find a lock with specified properties.
  *
  * Typically returns a reference to matched lock unless LDLM_FL_TEST_LOCK is
- * set in \a flags
+ * set in @flags
  *
  * Can be called in two ways:
  *
@@ -1243,8 +1243,8 @@ EXPORT_SYMBOL(ldlm_lock_allow_match);
  * If 'flags' contains LDLM_FL_TEST_LOCK, then don't actually reference a lock,
  *     just tell us if we would have matched.
  *
- * \retval 1 if it finds an already-existing lock that is compatible; in this
- * case, lockh is filled in with a addref()ed lock
+ * Return:	1 if it finds an already-existing lock that is compatible;
+ *		in this case, lockh is filled in with a addref()ed lock
  *
  * We also check security context, and if that fails we simply return 0 (to
  * keep caller code unchanged), the context failure will be discovered by
@@ -1831,7 +1831,7 @@ out:
 }
 
 /**
- * Helper function to call blocking AST for LDLM lock \a lock in a
+ * Helper function to call blocking AST for LDLM lock @lock in a
  * "cancelling" mode.
  */
 void ldlm_cancel_callback(struct ldlm_lock *lock)
@@ -1862,7 +1862,7 @@ void ldlm_cancel_callback(struct ldlm_lock *lock)
 }
 
 /**
- * Remove skiplist-enabled LDLM lock \a req from granted list
+ * Remove skiplist-enabled LDLM lock @req from granted list
  */
 void ldlm_unlink_lock_skiplist(struct ldlm_lock *req)
 {
@@ -1875,7 +1875,7 @@ void ldlm_unlink_lock_skiplist(struct ldlm_lock *req)
 }
 
 /**
- * Attempts to cancel LDLM lock \a lock that has no reader/writer references.
+ * Attempts to cancel LDLM lock @lock that has no reader/writer references.
  */
 void ldlm_lock_cancel(struct ldlm_lock *lock)
 {
@@ -1937,7 +1937,7 @@ struct export_cl_data {
 };
 
 /**
- * Print lock with lock handle \a lockh description into debug log.
+ * Print lock with lock handle @lockh description into debug log.
  *
  * Used when printing all locks on a resource for debug purposes.
  */
