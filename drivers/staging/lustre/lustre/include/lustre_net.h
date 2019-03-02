@@ -358,16 +358,16 @@ struct ptlrpc_request_set {
 	struct list_head	set_requests;
 	/**
 	 * List of completion callbacks to be called when the set is completed
-	 * This is only used if \a set_interpret is NULL.
+	 * This is only used if @set_interpret is NULL.
 	 * Links struct ptlrpc_set_cbdata.
 	 */
 	struct list_head	set_cblist;
 	/** Completion callback, if only one. */
 	set_interpreter_func	set_interpret;
-	/** opaq argument passed to completion \a set_interpret callback. */
+	/** opaq argument passed to completion @set_interpret callback. */
 	void			*set_arg;
 	/**
-	 * Lock for \a set_new_requests manipulations
+	 * Lock for @set_new_requests manipulations
 	 * locked so that any old caller can communicate requests to
 	 * the set holder who can then fold them into the lock-free set
 	 */
@@ -476,13 +476,13 @@ struct ptlrpc_reply_state {
 	/**
 	 * Actual reply message. Its content is encrypted (if needed) to
 	 * produce reply buffer for actual sending. In simple case
-	 * of no network encryption we just set \a rs_repbuf to \a rs_msg
+	 * of no network encryption we just set @rs_repbuf to @rs_msg
 	 */
 	struct lustre_msg	*rs_msg;	/* reply message */
 
 	/** Handles of locks awaiting client reply ACK */
 	struct lustre_handle	rs_locks[RS_MAX_LOCKS];
-	/** Lock modes of locks in \a rs_locks */
+	/** Lock modes of locks in @rs_locks */
 	enum ldlm_mode		rs_modes[RS_MAX_LOCKS];
 };
 
@@ -818,7 +818,7 @@ struct ptlrpc_request {
 	/**
 	 * List item to for replay list. Not yet committed requests get linked
 	 * there.
-	 * Also see \a rq_replay comment above.
+	 * Also see @rq_replay comment above.
 	 * It's also link chain on obd_export::exp_req_replay_queue
 	 */
 	struct list_head		rq_replay_list;
@@ -941,7 +941,7 @@ static inline bool ptlrpc_nrs_req_can_move(struct ptlrpc_request *req)
 /** @} nrs */
 
 /**
- * Returns 1 if request buffer at offset \a index was already swabbed
+ * Returns 1 if request buffer at offset @index was already swabbed
  */
 static inline int lustre_req_swabbed(struct ptlrpc_request *req, size_t index)
 {
@@ -950,7 +950,7 @@ static inline int lustre_req_swabbed(struct ptlrpc_request *req, size_t index)
 }
 
 /**
- * Returns 1 if request reply buffer at offset \a index was already swabbed
+ * Returns 1 if request reply buffer at offset @index was already swabbed
  */
 static inline int lustre_rep_swabbed(struct ptlrpc_request *req, size_t index)
 {
@@ -975,7 +975,7 @@ static inline int ptlrpc_rep_need_swab(struct ptlrpc_request *req)
 }
 
 /**
- * Mark request buffer at offset \a index that it was already swabbed
+ * Mark request buffer at offset @index that it was already swabbed
  */
 static inline void lustre_set_req_swabbed(struct ptlrpc_request *req,
 					  size_t index)
@@ -986,7 +986,7 @@ static inline void lustre_set_req_swabbed(struct ptlrpc_request *req,
 }
 
 /**
- * Mark request reply buffer at offset \a index that it was already swabbed
+ * Mark request reply buffer at offset @index that it was already swabbed
  */
 static inline void lustre_set_rep_swabbed(struct ptlrpc_request *req,
 					  size_t index)
@@ -997,7 +997,7 @@ static inline void lustre_set_rep_swabbed(struct ptlrpc_request *req,
 }
 
 /**
- * Convert numerical request phase value \a phase into text string description
+ * Convert numerical request phase value @phase into text string description
  */
 static inline const char *
 ptlrpc_phase2str(enum rq_phase phase)
@@ -1023,7 +1023,7 @@ ptlrpc_phase2str(enum rq_phase phase)
 }
 
 /**
- * Convert numerical request phase of the request \a req into text stringi
+ * Convert numerical request phase of the request @req into text stringi
  * description
  */
 static inline const char *
@@ -1096,7 +1096,7 @@ struct ptlrpc_bulk_page {
 	/** Linkage to list of pages in a bulk */
 	struct list_head	bp_link;
 	/**
-	 * Number of bytes in a page to transfer starting from \a bp_pageoffset
+	 * Number of bytes in a page to transfer starting from @bp_pageoffset
 	 */
 	int			bp_buflen;
 	/** offset within a page */
@@ -1169,22 +1169,22 @@ static inline bool ptlrpc_is_bulk_op_passive(enum ptlrpc_bulk_op_type type)
 
 struct ptlrpc_bulk_frag_ops {
 	/**
-	 * Add a page \a page to the bulk descriptor \a desc
-	 * Data to transfer in the page starts at offset \a pageoffset and
-	 * amount of data to transfer from the page is \a len
+	 * Add a page @page to the bulk descriptor @desc
+	 * Data to transfer in the page starts at offset @pageoffset and
+	 * amount of data to transfer from the page is @len
 	 */
 	void (*add_kiov_frag)(struct ptlrpc_bulk_desc *desc,
 			      struct page *page, int pageoffset, int len);
 
 	/*
-	 * Add a \a fragment to the bulk descriptor \a desc.
-	 * Data to transfer in the fragment is pointed to by \a frag
-	 * The size of the fragment is \a len
+	 * Add a @fragment to the bulk descriptor @desc.
+	 * Data to transfer in the fragment is pointed to by @frag
+	 * The size of the fragment is @len
 	 */
 	int (*add_iov_frag)(struct ptlrpc_bulk_desc *desc, void *frag, int len);
 
 	/**
-	 * Uninitialize and free bulk descriptor \a desc.
+	 * Uninitialize and free bulk descriptor @desc.
 	 * Works on bulk descriptors both from server and client side.
 	 */
 	void (*release_frags)(struct ptlrpc_bulk_desc *desc);
@@ -1499,14 +1499,14 @@ struct ptlrpc_service {
  * will have multiple instances very soon (instance per CPT).
  *
  * it has four locks:
- * \a scp_lock
- *    serialize operations on rqbd and requests waiting for preprocess
- * \a scp_req_lock
- *    serialize operations active requests sent to this portal
- * \a scp_at_lock
- *    serialize adaptive timeout stuff
- * \a scp_rep_lock
- *    serialize operations on RS list (reply states)
+ * @scp_lock
+ *  serialize operations on rqbd and requests waiting for preprocess
+ * @scp_req_lock
+ *  serialize operations active requests sent to this portal
+ * @scp_at_lock
+ *  serialize adaptive timeout stuff
+ * @scp_rep_lock
+ *  serialize operations on RS list (reply states)
  *
  * We don't have any use-case to take two or more locks at the same time
  * for now, so there is no lock order issue.
@@ -1708,10 +1708,10 @@ enum ptlrpcd_ctl_flags {
  *
  * Service compatibility function; the policy is compatible with all services.
  *
- * \param[in] svc  The service the policy is attempting to register with.
- * \param[in] desc The policy descriptor
+ * @svc:	The service the policy is attempting to register with.
+ * @desc:	The policy descriptor
  *
- * \retval true The policy is compatible with the service
+ * Returns:	true The policy is compatible with the service
  *
  * \see ptlrpc_nrs_pol_desc::pd_compat()
  */
@@ -1726,11 +1726,11 @@ static inline bool nrs_policy_compat_all(const struct ptlrpc_service *svc,
  * service which is identified by its human-readable name at
  * ptlrpc_service::srv_name.
  *
- * \param[in] svc  The service the policy is attempting to register with.
- * \param[in] desc The policy descriptor
+ * @svc:	The service the policy is attempting to register with.
+ * @desc:	The policy descriptor
  *
- * \retval false The policy is not compatible with the service
- * \retval true	 The policy is compatible with the service
+ * Returns:	false	The policy is not compatible with the service
+ *		true	The policy is compatible with the service
  *
  * \see ptlrpc_nrs_pol_desc::pd_compat()
  */
@@ -2130,7 +2130,7 @@ static inline int ptlrpc_status_ntoh(int n)
 #endif
 /** @} */
 
-/** Change request phase of \a req to \a new_phase */
+/** Change request phase of @req to @new_phase */
 static inline void
 ptlrpc_rqphase_move(struct ptlrpc_request *req, enum rq_phase new_phase)
 {
@@ -2162,7 +2162,7 @@ ptlrpc_rqphase_move(struct ptlrpc_request *req, enum rq_phase new_phase)
 }
 
 /**
- * Returns true if request \a req got early reply and hard deadline is not met
+ * Returns true if request @req got early reply and hard deadline is not met
  */
 static inline int
 ptlrpc_client_early(struct ptlrpc_request *req)
@@ -2181,7 +2181,7 @@ ptlrpc_client_replied(struct ptlrpc_request *req)
 	return req->rq_replied;
 }
 
-/** Returns true if request \a req is in process of receiving server reply */
+/** Returns true if request @req is in process of receiving server reply */
 static inline int
 ptlrpc_client_recv(struct ptlrpc_request *req)
 {

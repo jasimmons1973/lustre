@@ -739,7 +739,7 @@ lu_object_ops(const struct lu_object *o)
 
 /**
  * Given a compound object, find its slice, corresponding to the device type
- * \a dtype.
+ * @dtype.
  */
 struct lu_object *lu_object_locate(struct lu_object_header *h,
 				   const struct lu_device_type *dtype);
@@ -1058,7 +1058,7 @@ struct lu_context_key {
 			   struct lu_context_key *key);
 	/**
 	 * Value destructor. Called when context with previously allocated
-	 * value of this slot is destroyed. \a data is a value that was returned
+	 * value of this slot is destroyed. @data is a value that was returned
 	 * by a matching call to lu_context_key::lct_init().
 	 */
 	void   (*lct_fini)(const struct lu_context *ctx,
@@ -1247,8 +1247,8 @@ struct lu_name {
 /**
  * Validate names (path components)
  *
- * To be valid \a name must be non-empty, '\0' terminated of length \a
- * name_len, and not contain '/'. The maximum length of a name (before
+ * To be valid @name must be non-empty, '\0' terminated of length
+ * @name_len, and not contain '/'. The maximum length of a name (before
  * say -ENAMETOOLONG will be returned) is really controlled by llite
  * and the server. We only check for something insane coming from bad
  * integer handling here.

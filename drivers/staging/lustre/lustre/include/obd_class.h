@@ -677,10 +677,11 @@ static inline struct obd_uuid *obd_get_uuid(struct obd_export *exp)
 }
 
 /*
- * Create a new /a exp on device /a obd for the uuid /a cluuid
- * @param exp New export handle
- * @param d Connect data, supported flags are set, flags also understood
- *    by obd are returned.
+ * Create a new @exp on device @obd for the uuid @cluuid
+ *
+ * @exp:	New export handle
+ * @d:		Connect data, supported flags are set, flags also understood
+ *		by obd are returned.
  */
 static inline int obd_connect(const struct lu_env *env,
 			      struct obd_export **exp, struct obd_device *obd,

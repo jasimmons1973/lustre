@@ -1018,8 +1018,8 @@ static inline char *changelog_rec_sname(struct changelog_rec *rec)
  *	- CLF_RENAME will not be removed
  *	- CLF_JOBID will not be added without CLF_RENAME being added too
  *
- * @param[in,out]  rec		The record to remap.
- * @param[in]	   crf_wanted	Flags describing the desired extensions.
+ * @rec			The record to remap.
+ * @crf_wanted		Flags describing the desired extensions.
  */
 static inline void changelog_remap_rec(struct changelog_rec *rec,
 				       enum changelog_rec_flags crf_wanted)
@@ -1297,10 +1297,11 @@ struct hsm_action_item {
 /*
  * helper function which print in hexa the first bytes of
  * hai opaque field
- * \param hai [IN] record to print
- * \param buffer [OUT] output buffer
- * \param len [IN] max buffer len
- * \retval buffer
+ *
+ * @hai		record to print
+ * @buffer	output buffer
+ * @len		max buffer len
+ * Return:	buffer
  */
 static inline char *hai_dump_data_field(struct hsm_action_item *hai,
 					char *buffer, size_t len)

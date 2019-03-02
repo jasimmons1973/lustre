@@ -303,15 +303,15 @@ struct cl_object_operations {
 	 * every object layer when a new cl_page is instantiated. Layer
 	 * keeping private per-page data, or requiring its own page operations
 	 * vector should allocate these data here, and attach then to the page
-	 * by calling cl_page_slice_add(). \a vmpage is locked (in the VM
+	 * by calling cl_page_slice_add(). @vmpage is locked (in the VM
 	 * sense). Optional.
 	 *
-	 * \retval NULL success.
+	 * Return:	NULL success.
 	 *
-	 * \retval ERR_PTR(errno) failure code.
+	 *		ERR_PTR(errno) failure code.
 	 *
-	 * \retval valid-pointer pointer to already existing referenced page
-	 *	 to be used instead of newly created.
+	 *		valid-pointer pointer to already existing referenced
+	 *		page to be used instead of newly created.
 	 */
 	int  (*coo_page_init)(const struct lu_env *env, struct cl_object *obj,
 			      struct cl_page *page, pgoff_t index);
@@ -337,27 +337,27 @@ struct cl_object_operations {
 	int  (*coo_io_init)(const struct lu_env *env,
 			    struct cl_object *obj, struct cl_io *io);
 	/**
-	 * Fill portion of \a attr that this layer controls. This method is
+	 * Fill portion of @attr that this layer controls. This method is
 	 * called top-to-bottom through all object layers.
 	 *
 	 * \pre cl_object_header::coh_attr_guard of the top-object is locked.
 	 *
-	 * \return   0: to continue
-	 * \return +ve: to stop iterating through layers (but 0 is returned
-	 * from enclosing cl_object_attr_get())
-	 * \return -ve: to signal error
+	 * Return:	0 to continue
+	 *		+ve to stop iterating through layers (but 0 is returned
+	 *		from enclosing cl_object_attr_get())
+	 *		-ve to signal error
 	 */
 	int (*coo_attr_get)(const struct lu_env *env, struct cl_object *obj,
 			    struct cl_attr *attr);
 	/**
 	 * Update attributes.
 	 *
-	 * \a valid is a bitmask composed from enum #cl_attr_valid, and
+	 * @valid is a bitmask composed from enum #cl_attr_valid, and
 	 * indicating what attributes are to be set.
 	 *
 	 * \pre cl_object_header::coh_attr_guard of the top-object is locked.
 	 *
-	 * \return the same convention as for
+	 * Return:	the same convention as for
 	 * cl_object_operations::coo_attr_get() is used.
 	 */
 	int (*coo_attr_update)(const struct lu_env *env, struct cl_object *obj,
@@ -372,7 +372,7 @@ struct cl_object_operations {
 			    const struct cl_object_conf *conf);
 	/**
 	 * Glimpse ast. Executed when glimpse ast arrives for a lock on this
-	 * object. Layers are supposed to fill parts of \a lvb that will be
+	 * object. Layers are supposed to fill parts of @lvb that will be
 	 * shipped to the glimpse originator as a glimpse result.
 	 *
 	 * \see vvp_object_glimpse(), lovsub_object_glimpse(),
@@ -451,16 +451,16 @@ struct cl_object_header {
 };
 
 /**
- * Helper macro: iterate over all layers of the object \a obj, assigning every
- * layer top-to-bottom to \a slice.
+ * Helper macro: iterate over all layers of the object @obj, assigning every
+ * layer top-to-bottom to @slice.
  */
 #define cl_object_for_each(slice, obj)					\
 	list_for_each_entry((slice),					\
 			    &(obj)->co_lu.lo_header->loh_layers,	\
 			    co_lu.lo_linkage)
 /**
- * Helper macro: iterate over all layers of the object \a obj, assigning every
- * layer bottom-to-top to \a slice.
+ * Helper macro: iterate over all layers of the object @obj, assigning every
+ * layer bottom-to-top to @slice.
  */
 #define cl_object_for_each_reverse(slice, obj)				\
 	list_for_each_entry_reverse((slice),				\
@@ -793,8 +793,8 @@ enum cl_req_type {
 /**
  * Per-layer page operations.
  *
- * Methods taking an \a io argument are for the activity happening in the
- * context of given \a io. Page is assumed to be owned by that io, except for
+ * Methods taking an @io argument are for the activity happening in the
+ * context of given @io. Page is assumed to be owned by that io, except for
  * the obvious cases (like cl_page_operations::cpo_own()).
  *
  * \see vvp_page_ops, lov_page_ops, osc_page_ops
@@ -807,7 +807,7 @@ struct cl_page_operations {
 	 */
 
 	/**
-	 * Called when \a io acquires this page into the exclusive
+	 * Called when @io acquires this page into the exclusive
 	 * ownership. When this method returns, it is guaranteed that the is
 	 * not owned by other io, and no transfer is going on against
 	 * it. Optional.
@@ -826,7 +826,7 @@ struct cl_page_operations {
 	void (*cpo_disown)(const struct lu_env *env,
 			   const struct cl_page_slice *slice, struct cl_io *io);
 	/**
-	 * Called for a page that is already "owned" by \a io from VM point of
+	 * Called for a page that is already "owned" by @io from VM point of
 	 * view. Optional.
 	 *
 	 * \see cl_page_assume()
@@ -845,7 +845,7 @@ struct cl_page_operations {
 			     const struct cl_page_slice *slice,
 			     struct cl_io *io);
 	/**
-	 * Announces whether the page contains valid data or not by \a uptodate.
+	 * Announces whether the page contains valid data or not by @uptodate.
 	 *
 	 * \see cl_page_export()
 	 * \see vvp_page_export()
@@ -856,9 +856,10 @@ struct cl_page_operations {
 	 * Checks whether underlying VM page is locked (in the suitable
 	 * sense). Used for assertions.
 	 *
-	 * \retval    -EBUSY: page is protected by a lock of a given mode;
-	 * \retval  -ENODATA: page is not protected by a lock;
-	 * \retval	 0: this layer cannot decide. (Should never happen.)
+	 * Return:	-EBUSY means page is protected by a lock of a given
+	 *		mode;
+	 *		-ENODATA when page is not protected by a lock;
+	 *		0 this layer cannot decide. (Should never happen.)
 	 */
 	int (*cpo_is_vmlocked)(const struct lu_env *env,
 			       const struct cl_page_slice *slice);
@@ -918,9 +919,9 @@ struct cl_page_operations {
 		 * Called when a page is submitted for a transfer as a part of
 		 * cl_page_list.
 		 *
-		 * \return    0	 : page is eligible for submission;
-		 * \return    -EALREADY : skip this page;
-		 * \return    -ve       : error.
+		 * Return:	0 if page is eligible for submission;
+		 *		-EALREADY skip this page;
+		 *		-ve if error.
 		 *
 		 * \see cl_page_prep()
 		 */
@@ -946,9 +947,9 @@ struct cl_page_operations {
 		 * Called when cached page is about to be added to the
 		 * ptlrpc request as a part of req formation.
 		 *
-		 * \return    0       : proceed with this page;
-		 * \return    -EAGAIN : skip this page;
-		 * \return    -ve     : error.
+		 * Return	0 proceed with this page;
+		 *		-EAGAIN skip this page;
+		 *		-ve error.
 		 *
 		 * \see cl_page_make_ready()
 		 */
@@ -984,7 +985,7 @@ struct cl_page_operations {
 };
 
 /**
- * Helper macro, dumping detailed information about \a page into a log.
+ * Helper macro, dumping detailed information about @page into a log.
  */
 #define CL_PAGE_DEBUG(mask, env, page, format, ...)			\
 do {									\
@@ -996,7 +997,7 @@ do {									\
 } while (0)
 
 /**
- * Helper macro, dumping shorter information about \a page into a log.
+ * Helper macro, dumping shorter information about @page into a log.
  */
 #define CL_PAGE_HEADER(mask, env, page, format, ...)			\
 do {									\
@@ -1203,10 +1204,10 @@ struct cl_lock_operations {
 	/**
 	 * Attempts to enqueue the lock. Called top-to-bottom.
 	 *
-	 * \retval 0	this layer has enqueued the lock successfully
-	 * \retval >0	this layer has enqueued the lock, but need to wait on
-	 *		@anchor for resources
-	 * \retval -ve	failure
+	 * Return:	0 this layer has enqueued the lock successfully
+	 *		>0 this layer has enqueued the lock, but need to
+	 *		wait on @anchor for resources
+	 *		-ve for failure
 	 *
 	 * \see vvp_lock_enqueue(), lov_lock_enqueue(), lovsub_lock_enqueue(),
 	 * \see osc_lock_enqueue()
@@ -1537,7 +1538,7 @@ struct cl_io_operations {
 				const struct cl_io_slice *slice);
 		/**
 		 * Called bottom-to-top to notify layers that read/write IO
-		 * iteration finished, with \a nob bytes transferred.
+		 * iteration finished, with @nob bytes transferred.
 		 */
 		void (*cio_advance)(const struct lu_env *env,
 				    const struct cl_io_slice *slice,
@@ -1550,11 +1551,11 @@ struct cl_io_operations {
 	} op[CIT_OP_NR];
 
 		/**
-		 * Submit pages from \a queue->c2_qin for IO, and move
-		 * successfully submitted pages into \a queue->c2_qout. Return
+		 * Submit pages from @queue->c2_qin for IO, and move
+		 * successfully submitted pages into @queue->c2_qout. Return
 		 * non-zero if failed to submit even the single page. If
-		 * submission failed after some pages were moved into \a
-		 * queue->c2_qout, completion callback with non-zero ioret is
+		 * submission failed after some pages were moved into
+		 * @queue->c2_qout, completion callback with non-zero ioret is
 		 * executed on them.
 		 */
 		int  (*cio_submit)(const struct lu_env *env,
@@ -2049,7 +2050,7 @@ int cl_object_layout_get(const struct lu_env *env, struct cl_object *obj,
 loff_t cl_object_maxbytes(struct cl_object *obj);
 
 /**
- * Returns true, iff \a o0 and \a o1 are slices of the same object.
+ * Returns true, iff @o0 and @o1 are slices of the same object.
  */
 static inline int cl_object_same(struct cl_object *o0, struct cl_object *o1)
 {
@@ -2280,7 +2281,7 @@ int cl_io_read_ahead(const struct lu_env *env, struct cl_io *io,
 		     pgoff_t start, struct cl_read_ahead *ra);
 
 /**
- * True, iff \a io is an O_APPEND write(2).
+ * True, if @io is an O_APPEND write(2).
  */
 static inline int cl_io_is_append(const struct cl_io *io)
 {
@@ -2298,7 +2299,7 @@ static inline int cl_io_is_mkwrite(const struct cl_io *io)
 }
 
 /**
- * True, iff \a io is a truncate(2).
+ * True, if @io is a truncate(2).
  */
 static inline int cl_io_is_trunc(const struct cl_io *io)
 {

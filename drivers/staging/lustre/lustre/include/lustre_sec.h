@@ -350,28 +350,28 @@ struct vfs_cred {
 
 struct ptlrpc_ctx_ops {
 	/**
-	 * To determine whether it's suitable to use the \a ctx for \a vcred.
+	 * To determine whether it's suitable to use the @ctx for @vcred.
 	 */
 	int (*match)(struct ptlrpc_cli_ctx *ctx, struct vfs_cred *vcred);
 
 	/**
-	 * To bring the \a ctx uptodate.
+	 * To bring the @ctx uptodate.
 	 */
 	int (*refresh)(struct ptlrpc_cli_ctx *ctx);
 
 	/**
-	 * Validate the \a ctx.
+	 * Validate the @ctx.
 	 */
 	int (*validate)(struct ptlrpc_cli_ctx *ctx);
 
 	/**
-	 * Force the \a ctx to die.
+	 * Force the @ctx to die.
 	 */
 	void (*force_die)(struct ptlrpc_cli_ctx *ctx, int grace);
 	int (*display)(struct ptlrpc_cli_ctx *ctx, char *buf, int bufsize);
 
 	/**
-	 * Sign the request message using \a ctx.
+	 * Sign the request message using @ctx.
 	 *
 	 * \pre req->rq_reqmsg point to request message.
 	 * \pre req->rq_reqlen is the request message length.
@@ -383,7 +383,7 @@ struct ptlrpc_ctx_ops {
 	int (*sign)(struct ptlrpc_cli_ctx *ctx, struct ptlrpc_request *req);
 
 	/**
-	 * Verify the reply message using \a ctx.
+	 * Verify the reply message using @ctx.
 	 *
 	 * \pre req->rq_repdata point to reply message with signature.
 	 * \pre req->rq_repdata_len is the total reply message length.
@@ -395,7 +395,7 @@ struct ptlrpc_ctx_ops {
 	int (*verify)(struct ptlrpc_cli_ctx *ctx, struct ptlrpc_request *req);
 
 	/**
-	 * Encrypt the request message using \a ctx.
+	 * Encrypt the request message using @ctx.
 	 *
 	 * \pre req->rq_reqmsg point to request message in clear text.
 	 * \pre req->rq_reqlen is the request message length.
@@ -407,7 +407,7 @@ struct ptlrpc_ctx_ops {
 	int (*seal)(struct ptlrpc_cli_ctx *ctx, struct ptlrpc_request *req);
 
 	/**
-	 * Decrypt the reply message using \a ctx.
+	 * Decrypt the reply message using @ctx.
 	 *
 	 * \pre req->rq_repdata point to encrypted reply message.
 	 * \pre req->rq_repdata_len is the total cipher text length.
@@ -498,11 +498,11 @@ struct ptlrpc_cli_ctx {
  */
 struct ptlrpc_sec_cops {
 	/**
-	 * Given an \a imp, create and initialize a ptlrpc_sec structure.
-	 * \param ctx service context:
-	 * - regular import: \a ctx should be NULL;
-	 * - reverse import: \a ctx is obtained from incoming request.
-	 * \param flavor specify what flavor to use.
+	 * Given an @imp, create and initialize a ptlrpc_sec structure.
+	 * @ctx service context:
+	 * - regular import: @ctx should be NULL;
+	 * - reverse import: @ctx is obtained from incoming request.
+	 * @flavor specify what flavor to use.
 	 *
 	 * When necessary, policy module is responsible for taking reference
 	 * on the import.
@@ -531,9 +531,9 @@ struct ptlrpc_sec_cops {
 	void (*kill_sec)(struct ptlrpc_sec *sec);
 
 	/**
-	 * Given \a vcred, lookup and/or create its context. The policy module
+	 * Given @vcred, lookup and/or create its context. The policy module
 	 * is supposed to maintain its own context cache.
-	 * XXX currently \a create and \a remove_dead is always 1, perhaps
+	 * XXX currently @create and @remove_dead is always 1, perhaps
 	 * should be removed completely.
 	 *
 	 * \see null_lookup_ctx(), plain_lookup_ctx(), gss_sec_lookup_ctx_kr().
@@ -543,11 +543,11 @@ struct ptlrpc_sec_cops {
 					     int create, int remove_dead);
 
 	/**
-	 * Called then the reference of \a ctx dropped to 0. The policy module
+	 * Called then the reference of @ctx dropped to 0. The policy module
 	 * is supposed to destroy this context or whatever else according to
 	 * its cache maintenance mechanism.
 	 *
-	 * \param sync if zero, we shouldn't wait for the context being
+	 * @sync if zero, we shouldn't wait for the context being
 	 * destroyed completely.
 	 *
 	 * \see plain_release_ctx(), gss_sec_release_ctx_kr().
@@ -558,10 +558,10 @@ struct ptlrpc_sec_cops {
 	/**
 	 * Flush the context cache.
 	 *
-	 * \param uid context of which user, -1 means all contexts.
-	 * \param grace if zero, the PTLRPC_CTX_UPTODATE_BIT of affected
+	 * @uid context of which user, -1 means all contexts.
+	 * @grace if zero, the PTLRPC_CTX_UPTODATE_BIT of affected
 	 * contexts should be cleared immediately.
-	 * \param force if zero, only idle contexts will be flushed.
+	 * @force if zero, only idle contexts will be flushed.
 	 *
 	 * \see plain_flush_ctx_cache(), gss_sec_flush_ctx_cache_kr().
 	 */
@@ -577,7 +577,7 @@ struct ptlrpc_sec_cops {
 	void (*gc_ctx)(struct ptlrpc_sec *sec);
 
 	/**
-	 * Given an context \a ctx, install a corresponding reverse service
+	 * Given an context @ctx, install a corresponding reverse service
 	 * context on client side.
 	 * XXX currently it's only used by GSS module, maybe we should remove
 	 * this from general API.
@@ -586,13 +586,13 @@ struct ptlrpc_sec_cops {
 			    struct ptlrpc_cli_ctx *ctx);
 
 	/**
-	 * To allocate request buffer for \a req.
+	 * To allocate request buffer for @req.
 	 *
 	 * \pre req->rq_reqmsg == NULL.
 	 * \pre req->rq_reqbuf == NULL, otherwise it must be pre-allocated,
 	 * we are not supposed to free it.
 	 * \post if success, req->rq_reqmsg point to a buffer with size
-	 * at least \a lustre_msg_size.
+	 * at least @lustre_msg_size.
 	 *
 	 * \see null_alloc_reqbuf(), plain_alloc_reqbuf(), gss_alloc_reqbuf().
 	 */
@@ -600,7 +600,7 @@ struct ptlrpc_sec_cops {
 			    int lustre_msg_size);
 
 	/**
-	 * To free request buffer for \a req.
+	 * To free request buffer for @req.
 	 *
 	 * \pre req->rq_reqbuf != NULL.
 	 *
@@ -609,12 +609,12 @@ struct ptlrpc_sec_cops {
 	void (*free_reqbuf)(struct ptlrpc_sec *sec, struct ptlrpc_request *req);
 
 	/**
-	 * To allocate reply buffer for \a req.
+	 * To allocate reply buffer for @req.
 	 *
 	 * \pre req->rq_repbuf == NULL.
 	 * \post if success, req->rq_repbuf point to a buffer with size
 	 * req->rq_repbuf_len, the size should be large enough to receive
-	 * reply which be transformed from \a lustre_msg_size of clear text.
+	 * reply which be transformed from @lustre_msg_size of clear text.
 	 *
 	 * \see null_alloc_repbuf(), plain_alloc_repbuf(), gss_alloc_repbuf().
 	 */
@@ -622,7 +622,7 @@ struct ptlrpc_sec_cops {
 			    int lustre_msg_size);
 
 	/**
-	 * To free reply buffer for \a req.
+	 * To free reply buffer for @req.
 	 *
 	 * \pre req->rq_repbuf != NULL.
 	 * \post req->rq_repbuf == NULL.
@@ -633,9 +633,9 @@ struct ptlrpc_sec_cops {
 	void (*free_repbuf)(struct ptlrpc_sec *sec, struct ptlrpc_request *req);
 
 	/**
-	 * To expand the request buffer of \a req, thus the \a segment in
+	 * To expand the request buffer of @req, thus the @segment in
 	 * the request message pointed by req->rq_reqmsg can accommodate
-	 * at least \a newsize of data.
+	 * at least @newsize of data.
 	 *
 	 * \pre req->rq_reqmsg->lm_buflens[segment] < newsize.
 	 *
@@ -662,13 +662,16 @@ struct ptlrpc_sec_sops {
 	 * req->rq_reqdata_len; and the message has been unpacked to
 	 * host byte order.
 	 *
-	 * \retval SECSVC_OK success, req->rq_reqmsg point to request message
-	 * in clear text, size is req->rq_reqlen; req->rq_svc_ctx is set;
-	 * req->rq_sp_from is decoded from request.
-	 * \retval SECSVC_COMPLETE success, the request has been fully
-	 * processed, and reply message has been prepared; req->rq_sp_from is
-	 * decoded from request.
-	 * \retval SECSVC_DROP failed, this request should be dropped.
+	 * Return:	SECSVC_OK success, req->rq_reqmsg point to request
+	 *		message in clear text, size is req->rq_reqlen;
+	 *		req->rq_svc_ctx is set; req->rq_sp_from is decoded
+	 *		from request.
+	 *
+	 *		SECSVC_COMPLETE success, the request has been fully
+	 *		processed, and reply message has been prepared;
+	 *		req->rq_sp_from is decoded from request.
+	 *
+	 *		SECSVC_DROP failed, this request should be dropped.
 	 *
 	 * \see null_accept(), plain_accept(), gss_svc_accept_kr().
 	 */
@@ -687,7 +690,7 @@ struct ptlrpc_sec_sops {
 	int (*authorize)(struct ptlrpc_request *req);
 
 	/**
-	 * Invalidate server context \a ctx.
+	 * Invalidate server context @ctx.
 	 *
 	 * \see gss_svc_invalidate_ctx().
 	 */
@@ -696,7 +699,7 @@ struct ptlrpc_sec_sops {
 	/**
 	 * Allocate a ptlrpc_reply_state.
 	 *
-	 * \param msgsize size of the reply message in clear text.
+	 * @msgsize size of the reply message in clear text.
 	 * \pre if req->rq_reply_state != NULL, then it's pre-allocated, we
 	 * should simply use it; otherwise we'll responsible for allocating
 	 * a new one.
@@ -713,14 +716,14 @@ struct ptlrpc_sec_sops {
 	void (*free_rs)(struct ptlrpc_reply_state *rs);
 
 	/**
-	 * Release the server context \a ctx.
+	 * Release the server context @ctx.
 	 *
 	 * \see gss_svc_free_ctx().
 	 */
 	void (*free_ctx)(struct ptlrpc_svc_ctx *ctx);
 
 	/**
-	 * Install a reverse context based on the server context \a ctx.
+	 * Install a reverse context based on the server context @ctx.
 	 *
 	 * \see gss_svc_install_rctx_kr().
 	 */

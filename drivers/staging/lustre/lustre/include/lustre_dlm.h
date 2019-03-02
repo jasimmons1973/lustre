@@ -203,9 +203,9 @@ struct ldlm_namespace;
  * can trigger freeing of locks from the pool
  */
 struct ldlm_pool_ops {
-	/** Recalculate pool \a pl usage */
+	/** Recalculate pool @pl usage */
 	int (*po_recalc)(struct ldlm_pool *pl);
-	/** Cancel at least \a nr locks from pool \a pl */
+	/** Cancel at least @nr locks from pool @pl */
 	int (*po_shrink)(struct ldlm_pool *pl, int nr,
 			 gfp_t gfp_mask);
 };
@@ -429,7 +429,7 @@ struct ldlm_namespace {
 
 	/**
 	 * Used by filter code to store pointer to OBD of the service.
-	 * Should be dropped in favor of \a ns_obd
+	 * Should be dropped in favor of @ns_obd
 	 */
 	void			*ns_lvbp;
 
@@ -466,7 +466,7 @@ struct ldlm_namespace {
 };
 
 /**
- * Returns 1 if namespace \a ns supports early lock cancel (ELC).
+ * Returns 1 if namespace @ns supports early lock cancel (ELC).
  */
 static inline int ns_connect_cancelset(struct ldlm_namespace *ns)
 {
@@ -1082,7 +1082,7 @@ ldlm_handle2lock_long(const struct lustre_handle *h, u64 flags)
 
 /**
  * Update Lock Value Block Operations (LVBO) on a resource taking into account
- * data from request \a r
+ * data from request @r
  */
 static inline int ldlm_res_lvbo_update(struct ldlm_resource *res,
 				       struct ptlrpc_request *r, int increase)

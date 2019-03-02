@@ -77,20 +77,20 @@ struct ptlrpc_nrs_pol_ops {
 	/**
 	 * Called during policy registration; this operation is optional.
 	 *
-	 * \param[in,out] policy The policy being initialized
+	 * @policy:	The policy being initialized
 	 */
 	int	(*op_policy_init)(struct ptlrpc_nrs_policy *policy);
 	/**
 	 * Called during policy unregistration; this operation is optional.
 	 *
-	 * \param[in,out] policy The policy being unregistered/finalized
+	 * @policy:	The policy being unregistered/finalized
 	 */
 	void	(*op_policy_fini)(struct ptlrpc_nrs_policy *policy);
 	/**
 	 * Called when activating a policy via lprocfs; policies allocate and
 	 * initialize their resources here; this operation is optional.
 	 *
-	 * \param[in,out] policy The policy being started
+	 * @policy:	The policy being started
 	 *
 	 * \see nrs_policy_start_locked()
 	 */
@@ -99,7 +99,7 @@ struct ptlrpc_nrs_pol_ops {
 	 * Called when deactivating a policy via lprocfs; policies deallocate
 	 * their resources here; this operation is optional
 	 *
-	 * \param[in,out] policy The policy being stopped
+	 * @policy:	The policy being stopped
 	 *
 	 * \see __nrs_policy_stop()
 	 */
@@ -109,13 +109,13 @@ struct ptlrpc_nrs_pol_ops {
 	 * \e PTLRPC_NRS_CTL_START and \e PTLRPC_NRS_CTL_GET_INFO; analogous
 	 * to an ioctl; this operation is optional.
 	 *
-	 * \param[in,out]	 policy The policy carrying out operation \a opc
-	 * \param[in]	  opc	 The command operation being carried out
-	 * \param[in,out] arg	 An generic buffer for communication between the
-	 *			 user and the control operation
+	 * @policy:	The policy carrying out operation opc
+	 * @opc:	The command operation being carried out
+	 * @arg:	An generic buffer for communication between the
+	 *		user and the control operation
 	 *
-	 * \retval -ve error
-	 * \retval   0 success
+	 * Return:	-ve error
+	 *		0 success
 	 *
 	 * \see ptlrpc_nrs_policy_control()
 	 */
@@ -128,31 +128,31 @@ struct ptlrpc_nrs_pol_ops {
 	 * service. Policies should return -ve for requests they do not wish
 	 * to handle. This operation is mandatory.
 	 *
-	 * \param[in,out] policy  The policy we're getting resources for.
-	 * \param[in,out] nrq	  The request we are getting resources for.
-	 * \param[in]	  parent  The parent resource of the resource being
-	 *			  requested; set to NULL if none.
-	 * \param[out]	  resp	  The resource is to be returned here; the
-	 *			  fallback policy in an NRS head should
-	 *			  \e always return a non-NULL pointer value.
-	 * \param[in]  moving_req When set, signifies that this is an attempt
-	 *			  to obtain resources for a request being moved
-	 *			  to the high-priority NRS head by
-	 *			  ldlm_lock_reorder_req().
-	 *			  This implies two things:
-	 *			  1. We are under obd_export::exp_rpc_lock and
-	 *			  so should not sleep.
-	 *			  2. We should not perform non-idempotent or can
-	 *			  skip performing idempotent operations that
-	 *			  were carried out when resources were first
-	 *			  taken for the request when it was initialized
-	 *			  in ptlrpc_nrs_req_initialize().
+	 * @policy:	The policy we're getting resources for.
+	 * @nrq:	The request we are getting resources for.
+	 * @parent:	The parent resource of the resource being
+	 *		requested; set to NULL if none.
+	 * @resp:	The resource is to be returned here; the
+	 *		fallback policy in an NRS head should
+	 *		\e always return a non-NULL pointer value.
+	 * @moving_req:	When set, signifies that this is an attempt
+	 *		to obtain resources for a request being moved
+	 *		to the high-priority NRS head by
+	 *		ldlm_lock_reorder_req().
+	 *		This implies two things:
+	 *		1. We are under obd_export::exp_rpc_lock and
+	 *		   so should not sleep.
+	 *		2. We should not perform non-idempotent or can
+	 *		   skip performing idempotent operations that
+	 *		   were carried out when resources were first
+	 *		   taken for the request when it was initialized
+	 *		   in ptlrpc_nrs_req_initialize().
 	 *
-	 * \retval 0, +ve The level of the returned resource in the resource
-	 *		  hierarchy; currently only 0 (for a non-leaf resource)
-	 *		  and 1 (for a leaf resource) are supported by the
-	 *		  framework.
-	 * \retval -ve	  error
+	 * Return:	0, +ve The level of the returned resource in the resource
+	 *		hierarchy; currently only 0 (for a non-leaf resource)
+	 *		and 1 (for a leaf resource) are supported by the
+	 *		framework.
+	 *		-ve error
 	 *
 	 * \see ptlrpc_nrs_req_initialize()
 	 * \see ptlrpc_nrs_hpreq_add_nolock()
@@ -167,8 +167,8 @@ struct ptlrpc_nrs_pol_ops {
 	 * Called when releasing references taken for resources in the resource
 	 * hierarchy for the request; this operation is optional.
 	 *
-	 * \param[in,out] policy The policy the resource belongs to
-	 * \param[in] res	 The resource to be freed
+	 * @policy:	The policy the resource belongs to
+	 * @res:	The resource to be freed
 	 *
 	 * \see ptlrpc_nrs_req_finalize()
 	 * \see ptlrpc_nrs_hpreq_add_nolock()
@@ -181,15 +181,15 @@ struct ptlrpc_nrs_pol_ops {
 	 * Obtains a request for handling from the policy, and optionally
 	 * removes the request from the policy; this operation is mandatory.
 	 *
-	 * \param[in,out] policy The policy to poll
-	 * \param[in]	  peek	 When set, signifies that we just want to
-	 *			 examine the request, and not handle it, so the
-	 *			 request is not removed from the policy.
-	 * \param[in]	  force  When set, it will force a policy to return a
-	 *			 request if it has one queued.
+	 * @policy:	The policy to poll
+	 * @peek:	When set, signifies that we just want to
+	 *		examine the request, and not handle it, so the
+	 *		request is not removed from the policy.
+	 * @force:	When set, it will force a policy to return a
+	 *		request if it has one queued.
 	 *
-	 * \retval NULL No request available for handling
-	 * \retval valid-pointer The request polled for handling
+	 * Return:	NULL No request available for handling
+	 *		valid-pointer The request polled for handling
 	 *
 	 * \see ptlrpc_nrs_req_get_nolock()
 	 */
@@ -200,11 +200,11 @@ struct ptlrpc_nrs_pol_ops {
 	 * Called when attempting to add a request to a policy for later
 	 * handling; this operation is mandatory.
 	 *
-	 * \param[in,out] policy  The policy on which to enqueue \a nrq
-	 * \param[in,out] nrq The request to enqueue
+	 * @policy:	The policy on which to enqueue @nrq
+	 * @nrq:	The request to enqueue
 	 *
-	 * \retval 0	success
-	 * \retval != 0 error
+	 * Return:	0 on success
+	 *		!= 0 error
 	 *
 	 * \see ptlrpc_nrs_req_add_nolock()
 	 */
@@ -215,8 +215,8 @@ struct ptlrpc_nrs_pol_ops {
 	 * called after a request has been polled successfully from the policy
 	 * for handling; this operation is mandatory.
 	 *
-	 * \param[in,out] policy The policy the request \a nrq belongs to
-	 * \param[in,out] nrq	 The request to dequeue
+	 * @policy:	The policy the request @nrq belongs to
+	 * @nrq:	The request to dequeue
 	 *
 	 * \see ptlrpc_nrs_req_del_nolock()
 	 */
@@ -226,9 +226,9 @@ struct ptlrpc_nrs_pol_ops {
 	 * Called after the request being carried out. Could be used for
 	 * job/resource control; this operation is optional.
 	 *
-	 * \param[in,out] policy The policy which is stopping to handle request
-	 *			 \a nrq
-	 * \param[in,out] nrq	 The request
+	 * @policy:	The policy which is stopping to handle request @nrq
+	 *
+	 * @nrq:	The request
 	 *
 	 * \pre assert_spin_locked(&svcpt->scp_req_lock)
 	 *
@@ -239,10 +239,10 @@ struct ptlrpc_nrs_pol_ops {
 	/**
 	 * Registers the policy's lprocfs interface with a PTLRPC service.
 	 *
-	 * \param[in] svc The service
+	 * @svc:	The service
 	 *
-	 * \retval 0	success
-	 * \retval != 0 error
+	 * Return:	0 success
+	 *		!= 0 error
 	 */
 	int	(*op_lprocfs_init)(struct ptlrpc_service *svc);
 	/**
@@ -254,7 +254,7 @@ struct ptlrpc_nrs_pol_ops {
 	 * implementations of this method should make sure their operations are
 	 * safe in such cases.
 	 *
-	 * \param[in] svc The service
+	 * @svc:	The service
 	 */
 	void	(*op_lprocfs_fini)(struct ptlrpc_service *svc);
 };
@@ -410,7 +410,7 @@ struct ptlrpc_nrs_pol_conf {
 	nrs_pol_desc_compat_t		   nc_compat;
 	/**
 	 * Set for policies that support a single ptlrpc service, i.e. ones that
-	 * have \a pd_compat set to nrs_policy_compat_one(). The variable value
+	 * have @pd_compat set to nrs_policy_compat_one(). The variable value
 	 * depicts the name of the single service that such policies are
 	 * compatible with.
 	 */

@@ -98,7 +98,7 @@ enum lustre_imp_state {
 	LUSTRE_IMP_EVICTED	= 10,
 };
 
-/** Returns test string representation of numeric import state \a state */
+/** Returns test string representation of numeric import state @state */
 static inline char *ptlrpc_import_state_name(enum lustre_imp_state state)
 {
 	static char *import_state_names[] = {
@@ -257,7 +257,7 @@ struct obd_import {
 	/** List of all possible connection for import. */
 	struct list_head		imp_conn_list;
 	/**
-	 * Current connection. \a imp_connection is imp_conn_current->oic_conn
+	 * Current connection. @imp_connection is imp_conn_current->oic_conn
 	 */
 	struct obd_import_conn	       *imp_conn_current;
 

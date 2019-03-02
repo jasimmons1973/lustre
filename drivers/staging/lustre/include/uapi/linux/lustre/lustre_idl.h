@@ -2746,7 +2746,7 @@ struct lustre_capa_key {
 	__u8	lk_key[CAPA_HMAC_KEY_MAX_LEN];	/**< key */
 } __packed;
 
-/** The link ea holds 1 \a link_ea_entry for each hardlink */
+/** The link ea holds 1 @link_ea_entry for each hardlink */
 #define LINK_EA_MAGIC 0x11EAF1DFUL
 struct link_ea_header {
 	__u32 leh_magic;

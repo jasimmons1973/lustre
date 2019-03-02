@@ -190,8 +190,8 @@ static inline void mdc_put_mod_rpc_slot(struct ptlrpc_request *req,
  *
  * \see client_obd::cl_default_mds_easize
  *
- * \param[in] exp	export for MDC device
- * \param[in] body	body of ptlrpc reply from MDT
+ * @exp:	export for MDC device
+ * @body:	body of ptlrpc reply from MDT
  *
  */
 static inline void mdc_update_max_ea_from_body(struct obd_export *exp,

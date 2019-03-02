@@ -137,8 +137,9 @@ static inline bool fid_is_mdt0(const struct lu_fid *fid)
 
 /**
  * Check if a fid is igif or not.
- * \param fid the fid to be tested.
- * \return true if the fid is an igif; otherwise false.
+ *
+ * @fid		the fid to be tested.
+ * Return:	true if the fid is an igif; otherwise false.
  */
 static inline bool fid_seq_is_igif(__u64 seq)
 {
@@ -152,8 +153,9 @@ static inline bool fid_is_igif(const struct lu_fid *fid)
 
 /**
  * Check if a fid is idif or not.
- * \param fid the fid to be tested.
- * \return true if the fid is an idif; otherwise false.
+ *
+ * @fid		the fid to be tested.
+ * Return:	true if the fid is an idif; otherwise false.
  */
 static inline bool fid_seq_is_idif(__u64 seq)
 {
@@ -205,8 +207,9 @@ static inline __u32 fid_idif_ost_idx(const struct lu_fid *fid)
 
 /**
  * Get inode number from an igif.
- * \param fid an igif to get inode number from.
- * \return inode number for the igif.
+ *
+ * @fid		an igif to get inode number from.
+ * Return:	inode number for the igif.
  */
 static inline ino_t lu_igif_ino(const struct lu_fid *fid)
 {
@@ -215,8 +218,9 @@ static inline ino_t lu_igif_ino(const struct lu_fid *fid)
 
 /**
  * Get inode generation from an igif.
- * \param fid an igif to get inode generation from.
- * \return inode generation for the igif.
+ *
+ * @fid		an igif to get inode generation from.
+ * Return:	inode generation for the igif.
  */
 static inline __u32 lu_igif_gen(const struct lu_fid *fid)
 {

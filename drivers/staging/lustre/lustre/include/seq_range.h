@@ -38,7 +38,7 @@
 #include <uapi/linux/lustre/lustre_idl.h>
 
 /**
- * computes the sequence range type \a range
+ * computes the sequence range type @range
  */
 
 static inline unsigned int fld_range_type(const struct lu_seq_range *range)
@@ -47,7 +47,7 @@ static inline unsigned int fld_range_type(const struct lu_seq_range *range)
 }
 
 /**
- *  Is this sequence range an OST? \a range
+ *  Is this sequence range an OST? @range
  */
 
 static inline bool fld_range_is_ost(const struct lu_seq_range *range)
@@ -56,7 +56,7 @@ static inline bool fld_range_is_ost(const struct lu_seq_range *range)
 }
 
 /**
- *  Is this sequence range an MDT? \a range
+ *  Is this sequence range an MDT? @range
  */
 
 static inline bool fld_range_is_mdt(const struct lu_seq_range *range)
@@ -68,7 +68,7 @@ static inline bool fld_range_is_mdt(const struct lu_seq_range *range)
  * ANY range is only used when the fld client sends a fld query request,
  * but it does not know whether the seq is an MDT or OST, so it will send the
  * request with ANY type, which means any seq type from the lookup can be
- * expected. /a range
+ * expected. @range
  */
 static inline unsigned int fld_range_is_any(const struct lu_seq_range *range)
 {
@@ -76,7 +76,7 @@ static inline unsigned int fld_range_is_any(const struct lu_seq_range *range)
 }
 
 /**
- * Apply flags to range \a range \a flags
+ * Apply flags @flasg to range @range
  */
 
 static inline void fld_range_set_type(struct lu_seq_range *range,
@@ -86,7 +86,7 @@ static inline void fld_range_set_type(struct lu_seq_range *range,
 }
 
 /**
- * Add MDT to range type \a range
+ * Add MDT to range type @range
  */
 
 static inline void fld_range_set_mdt(struct lu_seq_range *range)
@@ -95,7 +95,7 @@ static inline void fld_range_set_mdt(struct lu_seq_range *range)
 }
 
 /**
- * Add OST to range type \a range
+ * Add OST to range type @range
  */
 
 static inline void fld_range_set_ost(struct lu_seq_range *range)
@@ -104,7 +104,7 @@ static inline void fld_range_set_ost(struct lu_seq_range *range)
 }
 
 /**
- * Add ANY to range type \a range
+ * Add ANY to range type @range
  */
 
 static inline void fld_range_set_any(struct lu_seq_range *range)
@@ -113,7 +113,7 @@ static inline void fld_range_set_any(struct lu_seq_range *range)
 }
 
 /**
- * computes width of given sequence range \a range
+ * computes width of given sequence range @range
  */
 
 static inline u64 lu_seq_range_space(const struct lu_seq_range *range)
@@ -122,7 +122,7 @@ static inline u64 lu_seq_range_space(const struct lu_seq_range *range)
 }
 
 /**
- * initialize range to zero \a range
+ * initialize range to zero @range
  */
 
 static inline void lu_seq_range_init(struct lu_seq_range *range)
@@ -131,7 +131,7 @@ static inline void lu_seq_range_init(struct lu_seq_range *range)
 }
 
 /**
- * check if given seq id \a s is within given range \a range
+ * check if given seq id @s is within given range @range
  */
 
 static inline bool lu_seq_range_within(const struct lu_seq_range *range,
@@ -141,7 +141,7 @@ static inline bool lu_seq_range_within(const struct lu_seq_range *range,
 }
 
 /**
- * Is the range sane?  Is the end after the beginning? \a range
+ * Is the range sane?  Is the end after the beginning? @range
  */
 
 static inline bool lu_seq_range_is_sane(const struct lu_seq_range *range)
@@ -150,7 +150,7 @@ static inline bool lu_seq_range_is_sane(const struct lu_seq_range *range)
 }
 
 /**
- * Is the range 0? \a range
+ * Is the range 0? @range
  */
 
 static inline bool lu_seq_range_is_zero(const struct lu_seq_range *range)
@@ -159,7 +159,7 @@ static inline bool lu_seq_range_is_zero(const struct lu_seq_range *range)
 }
 
 /**
- * Is the range out of space? \a range
+ * Is the range out of space? @range
  */
 
 static inline bool lu_seq_range_is_exhausted(const struct lu_seq_range *range)
@@ -169,7 +169,7 @@ static inline bool lu_seq_range_is_exhausted(const struct lu_seq_range *range)
 
 /**
  * return 0 if two ranges have the same location, nonzero if they are
- * different \a r1 \a r2
+ * different @r1 @r2
  */
 
 static inline int lu_seq_range_compare_loc(const struct lu_seq_range *r1,
@@ -181,7 +181,7 @@ static inline int lu_seq_range_compare_loc(const struct lu_seq_range *r1,
 
 #if !defined(__REQ_LAYOUT_USER__)
 /**
- * byte swap range structure \a range
+ * byte swap range structure @range
  */
 
 void lustre_swab_lu_seq_range(struct lu_seq_range *range);
