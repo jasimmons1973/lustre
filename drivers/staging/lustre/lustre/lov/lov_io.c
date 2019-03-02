@@ -722,7 +722,7 @@ static int lov_io_read_ahead(const struct lu_env *env,
 
 /**
  * lov implementation of cl_operations::cio_submit() method. It takes a list
- * of pages in \a queue, splits it into per-stripe sub-lists, invokes
+ * of pages in @queue, splits it into per-stripe sub-lists, invokes
  * cl_io_submit() on underlying devices to submit sub-lists, and then splices
  * everything back.
  *

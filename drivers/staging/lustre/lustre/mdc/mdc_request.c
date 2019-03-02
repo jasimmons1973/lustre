@@ -81,16 +81,16 @@ static inline int mdc_queue_wait(struct ptlrpc_request *req)
 /*
  * Send MDS_GET_ROOT RPC to fetch root FID.
  *
- * If \a fileset is not NULL it should contain a subdirectory off
+ * If @fileset is not NULL it should contain a subdirectory off
  * the ROOT/ directory to be mounted on the client. Return the FID
  * of the subdirectory to the client to mount onto its mountpoint.
  *
- * \param[in]  imp	MDC import
- * \param[in]  fileset	fileset name, which could be NULL
- * \param[out] rootfid	root FID of this mountpoint
- * \param[out] pc	root capa will be unpacked and saved in this pointer
+ * @imp:	MDC import
+ * @fileset:	fileset name, which could be NULL
+ * @rootfid:	root FID of this mountpoint
+ * @pc:		root capa will be unpacked and saved in this pointer
  *
- * \retval     0 on success, negative errno on failure
+ * Returns:	0 on success, negative errno on failure
  */
 static int mdc_get_root(struct obd_export *exp, const char *fileset,
 			struct lu_fid *rootfid)
@@ -1273,15 +1273,15 @@ static int mdc_read_page_remote(void *data, struct page *page0)
  * Read dir page from cache first, if it can not find it, read it from
  * server and add into the cache.
  *
- * \param[in] exp	MDC export
- * \param[in] op_data	client MD stack parameters, transferring parameters
+ * @exp:		MDC export
+ * @op_data:		client MD stack parameters, transferring parameters
  *			between different layers on client MD stack.
- * \param[in] cb_op	callback required for ldlm lock enqueue during
+ * @cb_op:		callback required for ldlm lock enqueue during
  *			read page
- * \param[in] hash_offset the hash offset of the page to be read
- * \param[in] ppage	the page to be read
+ * @hash_offset:	the hash offset of the page to be read
+ * @ppage		the page to be read
  *
- * retval		= 0 get the page successfully
+ * Return:		= 0 get the page successfully
  *			errno(<0) get the page failed
  */
 static int mdc_read_page(struct obd_export *exp, struct md_op_data *op_data,
@@ -2151,8 +2151,9 @@ static int mdc_ioc_hsm_ct_start(struct obd_export *exp,
 
 /**
  * Send a message to any listening copytools
- * @param val KUC message (kuc_hdr + hsm_action_list)
- * @param len total length of message
+ *
+ * @val:	KUC message (kuc_hdr + hsm_action_list)
+ * @len:	total length of message
  */
 static int mdc_hsm_copytool_send(size_t len, void *val)
 {
@@ -2184,8 +2185,9 @@ static int mdc_hsm_copytool_send(size_t len, void *val)
 /**
  * callback function passed to kuc for re-registering each HSM copytool
  * running on MDC, after MDT shutdown/recovery.
- * @param data copytool registration data
- * @param cb_arg callback argument (obd_import)
+ *
+ * @data:	copytool registration data
+ * @cb_arg:	callback argument (obd_import)
  */
 static int mdc_hsm_ct_reregister(void *data, void *cb_arg)
 {

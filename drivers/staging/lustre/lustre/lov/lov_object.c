@@ -1085,14 +1085,14 @@ int lov_lock_init(const struct lu_env *env, struct cl_object *obj,
  * This function returns the last_stripe and also sets the stripe_count
  * over which the mapping is spread
  *
- * \param lsm [in]		striping information for the file
+ * @lsm				striping information for the file
  * @index			stripe component index
  * @ext				logical extent of mapping
- * \param start_stripe [in]	starting stripe of the mapping
- * \param stripe_count [out]	the number of stripes across which to map is
+ * @start_stripe		starting stripe of the mapping
+ * @stripe_count		the number of stripes across which to map is
  *				returned
  *
- * \retval last_stripe		return the last stripe of the mapping
+ * Return:			return the last stripe of the mapping
  */
 static int fiemap_calc_last_stripe(struct lov_stripe_md *lsm, int index,
 				   struct lu_extent *ext,
@@ -1126,12 +1126,12 @@ static int fiemap_calc_last_stripe(struct lov_stripe_md *lsm, int index,
 /**
  * Set fe_device and copy extents from local buffer into main return buffer.
  *
- * \param fiemap [out]		fiemap to hold all extents
- * \param lcl_fm_ext [in]	array of fiemap extents get from OSC layer
- * \param ost_index [in]	OST index to be written into the fm_device
- *				field for each extent
- * \param ext_count [in]	number of extents to be copied
- * \param current_extent [in]	where to start copying in the extent array
+ * @fiemap		fiemap to hold all extents
+ * @lcl_fm_ext		array of fiemap extents get from OSC layer
+ * @ost_index		OST index to be written into the fm_device
+ *			field for each extent
+ * @ext_count		number of extents to be copied
+ * @current_extent	where to start copying in the extent array
  */
 static void fiemap_prepare_and_copy_exts(struct fiemap *fiemap,
 					 struct fiemap_extent *lcl_fm_ext,
@@ -1164,11 +1164,11 @@ static void fiemap_prepare_and_copy_exts(struct fiemap *fiemap,
  * will re-calculate proper offset in next stripe.
  * Note that the first extent is passed to lov_get_info via the value field.
  *
- * \param fiemap [in]		fiemap request header
- * \param lsm [in]		striping information for the file
- * @index			stripe component index
- * @ext				logical extent of mapping
- * \param start_stripe [out]	starting stripe will be returned in this
+ * @fiemap		fiemap request header
+ * @lsm			striping information for the file
+ * @index		stripe component index
+ * @ext			logical extent of mapping
+ * @start_stripe	starting stripe will be returned in this
  */
 static u64 fiemap_calc_fm_end_offset(struct fiemap *fiemap,
 				     struct lov_stripe_md *lsm,
@@ -1411,14 +1411,15 @@ obj_put:
  * This also handles the restarting of FIEMAP calls in case mapping overflows
  * the available number of extents in single call.
  *
- * \param env [in]		lustre environment
- * \param obj [in]		file object
- * \param fmkey [in]		fiemap request header and other info
- * \param fiemap [out]		fiemap buffer holding retrived map extents
- * \param buflen [in/out]	max buffer length of @fiemap, when iterate
- *				each OST, it is used to limit max map needed
- * \retval 0	success
- * \retval < 0	error
+ * @env		lustre environment
+ * @obj		file object
+ * @fmkey	fiemap request header and other info
+ * @fiemap	fiemap buffer holding retrived map extents
+ * @buflen	max buffer length of @fiemap, when iterate
+ *		each OST, it is used to limit max map needed
+ *
+ * Return:	0 success
+ *		< 0 error
  */
 static int lov_object_fiemap(const struct lu_env *env, struct cl_object *obj,
 			     struct ll_fiemap_info_key *fmkey,

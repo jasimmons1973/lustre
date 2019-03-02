@@ -82,14 +82,14 @@ void mdc_pack_body(struct ptlrpc_request *req, const struct lu_fid *fid,
 /**
  * Pack a name (path component) into a request
  *
- * \param[in] req	request
- * \param[in] field	request field (usually RMF_NAME)
- * \param[in] name	path component
- * \param[in] name_len	length of path component
+ * @req:	request
+ * @field:	request field (usually RMF_NAME)
+ * @name:	path component
+ * @name_len:	length of path component
  *
- * \a field must be present in \a req and of size \a name_len + 1.
+ * @field must be present in @req and of size @name_len + 1.
  *
- * \a name must be '\0' terminated of length \a name_len and represent
+ * @name must be '\0' terminated of length @name_len and represent
  * a single path component (not contain '/').
  */
 static void mdc_pack_name(struct ptlrpc_request *req,

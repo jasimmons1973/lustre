@@ -468,7 +468,7 @@ struct fld_cache_entry
 }
 
 /**
- * lookup \a seq sequence for range in fld cache.
+ * lookup @seq sequence for range in fld cache.
  */
 struct fld_cache_entry
 *fld_cache_entry_lookup(struct fld_cache *cache, struct lu_seq_range *range)
@@ -482,7 +482,7 @@ struct fld_cache_entry
 }
 
 /**
- * lookup \a seq sequence for range in fld cache.
+ * lookup @seq sequence for range in fld cache.
  */
 int fld_cache_lookup(struct fld_cache *cache,
 		     const u64 seq, struct lu_seq_range *range)

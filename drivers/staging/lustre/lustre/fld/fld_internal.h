@@ -94,7 +94,7 @@ struct fld_cache {
 	/** Preferred number of cached entries */
 	int			fci_cache_size;
 
-	/** Current number of cached entries. Protected by \a fci_lock */
+	/** Current number of cached entries. Protected by @fci_lock */
 	int			fci_cache_count;
 
 	/** LRU list fld entries. */

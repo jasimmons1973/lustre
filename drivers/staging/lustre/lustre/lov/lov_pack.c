@@ -103,8 +103,8 @@ void lov_dump_lmm_v3(int level, struct lov_mds_md_v3 *lmm)
  * Pack LOV striping metadata for disk storage format (in little
  * endian byte order).
  *
- * This follows the getxattr() conventions. If \a buf_size is zero
- * then return the size needed. If \a buf_size is too small then
+ * This follows the getxattr() conventions. If @buf_size is zero
+ * then return the size needed. If @buf_size is too small then
  * return -ERANGE. Otherwise return the size of the result.
  */
 ssize_t lov_lsm_pack_v1v3(const struct lov_stripe_md *lsm, void *buf,

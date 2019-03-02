@@ -2105,12 +2105,12 @@ osc_send_write_rpc(const struct lu_env *env, struct client_obd *cli,
 /**
  * prepare pages for ASYNC io and put pages in send queue.
  *
- * \param cmd OBD_BRW_* macroses
- * \param lop pending pages
+ * @cmd		OBD_BRW_* macroses
+ * @lop		pending pages
  *
- * \return zero if no page added to send queue.
- * \return 1 if pages successfully added to send queue.
- * \return negative on errors.
+ * Return:	zero if no page added to send queue.
+ *		1 if pages successfully added to send queue.
+ *		negative on errors.
  */
 static int
 osc_send_read_rpc(const struct lu_env *env, struct client_obd *cli,
@@ -3021,7 +3021,7 @@ int osc_cache_writeback_range(const struct lu_env *env, struct osc_object *obj,
 }
 
 /**
- * Returns a list of pages by a given [start, end] of \a obj.
+ * Returns a list of pages by a given [start, end] of @obj.
  *
  * Gang tree lookup (radix_tree_gang_lookup()) optimization is absolutely
  * crucial in the face of [offset, EOF] locks.

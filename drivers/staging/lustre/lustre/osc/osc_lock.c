@@ -485,14 +485,14 @@ static int __osc_dlm_blocking_ast(const struct lu_env *env,
  * Control flow is tricky, because ldlm uses the same call-back
  * (ldlm_lock::l_blocking_ast()) for both blocking and cancellation ast's.
  *
- * \param dlmlock lock for which ast occurred.
+ * @dlmlock	lock for which ast occurred.
  *
- * \param new description of a conflicting lock in case of blocking ast.
+ * @new		description of a conflicting lock in case of blocking ast.
  *
- * \param data value of dlmlock->l_ast_data
+ * @data	value of dlmlock->l_ast_data
  *
- * \param flag LDLM_CB_BLOCKING or LDLM_CB_CANCELING. Used to distinguish
- *	     cancellation and blocking ast's.
+ * @flag	LDLM_CB_BLOCKING or LDLM_CB_CANCELING. Used to distinguish
+ *		cancellation and blocking ast's.
  *
  * Possible use cases:
  *

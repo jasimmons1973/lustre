@@ -2807,8 +2807,8 @@ static int osc_import_event(struct obd_device *obd,
  * Determine whether the lock can be canceled before replaying the lock
  * during recovery, see bug16774 for detailed information.
  *
- * \retval zero the lock can't be canceled
- * \retval other ok to cancel
+ * Return:	zero the lock can't be canceled
+ *		other ok to cancel
  */
 static int osc_cancel_weight(struct ldlm_lock *lock)
 {

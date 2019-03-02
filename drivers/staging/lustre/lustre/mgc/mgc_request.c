@@ -1589,11 +1589,11 @@ static bool mgc_import_in_recovery(struct obd_import *imp)
  * trying to update from the same log simultaneously, in which case we
  * should use a per-log semaphore instead of cld_lock.
  *
- * \param[in] mgc	MGC device by which to fetch the configuration log
- * \param[in] cld	log processing state (stored in lock callback data)
+ * @mgc:	MGC device by which to fetch the configuration log
+ * @cld:	log processing state (stored in lock callback data)
  *
- * \retval		0 on success
- * \retval		negative errno on failure
+ * Returns:	0 on success
+ *		negative errno on failure
  */
 int mgc_process_log(struct obd_device *mgc, struct config_llog_data *cld)
 {
