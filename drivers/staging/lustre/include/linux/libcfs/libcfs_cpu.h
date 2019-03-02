@@ -85,7 +85,7 @@ struct cfs_cpt_table;
 extern struct cfs_cpt_table	*cfs_cpt_tab;
 
 /**
- * return cpumask of CPU partition \a cpt
+ * return cpumask of CPU partition @cpt
  */
 cpumask_var_t *cfs_cpt_cpumask(struct cfs_cpt_table *cptab, int cpt);
 /**
@@ -97,83 +97,83 @@ int cfs_cpt_table_print(struct cfs_cpt_table *cptab, char *buf, int len);
  */
 int cfs_cpt_distance_print(struct cfs_cpt_table *cptab, char *buf, int len);
 /**
- * return total number of CPU partitions in \a cptab
+ * return total number of CPU partitions in @cptab
  */
 int cfs_cpt_number(struct cfs_cpt_table *cptab);
 /**
- * return number of HW cores or hyper-threadings in a CPU partition \a cpt
+ * return number of HW cores or hyper-threadings in a CPU partition @cpt
  */
 int cfs_cpt_weight(struct cfs_cpt_table *cptab, int cpt);
 /**
- * is there any online CPU in CPU partition \a cpt
+ * is there any online CPU in CPU partition @cpt
  */
 int cfs_cpt_online(struct cfs_cpt_table *cptab, int cpt);
 /**
- * return nodemask of CPU partition \a cpt
+ * return nodemask of CPU partition @cpt
  */
 nodemask_t *cfs_cpt_nodemask(struct cfs_cpt_table *cptab, int cpt);
 /**
- * shadow current HW processor ID to CPU-partition ID of \a cptab
+ * shadow current HW processor ID to CPU-partition ID of @cptab
  */
 int cfs_cpt_current(struct cfs_cpt_table *cptab, int remap);
 /**
- * shadow HW processor ID \a CPU to CPU-partition ID by \a cptab
+ * shadow HW processor ID @CPU to CPU-partition ID by @cptab
  */
 int cfs_cpt_of_cpu(struct cfs_cpt_table *cptab, int cpu);
 /**
- * shadow HW node ID \a NODE to CPU-partition ID by \a cptab
+ * shadow HW node ID @NODE to CPU-partition ID by @cptab
  */
 int cfs_cpt_of_node(struct cfs_cpt_table *cptab, int node);
 /**
- * NUMA distance between \a cpt1 and \a cpt2 in \a cptab
+ * NUMA distance between @cpt1 and @cpt2 in @cptab
  */
 unsigned int cfs_cpt_distance(struct cfs_cpt_table *cptab, int cpt1, int cpt2);
 /**
- * bind current thread on a CPU-partition \a cpt of \a cptab
+ * bind current thread on a CPU-partition @cpt of @cptab
  */
 int cfs_cpt_bind(struct cfs_cpt_table *cptab, int cpt);
 /**
- * add \a cpu to CPU partition @cpt of \a cptab, return 1 for success,
+ * add @cpu to CPU partition @cpt of @cptab, return 1 for success,
  * otherwise 0 is returned
  */
 int cfs_cpt_set_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu);
 /**
- * remove \a cpu from CPU partition \a cpt of \a cptab
+ * remove @cpu from CPU partition @cpt of @cptab
  */
 void cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt, int cpu);
 /**
- * add all cpus in \a mask to CPU partition \a cpt
+ * add all cpus in @mask to CPU partition @cpt
  * return 1 if successfully set all CPUs, otherwise return 0
  */
 int cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab,
 			int cpt, const cpumask_t *mask);
 /**
- * remove all cpus in \a mask from CPU partition \a cpt
+ * remove all cpus in @mask from CPU partition @cpt
  */
 void cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab,
 			   int cpt, const cpumask_t *mask);
 /**
- * add all cpus in NUMA node \a node to CPU partition \a cpt
+ * add all cpus in NUMA node @node to CPU partition @cpt
  * return 1 if successfully set all CPUs, otherwise return 0
  */
 int cfs_cpt_set_node(struct cfs_cpt_table *cptab, int cpt, int node);
 /**
- * remove all cpus in NUMA node \a node from CPU partition \a cpt
+ * remove all cpus in NUMA node @node from CPU partition @cpt
  */
 void cfs_cpt_unset_node(struct cfs_cpt_table *cptab, int cpt, int node);
 /**
- * add all cpus in node mask \a mask to CPU partition \a cpt
+ * add all cpus in node mask @mask to CPU partition @cpt
  * return 1 if successfully set all CPUs, otherwise return 0
  */
 int cfs_cpt_set_nodemask(struct cfs_cpt_table *cptab,
 			 int cpt, const nodemask_t *mask);
 /**
- * remove all cpus in node mask \a mask from CPU partition \a cpt
+ * remove all cpus in node mask @mask from CPU partition @cpt
  */
 void cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab,
 			    int cpt, const nodemask_t *mask);
 /**
- * convert partition id \a cpt to numa node id, if there are more than one
+ * convert partition id @cpt to numa node id, if there are more than one
  * nodes in this partition, it might return a different node id each time.
  */
 int cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt);
@@ -329,7 +329,7 @@ static inline void cfs_cpu_fini(void)
  */
 void cfs_cpt_table_free(struct cfs_cpt_table *cptab);
 /**
- * create a cfs_cpt_table with \a ncpt number of partitions
+ * create a cfs_cpt_table with @ncpt number of partitions
  */
 struct cfs_cpt_table *cfs_cpt_table_alloc(unsigned int ncpt);
 
@@ -383,18 +383,18 @@ struct cfs_percpt_lock {
 #define cfs_percpt_lock_num(pcl)	cfs_cpt_number(pcl->pcl_cptab)
 
 /*
- * create a cpu-partition lock based on CPU partition table \a cptab,
- * each private lock has extra \a psize bytes padding data
+ * create a cpu-partition lock based on CPU partition table @cptab,
+ * each private lock has extra @psize bytes padding data
  */
 struct cfs_percpt_lock *cfs_percpt_lock_create(struct cfs_cpt_table *cptab,
 					       struct lock_class_key *keys);
 /* destroy a cpu-partition lock */
 void cfs_percpt_lock_free(struct cfs_percpt_lock *pcl);
 
-/* lock private lock \a index of \a pcl */
+/* lock private lock @index of @pcl */
 void cfs_percpt_lock(struct cfs_percpt_lock *pcl, int index);
 
-/* unlock private lock \a index of \a pcl */
+/* unlock private lock @index of @pcl */
 void cfs_percpt_unlock(struct cfs_percpt_lock *pcl, int index);
 
 #define CFS_PERCPT_LOCK_KEYS	256
@@ -413,7 +413,7 @@ void cfs_percpt_unlock(struct cfs_percpt_lock *pcl, int index);
 })
 
 /**
- * iterate over all CPU partitions in \a cptab
+ * iterate over all CPU partitions in @cptab
  */
 #define cfs_cpt_for_each(i, cptab)	\
 	for (i = 0; i < cfs_cpt_number(cptab); i++)

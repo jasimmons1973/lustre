@@ -153,11 +153,11 @@ struct addrrange {
 /**
  * Parses \<addrrange\> token on the syntax.
  *
- * Allocates struct addrrange and links to \a nidrange via
+ * Allocates struct addrrange and links to nidrange via
  * (nidrange::nr_addrranges)
  *
- * \retval 0 if \a src parses to '*' | \<ipaddr_range\> | \<cfs_expr_list\>
- * \retval -errno otherwise
+ * Return:	0 if @src parses to '*' | \<ipaddr_range\> | \<cfs_expr_list\>
+ *		-errno otherwise
  */
 static int
 parse_addrange(const struct cfs_lstr *src, struct nidrange *nidrange)
@@ -183,12 +183,12 @@ parse_addrange(const struct cfs_lstr *src, struct nidrange *nidrange)
 /**
  * Finds or creates struct nidrange.
  *
- * Checks if \a src is a valid network name, looks for corresponding
- * nidrange on the ist of nidranges (\a nidlist), creates new struct
+ * Checks if @src is a valid network name, looks for corresponding
+ * nidrange on the ist of nidranges (@nidlist), creates new struct
  * nidrange if it is not found.
  *
- * \retval pointer to struct nidrange matching network specified via \a src
- * \retval NULL if \a src does not match any network
+ * Return:	pointer to struct nidrange matching network specified via @src
+ *		NULL if @src does not match any network
  */
 static struct nidrange *
 add_nidrange(const struct cfs_lstr *src,
@@ -243,8 +243,8 @@ add_nidrange(const struct cfs_lstr *src,
 /**
  * Parses \<nidrange\> token of the syntax.
  *
- * \retval 1 if \a src parses to \<addrrange\> '@' \<net\>
- * \retval 0 otherwise
+ * Return:	1 if @src parses to \<addrrange\> '@' \<net\>
+ *		0 otherwise
  */
 static int
 parse_nidrange(struct cfs_lstr *src, struct list_head *nidlist)
@@ -272,12 +272,10 @@ failed:
 }
 
 /**
- * Frees addrrange structures of \a list.
+ * Frees addrrange structures of @list.
  *
- * For each struct addrrange structure found on \a list it frees
+ * For each struct addrrange structure found on @list it frees
  * cfs_expr_list list attached to it and frees the addrrange itself.
- *
- * \retval none
  */
 static void
 free_addrranges(struct list_head *list)
@@ -295,12 +293,10 @@ free_addrranges(struct list_head *list)
 }
 
 /**
- * Frees nidrange strutures of \a list.
+ * Frees nidrange strutures of @list.
  *
- * For each struct nidrange structure found on \a list it frees
+ * For each struct nidrange structure found on @list it frees
  * addrrange list attached to it and frees the nidrange itself.
- *
- * \retval none
  */
 void
 cfs_free_nidlist(struct list_head *list)
@@ -320,15 +316,13 @@ EXPORT_SYMBOL(cfs_free_nidlist);
 /**
  * Parses nid range list.
  *
- * Parses with rigorous syntax and overflow checking \a str into
- * \<nidrange\> [ ' ' \<nidrange\> ], compiles \a str into set of
- * structures and links that structure to \a nidlist. The resulting
- * list can be used to match a NID againts set of NIDS defined by \a
- * str.
- * \see cfs_match_nid
+ * Parses with rigorous syntax and overflow checking @str into
+ * \<nidrange\> [ ' ' \<nidrange\> ], compiles @str into set of
+ * structures and links that structure to @nidlist. The resulting
+ * list can be used to match a NID againts set of NIDS defined by
+ * @str. See cfs_match_nid
  *
- * \retval 1 on success
- * \retval 0 otherwise
+ * Return:	1 on success 0 otherwise
  */
 int
 cfs_parse_nidlist(char *str, int len, struct list_head *nidlist)
@@ -357,12 +351,11 @@ cfs_parse_nidlist(char *str, int len, struct list_head *nidlist)
 EXPORT_SYMBOL(cfs_parse_nidlist);
 
 /**
- * Matches a nid (\a nid) against the compiled list of nidranges (\a nidlist).
+ * Matches a nid (@nid) against the compiled list of nidranges (@nidlist).
  *
  * \see cfs_parse_nidlist()
  *
- * \retval 1 on match
- * \retval 0  otherwises
+ * Return:	1 on match, 0 otherwises
  */
 int cfs_match_nid(lnet_nid_t nid, struct list_head *nidlist)
 {
@@ -386,9 +379,9 @@ int cfs_match_nid(lnet_nid_t nid, struct list_head *nidlist)
 EXPORT_SYMBOL(cfs_match_nid);
 
 /**
- * Print the network part of the nidrange \a nr into the specified \a buffer.
+ * Print the network part of the nidrange @nr into the specified @buffer.
  *
- * \retval number of characters written
+ * Return:	number of characters written
  */
 static int
 cfs_print_network(char *buffer, int count, struct nidrange *nr)
@@ -403,10 +396,10 @@ cfs_print_network(char *buffer, int count, struct nidrange *nr)
 }
 
 /**
- * Print a list of addrrange (\a addrranges) into the specified \a buffer.
- * At max \a count characters can be printed into \a buffer.
+ * Print a list of addrrange (@addrranges) into the specified @buffer.
+ * At max @count characters can be printed into @buffer.
  *
- * \retval number of characters written
+ * Return:	number of characters written
  */
 static int
 cfs_print_addrranges(char *buffer, int count, struct list_head *addrranges,
@@ -427,11 +420,11 @@ cfs_print_addrranges(char *buffer, int count, struct list_head *addrranges,
 }
 
 /**
- * Print a list of nidranges (\a nidlist) into the specified \a buffer.
- * At max \a count characters can be printed into \a buffer.
+ * Print a list of nidranges (@nidlist) into the specified @buffer.
+ * At max @count characters can be printed into @buffer.
  * Nidranges are separated by a space character.
  *
- * \retval number of characters written
+ * Return:	number of characters written
  */
 int cfs_print_nidlist(char *buffer, int count, struct list_head *nidlist)
 {
@@ -462,9 +455,9 @@ EXPORT_SYMBOL(cfs_print_nidlist);
  * Determines minimum and maximum addresses for a single
  * numeric address range
  *
- * \param	ar
- * \param	min_nid
- * \param	max_nid
+ * @ar
+ * @min_nid
+ * @max_nid
  */
 static void cfs_ip_ar_min_max(struct addrrange *ar, u32 *min_nid,
 			      u32 *max_nid)
@@ -501,9 +494,9 @@ static void cfs_ip_ar_min_max(struct addrrange *ar, u32 *min_nid,
  * Determines minimum and maximum addresses for a single
  * numeric address range
  *
- * \param	ar
- * \param	min_nid
- * \param	max_nid
+ * @ar
+ * @min_nid
+ * @max_nid
  */
 static void cfs_num_ar_min_max(struct addrrange *ar, u32 *min_nid,
 			       u32 *max_nid)
@@ -532,10 +525,10 @@ static void cfs_num_ar_min_max(struct addrrange *ar, u32 *min_nid,
  * Determines whether an expression list in an nidrange contains exactly
  * one contiguous address range. Calls the correct netstrfns for the LND
  *
- * \param	*nidlist
+ * @nidlist
  *
- * \retval	true if contiguous
- * \retval	false if not contiguous
+ * Return:	true if contiguous
+ *		false if not contiguous
  */
 bool cfs_nidrange_is_contiguous(struct list_head *nidlist)
 {
@@ -570,10 +563,10 @@ EXPORT_SYMBOL(cfs_nidrange_is_contiguous);
  * Determines whether an expression list in an num nidrange contains exactly
  * one contiguous address range.
  *
- * \param	*nidlist
+ * @nidlist
  *
- * \retval	true if contiguous
- * \retval	false if not contiguous
+ * Return:	true if contiguous
+ *		false if not contiguous
  */
 static bool cfs_num_is_contiguous(struct list_head *nidlist)
 {
@@ -616,10 +609,10 @@ static bool cfs_num_is_contiguous(struct list_head *nidlist)
  * Determines whether an expression list in an ip nidrange contains exactly
  * one contiguous address range.
  *
- * \param	*nidlist
+ * @nidlist
  *
- * \retval	true if contiguous
- * \retval	false if not contiguous
+ * Return:	true if contiguous
+ *		false if not contiguous
  */
 static bool cfs_ip_is_contiguous(struct list_head *nidlist)
 {
@@ -669,9 +662,9 @@ static bool cfs_ip_is_contiguous(struct list_head *nidlist)
  * Takes a linked list of nidrange expressions, determines the minimum
  * and maximum nid and creates appropriate nid structures
  *
- * \param	*nidlist
- * \param	*min_nid
- * \param	*max_nid
+ * @nidlist
+ * @min_nid
+ * @max_nid
  */
 void cfs_nidrange_find_min_max(struct list_head *nidlist, char *min_nid,
 			       char *max_nid, size_t nidstr_length)
@@ -706,9 +699,9 @@ EXPORT_SYMBOL(cfs_nidrange_find_min_max);
 /**
  * Determines the min and max NID values for num LNDs
  *
- * \param	*nidlist
- * \param	*min_nid
- * \param	*max_nid
+ * @nidlist
+ * @min_nid
+ * @max_nid
  */
 static void cfs_num_min_max(struct list_head *nidlist, u32 *min_nid,
 			    u32 *max_nid)
@@ -738,9 +731,9 @@ static void cfs_num_min_max(struct list_head *nidlist, u32 *min_nid,
  * Takes an nidlist and determines the minimum and maximum
  * ip addresses.
  *
- * \param	*nidlist
- * \param	*min_nid
- * \param	*max_nid
+ * @nidlist
+ * @min_nid
+ * @max_nid
  */
 static void cfs_ip_min_max(struct list_head *nidlist, u32 *min_nid,
 			   u32 *max_nid)
@@ -868,10 +861,9 @@ libcfs_ip_addr_range_print(char *buffer, int count, struct list_head *list)
 }
 
 /**
- * Matches address (\a addr) against address set encoded in \a list.
+ * Matches address (@addr) against address set encoded in @list.
  *
- * \retval 1 if \a addr matches
- * \retval 0 otherwise
+ * Return: 1 if @addr matches, 0 otherwise
  */
 int
 cfs_ip_addr_match(u32 addr, struct list_head *list)
@@ -920,8 +912,8 @@ libcfs_num_str2addr(const char *str, int nob, u32 *addr)
  *
  * Examples of such networks are gm and elan.
  *
- * \retval 0 if \a str parsed to numeric address
- * \retval errno otherwise
+ * Return:	0 if @str parsed to numeric address
+ *		errno otherwise
  */
 static int
 libcfs_num_parse(char *str, int len, struct list_head *list)
@@ -952,8 +944,7 @@ libcfs_num_addr_range_print(char *buffer, int count, struct list_head *list)
 /*
  * Nf_match_addr method for networks using numeric addresses
  *
- * \retval 1 on match
- * \retval 0 otherwise
+ * Return:	1 on match, 0 otherwise
  */
 static int
 libcfs_num_match(u32 addr, struct list_head *numaddr)

@@ -335,7 +335,7 @@ char lnet_debug_log_upcall[1024] = "/usr/lib/lustre/lnet_debug_log_upcall";
 /**
  * Upcall function once a Lustre log has been dumped.
  *
- * \param file  path of the dumped log
+ * @file	path of the dumped log
  */
 static void libcfs_run_debug_log_upcall(char *file)
 {

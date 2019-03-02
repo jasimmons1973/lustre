@@ -759,7 +759,7 @@ int cfs_cpt_bind(struct cfs_cpt_table *cptab, int cpt)
 EXPORT_SYMBOL(cfs_cpt_bind);
 
 /**
- * Choose max to \a number CPUs from \a node and set them in \a cpt.
+ * Choose max to @number CPUs from @node and set them in @cpt.
  * We always prefer to choose CPU in the same core/socket.
  */
 static int cfs_cpt_choose_ncpus(struct cfs_cpt_table *cptab, int cpt,

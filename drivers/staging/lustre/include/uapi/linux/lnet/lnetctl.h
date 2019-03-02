@@ -46,7 +46,7 @@ struct lnet_fault_attr {
 	 * 255.255.255.255@net is wildcard for all addresses from @net
 	 */
 	lnet_nid_t			fa_src;
-	/** destination NID of drop rule, see \a dr_src for details */
+	/** destination NID of drop rule, see @dr_src for details */
 	lnet_nid_t			fa_dst;
 	/**
 	 * Portal mask to drop, -1 means all portals, for example:

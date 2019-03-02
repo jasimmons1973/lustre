@@ -1950,8 +1950,8 @@ failed:
  * lnet_lib_exit() after a call to lnet_lib_init(), if and only if the
  * latter returned 0. It must be called exactly once.
  *
- * \retval 0 on success
- * \retval -ve on failures.
+ * Return:	0 on success
+ *		-ve on failures.
  */
 int lnet_lib_init(void)
 {
@@ -2031,15 +2031,15 @@ void lnet_lib_exit(void)
  *
  * Users must call this function at least once before any other functions.
  * For each successful call there must be a corresponding call to
- * LNetNIFini(). For subsequent calls to LNetNIInit(), \a requested_pid is
+ * LNetNIFini(). For subsequent calls to LNetNIInit(), @requested_pid is
  * ignored.
  *
  * The PID used by LNet may be different from the one requested.
  * See LNetGetId().
  *
- * \param requested_pid PID requested by the caller.
+ * @requested_pid	PID requested by the caller.
  *
- * \return >= 0 on success, and < 0 error code on failures.
+ * Return:		>= 0 on success, and < 0 error code on failures.
  */
 int
 LNetNIInit(lnet_pid_t requested_pid)
@@ -2185,7 +2185,7 @@ EXPORT_SYMBOL(LNetNIInit);
  * Once the LNetNIFini() operation has been started, the results of pending
  * API operations are undefined.
  *
- * \return always 0 for current implementation.
+ * Return:	always 0 for current implementation.
  */
 int
 LNetNIFini(void)
@@ -2224,9 +2224,9 @@ EXPORT_SYMBOL(LNetNIFini);
  * Grabs the ni data from the ni structure and fills the out
  * parameters
  *
- * \param[in] ni network	interface structure
- * \param[out] cfg_ni		NI config information
- * \param[out] tun		network and LND tunables
+ * @ni		network	interface structure
+ * @cfg_ni	NI config information
+ * @tun		network and LND tunables
  */
 static void
 lnet_fill_ni_info(struct lnet_ni *ni, struct lnet_ioctl_config_ni *cfg_ni,
@@ -2302,8 +2302,8 @@ lnet_fill_ni_info(struct lnet_ni *ni, struct lnet_ioctl_config_ni *cfg_ni,
  * Grabs the ni data from the ni structure and fills the out
  * parameters
  *
- * \param[in] ni network	interface structure
- * \param[out] config		config information
+ * @ni		network	interface structure
+ * @config	config information
  */
 static void
 lnet_fill_ni_info_legacy(struct lnet_ni *ni,
@@ -3308,15 +3308,15 @@ void LNetDebugPeer(struct lnet_process_id id)
 EXPORT_SYMBOL(LNetDebugPeer);
 
 /**
- * Retrieve the lnet_process_id ID of LNet interface at \a index. Note that
+ * Retrieve the lnet_process_id ID of LNet interface at @index. Note that
  * all interfaces share a same PID, as requested by LNetNIInit().
  *
- * \param index Index of the interface to look up.
- * \param id On successful return, this location will hold the
- * lnet_process_id ID of the interface.
+ * @index	Index of the interface to look up.
+ * @id		On successful return, this location will hold the
+ *		lnet_process_id ID of the interface.
  *
- * \retval 0 If an interface exists at \a index.
- * \retval -ENOENT If no interface has been found.
+ * Return:	0 If an interface exists at @index.
+ *		-ENOENT If no interface has been found.
  */
 int
 LNetGetId(unsigned int index, struct lnet_process_id *id)

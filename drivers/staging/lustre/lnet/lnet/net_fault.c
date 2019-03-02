@@ -47,7 +47,7 @@ struct lnet_drop_rule {
 	struct list_head	dr_link;
 	/** attributes of this rule */
 	struct lnet_fault_attr	dr_attr;
-	/** lock to protect \a dr_drop_at and \a dr_stat */
+	/** lock to protect @dr_drop_at and @dr_stat */
 	spinlock_t		dr_lock;
 	/**
 	 * the message sequence to drop, which means message is dropped when
@@ -188,10 +188,10 @@ lnet_drop_rule_add(struct lnet_fault_attr *attr)
 }
 
 /**
- * Remove matched drop rules from lnet, all rules that can match \a src and
- * \a dst will be removed.
- * If \a src is zero, then all rules have \a dst as destination will be remove
- * If \a dst is zero, then all rules have \a src as source will be removed
+ * Remove matched drop rules from lnet, all rules that can match @src and
+ * @dst will be removed.
+ * If @src is zero, then all rules have @dst as destination will be remove
+ * If @dst is zero, then all rules have @src as source will be removed
  * If both of them are zero, all rules will be removed
  */
 static int
@@ -233,7 +233,7 @@ lnet_drop_rule_del(lnet_nid_t src, lnet_nid_t dst)
 }
 
 /**
- * List drop rule at position of \a pos
+ * List drop rule at position of @pos
  */
 static int
 lnet_drop_rule_list(int pos, struct lnet_fault_attr *attr,
@@ -349,7 +349,7 @@ drop_rule_match(struct lnet_drop_rule *rule, lnet_nid_t src,
 }
 
 /**
- * Check if message from \a src to \a dst can match any existed drop rule
+ * Check if message from @src to @dst can match any existed drop rule
  */
 bool
 lnet_drop_rule_match(struct lnet_hdr *hdr)
@@ -395,7 +395,7 @@ struct lnet_delay_rule {
 	struct list_head	dl_sched_link;
 	/** attributes of this rule */
 	struct lnet_fault_attr	dl_attr;
-	/** lock to protect \a below members */
+	/** lock to protect @below members */
 	spinlock_t		dl_lock;
 	/** refcount of delay rule */
 	atomic_t		dl_refcount;
@@ -423,7 +423,7 @@ struct lnet_delay_rule {
 struct delay_daemon_data {
 	/** serialise rule add/remove */
 	struct mutex		dd_mutex;
-	/** protect rules on \a dd_sched_rules */
+	/** protect rules on @dd_sched_rules */
 	spinlock_t		dd_lock;
 	/** scheduled delay rules (by timer) */
 	struct list_head	dd_sched_rules;
@@ -520,7 +520,7 @@ delay_rule_match(struct lnet_delay_rule *rule, lnet_nid_t src,
 }
 
 /**
- * check if \a msg can match any Delay Rule, receiving of this message
+ * check if @msg can match any Delay Rule, receiving of this message
  * will be delayed if there is a match.
  */
 bool
@@ -792,11 +792,11 @@ failed:
 }
 
 /**
- * Remove matched Delay Rules from lnet, if \a shutdown is true or both \a src
- * and \a dst are zero, all rules will be removed, otherwise only matched rules
+ * Remove matched Delay Rules from lnet, if @shutdown is true or both @src
+ * and @dst are zero, all rules will be removed, otherwise only matched rules
  * will be removed.
- * If \a src is zero, then all rules have \a dst as destination will be remove
- * If \a dst is zero, then all rules have \a src as source will be removed
+ * If @src is zero, then all rules have @dst as destination will be remove
+ * If @dst is zero, then all rules have @src as source will be removed
  *
  * When a delay rule is removed, all delayed messages of this rule will be
  * processed immediately.
@@ -871,7 +871,7 @@ lnet_delay_rule_del(lnet_nid_t src, lnet_nid_t dst, bool shutdown)
 }
 
 /**
- * List Delay Rule at position of \a pos
+ * List Delay Rule at position of @pos
  */
 int
 lnet_delay_rule_list(int pos, struct lnet_fault_attr *attr,

@@ -894,10 +894,10 @@ lnet_portals_create(void)
  * especially vulnerable since the connections to its neighbor routers are
  * shared among all clients.
  *
- * \param portal Index of the portal to enable the lazy attribute on.
+ * @portal	Index of the portal to enable the lazy attribute on.
  *
- * \retval 0       On success.
- * \retval -EINVAL If \a portal is not a valid index.
+ * Return:	0 On success.
+ *		-EINVAL If @portal is not a valid index.
  */
 int
 LNetSetLazyPortal(int portal)
@@ -975,10 +975,10 @@ lnet_clear_lazy_portal(struct lnet_ni *ni, int portal, char *reason)
  * Turn off the lazy portal attribute. Delayed requests on the portal,
  * if any, will be all dropped when this function returns.
  *
- * \param portal Index of the portal to disable the lazy attribute on.
+ * @portal	Index of the portal to disable the lazy attribute on.
  *
- * \retval 0       On success.
- * \retval -EINVAL If \a portal is not a valid index.
+ * Return:	0 On success.
+ *		-EINVAL If @portal is not a valid index.
  */
 int
 LNetClearLazyPortal(int portal)

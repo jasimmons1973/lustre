@@ -146,12 +146,12 @@ EXPORT_SYMBOL(cfs_firststr);
 /**
  * Extracts tokens from strings.
  *
- * Looks for \a delim in string \a next, sets \a res to point to
- * substring before the delimiter, sets \a next right after the found
+ * Looks for @a delim in string @next, sets @res to point to
+ * substring before the delimiter, sets @next right after the found
  * delimiter.
  *
- * \retval 1 if \a res points to a string of non-whitespace characters
- * \retval 0 otherwise
+ * Return:	1 if @ res points to a string of non-whitespace characters
+ *		0 otherwise
  */
 int
 cfs_gettok(struct cfs_lstr *next, char delim, struct cfs_lstr *res)
@@ -204,9 +204,9 @@ EXPORT_SYMBOL(cfs_gettok);
  *
  * Accepts decimal and hexadecimal number recordings.
  *
- * \retval 1 if first \a nob chars of \a str convert to decimal or
- * hexadecimal integer in the range [\a min, \a max]
- * \retval 0 otherwise
+ * Return:	1 if first @nob chars of @str convert to decimal or
+ *		hexadecimal integer in the range [ @min, @max ]
+ *		0 otherwise
  */
 int
 cfs_str2num_check(char *str, int nob, unsigned int *num,
@@ -247,17 +247,18 @@ cfs_str2num_check(char *str, int nob, unsigned int *num,
 EXPORT_SYMBOL(cfs_str2num_check);
 
 /**
- * Parses \<range_expr\> token of the syntax. If \a bracketed is false,
- * \a src should only have a single token which can be \<number\> or  \*
+ * Parses \<range_expr\> token of the syntax. If @bracketed is false,
+ * @src should only have a single token which can be \<number\> or  \*
  *
- * \retval pointer to allocated range_expr and initialized
- * range_expr::re_lo, range_expr::re_hi and range_expr:re_stride if \a
- `* src parses to
+ * Return:	pointer to allocated range_expr and initialized
+ * range_expr::re_lo, range_expr::re_hi and range_expr:re_stride if
+ * @src parses to
  * \<number\> |
  * \<number\> '-' \<number\> |
  * \<number\> '-' \<number\> '/' \<number\>
- * \retval 0 will be returned if it can be parsed, otherwise -EINVAL or
- * -ENOMEM will be returned.
+ *
+ * Return	0 will be returned if it can be parsed, otherwise -EINVAL or
+ *		-ENOMEM will be returned.
  */
 static int
 cfs_range_expr_parse(struct cfs_lstr *src, unsigned int min, unsigned int max,
@@ -324,11 +325,11 @@ failed:
 }
 
 /**
- * Print the range expression \a re into specified \a buffer.
- * If \a bracketed is true, expression does not need additional
+ * Print the range expression @expr into specified @buffer.
+ * If @bracketed is true, expression does not need additional
  * brackets.
  *
- * \retval number of characters written
+ * Return:	number of characters written
  */
 static int
 cfs_range_expr_print(char *buffer, int count, struct cfs_range_expr *expr,
@@ -355,11 +356,11 @@ cfs_range_expr_print(char *buffer, int count, struct cfs_range_expr *expr,
 }
 
 /**
- * Print a list of range expressions (\a expr_list) into specified \a buffer.
+ * Print a list of range expressions (@expr_list) into specified @buffer.
  * If the list contains several expressions, separate them with comma
  * and surround the list with brackets.
  *
- * \retval number of characters written
+ * Return:	number of characters written
  */
 int
 cfs_expr_list_print(char *buffer, int count, struct cfs_expr_list *expr_list)
@@ -392,10 +393,10 @@ cfs_expr_list_print(char *buffer, int count, struct cfs_expr_list *expr_list)
 EXPORT_SYMBOL(cfs_expr_list_print);
 
 /**
- * Matches value (\a value) against ranges expression list \a expr_list.
+ * Matches value (@value) against ranges expression list @expr_list.
  *
- * \retval 1 if \a value matches
- * \retval 0 otherwise
+ * Return:	1 if @value matches
+ *		0 otherwise
  */
 int
 cfs_expr_list_match(u32 value, struct cfs_expr_list *expr_list)
@@ -413,11 +414,11 @@ cfs_expr_list_match(u32 value, struct cfs_expr_list *expr_list)
 EXPORT_SYMBOL(cfs_expr_list_match);
 
 /**
- * Convert express list (\a expr_list) to an array of all matched values
+ * Convert express list (@expr_list) to an array of all matched values
  *
- * \retval N N is total number of all matched values
- * \retval 0 if expression list is empty
- * \retval < 0 for failure
+ * Return:	N is total number of all matched values
+ *		0 if expression list is empty
+ *		< 0 for failure
  */
 int
 cfs_expr_list_values(struct cfs_expr_list *expr_list, int max, u32 **valpp)
@@ -461,9 +462,7 @@ cfs_expr_list_values(struct cfs_expr_list *expr_list, int max, u32 **valpp)
 EXPORT_SYMBOL(cfs_expr_list_values);
 
 /**
- * Frees cfs_range_expr structures of \a expr_list.
- *
- * \retval none
+ * Frees cfs_range_expr structures of @expr_list.
  */
 void
 cfs_expr_list_free(struct cfs_expr_list *expr_list)
@@ -484,8 +483,8 @@ EXPORT_SYMBOL(cfs_expr_list_free);
 /**
  * Parses \<cfs_expr_list\> token of the syntax.
  *
- * \retval 0 if \a str parses to \<number\> | \<expr_list\>
- * \retval -errno otherwise
+ * Return:	0 if @str parses to \<number\> | \<expr_list\>
+ *		-errno otherwise
  */
 int
 cfs_expr_list_parse(char *str, int len, unsigned int min, unsigned int max,
@@ -541,12 +540,10 @@ cfs_expr_list_parse(char *str, int len, unsigned int min, unsigned int max,
 EXPORT_SYMBOL(cfs_expr_list_parse);
 
 /**
- * Frees cfs_expr_list structures of \a list.
+ * Frees cfs_expr_list structures of @list.
  *
- * For each struct cfs_expr_list structure found on \a list it frees
+ * For each struct cfs_expr_list structure found on @list it frees
  * range_expr list attached to it and frees the cfs_expr_list itself.
- *
- * \retval none
  */
 void
 cfs_expr_list_free_list(struct list_head *list)

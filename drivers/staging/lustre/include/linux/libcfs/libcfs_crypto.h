@@ -119,8 +119,8 @@ static struct cfs_crypto_hash_type hash_types[] = {
  *
  * Hash information includes algorithm name, initial seed, hash size.
  *
- * \retval	cfs_crypto_hash_type for valid ID (CFS_HASH_ALG_*)
- * \retval	NULL for unknown algorithm identifier
+ * Return:	cfs_crypto_hash_type for valid ID (CFS_HASH_ALG_*)
+ *		NULL for unknown algorithm identifier
  */
 static inline const struct cfs_crypto_hash_type *
 cfs_crypto_hash_type(enum cfs_crypto_hash_alg hash_alg)
@@ -138,10 +138,10 @@ cfs_crypto_hash_type(enum cfs_crypto_hash_alg hash_alg)
 /**
  * Return hash name for hash algorithm identifier
  *
- * \param[in]	hash_alg hash alrgorithm id (CFS_HASH_ALG_*)
+ * @hash_alg	hash alrgorithm id (CFS_HASH_ALG_*)
  *
- * \retval	string name of known hash algorithm
- * \retval	"unknown" if hash algorithm is unknown
+ * Return:	string name of known hash algorithm
+ *		"unknown" if hash algorithm is unknown
  */
 static inline const char *
 cfs_crypto_hash_name(enum cfs_crypto_hash_alg hash_alg)
@@ -157,10 +157,10 @@ cfs_crypto_hash_name(enum cfs_crypto_hash_alg hash_alg)
 /**
  * Return digest size for hash algorithm type
  *
- * \param[in]	hash_alg hash alrgorithm id (CFS_HASH_ALG_*)
+ * @hash_alg	hash alrgorithm id (CFS_HASH_ALG_*)
  *
- * \retval	hash algorithm digest size in bytes
- * \retval	0 if hash algorithm type is unknown
+ * Return:	hash algorithm digest size in bytes
+ *		0 if hash algorithm type is unknown
  */
 static inline int cfs_crypto_hash_digestsize(enum cfs_crypto_hash_alg hash_alg)
 {
@@ -175,8 +175,8 @@ static inline int cfs_crypto_hash_digestsize(enum cfs_crypto_hash_alg hash_alg)
 /**
  * Find hash algorithm ID for the specified algorithm name
  *
- * \retval	hash algorithm ID for valid ID (CFS_HASH_ALG_*)
- * \retval	CFS_HASH_ALG_UNKNOWN for unknown algorithm name
+ * Return:	hash algorithm ID for valid ID (CFS_HASH_ALG_*)
+ *		CFS_HASH_ALG_UNKNOWN for unknown algorithm name
  */
 static inline unsigned char cfs_crypto_hash_alg(const char *algname)
 {

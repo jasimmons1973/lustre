@@ -88,11 +88,11 @@ EXPORT_SYMBOL(cfs_percpt_lock_create);
 /**
  * lock a CPU partition
  *
- * \a index != CFS_PERCPT_LOCK_EX
- *     hold private lock indexed by \a index
+ * @index != CFS_PERCPT_LOCK_EX
+ * hold private lock indexed by @index
  *
- * \a index == CFS_PERCPT_LOCK_EX
- *     exclusively lock @pcl and nobody can take private lock
+ * @index == CFS_PERCPT_LOCK_EX
+ * exclusively lock @pcl and nobody can take private lock
  */
 void
 cfs_percpt_lock(struct cfs_percpt_lock *pcl, int index)

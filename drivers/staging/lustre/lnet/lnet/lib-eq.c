@@ -40,27 +40,27 @@
 #include <linux/lnet/lib-lnet.h>
 
 /**
- * Create an event queue that has room for \a count number of events.
+ * Create an event queue that has room for @count number of events.
  *
  * The event queue is circular and older events will be overwritten by new
  * ones if they are not removed in time by the user using the functions
  * LNetEQGet(), LNetEQWait(), or LNetEQPoll(). It is up to the user to
  * determine the appropriate size of the event queue to prevent this loss
- * of events. Note that when EQ handler is specified in \a callback, no
+ * of events. Note that when EQ handler is specified in @callback, no
  * event loss can happen, since the handler is run for each event deposited
  * into the EQ.
  *
- * \param count The number of events to be stored in the event queue. It
- * will be rounded up to the next power of two.
- * \param callback A handler function that runs when an event is deposited
- * into the EQ. The constant value LNET_EQ_HANDLER_NONE can be used to
- * indicate that no event handler is desired.
- * \param handle On successful return, this location will hold a handle for
- * the newly created EQ.
+ * @count	The number of events to be stored in the event queue. It
+ *		will be rounded up to the next power of two.
+ * @callback	A handler function that runs when an event is deposited
+ *		into the EQ. The constant value LNET_EQ_HANDLER_NONE can
+ *		be used to indicate that no event handler is desired.
+ * @handle	On successful return, this location will hold a handle for
+ *		the newly created EQ.
  *
- * \retval 0       On success.
- * \retval -EINVAL If an parameter is not valid.
- * \retval -ENOMEM If memory for the EQ can't be allocated.
+ * Return:	0 On success.
+ *		-EINVAL If an parameter is not valid.
+ *		-ENOMEM If memory for the EQ can't be allocated.
  *
  * \see lnet_eq_handler_t for the discussion on EQ handler semantics.
  */
@@ -147,11 +147,11 @@ EXPORT_SYMBOL(LNetEQAlloc);
  * Release the resources associated with an event queue if it's idle;
  * otherwise do nothing and it's up to the user to try again.
  *
- * \param eqh A handle for the event queue to be released.
+ * @eqh		A handle for the event queue to be released.
  *
- * \retval 0 If the EQ is not in use and freed.
- * \retval -ENOENT If \a eqh does not point to a valid EQ.
- * \retval -EBUSY  If the EQ is still in use by some MDs.
+ * Return:	0 If the EQ is not in use and freed.
+ *		-ENOENT If @eqh does not point to a valid EQ.
+ *		-EBUSY If the EQ is still in use by some MDs.
  */
 int
 LNetEQFree(struct lnet_handle_eq eqh)
@@ -278,16 +278,17 @@ lnet_eq_dequeue_event(struct lnet_eq *eq, struct lnet_event *ev)
  * If an event handler is associated with the EQ, the handler will run before
  * this function returns successfully. The event is removed from the queue.
  *
- * \param eventq A handle for the event queue.
- * \param event On successful return (1 or -EOVERFLOW), this location will
- * hold the next event in the EQ.
+ * @eventq	A handle for the event queue.
+ * @event	On successful return (1 or -EOVERFLOW), this location will
+ *		hold the next event in the EQ.
  *
- * \retval 0	  No pending event in the EQ.
- * \retval 1	  Indicates success.
- * \retval -ENOENT    If \a eventq does not point to a valid EQ.
- * \retval -EOVERFLOW Indicates success (i.e., an event is returned) and that
- * at least one event between this event and the last event obtained from the
- * EQ has been dropped due to limited space in the EQ.
+ * Return	0 No pending event in the EQ.
+ *		1 Indicates success.
+ *		-ENOENT If @eventq does not point to a valid EQ.
+ *		-EOVERFLOW Indicates success (i.e., an event is returned)
+ *		and that at least one event between this event and the last
+ *		event obtained from the EQ has been dropped due to limited
+ *		space in the EQ.
  */
 
 /**
@@ -296,17 +297,17 @@ lnet_eq_dequeue_event(struct lnet_eq *eq, struct lnet_event *ev)
  * this function returns successfully. This function returns the next event
  * in the EQ and removes it from the EQ.
  *
- * \param eventq A handle for the event queue.
- * \param event On successful return (1 or -EOVERFLOW), this location will
- * hold the next event in the EQ.
+ * @eventq	A handle for the event queue.
+ * @event	On successful return (1 or -EOVERFLOW), this location will
+ *		hold the next event in the EQ.
  *
- * \retval 1	  Indicates success.
- * \retval -ENOENT    If \a eventq does not point to a valid EQ.
- * \retval -EOVERFLOW Indicates success (i.e., an event is returned) and that
- * at least one event between this event and the last event obtained from the
- * EQ has been dropped due to limited space in the EQ.
+ * Return:	1 Indicates success.
+ *		-ENOENT If @eventq does not point to a valid EQ.
+ *		-EOVERFLOW Indicates success (i.e., an event is returned)
+ *		and that at least one event between this event and the last
+ *		event obtained from the EQ has been dropped due to limited
+ *		space in the EQ.
  */
-
 static int
 lnet_eq_wait_locked(signed long *timeout, long state)
 __must_hold(&the_lnet.ln_eq_wait_lock)
@@ -345,21 +346,24 @@ __must_hold(&the_lnet.ln_eq_wait_lock)
  * LNetEQPoll() provides a timeout to allow applications to poll, block for a
  * fixed period, or block indefinitely.
  *
- * \param eventqs,neq An array of EQ handles, and size of the array.
- * \param timeout Time in jiffies to wait for an event to occur on
- * one of the EQs. The constant MAX_SCHEDULE_TIMEOUT can be used to indicate an
- * infinite timeout.
- * \param interruptible, if true, use TASK_INTERRUPTIBLE, else TASK_IDLE
- * \param event,which On successful return (1 or -EOVERFLOW), \a event will
- * hold the next event in the EQs, and \a which will contain the index of the
- * EQ from which the event was taken.
+ * @eventqs,neq		An array of EQ handles, and size of the array.
+ * @timeout		Time in jiffies to wait for an event to occur on
+ *			one of the EQs. The constant MAX_SCHEDULE_TIMEOUT
+ *			can be used to indicate an infinite timeout.
+ * @interruptible	if true, use TASK_INTERRUPTIBLE, else TASK_IDLE
+ * @event,which		On successful return (1 or -EOVERFLOW), @event will
+ *			hold the next event in the EQs, and @which will
+ *			contain the index of the EQ from which the event
+ *			was taken.
  *
- * \retval 0	  No pending event in the EQs after timeout.
- * \retval 1	  Indicates success.
- * \retval -EOVERFLOW Indicates success (i.e., an event is returned) and that
- * at least one event between this event and the last event obtained from the
- * EQ indicated by \a which has been dropped due to limited space in the EQ.
- * \retval -ENOENT    If there's an invalid handle in \a eventqs.
+ * Return:		0 No pending event in the EQs after timeout.
+ *			1 Indicates success.
+ *			-EOVERFLOW Indicates success (i.e., an event is
+ *			returned) and that at least one event between
+ *			this event and the last event obtained from the
+ *			EQ indicated by @which has been dropped due to
+ *			limited space in the EQ.
+ *			-ENOENT If there's an invalid handle in @eventqs.
  */
 int
 LNetEQPoll(struct lnet_handle_eq *eventqs, int neq, signed long timeout,

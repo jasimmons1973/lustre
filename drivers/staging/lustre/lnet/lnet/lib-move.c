@@ -701,15 +701,16 @@ lnet_peer_alive_locked(struct lnet_ni *ni, struct lnet_peer_ni *lp)
 }
 
 /**
- * \param msg The message to be sent.
- * \param do_send True if lnet_ni_send() should be called in this function.
- *	  lnet_send() is going to lnet_net_unlock immediately after this, so
- *	  it sets do_send FALSE and I don't do the unlock/send/lock bit.
+ * @msg		The message to be sent.
+ * @do_send	True if lnet_ni_send() should be called in this function.
+ *		lnet_send() is going to lnet_net_unlock immediately after this,
+ *		so it sets do_send FALSE and I don't do the unlock/send/lock
+ *		bit.
  *
- * \retval LNET_CREDIT_OK If \a msg sent or OK to send.
- * \retval LNET_CREDIT_WAIT If \a msg blocked for credit.
- * \retval -EHOSTUNREACH If the next hop of the message appears dead.
- * \retval -ECANCELED If the MD of the message has been unlinked.
+ * Return:	LNET_CREDIT_OK If @msg sent or OK to send.
+ *		LNET_CREDIT_WAIT If @msg blocked for credit.
+ *		-EHOSTUNREACH If the next hop of the message appears dead.
+ *		-ECANCELED If the MD of the message has been unlinked.
  */
 static int
 lnet_post_send_locked(struct lnet_msg *msg, int do_send)
@@ -2239,9 +2240,9 @@ lnet_parse_ack(struct lnet_ni *ni, struct lnet_msg *msg)
 }
 
 /**
- * \retval LNET_CREDIT_OK	If \a msg is forwarded
- * \retval LNET_CREDIT_WAIT	If \a msg is blocked because w/o buffer
- * \retval -ve			error code
+ * Return:	LNET_CREDIT_OK if @msg is forwarded
+ *		LNET_CREDIT_WAIT if @msg is blocked because w/o buffer
+ *		-ve error code
  */
 int
 lnet_parse_forward_locked(struct lnet_ni *ni, struct lnet_msg *msg)
@@ -2706,7 +2707,7 @@ lnet_recv_delayed_msg_list(struct list_head *head)
  * delivery.
  *
  * The local events will be logged in the EQ associated with the MD pointed to
- * by \a mdh handle. Using a MD without an associated EQ results in these
+ * by @mdh handle. Using a MD without an associated EQ results in these
  * events being discarded. In this case, the caller must have another
  * mechanism (e.g., a higher level protocol) for determining when it is safe
  * to modify the memory region associated with the MD.
@@ -2714,28 +2715,29 @@ lnet_recv_delayed_msg_list(struct list_head *head)
  * Note that LNet does not guarantee the order of LNET_EVENT_SEND and
  * LNET_EVENT_ACK, though intuitively ACK should happen after SEND.
  *
- * \param self Indicates the NID of a local interface through which to send
- * the PUT request. Use LNET_NID_ANY to let LNet choose one by itself.
- * \param mdh A handle for the MD that describes the memory to be sent. The MD
- * must be "free floating" (See LNetMDBind()).
- * \param ack Controls whether an acknowledgment is requested.
- * Acknowledgments are only sent when they are requested by the initiating
- * process and the target MD enables them.
- * \param target A process identifier for the target process.
- * \param portal The index in the \a target's portal table.
- * \param match_bits The match bits to use for MD selection at the target
- * process.
- * \param offset The offset into the target MD (only used when the target
- * MD has the LNET_MD_MANAGE_REMOTE option set).
- * \param hdr_data 64 bits of user data that can be included in the message
- * header. This data is written to an event queue entry at the target if an
- * EQ is present on the matching MD.
+ * @self	Indicates the NID of a local interface through which to send
+ *		the PUT request. Use LNET_NID_ANY to let LNet choose one by
+ *		itself.
+ * @mdh		A handle for the MD that describes the memory to be sent.
+ *		The MD must be "free floating" (See LNetMDBind()).
+ * @ack		Controls whether an acknowledgment is requested.
+ *		Acknowledgments are only sent when they are requested by
+ *		the initiating process and the target MD enables them.
+ * @target	A process identifier for the target process.
+ * @portal	The index in the @target's portal table.
+ * @match_bits	The match bits to use for MD selection at the target
+ *		process.
+ * @offset	The offset into the target MD (only used when the target
+ *		MD has the LNET_MD_MANAGE_REMOTE option set).
+ * @hdr_data	64 bits of user data that can be included in the message
+ *		header. This data is written to an event queue entry at
+ *		the target if an EQ is present on the matching MD.
  *
- * \retval  0      Success, and only in this case events will be generated
- * and logged to EQ (if it exists).
- * \retval -EIO    Simulated failure.
- * \retval -ENOMEM Memory allocation failure.
- * \retval -ENOENT Invalid MD object.
+ * Return:	0 Success, and only in this case events will be generated
+ *		and logged to EQ (if it exists).
+ *		-EIO  Simulated failure.
+ *		-ENOMEM Memory allocation failure.
+ *		-ENOENT Invalid MD object.
  *
  * \see lnet_event::hdr_data and lnet_event_kind.
  */
@@ -2935,16 +2937,21 @@ EXPORT_SYMBOL(lnet_set_reply_msg_len);
  * On the target node, an LNET_EVENT_GET is logged when the GET request
  * arrives and is accepted into a MD.
  *
- * \param self,target,portal,match_bits,offset See the discussion in LNetPut().
- * \param mdh A handle for the MD that describes the memory into which the
- * requested data will be received. The MD must be "free floating"
- * (See LNetMDBind()).
+ * @self	See the discussion in LNetPut().
+ * @target
+ * @portal
+ * @match_bits
+ * @offset
  *
- * \retval  0      Success, and only in this case events will be generated
- * and logged to EQ (if it exists) of the MD.
- * \retval -EIO    Simulated failure.
- * \retval -ENOMEM Memory allocation failure.
- * \retval -ENOENT Invalid MD object.
+ * @mdh		A handle for the MD that describes the memory into which the
+ *		requested data will be received. The MD must be "free floating"
+ *		(See LNetMDBind()).
+ *
+ * Return:	0 Success, and only in this case events will be generated
+ *		and logged to EQ (if it exists) of the MD.
+ *		-EIO Simulated failure.
+ *		-ENOMEM Memory allocation failure.
+ *		-ENOENT Invalid MD object.
  */
 int
 LNetGet(lnet_nid_t self, struct lnet_handle_md mdh,
@@ -3024,18 +3031,20 @@ LNetGet(lnet_nid_t self, struct lnet_handle_md mdh,
 EXPORT_SYMBOL(LNetGet);
 
 /**
- * Calculate distance to node at \a dstnid.
+ * Calculate distance to node at @dstnid.
  *
- * \param dstnid Target NID.
- * \param srcnidp If not NULL, NID of the local interface to reach \a dstnid
- * is saved here.
- * \param orderp If not NULL, order of the route to reach \a dstnid is saved
- * here.
+ * @dstnid	Target NID.
+ * @srcnidp	If not NULL, NID of the local interface to reach @dstnid
+ *		is saved here.
+ * @orderp	If not NULL, order of the route to reach @dstnid is saved
+ *		here.
  *
- * \retval 0 If \a dstnid belongs to a local interface, and reserved option
- * local_nid_dist_zero is set, which is the default.
- * \retval positives Distance to target NID, i.e. number of hops plus one.
- * \retval -EHOSTUNREACH If \a dstnid is not reachable.
+ * Return:	0 If @dstnid belongs to a local interface, and reserved
+ *		option local_nid_dist_zero is set, which is the default.
+ *
+ *		positives Distance to target NID, i.e. number of hops plus one.
+ *
+ *		-EHOSTUNREACH If @dstnid is not reachable.
  */
 int
 LNetDist(lnet_nid_t dstnid, lnet_nid_t *srcnidp, u32 *orderp)

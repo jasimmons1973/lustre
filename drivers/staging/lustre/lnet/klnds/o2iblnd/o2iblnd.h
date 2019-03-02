@@ -346,7 +346,7 @@ struct kib_data {
 	/* peers wait for reconnection */
 	struct list_head	kib_reconn_wait;
 	/**
-	 * The second that peers are pulled out from \a kib_reconn_wait
+	 * The second that peers are pulled out from @kib_reconn_wait
 	 * for reconnection.
 	 */
 	time64_t		kib_reconn_sec;
