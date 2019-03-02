@@ -86,7 +86,8 @@ struct super_operations lustre_super_operations = {
 /** This is the entry point for the mount call into Lustre.
  * This is called when a server or client is mounted,
  * and this is where we start setting things up.
- * @param data Mount options (e.g. -o flock,abort_recov)
+ *
+ * @data:	Mount options (e.g. -o flock,abort_recov)
  */
 static int lustre_fill_super(struct super_block *sb, void *lmd2_data, int silent)
 {

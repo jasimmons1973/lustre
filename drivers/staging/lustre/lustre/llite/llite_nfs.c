@@ -178,8 +178,8 @@ ll_iget_for_nfs(struct super_block *sb,
 }
 
 /**
- * \a connectable - is nfsd will connect himself or this should be done
- *		    at lustre
+ * @connectable - is nfsd will connect himself or this should be done
+ *		  at lustre
  *
  * The return value is file handle type:
  * 1 -- contains child file handle;

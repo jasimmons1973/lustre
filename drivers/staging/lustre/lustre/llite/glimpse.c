@@ -58,8 +58,8 @@ static const struct cl_lock_descr whole_file = {
 /*
  * Check whether file has possible unwriten pages.
  *
- * \retval 1    file is mmap-ed or has dirty pages
- *	 0    otherwise
+ * Return:	1 if file is mmap-ed or has dirty pages
+ *		0 otherwise
  */
 blkcnt_t dirty_cnt(struct inode *inode)
 {

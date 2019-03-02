@@ -47,7 +47,7 @@ INTERVAL_TREE_DEFINE(struct range_lock, rl_rb, u64, __subtree_last,
 /**
  * Initialize a range lock tree
  *
- * \param tree [in]	an empty range lock tree
+ * @tree	an empty range lock tree
  *
  * Pre:  Caller should have allocated the range lock tree.
  * Post: The range lock tree is ready to function.
@@ -62,9 +62,9 @@ void range_lock_tree_init(struct range_lock_tree *tree)
 /**
  * Initialize a range lock node
  *
- * \param lock  [in]	an empty range lock node
- * \param start [in]	start of the covering region
- * \param end   [in]	end of the covering region
+ * @lock	an empty range lock node
+ * @start	start of the covering region
+ * @end		end of the covering region
  *
  * Pre:  Caller should have allocated the range lock node.
  * Post: The range lock node is meant to cover [start, end] region
@@ -89,8 +89,8 @@ int range_lock_init(struct range_lock *lock, u64 start, u64 end)
 /**
  * Unlock a range lock, wake up locks blocked by this lock.
  *
- * \param tree [in]	range lock tree
- * \param lock [in]	range lock to be deleted
+ * @tree	range lock tree
+ * @lock	range lock to be deleted
  *
  * If this lock has been granted, relase it; if not, just delete it from
  * the tree or the same region lock list. Wake up those locks only blocked
@@ -120,11 +120,11 @@ void range_unlock(struct range_lock_tree *tree, struct range_lock *lock)
 /**
  * Lock a region
  *
- * \param tree [in]	range lock tree
- * \param lock [in]	range lock node containing the region span
+ * @tree	range lock tree
+ * @lock	range lock node containing the region span
  *
- * \retval 0	get the range lock
- * \retval <0	error code while not getting the range lock
+ * Return:	0 get the range lock
+ *		<0 error code while not getting the range lock
  *
  * If there exists overlapping range lock, the new lock will wait and
  * retry, if later it find that it is not the chosen one to wake up,

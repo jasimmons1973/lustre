@@ -893,12 +893,12 @@ LUSTRE_RO_ATTR(max_easize);
  *
  * \see client_obd::cl_default_mds_easize
  *
- * \param[in] kobj	kernel object for sysfs tree
- * \param[in] attr	attribute of this kernel object
- * \param[in] buf	buffer to write data into
+ * @kobj:	kernel object for sysfs tree
+ * @attr:	attribute of this kernel object
+ * @buf:	buffer to write data into
  *
- * \retval positive	\a count on success
- * \retval negative	negated errno on failure
+ * Returns:	positive @count on success
+ *		negated errno on failure
  */
 static ssize_t default_easize_show(struct kobject *kobj,
 				   struct attribute *attr,
@@ -924,13 +924,13 @@ static ssize_t default_easize_show(struct kobject *kobj,
  *
  * \see client_obd::cl_default_mds_easize
  *
- * \param[in] kobj	kernel object for sysfs tree
- * \param[in] attr	attribute of this kernel object
- * \param[in] buffer	string passed from user space
- * \param[in] count	\a buffer length
+ * @kobj:	kernel object for sysfs tree
+ * @attr:	attribute of this kernel object
+ * @buffer:	string passed from user space
+ * @count:	@buffer length
  *
- * \retval positive	\a count on success
- * \retval negative	negated errno on failure
+ * Returns:	positive @count on success
+ *		negated errno on failure
  */
 static ssize_t default_easize_store(struct kobject *kobj,
 				    struct attribute *attr,

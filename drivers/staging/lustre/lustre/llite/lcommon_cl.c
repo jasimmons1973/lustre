@@ -130,8 +130,9 @@ again:
  * Initialize or update CLIO structures for regular files when new
  * meta-data arrives from the server.
  *
- * \param inode regular file inode
- * \param md    new file metadata from MDS
+ * @inode	regular file inode
+ * @md		new file metadata from MDS
+ *
  * - allocates cl_object if necessary,
  * - updated layout, if object was already here.
  */

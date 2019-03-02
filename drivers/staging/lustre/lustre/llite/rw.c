@@ -62,9 +62,9 @@ static void ll_ra_stats_inc_sbi(struct ll_sb_info *sbi, enum ra_stat which);
  * Get readahead pages from the filesystem readahead pool of the client for a
  * thread.
  *
- * /param sbi superblock for filesystem readahead state ll_ra_info
- * /param ria per-thread readahead state
- * /param pages number of pages requested for readahead for the thread.
+ * @sbi:	superblock for filesystem readahead state ll_ra_info
+ * @ria:	per-thread readahead state
+ * @pages:	number of pages requested for readahead for the thread.
  *
  * WARNING: This algorithm is used to reduce contention on sbi->ll_lock.
  * It should work well if the ra_max_pages is much greater than the single
@@ -73,7 +73,7 @@ static void ll_ra_stats_inc_sbi(struct ll_sb_info *sbi, enum ra_stat which);
  *
  * TODO: There may be a 'global sync problem' if many threads are trying
  * to get an ra budget that is larger than the remaining readahead pages
- * and reach here at exactly the same time. They will compute /a ret to
+ * and reach here at exactly the same time. They will compute @ret to
  * consume the remaining pages, but will fail at atomic_add_return() and
  * get a zero ra window, although there is still ra space remaining. - Jay
  */
@@ -168,10 +168,10 @@ void ll_ras_enter(struct file *f)
 /**
  * Initiates read-ahead of a page with given index.
  *
- * \retval +ve:	page was already uptodate so it will be skipped
+ * Return:	+ve if page was already uptodate so it will be skipped
  *		from being added;
- * \retval -ve:	page wasn't added to \a queue for error;
- * \retval   0:	page was added into \a queue for read ahead.
+ *		-ve if page wasn't added to @queue for error;
+ *		0 if page was added into @queue for read ahead.
  */
 static int ll_read_ahead_page(const struct lu_env *env, struct cl_io *io,
 			      struct cl_page_list *queue, pgoff_t index)

@@ -107,7 +107,7 @@ static void vvp_object_size_unlock(struct cl_object *obj)
 
 /**
  * Helper function that if necessary adjusts file size (inode->i_size), when
- * position at the offset \a pos is accessed. File size can be arbitrary stale
+ * position at the offset @pos is accessed. File size can be arbitrary stale
  * on a Lustre client, but client at least knows KMS. If accessed area is
  * inside [0, KMS], set file size to KMS, otherwise glimpse file size.
  *

@@ -227,7 +227,7 @@ static int vvp_page_prep_write(const struct lu_env *env,
  * Handles page transfer errors at VM level.
  *
  * This takes inode as a separate argument, because inode on which error is to
- * be set can be different from \a vmpage inode in case of direct-io.
+ * be set can be different from @vmpage inode in case of direct-io.
  */
 static void vvp_vmpage_error(struct inode *inode, struct page *vmpage,
 			     int ioret)
@@ -309,10 +309,10 @@ static void vvp_page_completion_write(const struct lu_env *env,
  * but hopefully rare situation, as it usually results in transfer being
  * shorter than possible).
  *
- * \retval 0      success, page can be placed into transfer
+ * Return:	0 success, page can be placed into transfer
  *
- * \retval -EAGAIN page is either used by concurrent IO has been
- * truncated. Skip it.
+ *		-EAGAIN page is either used by concurrent IO has been
+ *		truncated. Skip it.
  */
 static int vvp_page_make_ready(const struct lu_env *env,
 			       const struct cl_page_slice *slice)

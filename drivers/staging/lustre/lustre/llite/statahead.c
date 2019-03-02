@@ -792,9 +792,9 @@ static int sa_lookup(struct inode *dir, struct sa_entry *entry)
 /**
  * async stat for file found in dcache, similar to .revalidate
  *
- * \retval	1 dentry valid, no RPC sent
- * \retval	0 dentry invalid, will send async stat RPC
- * \retval	negative number upon error
+ * Return:	1 dentry valid, no RPC sent
+ *		0 dentry invalid, will send async stat RPC
+ *		negative number upon error
  */
 static int sa_revalidate(struct inode *dir, struct sa_entry *entry,
 			 struct dentry *dentry)
@@ -1342,14 +1342,15 @@ out:
 /**
  * revalidate @dentryp from statahead cache
  *
- * \param[in]  dir	parent directory
- * \param[in]  sai	sai structure
- * \param[out] dentryp	pointer to dentry which will be revalidated
- * \param[in]  unplug	unplug statahead window only (normally for negative
- *			dentry)
- * \retval		1 on success, dentry is saved in @dentryp
- * \retval		0 if revalidation failed (no proper lock on client)
- * \retval		negative number upon error
+ * @dir:	parent directory
+ * @sai:	sai structure
+ * @dentryp:	pointer to dentry which will be revalidated
+ * @unplug:	unplug statahead window only (normally for negative
+ *		dentry)
+ *
+ * Return:	1 on success, dentry is saved in @dentryp
+ *		0 if revalidation failed (no proper lock on client)
+ *		negative number upon error
  */
 static int revalidate_statahead_dentry(struct inode *dir,
 				       struct ll_statahead_info *sai,
@@ -1487,14 +1488,16 @@ out_unplug:
 /**
  * start statahead thread
  *
- * \param[in] dir	parent directory
- * \param[in] dentry	dentry that triggers statahead, normally the first
- *			dirent under @dir
- * \retval		-EAGAIN on success, because when this function is
- *			called, it's already in lookup call, so client should
- *			do it itself instead of waiting for statahead thread
- *			to do it asynchronously.
- * \retval		negative number upon error
+ * @dir:	parent directory
+ * @dentry:	dentry that triggers statahead, normally the first
+ *		dirent under @dir
+ *
+ * Returns:	-EAGAIN on success, because when this function is
+ *		called, it's already in lookup call, so client should
+ *		do it itself instead of waiting for statahead thread
+ *		to do it asynchronously.
+ *
+ *		negative number upon error
  */
 static int start_statahead_thread(struct inode *dir, struct dentry *dentry)
 {
@@ -1594,15 +1597,15 @@ out:
  * will start statahead thread if this is the first dir entry, else revalidate
  * dentry from statahead cache.
  *
- * \param[in]  dir	parent directory
- * \param[out] dentryp	dentry to getattr
- * \param[in]  unplug	unplug statahead window only (normally for negative
- *			dentry)
- * \retval		1 on success
- * \retval		0 revalidation from statahead cache failed, caller needs
- *			to getattr from server directly
- * \retval		negative number on error, caller often ignores this and
- *			then getattr from server
+ * @dir:	parent directory
+ * @dentryp:	dentry to getattr
+ * @unplug:	unplug statahead window only (normally for negative
+ *		dentry)
+ * Returns:	1 on success
+ *		0 revalidation from statahead cache failed, caller needs
+ *		to getattr from server directly
+ *		negative number on error, caller often ignores this and
+ *		then getattr from server
  */
 int ll_statahead(struct inode *dir, struct dentry **dentryp, bool unplug)
 {

@@ -112,8 +112,8 @@ static void ll_prepare_close(struct inode *inode, struct md_op_data *op_data,
  * Perform a close, possibly with a bias.
  * The meaning of "data" depends on the value of "bias".
  *
- * If \a bias is MDS_HSM_RELEASE then \a data is a pointer to the data version.
- * If \a bias is MDS_CLOSE_LAYOUT_SWAP then \a data is a pointer to the inode to
+ * If @bias is MDS_HSM_RELEASE then @data is a pointer to the data version.
+ * If @bias is MDS_CLOSE_LAYOUT_SWAP then @data is a pointer to the inode to
  * swap layouts with.
  */
 static int ll_close_inode_openhandle(struct inode *inode,
@@ -923,11 +923,12 @@ out:
 /**
  * Check whether a layout swap can be done between two inodes.
  *
- * \param[in] inode1  First inode to check
- * \param[in] inode2  Second inode to check
+ * @inode1:	First inode to check
+ * @inode2:	Second inode to check
  *
- * \retval 0 on success, layout swap can be performed between both inodes
- * \retval negative error code if requirements are not met
+ * Return:	0 on success, layout swap can be performed between
+ *		both inodes
+ *		negative error code if requirements are not met
  */
 static int ll_check_swap_layouts_validity(struct inode *inode1,
 					  struct inode *inode2)
@@ -1268,11 +1269,11 @@ out:
  * doesn't make the situation worse on single node but it may interleave write
  * results from multiple nodes due to short read handling in ll_file_aio_read().
  *
- * @env   - lu_env
- * @iocb  - kiocb from kernel
- * @iter  - user space buffers where the data will be copied
+ * @env:	lu_env
+ * @iocb:	kiocb from kernel
+ * @iter:	user space buffers where the data will be copied
  *
- * RETURN - number of bytes have been read, or error code if error occurred.
+ * Returns:	number of bytes have been read, or error code if error occurred.
  */
 static ssize_t
 ll_do_fast_read(const struct lu_env *env, struct kiocb *iocb,
@@ -1667,11 +1668,11 @@ static int ll_put_grouplock(struct inode *inode, struct file *file,
 /**
  * Close inode open handle
  *
- * \param inode  [in]     inode in question
- * \param it     [in,out] intent which contains open info and result
+ * @inode:	inode in question
+ * @it:		intent which contains open info and result
  *
- * \retval 0     success
- * \retval <0    failure
+ * Returns:	0     success
+ *		<0    failure
  */
 int ll_release_openhandle(struct inode *inode, struct lookup_intent *it)
 {
@@ -1712,8 +1713,8 @@ out:
  * Get size for inode for which FIEMAP mapping is requested.
  * Make the FIEMAP get_info call and returns the result.
  *
- * \param fiemap	kernel buffer to hold extens
- * \param num_bytes	kernel buffer size
+ * @fiemap:	kernel buffer to hold extens
+ * @num_bytes:	kernel buffer size
  */
 static int ll_do_fiemap(struct inode *inode, struct fiemap *fiemap,
 			size_t num_bytes)
@@ -1823,7 +1824,7 @@ gf_free:
  * This value is computed using stripe object version on OST.
  * Version is computed using server side locking.
  *
- * @param flags if do sync on the OST side;
+ * @flags:	if do sync on the OST side;
  *		0: no sync
  *		LL_DV_RD_FLUSH: flush dirty pages, LCK_PR on OSTs
  *		LL_DV_WR_FLUSH: drop all caching pages, LCK_PW on OSTs
@@ -3174,10 +3175,12 @@ ll_file_noflock(struct file *file, int cmd, struct file_lock *file_lock)
  * - bits can be in different locks
  * - if found clear the common lock bits in *bits
  * - the bits not found, are kept in *bits
- * \param inode [IN]
- * \param bits [IN] searched lock bits [IN]
- * \param l_req_mode [IN] searched lock mode
- * \retval boolean, true iff all bits are found
+ *
+ * @inode:		inode
+ * @bits:		searched lock bits [IN]
+ * @l_req_mode:		searched lock mode
+ *
+ * Returns:		boolean, true iff all bits are found
  */
 int ll_have_md_lock(struct inode *inode, u64 *bits,
 		    enum ldlm_mode l_req_mode)
@@ -3828,9 +3831,8 @@ out:
  * @inode	file inode
  * @intent	layout intent
  *
- * RETURNS:
- * 0		on success
- * retval < 0	error code
+ * Returns:	0 on success
+ *		< 0 error code
  */
 static int ll_layout_intent(struct inode *inode, struct layout_intent *intent)
 {
@@ -3938,13 +3940,13 @@ int ll_layout_refresh(struct inode *inode, u32 *gen)
 /**
  * Issue layout intent RPC indicating where in a file an IO is about to write.
  *
- * \param[in] inode    file inode.
- * \param[in] start    start offset of fille in bytes where an IO is about to
- *                     write.
- * \param[in] end      exclusive end offset in bytes of the write range.
+ * @inode:	file inode.
+ * @start:	start offset of fille in bytes where an IO is about to
+ *		write.
+ * @end:	exclusive end offset in bytes of the write range.
  *
- * \retval 0   on success
- * \retval < 0 error code
+ * Returns:	0 on success
+ *		< 0 error code
  */
 int ll_layout_write_intent(struct inode *inode, u64 start, u64 end)
 {

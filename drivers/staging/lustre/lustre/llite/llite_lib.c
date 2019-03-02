@@ -638,11 +638,11 @@ int ll_get_max_mdsize(struct ll_sb_info *sbi, int *lmmsize)
  *
  * \see client_obd::cl_default_mds_easize
  *
- * \param[in]  sbi	superblock info for this filesystem
- * \param[out] lmmsize	pointer to storage location for value
+ * @sbi:	superblock info for this filesystem
+ * @lmmsize:	pointer to storage location for value
  *
- * \retval 0		on success
- * \retval negative	negated errno on failure
+ * Returns:	0 on success
+ *		negated errno on failure
  */
 int ll_get_default_mdsize(struct ll_sb_info *sbi, int *lmmsize)
 {
@@ -662,11 +662,11 @@ int ll_get_default_mdsize(struct ll_sb_info *sbi, int *lmmsize)
  *
  * \see client_obd::cl_default_mds_easize
  *
- * \param[in] sbi	superblock info for this filesystem
- * \param[in] lmmsize	the size to set
+ * @sbi:	superblock info for this filesystem
+ * @lmmsize:	the size to set
  *
- * \retval 0		on success
- * \retval negative	negated errno on failure
+ * Return:	0 on success
+ *		negated errno on failure
  */
 int ll_set_default_mdsize(struct ll_sb_info *sbi, int lmmsize)
 {
@@ -2179,8 +2179,8 @@ int ll_remount_fs(struct super_block *sb, int *flags, char *data)
  * holds the reference on such file/object, then it will block the
  * subsequent threads that want to locate such object via FID.
  *
- * \param[in] sb	super block for this file-system
- * \param[in] open_req	pointer to the original open request
+ * @sb:		super block for this file-system
+ * @open_req:	pointer to the original open request
  */
 void ll_open_cleanup(struct super_block *sb, struct ptlrpc_request *open_req)
 {
@@ -2473,7 +2473,7 @@ int ll_get_obd_name(struct inode *inode, unsigned int cmd, unsigned long arg)
 }
 
 /**
- * Get lustre file system name by \a sbi. If \a buf is provided(non-NULL), the
+ * Get lustre file system name by @sbi. If @buf is provided(non-NULL), the
  * fsname will be returned in this buffer; otherwise, a static buffer will be
  * used to store the fsname and returned to caller.
  */
@@ -2610,13 +2610,13 @@ void ll_compute_rootsquash_state(struct ll_sb_info *sbi)
 /**
  * Parse linkea content to extract information about a given hardlink
  *
- * \param[in]	ldata		- Initialized linkea data
- * \param[in]	linkno		- Link identifier
- * \param[out]	parent_fid	- The entry's parent FID
- * \param[in]	size		- Entry name destination buffer
+ * @ldata:		- Initialized linkea data
+ * @linkno:		- Link identifier
+ * @parent_fid:		- The entry's parent FID
+ * @size:		- Entry name destination buffer
  *
- * \retval 0 on success
- * \retval Appropriate negative error code on failure
+ * Returns:		0 on success
+ *			Appropriate negative error code on failure
  */
 static int ll_linkea_decode(struct linkea_data *ldata, unsigned int linkno,
 			    struct lu_fid *parent_fid, struct lu_name *ln)
@@ -2653,14 +2653,14 @@ static int ll_linkea_decode(struct linkea_data *ldata, unsigned int linkno,
  * a given link number, letting the caller iterate over linkno to list one or
  * all links of an entry.
  *
- * \param[in]	  file	- File descriptor against which to perform the operation
- * \param[in,out] arg	- User-filled structure containing the linkno to operate
- *			  on and the available size. It is eventually filled
- *			  with the requested information or left untouched on
- *			  error
+ * @file:	- File descriptor against which to perform the operation
+ * @arg:	- User-filled structure containing the linkno to operate
+ *		  on and the available size. It is eventually filled
+ *		  with the requested information or left untouched on
+ *		  error
  *
- * \retval - 0 on success
- * \retval - Appropriate negative error code on failure
+ * Returns:	- 0 on success
+ *		- Appropriate negative error code on failure
  */
 int ll_getparent(struct file *file, struct getparent __user *arg)
 {

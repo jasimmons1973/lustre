@@ -69,8 +69,8 @@ static void ll_xattr_cache_init(struct ll_inode_info *lli)
  *  Find in @cache and return @xattr_name attribute in @xattr,
  *  for the NULL @xattr_name return the first cached @xattr.
  *
- *  \retval 0        success
- *  \retval -ENODATA if not found
+ *  Return:	0 success
+ *		-ENODATA if not found
  */
 static int ll_xattr_cache_find(struct list_head *cache,
 			       const char *xattr_name,
@@ -97,9 +97,9 @@ static int ll_xattr_cache_find(struct list_head *cache,
  *
  * Add @xattr_name attr with @xattr_val value and @xattr_val_len length,
  *
- * \retval 0       success
- * \retval -ENOMEM if no memory could be allocated for the cached attr
- * \retval -EPROTO if duplicate xattr is being added
+ * Return:	0 success
+ *		-ENOMEM if no memory could be allocated for the cached attr
+ *		-EPROTO if duplicate xattr is being added
  */
 static int ll_xattr_cache_add(struct list_head *cache,
 			      const char *xattr_name,
@@ -151,8 +151,8 @@ err_name:
  *
  * Remove @xattr_name attribute from @cache.
  *
- * \retval 0        success
- * \retval -ENODATA if @xattr_name is not cached
+ * Return:	0 success
+ *		-ENODATA if @xattr_name is not cached
  */
 static int ll_xattr_cache_del(struct list_head *cache,
 			      const char *xattr_name)
@@ -180,8 +180,8 @@ static int ll_xattr_cache_del(struct list_head *cache,
  * fill in @xld_buffer or only calculate buffer
  * size if @xld_buffer is NULL.
  *
- * \retval >= 0     buffer list size
- * \retval -ENODATA if the list cannot fit @xld_size buffer
+ * Return:	>= 0 buffer list size
+ *		-ENODATA if the list cannot fit @xld_size buffer
  */
 static int ll_xattr_cache_list(struct list_head *cache,
 			       char *xld_buffer,
@@ -213,8 +213,8 @@ static int ll_xattr_cache_list(struct list_head *cache,
 /**
  * Check if the xattr cache is initialized (filled).
  *
- * \retval 0 @cache is not initialized
- * \retval 1 @cache is initialized
+ * Return:	0 @cache is not initialized
+ *		1 @cache is initialized
  */
 static int ll_xattr_cache_valid(struct ll_inode_info *lli)
 {
@@ -226,7 +226,7 @@ static int ll_xattr_cache_valid(struct ll_inode_info *lli)
  *
  * Free all xattr memory. @lli is the inode info pointer.
  *
- * \retval 0 no error occurred
+ * Return:	0 no error occurred
  */
 static int ll_xattr_cache_destroy_locked(struct ll_inode_info *lli)
 {
@@ -261,8 +261,8 @@ int ll_xattr_cache_destroy(struct inode *inode)
  * the function handles it with a separate enq lock.
  * If successful, the function exits with the list lock held.
  *
- * \retval 0       no error occurred
- * \retval -ENOMEM not enough memory
+ * Return:	0 no error occurred
+ *		-ENOMEM not enough memory
  */
 static int ll_xattr_find_get_lock(struct inode *inode,
 				  struct lookup_intent *oit,
@@ -326,9 +326,9 @@ out:
  *
  * Fetch and cache the whole of xattrs for @inode, acquiring a read lock.
  *
- * \retval 0       no error occurred
- * \retval -EPROTO network protocol error
- * \retval -ENOMEM not enough memory for the cache
+ * Return:		0 no error occurred
+ *			-EPROTO network protocol error
+ *			-ENOMEM not enough memory for the cache
  */
 static int ll_xattr_cache_refill(struct inode *inode)
 {
@@ -451,11 +451,11 @@ err_req:
  * The resulting value/list is stored in @buffer if the former
  * is not larger than @size.
  *
- * \retval 0        no error occurred
- * \retval -EPROTO  network protocol error
- * \retval -ENOMEM  not enough memory for the cache
- * \retval -ERANGE  the buffer is not large enough
- * \retval -ENODATA no such attr or the list is empty
+ * Return:	0 no error occurred
+ *		-EPROTO network protocol error
+ *		-ENOMEM not enough memory for the cache
+ *		-ERANGE the buffer is not large enough
+ *		-ENODATA no such attr or the list is empty
  */
 int ll_xattr_cache_get(struct inode *inode, const char *name, char *buffer,
 		       size_t size, u64 valid)

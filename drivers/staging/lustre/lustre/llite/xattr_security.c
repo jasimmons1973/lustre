@@ -79,9 +79,9 @@ int ll_dentry_init_security(struct dentry *dentry, int mode, struct qstr *name,
  * and put it in 'security.xxx' xattr of dentry
  * stored in @fs_info.
  *
- * \retval 0        success
- * \retval -ENOMEM  if no memory could be allocated for xattr name
- * \retval < 0      failure to set xattr
+ * Return:	0 success
+ *		-ENOMEM if no memory could be allocated for xattr name
+ *		< 0 failure to set xattr
  */
 static int
 ll_initxattrs(struct inode *inode, const struct xattr *xattr_array,
@@ -116,9 +116,9 @@ ll_initxattrs(struct inode *inode, const struct xattr *xattr_array,
  * Get security context of @inode in @dir,
  * and put it in 'security.xxx' xattr of @dentry.
  *
- * \retval 0        success, or SELinux is disabled
- * \retval -ENOMEM  if no memory could be allocated for xattr name
- * \retval < 0      failure to get security context or set xattr
+ * Return:	0 success, or SELinux is disabled
+ *		-ENOMEM if no memory could be allocated for xattr name
+ *		< 0 failure to get security context or set xattr
  */
 int
 ll_inode_init_security(struct dentry *dentry, struct inode *inode,

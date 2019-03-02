@@ -79,10 +79,11 @@ struct vm_area_struct *our_vma(struct mm_struct *mm, unsigned long addr,
 
 /**
  * API independent part for page fault initialization.
- * \param vma - virtual memory area addressed to page fault
- * \param env - corespondent lu_env to processing
- * \param index - page index corespondent to fault.
- * \parm ra_flags - vma readahead flags.
+ *
+ * @vma		virtual memory area addressed to page fault
+ * @env		corespondent lu_env to processing
+ * @index	page index corespondent to fault.
+ * @ra_flags	vma readahead flags.
  *
  * \return error codes from cl_io_init.
  */
@@ -254,12 +255,12 @@ static inline vm_fault_t to_fault_error(int result)
  * Lustre implementation of a vm_operations_struct::fault() method, called by
  * VM to server page fault (both in kernel and user space).
  *
- * \param vma - is virtual area struct related to page fault
- * \param vmf - structure which describe type and address where hit fault
+ * @vma		is virtual area struct related to page fault
+ * @vmf		structure which describe type and address where hit fault
  *
- * \return allocated and filled _locked_ page for address
- * \retval VM_FAULT_ERROR on general error
- * \retval NOPAGE_OOM not have memory for allocate new page
+ * Return:	allocated and filled _locked_ page for address
+ *		VM_FAULT_ERROR on general error
+ *		NOPAGE_OOM not have memory for allocate new page
  */
 static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 {

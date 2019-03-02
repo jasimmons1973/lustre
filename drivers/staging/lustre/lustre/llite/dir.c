@@ -393,13 +393,13 @@ static int ll_send_mgc_param(struct obd_export *mgc, char *string)
 /**
  * Create striped directory with specified stripe(@lump)
  *
- * param[in] dparent	the parent of the directory.
- * param[in] lump	the specified stripes.
- * param[in] dirname	the name of the directory.
- * param[in] mode	the specified mode of the directory.
+ * @dparent:	the parent of the directory.
+ * @lump:	the specified stripes.
+ * @dirname:	the name of the directory.
+ * @mode:	the specified mode of the directory.
  *
- * retval		=0 if striped directory is being created successfully.
- *			<0 if the creation is failed.
+ * Returns:	=0 if striped directory is being created successfully.
+ *		<0 if the creation is failed.
  */
 static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 			       const char *dirname, umode_t mode)
@@ -738,7 +738,7 @@ int ll_get_mdt_idx(struct inode *inode)
  * first information for it that real work has started.
  *
  * Moreover, for a ARCHIVE request, it will sample the file data version and
- * store it in \a copy.
+ * store it in @copy.
  *
  * \return 0 on success.
  */
