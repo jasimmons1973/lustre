@@ -580,7 +580,7 @@ struct osc_extent {
 	/* refcount, removed from red-black tree if reaches zero. */
 	struct kref		oe_refc;
 	/* busy if non-zero */
-	refcount_t		oe_users;
+	atomic_t		oe_users;
 	/* link list of osc_object's oo_{hp|urgent|locking}_exts. */
 	struct list_head	oe_link;
 	/* state of this extent */

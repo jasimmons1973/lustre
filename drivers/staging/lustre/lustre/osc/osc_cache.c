@@ -116,7 +116,7 @@ static const char * const oes_strings[] = {
 		__ext, EXTPARA(__ext),					      \
 		/* ----- part 1 ----- */				      \
 		kref_read(&__ext->oe_refc),				      \
-		refcount_read(&__ext->oe_users),			      \
+		atomic_read(&__ext->oe_users),			      \
 		list_empty_marker(&__ext->oe_link),			      \
 		oes_strings[__ext->oe_state], ext_flags(__ext, __buf),	      \
 		__ext->oe_obj,						      \
@@ -194,7 +194,7 @@ static int __osc_extent_sanity_check(struct osc_extent *ext,
 		goto out;
 	}
 
-	if (kref_read(&ext->oe_refc) < refcount_read(&ext->oe_users)) {
+	if (kref_read(&ext->oe_refc) < atomic_read(&ext->oe_users)) {
 		rc = 30;
 		goto out;
 	}
@@ -207,7 +207,7 @@ static int __osc_extent_sanity_check(struct osc_extent *ext,
 			rc = 0;
 		goto out;
 	case OES_ACTIVE:
-		if (refcount_read(&ext->oe_users) == 0) {
+		if (atomic_read(&ext->oe_users) == 0) {
 			rc = 40;
 			goto out;
 		}
@@ -231,7 +231,7 @@ static int __osc_extent_sanity_check(struct osc_extent *ext,
 		}
 		/* fall through */
 	default:
-		if (refcount_read(&ext->oe_users) > 0) {
+		if (atomic_read(&ext->oe_users) > 0) {
 			rc = 70;
 			goto out;
 		}
@@ -367,7 +367,7 @@ static struct osc_extent *osc_extent_alloc(struct osc_object *obj)
 	ext->oe_obj = obj;
 	cl_object_get(osc2cl(obj));
 	kref_init(&ext->oe_refc);
-	refcount_set(&ext->oe_users, 0);
+	atomic_set(&ext->oe_users, 0);
 	INIT_LIST_HEAD(&ext->oe_link);
 	ext->oe_state = OES_INV;
 	INIT_LIST_HEAD(&ext->oe_pages);
@@ -383,7 +383,7 @@ static void osc_extent_free(struct kref *kref)
 					      oe_refc);
 
 	LASSERT(list_empty(&ext->oe_link));
-	LASSERT(refcount_read(&ext->oe_users) == 0);
+	LASSERT(atomic_read(&ext->oe_users) == 0);
 	LASSERT(ext->oe_state == OES_INV);
 	LASSERT(RB_EMPTY_NODE(&ext->oe_node));
 
@@ -527,7 +527,7 @@ static struct osc_extent *osc_extent_hold(struct osc_extent *ext)
 		osc_extent_state_set(ext, OES_ACTIVE);
 		osc_update_pending(obj, OBD_BRW_WRITE, -ext->oe_nr_pages);
 	}
-	refcount_inc(&ext->oe_users);
+	atomic_inc(&ext->oe_users);
 	list_del_init(&ext->oe_link);
 
 	return osc_extent_get(ext);
@@ -622,11 +622,11 @@ void osc_extent_release(const struct lu_env *env, struct osc_extent *ext)
 	struct osc_object *obj = ext->oe_obj;
 	struct client_obd *cli = osc_cli(obj);
 
-	LASSERT(refcount_read(&ext->oe_users) > 0);
+	LASSERT(atomic_read(&ext->oe_users) > 0);
 	LASSERT(osc_extent_sanity_check(ext) == 0);
 	LASSERT(ext->oe_grants > 0);
 
-	if (refcount_dec_and_lock(&ext->oe_users, &obj->oo_lock)) {
+	if (atomic_dec_and_lock(&ext->oe_users, &obj->oo_lock)) {
 		LASSERT(ext->oe_state == OES_ACTIVE);
 		if (ext->oe_trunc_pending) {
 			/* a truncate process is waiting for this extent.
