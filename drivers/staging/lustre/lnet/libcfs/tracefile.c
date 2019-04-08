@@ -829,7 +829,7 @@ int cfs_tracefile_dump_all_pages(char *filename)
 		goto close;
 	}
 	__oldfs = get_fs();
-	set_fs(get_ds());
+	set_fs(KERNEL_DS);
 
 	/* ok, for now, just write the pages.  in the future we'll be building
 	 * iobufs with the pages and calling generic_direct_IO

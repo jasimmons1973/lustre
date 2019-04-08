@@ -951,13 +951,13 @@ static inline void kiblnd_dma_unmap_sg(struct ib_device *dev,
 static inline u64 kiblnd_sg_dma_address(struct ib_device *dev,
 					  struct scatterlist *sg)
 {
-	return ib_sg_dma_address(dev, sg);
+	return sg_dma_address(sg);
 }
 
 static inline unsigned int kiblnd_sg_dma_len(struct ib_device *dev,
 					     struct scatterlist *sg)
 {
-	return ib_sg_dma_len(dev, sg);
+	return sg_dma_len(sg);
 }
 
 /* XXX We use KIBLND_CONN_PARAM(e) as writable buffer, it's not strictly */
