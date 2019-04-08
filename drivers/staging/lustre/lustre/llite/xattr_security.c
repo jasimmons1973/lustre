@@ -32,7 +32,6 @@
 
 #include <linux/types.h>
 #include <linux/security.h>
-#include <linux/selinux.h>
 #include <linux/xattr.h>
 #include "llite_internal.h"
 
@@ -58,11 +57,11 @@ int ll_dentry_init_security(struct dentry *dentry, int mode, struct qstr *name,
 	 * calls it and assumes that if anything is returned then it must come
 	 * from SELinux.
 	 */
-	if (!selinux_is_enabled())
-		return 0;
 
 	rc = security_dentry_init_security(dentry, mode, name, secctx,
 					   secctx_size);
+	if (rc == -EOPNOTSUPP)
+		return 0;
 	if (rc < 0)
 		return rc;
 
@@ -124,9 +123,12 @@ int
 ll_inode_init_security(struct dentry *dentry, struct inode *inode,
 		       struct inode *dir)
 {
-	if (!selinux_is_enabled())
-		return 0;
+	int err;
 
-	return security_inode_init_security(inode, dir, NULL,
-					    &ll_initxattrs, dentry);
+	err = security_inode_init_security(inode, dir, NULL,
+					   &ll_initxattrs, dentry);
+
+	if (err == -EOPNOTSUPP)
+		return 0;
+	return err;
 }

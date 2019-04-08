@@ -35,7 +35,6 @@
 #include <linux/sched.h>
 #include <linux/mm.h>
 #include <linux/xattr.h>
-#include <linux/selinux.h>
 
 #define DEBUG_SUBSYSTEM S_LLITE
 
@@ -120,11 +119,6 @@ static int ll_xattr_set_common(const struct xattr_handler *handler,
 	    ((handler->flags == XATTR_TRUSTED_T && !strcmp(name, "lov")) ||
 	     (handler->flags == XATTR_LUSTRE_T && !strcmp(name, "lov"))))
 		return 0;
-
-	/* LU-549:  Disable security.selinux when selinux is disabled */
-	if (handler->flags == XATTR_SECURITY_T && !selinux_is_enabled() &&
-	    strcmp(name, "selinux") == 0)
-		return -EOPNOTSUPP;
 
 	/*FIXME: enable IMA when the conditions are ready */
 	if (handler->flags == XATTR_SECURITY_T &&
@@ -427,11 +421,6 @@ static int ll_xattr_get_common(const struct xattr_handler *handler,
 	rc = xattr_type_filter(sbi, handler);
 	if (rc)
 		return rc;
-
-	/* LU-549:  Disable security.selinux when selinux is disabled */
-	if (handler->flags == XATTR_SECURITY_T && !selinux_is_enabled() &&
-	    !strcmp(name, "selinux"))
-		return -EOPNOTSUPP;
 
 #ifdef CONFIG_FS_POSIX_ACL
 	/* posix acl is under protection of LOOKUP lock. when calling to this,
