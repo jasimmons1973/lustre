@@ -50,6 +50,7 @@ lnet_sock_write(struct socket *sock, void *buffer, int nob, int timeout)
 	long jiffies_left = timeout * msecs_to_jiffies(MSEC_PER_SEC);
 	unsigned long then;
 	struct timeval tv;
+	struct __kernel_sock_timeval ktv;
 	struct kvec iov = {
 		.iov_base = buffer,
 		.iov_len = nob
@@ -67,8 +68,10 @@ lnet_sock_write(struct socket *sock, void *buffer, int nob, int timeout)
 		if (timeout) {
 			/* Set send timeout to remaining time */
 			jiffies_to_timeval(jiffies_left, &tv);
-			rc = kernel_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO,
-					       (char *)&tv, sizeof(tv));
+			ktv.tv_sec = tv.tv_sec;
+			ktv.tv_usec = tv.tv_usec;
+			rc = kernel_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO_NEW,
+					       (char *)&ktv, sizeof(ktv));
 			if (rc) {
 				CERROR("Can't set socket send timeout %ld.%06d: %d\n",
 				       (long)tv.tv_sec, (int)tv.tv_usec, rc);
@@ -105,6 +108,7 @@ lnet_sock_read(struct socket *sock, void *buffer, int nob, int timeout)
 	long jiffies_left = timeout * msecs_to_jiffies(MSEC_PER_SEC);
 	unsigned long then;
 	struct timeval tv;
+	struct __kernel_sock_timeval ktv;
 	struct kvec iov = {
 		.iov_base = buffer,
 		.iov_len = nob
@@ -121,8 +125,10 @@ lnet_sock_read(struct socket *sock, void *buffer, int nob, int timeout)
 	for (;;) {
 		/* Set receive timeout to remaining time */
 		jiffies_to_timeval(jiffies_left, &tv);
-		rc = kernel_setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,
-				       (char *)&tv, sizeof(tv));
+		ktv.tv_sec = tv.tv_sec;
+		ktv.tv_usec = tv.tv_usec;
+		rc = kernel_setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO_NEW,
+				       (char *)&ktv, sizeof(ktv));
 		if (rc) {
 			CERROR("Can't set socket recv timeout %ld.%06d: %d\n",
 			       (long)tv.tv_sec, (int)tv.tv_usec, rc);
