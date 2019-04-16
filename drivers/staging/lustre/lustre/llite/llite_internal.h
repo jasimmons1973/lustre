@@ -50,14 +50,6 @@
 #include "vvp_internal.h"
 #include "range_lock.h"
 
-#ifndef FMODE_EXEC
-#define FMODE_EXEC 0
-#endif
-
-#ifndef VM_FAULT_RETRY
-#define VM_FAULT_RETRY 0
-#endif
-
 /** Only used on client-side for indicating the tail of dir hash/offset. */
 #define LL_DIR_END_OFF	  0x7fffffffffffffffULL
 #define LL_DIR_END_OFF_32BIT    0x7fffffffUL
