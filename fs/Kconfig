@@ -312,6 +312,7 @@ source "fs/cifs/Kconfig"
 source "fs/coda/Kconfig"
 source "fs/afs/Kconfig"
 source "fs/9p/Kconfig"
+source "fs/lustre/Kconfig"
 
 endif # NETWORK_FILESYSTEMS
 

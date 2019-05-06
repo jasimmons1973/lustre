@@ -76,8 +76,6 @@ source "drivers/staging/goldfish/Kconfig"
 
 source "drivers/staging/netlogic/Kconfig"
 
-source "drivers/staging/lustre/Kconfig"
-
 source "drivers/staging/gs_fpgaboot/Kconfig"
 
 source "drivers/staging/unisys/Kconfig"
