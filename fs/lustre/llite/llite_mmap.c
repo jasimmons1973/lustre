@@ -238,9 +238,6 @@ static inline vm_fault_t to_fault_error(int result)
 	case 0:
 		result = VM_FAULT_LOCKED;
 		break;
-	case -EFAULT:
-		result = VM_FAULT_NOPAGE;
-		break;
 	case -ENOMEM:
 		result = VM_FAULT_OOM;
 		break;
