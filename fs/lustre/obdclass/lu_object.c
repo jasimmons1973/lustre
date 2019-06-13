@@ -1332,7 +1332,7 @@ static void key_fini(struct lu_context *ctx, int index)
 		struct lu_context_key *key;
 
 		key = lu_keys[index];
-		LASSERT(atomic_read(&key->lct_used) > 1);
+		LASSERT(atomic_read(&key->lct_used) > 0);
 
 		key->lct_fini(ctx, key, ctx->lc_value[index]);
 		lu_ref_del(&key->lct_reference, "ctx", ctx);
