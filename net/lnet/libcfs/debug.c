@@ -455,19 +455,17 @@ static DEFINE_SPINLOCK(st_lock);
 static void libcfs_call_trace(struct task_struct *tsk)
 {
 	static unsigned long entries[MAX_ST_ENTRIES];
-	struct stack_trace trace;
+	unsigned int nr_entries;
 
-	trace.nr_entries = 0;
-	trace.max_entries = MAX_ST_ENTRIES;
-	trace.entries = entries;
-	trace.skip = 0;
-
-	spin_lock(&st_lock);
 	pr_info("Pid: %d, comm: %.20s %s %s\n", tsk->pid, tsk->comm,
 		init_utsname()->release, init_utsname()->version);
 	pr_info("Call Trace:\n");
-	save_stack_trace_tsk(tsk, &trace);
-	print_stack_trace(&trace, 0);
+
+	spin_lock(&st_lock);
+	nr_entries = stack_trace_save_tsk(tsk, entries,
+					  MAX_ST_ENTRIES, 0);
+
+	stack_trace_print(entries, nr_entries, 0);
 	spin_unlock(&st_lock);
 }
 #else /* !CONFIG_STACKTRACE */

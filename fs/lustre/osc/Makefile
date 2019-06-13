@@ -1,4 +1,4 @@
-ccflags-y += -I$(src)/../include
+ccflags-y += -I$(srctree)/$(src)/../include
 
 obj-$(CONFIG_LUSTRE_FS) += osc.o
 osc-y := osc_request.o osc_dev.o osc_object.o \
