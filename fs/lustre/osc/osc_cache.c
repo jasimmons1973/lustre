@@ -393,13 +393,6 @@ static void osc_extent_free(struct kref *kref)
 		LDLM_LOCK_PUT(ext->oe_dlmlock);
 		ext->oe_dlmlock = NULL;
 	}
-#if 0
-	// When cl_object_put drop the need for 'env',
-	// this code can be enabled.
-	cl_object_put(osc2cl(ext->oe_obj));
-
-	kmem_cache_free(osc_extent_kmem, ext);
-#endif
 }
 
 static struct osc_extent *osc_extent_get(struct osc_extent *ext)
@@ -1547,19 +1540,21 @@ static bool osc_enter_cache_try(struct client_obd *cli,
 				struct osc_async_page *oap,
 				int bytes)
 {
+	bool rc = false;
+
 	OSC_DUMP_GRANT(D_CACHE, cli, "need:%d\n", bytes);
 
 	if (osc_reserve_grant(cli, bytes) < 0)
-		return false;
+		return rc;
 
 	if (cli->cl_dirty_pages < cli->cl_dirty_max_pages &&
 	    atomic_long_read(&obd_dirty_pages) + 1 <= obd_max_dirty_pages) {
 		osc_consume_write_grant(cli, &oap->oap_brw_page);
-		return true;
+		rc = true;
 	} else {
 		__osc_unreserve_grant(cli, bytes, bytes);
-		return false;
 	}
+	return rc;
 }
 
 #define __wait_event_idle_exclusive_timeout_cmd(wq_head, condition,	\

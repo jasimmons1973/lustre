@@ -1413,32 +1413,26 @@ static int check_write_checksum(struct obdo *oa,
 				      aa->aa_ppga, OST_WRITE, cksum_type);
 
 	if (cksum_type != cksum_type_unpack(aa->aa_oa->o_flags))
-		msg = "the server did not use the checksum type specified in the original request - likely a protocol problem"
-			;
+		msg = "the server did not use the checksum type specified in the original request - likely a protocol problem";
 	else if (new_cksum == server_cksum)
-		msg = "changed on the client after we checksummed it - likely false positive due to mmap IO (bug 11742)"
-			;
+		msg = "changed on the client after we checksummed it - likely false positive due to mmap IO (bug 11742)";
 	else if (new_cksum == client_cksum)
 		msg = "changed in transit before arrival at OST";
 	else
-		msg = "changed in transit AND doesn't match the original - likely false positive due to mmap IO (bug 11742)"
-			;
+		msg = "changed in transit AND doesn't match the original - likely false positive due to mmap IO (bug 11742)";
 
-	LCONSOLE_ERROR_MSG(
-		0x132,
-		"%s: BAD WRITE CHECKSUM: %s: from %s inode " DFID
-		" object " DOSTID
-		" extent [%llu-%llu], original client csum %x (type %x), server csum %x (type %x), client csum now %x\n",
-		aa->aa_cli->cl_import->imp_obd->obd_name,
-		msg, libcfs_nid2str(peer->nid),
-		oa->o_valid & OBD_MD_FLFID ? oa->o_parent_seq : (u64)0,
-		oa->o_valid & OBD_MD_FLFID ? oa->o_parent_oid : 0,
-		oa->o_valid & OBD_MD_FLFID ? oa->o_parent_ver : 0,
-		POSTID(&oa->o_oi), aa->aa_ppga[0]->off,
-		aa->aa_ppga[aa->aa_page_count - 1]->off +
-		aa->aa_ppga[aa->aa_page_count - 1]->count - 1,
-		client_cksum, cksum_type_unpack(aa->aa_oa->o_flags),
-		server_cksum, cksum_type, new_cksum);
+	LCONSOLE_ERROR_MSG(0x132,
+			   "%s: BAD WRITE CHECKSUM: %s: from %s inode " DFID " object " DOSTID " extent [%llu-%llu], original client csum %x (type %x), server csum %x (type %x), client csum now %x\n",
+			   aa->aa_cli->cl_import->imp_obd->obd_name,
+			   msg, libcfs_nid2str(peer->nid),
+			   oa->o_valid & OBD_MD_FLFID ? oa->o_parent_seq : (u64)0,
+			   oa->o_valid & OBD_MD_FLFID ? oa->o_parent_oid : 0,
+			   oa->o_valid & OBD_MD_FLFID ? oa->o_parent_ver : 0,
+			   POSTID(&oa->o_oi), aa->aa_ppga[0]->off,
+			   aa->aa_ppga[aa->aa_page_count - 1]->off +
+			   aa->aa_ppga[aa->aa_page_count - 1]->count - 1,
+			   client_cksum, cksum_type_unpack(aa->aa_oa->o_flags),
+			   server_cksum, cksum_type, new_cksum);
 
 	return 1;
 }

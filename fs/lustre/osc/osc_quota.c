@@ -52,8 +52,8 @@ int osc_quota_chkdq(struct client_obd *cli, const unsigned int qid[])
 	for (type = 0; type < MAXQUOTAS; type++) {
 		struct osc_quota_info *oqi;
 
-		oqi = rhashtable_lookup_fast(&cli->cl_quota_hash[type], &qid[type],
-					     quota_hash_params);
+		oqi = rhashtable_lookup_fast(&cli->cl_quota_hash[type],
+					     &qid[type], quota_hash_params);
 		if (oqi) {
 			/* Must not access oqi here, it could have been
 			 * freed by osc_quota_setdq()
@@ -73,7 +73,8 @@ int osc_quota_chkdq(struct client_obd *cli, const unsigned int qid[])
 
 static void osc_quota_free(struct rcu_head *head)
 {
-	struct osc_quota_info *oqi = container_of(head, struct osc_quota_info, rcu);
+	struct osc_quota_info *oqi = container_of(head, struct osc_quota_info,
+						  rcu);
 
 	kmem_cache_free(osc_quota_kmem, oqi);
 }
@@ -123,8 +124,8 @@ int osc_quota_setdq(struct client_obd *cli, const unsigned int qid[],
 
 		/* lookup the ID in the per-type hash table */
 		rcu_read_lock();
-		oqi = rhashtable_lookup_fast(&cli->cl_quota_hash[type], &qid[type],
-					     quota_hash_params);
+		oqi = rhashtable_lookup_fast(&cli->cl_quota_hash[type],
+					     &qid[type], quota_hash_params);
 		if ((flags & fl_quota_flag(type)) != 0) {
 			/* This ID is getting close to its quota limit, let's
 			 * switch to sync I/O
@@ -140,7 +141,8 @@ int osc_quota_setdq(struct client_obd *cli, const unsigned int qid[],
 			}
 
 			rc = rhashtable_lookup_insert_fast(&cli->cl_quota_hash[type],
-							   &oqi->oqi_hash, quota_hash_params);
+							   &oqi->oqi_hash,
+							   quota_hash_params);
 			/* race with others? */
 			if (rc) {
 				kmem_cache_free(osc_quota_kmem, oqi);
@@ -162,7 +164,8 @@ int osc_quota_setdq(struct client_obd *cli, const unsigned int qid[],
 				continue;
 			}
 			if (rhashtable_remove_fast(&cli->cl_quota_hash[type],
-						   &oqi->oqi_hash, quota_hash_params) == 0)
+						   &oqi->oqi_hash,
+						   quota_hash_params) == 0)
 				call_rcu(&oqi->rcu, osc_quota_free);
 			rcu_read_unlock();
 			CDEBUG(D_QUOTA, "%s: setdq to remove for %s %d (%p)\n",
@@ -187,7 +190,8 @@ int osc_quota_setup(struct obd_device *obd)
 	int i, type;
 
 	for (type = 0; type < MAXQUOTAS; type++) {
-		if (rhashtable_init(&cli->cl_quota_hash[type], &quota_hash_params) != 0)
+		if (rhashtable_init(&cli->cl_quota_hash[type],
+				    &quota_hash_params) != 0)
 			break;
 	}
 

@@ -197,7 +197,8 @@ static ssize_t osc_cached_mb_seq_write(struct file *file,
 				       const char __user *buffer,
 				       size_t count, loff_t *off)
 {
-	struct obd_device *dev = ((struct seq_file *)file->private_data)->private;
+	struct seq_file *m = file->private_data;
+	struct obd_device *dev = m->private;
 	struct client_obd *cli = &dev->u.cli;
 	long pages_number, rc;
 	char kernbuf[128];
@@ -251,7 +252,6 @@ static ssize_t cur_dirty_bytes_show(struct kobject *kobj,
 	struct client_obd *cli = &dev->u.cli;
 
 	return sprintf(buf, "%lu\n", cli->cl_dirty_pages << PAGE_SHIFT);
-
 }
 LUSTRE_RO_ATTR(cur_dirty_bytes);
 
@@ -405,7 +405,8 @@ static ssize_t osc_checksum_type_seq_write(struct file *file,
 					   const char __user *buffer,
 					   size_t count, loff_t *off)
 {
-	struct obd_device *obd = ((struct seq_file *)file->private_data)->private;
+	struct seq_file *m = file->private_data;
+	struct obd_device *obd = m->private;
 	DECLARE_CKSUM_NAME;
 	char kernbuf[10];
 	int i;

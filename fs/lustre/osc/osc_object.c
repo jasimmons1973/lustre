@@ -125,7 +125,8 @@ static void osc_object_free(const struct lu_env *env, struct lu_object *obj)
 int osc_lvb_print(const struct lu_env *env, void *cookie,
 		  lu_printer_t p, const struct ost_lvb *lvb)
 {
-	return (*p)(env, cookie, "size: %llu mtime: %llu atime: %llu ctime: %llu blocks: %llu",
+	return (*p)(env, cookie,
+		    "size: %llu mtime: %llu atime: %llu ctime: %llu blocks: %llu",
 		    lvb->lvb_size, lvb->lvb_mtime, lvb->lvb_atime,
 		    lvb->lvb_ctime, lvb->lvb_blocks);
 }
@@ -137,7 +138,8 @@ static int osc_object_print(const struct lu_env *env, void *cookie,
 	struct lov_oinfo *oinfo = osc->oo_oinfo;
 	struct osc_async_rc *ar = &oinfo->loi_ar;
 
-	(*p)(env, cookie, "id: " DOSTID " idx: %d gen: %d kms_valid: %u kms %llu rc: %d force_sync: %d min_xid: %llu ",
+	(*p)(env, cookie,
+	     "id: " DOSTID " idx: %d gen: %d kms_valid: %u kms %llu rc: %d force_sync: %d min_xid: %llu ",
 	     POSTID(&oinfo->loi_oi), oinfo->loi_ost_idx,
 	     oinfo->loi_ost_gen, oinfo->loi_kms_valid, oinfo->loi_kms,
 	     ar->ar_rc, ar->ar_force_sync, ar->ar_min_xid);

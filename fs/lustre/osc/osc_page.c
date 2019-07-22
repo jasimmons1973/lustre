@@ -284,7 +284,8 @@ void osc_page_submit(const struct lu_env *env, struct osc_page *opg,
 {
 	struct osc_async_page *oap = &opg->ops_oap;
 
-	LASSERTF(oap->oap_magic == OAP_MAGIC, "Bad oap magic: oap %p, magic 0x%x\n",
+	LASSERTF(oap->oap_magic == OAP_MAGIC,
+		 "Bad oap magic: oap %p, magic 0x%x\n",
 		 oap, oap->oap_magic);
 	LASSERT(oap->oap_async_flags & ASYNC_READY);
 	LASSERT(oap->oap_async_flags & ASYNC_COUNT_STABLE);
