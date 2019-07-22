@@ -315,7 +315,8 @@ int lov_prep_statfs_set(struct obd_device *obd, struct obd_info *oinfo,
 		 * administrator
 		 */
 		if (!lov->lov_tgts[i]->ltd_exp) {
-			CDEBUG(D_HA, "lov idx %d administratively disabled\n", i);
+			CDEBUG(D_HA,
+			       "lov idx %d administratively disabled\n", i);
 			continue;
 		}
 

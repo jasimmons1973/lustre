@@ -104,7 +104,8 @@ void lov_tgts_putref(struct obd_device *obd)
 		mutex_unlock(&lov->lov_lock);
 
 		while (!list_empty(&kill)) {
-			tgt = list_first_entry(&kill, struct lov_tgt_desc, ltd_kill);
+			tgt = list_first_entry(&kill, struct lov_tgt_desc,
+					       ltd_kill);
 			list_del(&tgt->ltd_kill);
 			/* Disconnect */
 			__lov_del_obd(obd, tgt);
@@ -171,7 +172,8 @@ int lov_connect_obd(struct obd_device *obd, u32 index, int activate,
 	}
 
 	if (imp->imp_invalid) {
-		CDEBUG(D_CONFIG, "not connecting OSC %s; administratively disabled\n",
+		CDEBUG(D_CONFIG,
+		       "not connecting OSC %s; administratively disabled\n",
 		       obd_uuid2str(tgt_uuid));
 		return 0;
 	}

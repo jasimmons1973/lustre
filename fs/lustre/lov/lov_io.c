@@ -406,7 +406,7 @@ static int lov_io_iter_init(const struct lu_env *env,
 			 * it's handled in lov_io_setattr_iter_init()
 			 */
 			if (io->ci_type == CIT_WRITE || cl_io_is_mkwrite(io)) {
-			    io->ci_need_write_intent = 1;
+				io->ci_need_write_intent = 1;
 				rc = -ENODATA;
 				break;
 			}

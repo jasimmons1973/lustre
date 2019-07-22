@@ -50,13 +50,16 @@
 static u32 pool_hashfh(const void *data, u32 len, u32 seed)
 {
 	const char *pool_name = data;
-	return hashlen_hash(hashlen_string((void*)(unsigned long)seed, pool_name));
+
+	return hashlen_hash(hashlen_string((void *)(unsigned long)seed,
+			    pool_name));
 }
 
 static int pool_cmpfn(struct rhashtable_compare_arg *arg, const void *obj)
 {
 	const struct pool_desc *pool = obj;
 	const char *pool_name = arg->key;
+
 	return strcmp(pool_name, pool->pool_name);
 }
 
@@ -338,6 +341,7 @@ static void
 pools_hash_exit(void *vpool, void *data)
 {
 	struct pool_desc *pool = vpool;
+
 	lov_pool_putref(pool);
 }
 
@@ -391,7 +395,8 @@ int lov_pool_new(struct obd_device *obd, char *poolname)
 
 	/* Add to hash table only when it is fully ready.  */
 	rc = rhashtable_lookup_insert_fast(&lov->lov_pools_hash_body,
-					   &new_pool->pool_hash, pools_hash_params);
+					   &new_pool->pool_hash,
+					   pools_hash_params);
 	if (rc) {
 		if (rc != -EEXIST)
 			/*
@@ -428,11 +433,14 @@ int lov_pool_del(struct obd_device *obd, char *poolname)
 
 	/* lookup and kill hash reference */
 	rcu_read_lock();
-	pool = rhashtable_lookup(&lov->lov_pools_hash_body, poolname, pools_hash_params);
-	if (pool)
+	pool = rhashtable_lookup(&lov->lov_pools_hash_body, poolname,
+				 pools_hash_params);
+	if (pool) {
 		if (rhashtable_remove_fast(&lov->lov_pools_hash_body,
-					   &pool->pool_hash, pools_hash_params) != 0)
+					   &pool->pool_hash,
+					   pools_hash_params) != 0)
 			pool = NULL;
+	}
 	rcu_read_unlock();
 	if (!pool)
 		return -ENOENT;
@@ -462,7 +470,8 @@ int lov_pool_add(struct obd_device *obd, char *poolname, char *ostname)
 	lov = &obd->u.lov;
 
 	rcu_read_lock();
-	pool = rhashtable_lookup(&lov->lov_pools_hash_body, poolname, pools_hash_params);
+	pool = rhashtable_lookup(&lov->lov_pools_hash_body, poolname,
+				 pools_hash_params);
 	if (pool && !atomic_inc_not_zero(&pool->pool_refcount))
 		pool = NULL;
 	rcu_read_unlock();
@@ -511,7 +520,8 @@ int lov_pool_remove(struct obd_device *obd, char *poolname, char *ostname)
 	lov = &obd->u.lov;
 
 	rcu_read_lock();
-	pool = rhashtable_lookup(&lov->lov_pools_hash_body, poolname, pools_hash_params);
+	pool = rhashtable_lookup(&lov->lov_pools_hash_body, poolname,
+				 pools_hash_params);
 	if (pool && !atomic_inc_not_zero(&pool->pool_refcount))
 		pool = NULL;
 	rcu_read_unlock();
