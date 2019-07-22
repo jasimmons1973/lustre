@@ -112,7 +112,8 @@ enum {
  * @hdr:	Header of the current llog record
  * @data:	chlg_reader_state passed from caller
  *
- * Returns:	0 or LLOG_PROC_* control code on success, negated error on failure.
+ * Returns:	0 or LLOG_PROC_* control code on success,
+ *		negated error on failure.
  */
 static int chlg_read_cat_process_cb(const struct lu_env *env,
 				    struct llog_handle *llh,
@@ -276,7 +277,8 @@ err_out:
  * @ppos:	File position, updated with the index number of the next
  *		record to read.
  *
- * Returns:	number of copied bytes on success, negated error code on failure.
+ * Returns:	number of copied bytes on success,
+ *		negated error code on failure.
  */
 static ssize_t chlg_read(struct file *file, char __user *buff, size_t count,
 			 loff_t *ppos)
@@ -377,7 +379,8 @@ static int chlg_set_start_offset(struct chlg_reader_state *crs, u64 offset)
  * @off:	Offset to skip, actually a record index, not byte count
  * @whence:	Relative/Absolute interpretation of the offset
  *
- * Returns:	the resulting position on success or negated error code on failure.
+ * Returns:	the resulting position on success or
+ *		negated error code on failure.
  */
 static loff_t chlg_llseek(struct file *file, loff_t off, int whence)
 {
@@ -434,7 +437,8 @@ static int chlg_clear(struct chlg_reader_state *crs, u32 reader, u64 record)
 	else
 		ret = obd_set_info_async(NULL, obd->obd_self_export,
 					 strlen(KEY_CHANGELOG_CLEAR),
-					 KEY_CHANGELOG_CLEAR, sizeof(cs), &cs, NULL);
+					 KEY_CHANGELOG_CLEAR, sizeof(cs),
+					 &cs, NULL);
 	mutex_unlock(&chlg_registered_dev_lock);
 	return ret;
 }
@@ -451,7 +455,8 @@ static int chlg_clear(struct chlg_reader_state *crs, u32 reader, u64 record)
  * @count:	Number of written bytes
  * @off:	(unused)
  *
- * Returns:	number of written bytes on success, negated error code on failure.
+ * Returns:	number of written bytes on success,
+ *		negated error code on failure.
  */
 static ssize_t chlg_write(struct file *file, const char __user *buff,
 			  size_t count, loff_t *off)
