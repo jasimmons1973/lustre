@@ -210,9 +210,9 @@ static void ldlm_handle_cp_callback(struct ptlrpc_request *req,
 
 	if (lock->l_resource->lr_type != LDLM_PLAIN) {
 		ldlm_convert_policy_to_local(req->rq_export,
-					  dlm_req->lock_desc.l_resource.lr_type,
-					  &dlm_req->lock_desc.l_policy_data,
-					  &lock->l_policy_data);
+					     dlm_req->lock_desc.l_resource.lr_type,
+					     &dlm_req->lock_desc.l_policy_data,
+					     &lock->l_policy_data);
 		LDLM_DEBUG(lock, "completion AST, new policy data");
 	}
 
@@ -222,7 +222,7 @@ static void ldlm_handle_cp_callback(struct ptlrpc_request *req,
 		   sizeof(lock->l_resource->lr_name)) != 0) {
 		unlock_res_and_lock(lock);
 		rc = ldlm_lock_change_resource(ns, lock,
-				&dlm_req->lock_desc.l_resource.lr_name);
+					       &dlm_req->lock_desc.l_resource.lr_name);
 		if (rc < 0) {
 			LDLM_ERROR(lock, "Failed to allocate resource");
 			goto out;
@@ -286,7 +286,7 @@ static void ldlm_handle_gl_callback(struct ptlrpc_request *req,
 				    struct ldlm_request *dlm_req,
 				    struct ldlm_lock *lock)
 {
-	int rc = -ENOSYS;
+	int rc = -ENXIO;
 
 	LDLM_DEBUG(lock, "client glimpse AST callback handler");
 
@@ -396,8 +396,10 @@ static int ldlm_bl_to_thread(struct ldlm_namespace *ns,
 			     struct list_head *cancels, int count,
 			     enum ldlm_cancel_flags cancel_flags)
 {
+	int rc = 0;
+
 	if (cancels && count == 0)
-		return 0;
+		return rc;
 
 	if (cancel_flags & LCF_ASYNC) {
 		struct ldlm_bl_work_item *blwi;
@@ -407,7 +409,7 @@ static int ldlm_bl_to_thread(struct ldlm_namespace *ns,
 			return -ENOMEM;
 		init_blwi(blwi, ns, ld, cancels, count, lock, cancel_flags);
 
-		return __ldlm_bl_to_thread(blwi, cancel_flags);
+		rc = __ldlm_bl_to_thread(blwi, cancel_flags);
 	} else {
 		/* if it is synchronous call do minimum mem alloc, as it could
 		 * be triggered from kernel shrinker
@@ -416,8 +418,9 @@ static int ldlm_bl_to_thread(struct ldlm_namespace *ns,
 
 		memset(&blwi, 0, sizeof(blwi));
 		init_blwi(&blwi, ns, ld, cancels, count, lock, cancel_flags);
-		return __ldlm_bl_to_thread(&blwi, cancel_flags);
+		rc = __ldlm_bl_to_thread(&blwi, cancel_flags);
 	}
+	return rc;
 }
 
 int ldlm_bl_to_thread_lock(struct ldlm_namespace *ns, struct ldlm_lock_desc *ld,
@@ -446,7 +449,7 @@ static int ldlm_handle_setinfo(struct ptlrpc_request *req)
 	char *key;
 	void *val;
 	int keylen, vallen;
-	int rc = -ENOSYS;
+	int rc = -ENXIO;
 
 	DEBUG_REQ(D_HSM, req, "%s: handle setinfo\n", obd->obd_name);
 
@@ -875,6 +878,7 @@ int ldlm_get_ref(void)
 void ldlm_put_ref(void)
 {
 	int rc = 0;
+
 	mutex_lock(&ldlm_ref_mutex);
 	if (ldlm_refcount == 1) {
 		rc = ldlm_cleanup();

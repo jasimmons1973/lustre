@@ -146,6 +146,7 @@ void ldlm_lock_addref_internal_nolock(struct ldlm_lock *lock,
 void ldlm_lock_decref_internal(struct ldlm_lock *lock, enum ldlm_mode mode);
 void ldlm_lock_decref_internal_nolock(struct ldlm_lock *lock,
 				      enum ldlm_mode mode);
+struct ldlm_lock *ldlm_lock_get(struct ldlm_lock *lock);
 int ldlm_run_ast_work(struct ldlm_namespace *ns, struct list_head *rpc_list,
 		      enum ldlm_desc_ast_t ast_type);
 int ldlm_lock_remove_from_lru_check(struct ldlm_lock *lock, time_t last_use);
@@ -212,8 +213,8 @@ enum ldlm_policy_res {
 #define LDLM_POOL_SYSFS_SET_int(a, b) { a = b; }
 #define LDLM_POOL_SYSFS_PRINT_u64(v) sprintf(buf, "%lld\n", v)
 #define LDLM_POOL_SYSFS_SET_u64(a, b) { a = b; }
-#define LDLM_POOL_SYSFS_PRINT_atomic(v) sprintf(buf, "%d\n", atomic_read(&v))
-#define LDLM_POOL_SYSFS_SET_atomic(a, b) atomic_set(&a, b)
+#define LDLM_POOL_SYSFS_PRINT_atomic(v) sprintf(buf, "%d\n", atomic_read(&(v)))
+#define LDLM_POOL_SYSFS_SET_atomic(a, b) atomic_set(&(a), b)
 
 #define LDLM_POOL_SYSFS_READER_SHOW(var, type)				    \
 	static ssize_t var##_show(struct kobject *kobj,			    \

@@ -79,7 +79,6 @@ u64 ldlm_extent_shift_kms(struct ldlm_lock *lock, u64 old_kms)
 	ldlm_set_kms_ignore(lock);
 
 	list_for_each_entry(lck, &res->lr_granted, l_res_link) {
-
 		if (ldlm_is_kms_ignore(lck))
 			continue;
 

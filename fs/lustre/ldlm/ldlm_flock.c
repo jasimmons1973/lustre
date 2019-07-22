@@ -118,7 +118,7 @@ static int ldlm_process_flock_lock(struct ldlm_lock *req)
 	struct ldlm_lock *new2 = NULL;
 	enum ldlm_mode mode = req->l_req_mode;
 	int added = (mode == LCK_NL);
-	int splitted = 0;
+	int split = 0;
 	const struct ldlm_callback_suite null_cbs = { };
 
 	CDEBUG(D_DLMTRACE,
@@ -146,7 +146,6 @@ reprocess:
 	 * We may have to merge or split existing locks.
 	 */
 	list_for_each_entry_safe_from(lock, tmp, &res->lr_granted, l_res_link) {
-
 		if (!ldlm_same_flock_owner(lock, new))
 			break;
 
@@ -246,7 +245,7 @@ reprocess:
 			goto reprocess;
 		}
 
-		splitted = 1;
+		split = 1;
 
 		new2->l_granted_mode = lock->l_granted_mode;
 		new2->l_policy_data.l_flock.pid =
@@ -273,7 +272,7 @@ reprocess:
 	}
 
 	/* if new2 is created but never used, destroy it*/
-	if (splitted == 0 && new2)
+	if (split == 0 && new2)
 		ldlm_lock_destroy_nolock(new2);
 
 	/* At this point we're granting the lock request. */
@@ -345,12 +344,14 @@ ldlm_flock_completion_ast(struct ldlm_lock *lock, u64 flags, void *data)
 		   "client-side enqueue returned a blocked lock, sleeping");
 
 	/* Go to sleep until the lock is granted. */
-	rc = l_wait_event_abortable(lock->l_waitq, is_granted_or_cancelled(lock));
-
+	rc = l_wait_event_abortable(lock->l_waitq,
+				    is_granted_or_cancelled(lock));
 	if (rc) {
 		lock_res_and_lock(lock);
 
-		/* client side - set flag to prevent lock from being put on LRU list */
+		/* client side - set flag to prevent lock from being put on
+		 * LRU list
+		 */
 		ldlm_set_cbpending(lock);
 		unlock_res_and_lock(lock);
 

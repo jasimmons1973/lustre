@@ -874,7 +874,6 @@ static void search_granted_lock(struct list_head *queue,
 	struct ldlm_lock *lock, *mode_end, *policy_end;
 
 	list_for_each_entry(lock, queue, l_res_link) {
-
 		mode_end = list_prev_entry(lock, l_sl_mode);
 
 		if (lock->l_req_mode != req->l_req_mode) {
@@ -1354,8 +1353,7 @@ out2:
 
 		/* check user's security context */
 		if (lock->l_conn_export &&
-		    sptlrpc_import_check_ctx(
-				class_exp2cliimp(lock->l_conn_export))) {
+		    sptlrpc_import_check_ctx(class_exp2cliimp(lock->l_conn_export))) {
 			if (!(flags & LDLM_FL_TEST_LOCK))
 				ldlm_lock_decref_internal(lock, mode);
 			rc = 0;
@@ -1443,7 +1441,7 @@ int ldlm_fill_lvb(struct ldlm_lock *lock, struct req_capsule *pill,
 			if (loc == RCL_CLIENT)
 				lvb = req_capsule_client_swab_get(pill,
 								  &RMF_DLM_LVB,
-							lustre_swab_ost_lvb_v1);
+								  lustre_swab_ost_lvb_v1);
 			else
 				lvb = req_capsule_server_sized_swab_get(pill,
 						&RMF_DLM_LVB, size,
@@ -1744,7 +1742,7 @@ static int ldlm_work_gl_ast_lock(struct ptlrpc_request_set *rqset, void *opaq)
 		return -ENOENT;
 
 	gl_work = list_first_entry(arg->list, struct ldlm_glimpse_work,
-			     gl_list);
+				   gl_list);
 	list_del_init(&gl_work->gl_list);
 
 	lock = gl_work->gl_lock;

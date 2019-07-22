@@ -360,7 +360,8 @@ static int ldlm_pool_recalc(struct ldlm_pool *pl)
 	recalc_interval_sec = ktime_get_real_seconds() - pl->pl_recalc_time;
 	if (recalc_interval_sec > 0) {
 		spin_lock(&pl->pl_lock);
-		recalc_interval_sec = ktime_get_real_seconds() - pl->pl_recalc_time;
+		recalc_interval_sec = ktime_get_real_seconds() -
+				      pl->pl_recalc_time;
 
 		if (recalc_interval_sec > 0) {
 			/*

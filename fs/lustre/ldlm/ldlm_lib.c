@@ -832,9 +832,9 @@ int ldlm_error2errno(enum ldlm_error error)
 		result = -EBADF;
 		break;
 	default:
-		if (((int)error) < 0)  /* cast to signed type */
+		if (((int)error) < 0) {	/* cast to signed type */
 			result = error; /* as enum ldlm_error can be unsigned */
-		else {
+		} else {
 			CERROR("Invalid DLM result code: %d\n", error);
 			result = -EPROTO;
 		}

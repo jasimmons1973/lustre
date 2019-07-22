@@ -438,7 +438,7 @@ int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
 			       PLDLMRES(lock->l_resource));
 
 			rc = ldlm_lock_change_resource(ns, lock,
-					&reply->lock_desc.l_resource.lr_name);
+						       &reply->lock_desc.l_resource.lr_name);
 			if (rc || !lock->l_resource) {
 				rc = -ENOMEM;
 				goto cleanup;
@@ -450,9 +450,9 @@ int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
 			      !(exp_connect_flags(exp) & OBD_CONNECT_IBITS)))
 				/* We assume lock type cannot change on server*/
 				ldlm_convert_policy_to_local(exp,
-						lock->l_resource->lr_type,
-						&reply->lock_desc.l_policy_data,
-						&lock->l_policy_data);
+							     lock->l_resource->lr_type,
+							     &reply->lock_desc.l_policy_data,
+							     &lock->l_policy_data);
 		if (type != LDLM_PLAIN)
 			LDLM_DEBUG(lock,
 				   "client-side enqueue, new policy data");
@@ -927,8 +927,7 @@ static int ldlm_cli_cancel_req(struct obd_export *exp,
 		if (rc == LUSTRE_ESTALE) {
 			CDEBUG(D_DLMTRACE,
 			       "client/server (nid %s) out of sync -- not fatal\n",
-			       libcfs_nid2str(req->rq_import->
-					      imp_connection->c_peer.nid));
+			       libcfs_nid2str(req->rq_import->imp_connection->c_peer.nid));
 			rc = 0;
 		} else if (rc == -ETIMEDOUT && /* check there was no reconnect*/
 			   req->rq_import_generation == imp->imp_generation) {
@@ -1290,10 +1289,9 @@ ldlm_cancel_default_policy(struct ldlm_namespace *ns, struct ldlm_lock *lock,
 		LDLM_POLICY_KEEP_LOCK : LDLM_POLICY_CANCEL_LOCK;
 }
 
-typedef enum ldlm_policy_res (*ldlm_cancel_lru_policy_t)(
-						      struct ldlm_namespace *,
-						      struct ldlm_lock *, int,
-						      int, int);
+typedef enum ldlm_policy_res (*ldlm_cancel_lru_policy_t)(struct ldlm_namespace *,
+							 struct ldlm_lock *,
+							 int, int, int);
 
 static ldlm_cancel_lru_policy_t
 ldlm_cancel_lru_policy(struct ldlm_namespace *ns, int lru_flags)
