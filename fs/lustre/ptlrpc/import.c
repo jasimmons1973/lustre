@@ -1572,7 +1572,6 @@ out:
 EXPORT_SYMBOL(ptlrpc_disconnect_import);
 
 /* Adaptive Timeout utils */
-extern unsigned int at_min, at_max, at_history;
 
 /*
  *Update at_current with the specified value (bounded by at_min and at_max),
