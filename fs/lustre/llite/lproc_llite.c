@@ -501,7 +501,8 @@ static ssize_t ll_max_cached_mb_seq_write(struct file *file,
 					  const char __user *buffer,
 					  size_t count, loff_t *off)
 {
-	struct super_block *sb = ((struct seq_file *)file->private_data)->private;
+	struct seq_file *m = file->private_data;
+	struct super_block *sb = m->private;
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	struct cl_client_cache *cache = sbi->ll_cache;
 	struct lu_env *env;
@@ -1094,7 +1095,8 @@ static ssize_t ll_unstable_stats_seq_write(struct file *file,
 					   const char __user *buffer,
 					   size_t count, loff_t *off)
 {
-	struct super_block *sb = ((struct seq_file *)file->private_data)->private;
+	struct seq_file *m = file->private_data;
+	struct super_block *sb = m->private;
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	char kernbuf[128];
 	bool val;
@@ -1320,7 +1322,7 @@ void ll_stats_ops_tally(struct ll_sb_info *sbi, int op, int count)
 }
 EXPORT_SYMBOL(ll_stats_ops_tally);
 
-static const char *ra_stat_string[] = {
+static const char *const ra_stat_string[] = {
 	[RA_STAT_HIT]			= "hits",
 	[RA_STAT_MISS]			= "misses",
 	[RA_STAT_DISTANT_READPAGE]	= "readpage not consecutive",

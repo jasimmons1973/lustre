@@ -423,7 +423,8 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 	if (unlikely(lump->lum_magic != LMV_USER_MAGIC))
 		return -EINVAL;
 
-	CDEBUG(D_VFSTRACE, "VFS Op:inode=" DFID "(%p) name %s stripe_offset %d, stripe_count: %u\n",
+	CDEBUG(D_VFSTRACE,
+	       "VFS Op:inode=" DFID "(%p) name %s stripe_offset %d, stripe_count: %u\n",
 	       PFID(ll_inode2fid(parent)), parent, dirname,
 	       (int)lump->lum_stripe_offset, lump->lum_stripe_count);
 
@@ -517,24 +518,20 @@ int ll_dir_setstripe(struct inode *inode, struct lov_user_md *lump,
 		}
 		case LOV_USER_MAGIC_V3: {
 			if (lump->lmm_magic != cpu_to_le32(LOV_USER_MAGIC_V3))
-				lustre_swab_lov_user_md_v3(
-					(struct lov_user_md_v3 *)lump);
+				lustre_swab_lov_user_md_v3((struct lov_user_md_v3 *)lump);
 			lum_size = sizeof(struct lov_user_md_v3);
 			break;
 		}
 		case LOV_USER_MAGIC_COMP_V1: {
 			if (lump->lmm_magic !=
 			    cpu_to_le32(LOV_USER_MAGIC_COMP_V1))
-				lustre_swab_lov_comp_md_v1(
-					(struct lov_comp_md_v1 *)lump);
-			lum_size = le32_to_cpu(
-				((struct lov_comp_md_v1 *)lump)->lcm_size);
+				lustre_swab_lov_comp_md_v1((struct lov_comp_md_v1 *)lump);
+			lum_size = le32_to_cpu(((struct lov_comp_md_v1 *)lump)->lcm_size);
 			break;
 		}
 		case LMV_USER_MAGIC: {
 			if (lump->lmm_magic != cpu_to_le32(LMV_USER_MAGIC))
-				lustre_swab_lmv_user_md(
-					(struct lmv_user_md *)lump);
+				lustre_swab_lmv_user_md((struct lmv_user_md *)lump);
 			lum_size = sizeof(struct lmv_user_md);
 			break;
 		}
@@ -877,7 +874,8 @@ static int ll_ioc_copy_end(struct super_block *sb, struct hsm_copy *copy)
 		 */
 		if ((copy->hc_hai.hai_action == HSMA_ARCHIVE) &&
 		    (copy->hc_data_version != data_version)) {
-			CDEBUG(D_HSM, "File data version mismatched. File content was changed during archiving. " DFID ", start:%#llx current:%#llx\n",
+			CDEBUG(D_HSM,
+			       "File data version mismatched. File content was changed during archiving. " DFID ", start:%#llx current:%#llx\n",
 			       PFID(&copy->hc_hai.hai_fid),
 			       copy->hc_data_version, data_version);
 			/* File was changed, send error to cdt. Do not ask for

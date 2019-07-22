@@ -587,7 +587,7 @@ restart:
 	} else {
 		LASSERT(*och_usecount == 0);
 		if (!it->it_disposition) {
-			struct ll_dentry_data *ldd = ll_d2d(file->f_path.dentry);
+			struct ll_dentry_data *ldd;
 
 			/* We cannot just request lock handle now, new ELC code
 			 * means that one of other OPEN locks for this file
@@ -611,6 +611,7 @@ restart:
 			 * lookup path only, since ll_iget_for_nfs always calls
 			 * ll_d_init().
 			 */
+			ldd = ll_d2d(file->f_path.dentry);
 			if (ldd && ldd->lld_nfs_dentry) {
 				ldd->lld_nfs_dentry = 0;
 				it->it_flags |= MDS_OPEN_LOCK;
@@ -1460,15 +1461,13 @@ int ll_lov_getstripe_ea_info(struct inode *inode, const char *filename,
 		if (lmm->lmm_magic == cpu_to_le32(LOV_MAGIC_V1)) {
 			lustre_swab_lov_user_md_v1((struct lov_user_md_v1 *)lmm);
 			if (S_ISREG(body->mbo_mode))
-				lustre_swab_lov_user_md_objects(
-				 ((struct lov_user_md_v1 *)lmm)->lmm_objects,
-				 stripe_count);
+				lustre_swab_lov_user_md_objects(((struct lov_user_md_v1 *)lmm)->lmm_objects,
+								stripe_count);
 		} else if (lmm->lmm_magic == cpu_to_le32(LOV_MAGIC_V3)) {
 			lustre_swab_lov_user_md_v3((struct lov_user_md_v3 *)lmm);
 			if (S_ISREG(body->mbo_mode))
-				lustre_swab_lov_user_md_objects(
-				 ((struct lov_user_md_v3 *)lmm)->lmm_objects,
-				 stripe_count);
+				lustre_swab_lov_user_md_objects(((struct lov_user_md_v3 *)lmm)->lmm_objects,
+								stripe_count);
 		} else if (lmm->lmm_magic == cpu_to_le32(LOV_MAGIC_COMP_V1)) {
 			lustre_swab_lov_comp_md_v1((struct lov_comp_md_v1 *)lmm);
 		}
@@ -2237,7 +2236,7 @@ int ll_ioctl_fsgetxattr(struct inode *inode, unsigned int cmd,
 		fsxattr.fsx_xflags |= FS_XFLAG_PROJINHERIT;
 	fsxattr.fsx_projid = ll_i2info(inode)->lli_projid;
 	if (copy_to_user((struct fsxattr __user *)arg,
-			  &fsxattr, sizeof(fsxattr)))
+			 &fsxattr, sizeof(fsxattr)))
 		return -EFAULT;
 
 	return 0;
@@ -2344,9 +2343,9 @@ ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		return 0;
 	case LL_IOC_LOV_SETSTRIPE:
 	case LL_IOC_LOV_SETSTRIPE_NEW:
-		return ll_lov_setstripe(inode, file, (void __user *) arg);
+		return ll_lov_setstripe(inode, file, (void __user *)arg);
 	case LL_IOC_LOV_SETEA:
-		return ll_lov_setea(inode, file, (void __user *) arg);
+		return ll_lov_setea(inode, file, (void __user *)arg);
 	case LL_IOC_LOV_SWAP_LAYOUTS: {
 		struct file *file2;
 		struct lustre_swap_layouts lsl;
@@ -2959,7 +2958,8 @@ ll_file_flock(struct file *file, int cmd, struct file_lock *file_lock)
 	if (IS_ERR(op_data))
 		return PTR_ERR(op_data);
 
-	CDEBUG(D_DLMTRACE, "inode=" DFID ", pid=%u, flags=%#llx, mode=%u, start=%llu, end=%llu\n",
+	CDEBUG(D_DLMTRACE,
+	       "inode=" DFID ", pid=%u, flags=%#llx, mode=%u, start=%llu, end=%llu\n",
 	       PFID(ll_inode2fid(inode)), flock.l_flock.pid, flags,
 	       einfo.ei_mode, flock.l_flock.start, flock.l_flock.end);
 
@@ -3167,7 +3167,7 @@ out_free:
 static int
 ll_file_noflock(struct file *file, int cmd, struct file_lock *file_lock)
 {
-	return -ENOSYS;
+	return -EINVAL;
 }
 
 /**

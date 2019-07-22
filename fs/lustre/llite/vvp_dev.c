@@ -451,7 +451,8 @@ static struct page *vvp_pgcache_current(struct vvp_seq_private *priv)
 		}
 
 		inode = vvp_object_inode(priv->vsp_clob);
-		nr = find_get_pages_contig(inode->i_mapping, priv->vsp_id.vpi_index, 1, &vmpage);
+		nr = find_get_pages_contig(inode->i_mapping,
+					   priv->vsp_id.vpi_index, 1, &vmpage);
 		if (nr > 0) {
 			priv->vsp_id.vpi_index = vmpage->index;
 			return vmpage;

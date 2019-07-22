@@ -267,7 +267,7 @@ static inline bool obd_connect_has_secctx(struct obd_connect_data *data)
 	return data->ocd_connect_flags & OBD_CONNECT_FLAGS2 &&
 	       data->ocd_connect_flags2 & OBD_CONNECT2_FILE_SECCTX;
 #else
-       return false;
+	return false;
 #endif
 }
 
@@ -1079,6 +1079,7 @@ enum ras_update_flags {
 	LL_RAS_HIT  = 0x1,
 	LL_RAS_MMAP = 0x2
 };
+
 void ll_ra_count_put(struct ll_sb_info *sbi, unsigned long len);
 void ll_ra_stats_inc(struct inode *inode, enum ra_stat which);
 
@@ -1096,7 +1097,7 @@ void ll_ra_stats_inc(struct inode *inode, enum ra_stat which);
 #define LL_SA_RUNNING_DEF	16
 
 #define LL_SA_CACHE_BIT	 5
-#define LL_SA_CACHE_SIZE	(1 << LL_SA_CACHE_BIT)
+#define LL_SA_CACHE_SIZE	BIT(LL_SA_CACHE_BIT)
 #define LL_SA_CACHE_MASK	(LL_SA_CACHE_SIZE - 1)
 
 /* per inode struct, for dir only */
@@ -1256,7 +1257,8 @@ static inline void ll_set_lock_data(struct obd_export *exp, struct inode *inode,
 		 */
 		if (it->it_remote_lock_mode) {
 			handle.cookie = it->it_remote_lock_handle;
-			CDEBUG(D_DLMTRACE, "setting l_data to inode " DFID "%p for remote lock %#llx\n",
+			CDEBUG(D_DLMTRACE,
+			       "setting l_data to inode " DFID "%p for remote lock %#llx\n",
 			       PFID(ll_inode2fid(inode)), inode,
 			       handle.cookie);
 			md_set_lock_data(exp, &handle, inode, NULL);

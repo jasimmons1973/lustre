@@ -263,13 +263,16 @@ int ll_md_blocking_ast(struct ldlm_lock *lock, struct ldlm_lock_desc *desc,
 				       PFID(ll_inode2fid(inode)), rc);
 		}
 
-		if (bits & MDS_INODELOCK_UPDATE)
-			set_bit(LLIF_UPDATE_ATIME, &ll_i2info(inode)->lli_flags);
+		if (bits & MDS_INODELOCK_UPDATE) {
+			set_bit(LLIF_UPDATE_ATIME,
+				&ll_i2info(inode)->lli_flags);
+		}
 
 		if ((bits & MDS_INODELOCK_UPDATE) && S_ISDIR(inode->i_mode)) {
 			struct ll_inode_info *lli = ll_i2info(inode);
 
-			CDEBUG(D_INODE, "invalidating inode " DFID " lli = %p, pfid  = " DFID "\n",
+			CDEBUG(D_INODE,
+			       "invalidating inode " DFID " lli = %p, pfid  = " DFID "\n",
 			       PFID(ll_inode2fid(inode)), lli,
 			       PFID(&lli->lli_pfid));
 
@@ -563,7 +566,8 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 		}
 	}
 
-	if (it->it_op & IT_OPEN && it->it_flags & FMODE_WRITE && sb_rdonly(dentry->d_sb))
+	if (it->it_op & IT_OPEN && it->it_flags & FMODE_WRITE &&
+	    sb_rdonly(dentry->d_sb))
 		return ERR_PTR(-EROFS);
 
 	if (it->it_op & IT_CREAT)
@@ -714,7 +718,8 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 	struct dentry *de;
 	int rc = 0;
 
-	CDEBUG(D_VFSTRACE, "VFS Op:name=%pd, dir=" DFID "(%p),file %p,open_flags %x,mode %x\n",
+	CDEBUG(D_VFSTRACE,
+	       "VFS Op:name=%pd, dir=" DFID "(%p),file %p,open_flags %x,mode %x\n",
 	       dentry, PFID(ll_inode2fid(dir)), dir, file, open_flags, mode);
 
 	/* Only negative dentries enter here */

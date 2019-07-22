@@ -641,7 +641,7 @@ static int vvp_io_setattr_time(const struct lu_env *env,
 	struct cl_object *obj = io->ci_obj;
 	struct cl_attr *attr = vvp_env_thread_attr(env);
 	int result;
-	unsigned valid = CAT_CTIME;
+	unsigned int valid = CAT_CTIME;
 
 	cl_object_attr_lock(obj);
 	attr->cat_ctime = io->u.ci_setattr.sa_attr.lvb_ctime;

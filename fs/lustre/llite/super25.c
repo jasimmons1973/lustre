@@ -89,7 +89,8 @@ struct super_operations lustre_super_operations = {
  *
  * @data:	Mount options (e.g. -o flock,abort_recov)
  */
-static int lustre_fill_super(struct super_block *sb, void *lmd2_data, int silent)
+static int lustre_fill_super(struct super_block *sb, void *lmd2_data,
+			     int silent)
 {
 	struct lustre_mount_data *lmd;
 	struct lustre_sb_info *lsi;

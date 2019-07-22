@@ -93,7 +93,7 @@ static struct ll_sb_info *ll_init_sbi(void)
 	}
 
 	sbi->ll_ra_info.ra_max_pages_per_file = min(pages / 32,
-					   SBI_DEFAULT_READAHEAD_MAX);
+						    SBI_DEFAULT_READAHEAD_MAX);
 	sbi->ll_ra_info.ra_max_pages = sbi->ll_ra_info.ra_max_pages_per_file;
 	sbi->ll_ra_info.ra_max_read_ahead_whole_pages =
 					   SBI_DEFAULT_READAHEAD_WHOLE_MAX;
@@ -110,10 +110,11 @@ static struct ll_sb_info *ll_init_sbi(void)
 	sbi->ll_flags |= LL_SBI_LAZYSTATFS;
 
 	for (i = 0; i <= LL_PROCESS_HIST_MAX; i++) {
-		spin_lock_init(&sbi->ll_rw_extents_info.pp_extents[i].
-			       pp_r_hist.oh_lock);
-		spin_lock_init(&sbi->ll_rw_extents_info.pp_extents[i].
-			       pp_w_hist.oh_lock);
+		struct per_process_info *pp_ext;
+
+		pp_ext = &sbi->ll_rw_extents_info.pp_extents[i];
+		spin_lock_init(&pp_ext->pp_r_hist.oh_lock);
+		spin_lock_init(&pp_ext->pp_w_hist.oh_lock);
 	}
 
 	/* metadata statahead is enabled by default */
@@ -353,9 +354,8 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 
 	if (data->ocd_ibits_known & MDS_INODELOCK_XATTR) {
 		if (!(data->ocd_connect_flags & OBD_CONNECT_MAX_EASIZE)) {
-			LCONSOLE_INFO(
-				"%s: disabling xattr cache due to unknown maximum xattr size.\n",
-				dt);
+			LCONSOLE_INFO("%s: disabling xattr cache due to unknown maximum xattr size.\n",
+				      dt);
 		} else if (!sbi->ll_xattr_cache_set) {
 			/* If xattr_cache is already set (no matter 0 or 1)
 			 * during processing llog, it won't be enabled here.
@@ -377,7 +377,8 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	data->ocd_connect_flags = OBD_CONNECT_GRANT     | OBD_CONNECT_VERSION  |
 				  OBD_CONNECT_REQPORTAL | OBD_CONNECT_BRW_SIZE |
 				  OBD_CONNECT_CANCELSET | OBD_CONNECT_FID      |
-				  OBD_CONNECT_SRVLOCK   | OBD_CONNECT_TRUNCLOCK|
+				  OBD_CONNECT_SRVLOCK   |
+				  OBD_CONNECT_TRUNCLOCK |
 				  OBD_CONNECT_AT	| OBD_CONNECT_OSS_CAPA |
 				  OBD_CONNECT_VBR	| OBD_CONNECT_FULL20   |
 				  OBD_CONNECT_64BITHASH | OBD_CONNECT_MAXBYTES |
@@ -2063,7 +2064,7 @@ int ll_iocontrol(struct inode *inode, struct file *file,
 		return rc;
 	}
 	default:
-		return -ENOSYS;
+		return -EINVAL;
 	}
 
 	return 0;
@@ -2235,8 +2236,9 @@ int ll_prep_inode(struct inode **inode, struct ptlrpc_request *req,
 			goto out;
 		}
 
-		*inode = ll_iget(sb, cl_fid_build_ino(&md.body->mbo_fid1,
-					     sbi->ll_flags & LL_SBI_32BIT_API),
+		*inode = ll_iget(sb,
+				 cl_fid_build_ino(&md.body->mbo_fid1,
+						  sbi->ll_flags & LL_SBI_32BIT_API),
 				 &md);
 		if (IS_ERR(*inode)) {
 #ifdef CONFIG_FS_POSIX_ACL

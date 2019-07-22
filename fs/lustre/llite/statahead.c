@@ -265,8 +265,8 @@ sa_kill(struct ll_statahead_info *sai, struct sa_entry *entry)
 }
 
 /* called by scanner after use, sa_entry will be killed */
-static void
-sa_put(struct ll_statahead_info *sai, struct sa_entry *entry, struct ll_inode_info *lli)
+static void sa_put(struct ll_statahead_info *sai, struct sa_entry *entry,
+		   struct ll_inode_info *lli)
 {
 	struct sa_entry *tmp, *next;
 
@@ -326,7 +326,8 @@ __sa_make_ready(struct ll_statahead_info *sai, struct sa_entry *entry, int ret)
 	 * LU-9210: ll_statahead_interpet must be able to see this before
 	 * we wake it up
 	 */
-	smp_store_release(&entry->se_state, ret < 0 ? SA_ENTRY_INVA : SA_ENTRY_SUCC);
+	smp_store_release(&entry->se_state,
+			  ret < 0 ? SA_ENTRY_INVA : SA_ENTRY_SUCC);
 
 	return (index == sai->sai_index_wait);
 }
@@ -590,7 +591,8 @@ static void sa_instantiate(struct ll_statahead_info *sai,
 	child = entry->se_inode;
 	if (child) {
 		/* revalidate; unlinked and re-created with the same name */
-		if (unlikely(!lu_fid_eq(&minfo->mi_data.op_fid2, &body->mbo_fid1))) {
+		if (unlikely(!lu_fid_eq(&minfo->mi_data.op_fid2,
+					&body->mbo_fid1))) {
 			entry->se_inode = NULL;
 			iput(child);
 			child = NULL;
@@ -701,6 +703,7 @@ static int ll_statahead_interpret(struct ptlrpc_request *req,
 			wake_up(&sai->sai_waitq);
 	} else {
 		int first = 0;
+
 		entry->se_minfo = minfo;
 		entry->se_req = ptlrpc_request_addref(req);
 		/*
@@ -881,7 +884,9 @@ static int ll_agl_thread(void *arg)
 	struct inode *dir = d_inode(parent);
 	struct ll_inode_info *plli = ll_i2info(dir);
 	struct ll_inode_info *clli;
-	/* We already own this reference, so it is safe to take it without a lock. */
+	/* We already own this reference, so it is safe to take it without
+	 * a lock.
+	 */
 	struct ll_statahead_info *sai = plli->lli_sai;
 
 	CDEBUG(D_READA, "agl thread started: sai %p, parent %pd\n",
@@ -1113,7 +1118,9 @@ static int ll_statahead_thread(void *arg)
 		sa_handle_callback(sai);
 
 		set_current_state(TASK_IDLE);
-		/* ensure we see the NULL stored by ll_deauthorize_statahead() */
+		/* ensure we see the NULL stored by
+		 * ll_deauthorize_statahead()
+		 */
 		if (!sa_has_callback(sai) &&
 		    smp_load_acquire(&sai->sai_task))
 			schedule();
@@ -1408,8 +1415,8 @@ static int revalidate_statahead_dentry(struct inode *dir,
 		spin_lock(&lli->lli_sa_lock);
 		sai->sai_index_wait = entry->se_index;
 		spin_unlock(&lli->lli_sa_lock);
-		if (0 == wait_event_idle_timeout(sai->sai_waitq,
-						 sa_ready(entry), 30 * HZ)) {
+		if (wait_event_idle_timeout(sai->sai_waitq,
+					    sa_ready(entry), 30 * HZ) == 0) {
 			/*
 			 * entry may not be ready, so it may be used by inflight
 			 * statahead RPC, don't free it.
