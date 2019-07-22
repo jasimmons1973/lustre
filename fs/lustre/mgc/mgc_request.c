@@ -384,8 +384,6 @@ out_err:
 	return ERR_PTR(rc);
 }
 
-static DEFINE_MUTEX(llog_process_lock);
-
 static inline void config_mark_cld_stop(struct config_llog_data *cld)
 {
 	if (!cld)
@@ -1538,9 +1536,7 @@ out_pop:
 	__llog_ctxt_put(env, ctxt);
 
 	/*
-	 * update settings on existing OBDs. doing it inside
-	 * of llog_process_lock so no device is attaching/detaching
-	 * in parallel.
+	 * update settings on existing OBDs.
 	 * the logname must be <fsname>-sptlrpc
 	 */
 	if (sptlrpc_started) {
