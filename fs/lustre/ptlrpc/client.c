@@ -980,7 +980,6 @@ struct ptlrpc_request_set *ptlrpc_prep_set(void)
 	atomic_set(&set->set_remaining, 0);
 	spin_lock_init(&set->set_new_req_lock);
 	INIT_LIST_HEAD(&set->set_new_requests);
-	INIT_LIST_HEAD(&set->set_cblist);
 	set->set_max_inflight = UINT_MAX;
 	set->set_producer = NULL;
 	set->set_producer_arg = NULL;
@@ -2351,24 +2350,6 @@ int ptlrpc_set_wait(struct ptlrpc_request_set *set)
 		LASSERT(req->rq_phase == RQ_PHASE_COMPLETE);
 		if (req->rq_status != 0)
 			rc = req->rq_status;
-	}
-
-	if (set->set_interpret) {
-		int (*interpreter)(struct ptlrpc_request_set *set, void *, int) =
-			set->set_interpret;
-		rc = interpreter(set, set->set_arg, rc);
-	} else {
-		struct ptlrpc_set_cbdata *cbdata, *n;
-		int err;
-
-		list_for_each_entry_safe(cbdata, n,
-					 &set->set_cblist, psc_item) {
-			list_del_init(&cbdata->psc_item);
-			err = cbdata->psc_interpret(set, cbdata->psc_data, rc);
-			if (err && !rc)
-				rc = err;
-			kfree(cbdata);
-		}
 	}
 
 	return rc;

@@ -1710,7 +1710,7 @@ int ll_statfs_internal(struct ll_sb_info *sbi, struct obd_statfs *osfs,
 	if (sbi->ll_flags & LL_SBI_LAZYSTATFS)
 		flags |= OBD_STATFS_NODELAY;
 
-	rc = obd_statfs_rqset(sbi->ll_dt_exp, &obd_osfs, max_age, flags);
+	rc = obd_statfs(NULL, sbi->ll_dt_exp, &obd_osfs, max_age, flags);
 	if (rc) {
 		CERROR("obd_statfs fails: rc = %d\n", rc);
 		return rc;

@@ -331,7 +331,6 @@ union ptlrpc_async_args {
 };
 
 struct ptlrpc_request_set;
-typedef int (*set_interpreter_func)(struct ptlrpc_request_set *, void *, int);
 typedef int (*set_producer_func)(struct ptlrpc_request_set *, void *);
 
 /**
@@ -353,19 +352,8 @@ struct ptlrpc_request_set {
 	atomic_t		set_remaining;
 	/** wait queue to wait on for request events */
 	wait_queue_head_t	set_waitq;
-	wait_queue_head_t	*set_wakeup_ptr;
 	/** List of requests in the set */
 	struct list_head	set_requests;
-	/**
-	 * List of completion callbacks to be called when the set is completed
-	 * This is only used if @set_interpret is NULL.
-	 * Links struct ptlrpc_set_cbdata.
-	 */
-	struct list_head	set_cblist;
-	/** Completion callback, if only one. */
-	set_interpreter_func	set_interpret;
-	/** opaq argument passed to completion @set_interpret callback. */
-	void			*set_arg;
 	/**
 	 * Lock for @set_new_requests manipulations
 	 * locked so that any old caller can communicate requests to
@@ -384,18 +372,6 @@ struct ptlrpc_request_set {
 	set_producer_func	set_producer;
 	/** opaq argument passed to the producer callback */
 	void			*set_producer_arg;
-};
-
-/**
- * Description of a single ptrlrpc_set callback
- */
-struct ptlrpc_set_cbdata {
-	/** List linkage item */
-	struct list_head	psc_item;
-	/** Pointer to interpreting function */
-	set_interpreter_func    psc_interpret;
-	/** Opaq argument to pass to the callback */
-	void			*psc_data;
 };
 
 struct ptlrpc_bulk_desc;
