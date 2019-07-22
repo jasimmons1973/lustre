@@ -321,7 +321,8 @@ void print_lustre_cfg(struct lustre_cfg *lcfg)
 	CDEBUG(D_OTHER, "\tlcfg->lcfg_command: %#x\n", lcfg->lcfg_command);
 	CDEBUG(D_OTHER, "\tlcfg->lcfg_num: %#x\n", lcfg->lcfg_num);
 	CDEBUG(D_OTHER, "\tlcfg->lcfg_flags: %#x\n", lcfg->lcfg_flags);
-	CDEBUG(D_OTHER, "\tlcfg->lcfg_nid: %s\n", libcfs_nid2str(lcfg->lcfg_nid));
+	CDEBUG(D_OTHER, "\tlcfg->lcfg_nid: %s\n",
+	       libcfs_nid2str(lcfg->lcfg_nid));
 
 	CDEBUG(D_OTHER, "\tlcfg->lcfg_bufcount: %d\n", lcfg->lcfg_bufcount);
 	if (lcfg->lcfg_bufcount < LUSTRE_CFG_MAX_BUFCOUNT)
@@ -407,7 +408,8 @@ void lustre_swab_cfg_marker(struct cfg_marker *marker, int swab, int size)
 		}
 		marker->cm_createtime = createtime;
 		marker->cm_canceltime = canceltime;
-		CDEBUG(D_CONFIG, "Find old cfg_marker(Srv32b,Clt64b) for target %s, converting\n",
+		CDEBUG(D_CONFIG,
+		       "Find old cfg_marker(Srv32b,Clt64b) for target %s, converting\n",
 		       marker->cm_tgtname);
 	} else if (swab) {
 		__swab64s(&marker->cm_createtime);

@@ -217,11 +217,16 @@ EXPORT_SYMBOL(cl_io_rw_init);
 static int cl_lock_descr_cmp(void *priv,
 			     struct list_head *a, struct list_head *b)
 {
-	const struct cl_io_lock_link *l0 = list_entry(a, struct cl_io_lock_link, cill_linkage);
-	const struct cl_io_lock_link *l1 = list_entry(b, struct cl_io_lock_link, cill_linkage);
+	const struct cl_io_lock_link *l0;
+	const struct cl_io_lock_link *l1;
+	const struct cl_lock_descr *d0;
+	const struct cl_lock_descr *d1;
 
-	const struct cl_lock_descr *d0 = &l0->cill_descr;
-	const struct cl_lock_descr *d1 = &l1->cill_descr;
+	l0 = list_entry(a, struct cl_io_lock_link, cill_linkage);
+	l1 = list_entry(b, struct cl_io_lock_link, cill_linkage);
+
+	d0 = &l0->cill_descr;
+	d1 = &l1->cill_descr;
 
 	return lu_fid_cmp(lu_object_fid(&d0->cld_obj->co_lu),
 			  lu_object_fid(&d1->cld_obj->co_lu));
@@ -334,7 +339,8 @@ void cl_io_unlock(const struct lu_env *env, struct cl_io *io)
 	const struct cl_io_slice *scan;
 
 	LASSERT(cl_io_is_loopable(io));
-	LASSERT(CIS_IT_STARTED <= io->ci_state && io->ci_state < CIS_UNLOCKED);
+	LASSERT(CIS_IT_STARTED <= io->ci_state &&
+		io->ci_state < CIS_UNLOCKED);
 	LINVRNT(cl_io_invariant(io));
 
 	set = &io->ci_lockset;

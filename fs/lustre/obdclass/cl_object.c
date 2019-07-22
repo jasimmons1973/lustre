@@ -427,7 +427,7 @@ static int cache_stats_print(const struct cache_stats *cs,
 		seq_printf(m, "%6s", " ");
 		for (i = 0; i < CS_NR; i++)
 			seq_printf(m, "%8s", names[i]);
-		seq_printf(m, "\n");
+		seq_puts(m, "\n");
 	}
 
 	seq_printf(m, "%5.5s:", cs->cs_name);
@@ -489,10 +489,10 @@ int cl_site_stats_print(const struct cl_site *site, struct seq_file *m)
 		[CPS_FREEING]	= "f"
 	};
 /*
-       lookup    hit  total   busy create
-pages: ...... ...... ...... ...... ...... [...... ...... ...... ......]
-locks: ...... ...... ...... ...... ...... [...... ...... ...... ...... ......]
-  env: ...... ...... ...... ...... ......
+ *	lookup    hit  total   busy create
+ * pages: ...... ...... ...... ...... ...... [..... ..... ..... .....]
+ * locks: ...... ...... ...... ...... ...... [..... ..... ..... ..... .....]
+ * env:   ...... ...... ...... ...... ......
  */
 	lu_site_stats_print(&site->cs_lu, m);
 	cache_stats_print(&site->cs_pages, m, 1);
@@ -722,7 +722,7 @@ unsigned int cl_env_cache_purge(unsigned int nr)
 
 	for_each_possible_cpu(i) {
 		write_lock(&cl_envs[i].cec_guard);
-		for (; nr >0 &&
+		for (; nr > 0 &&
 			     (cle = list_first_entry_or_null(
 				     &cl_envs[i].cec_envs,
 				     struct cl_env,

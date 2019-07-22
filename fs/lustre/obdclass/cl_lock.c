@@ -80,6 +80,7 @@ EXPORT_SYMBOL(cl_lock_slice_add);
 void cl_lock_fini(const struct lu_env *env, struct cl_lock *lock)
 {
 	struct cl_lock_slice *slice;
+
 	cl_lock_trace(D_DLMTRACE, env, "destroy lock", lock);
 
 	while ((slice = list_first_entry_or_null(&lock->cll_layers,
@@ -158,7 +159,7 @@ int cl_lock_enqueue(const struct lu_env *env, struct cl_io *io,
 		    struct cl_lock *lock, struct cl_sync_io *anchor)
 {
 	const struct cl_lock_slice *slice;
-	int rc = -ENOSYS;
+	int rc = -EBUSY;
 
 	list_for_each_entry(slice, &lock->cll_layers, cls_linkage) {
 		if (!slice->cls_ops->clo_enqueue)
@@ -246,7 +247,10 @@ void cl_lock_descr_print(const struct lu_env *env, void *cookie,
 	const struct lu_fid *fid;
 
 	fid = lu_object_fid(&descr->cld_obj->co_lu);
-	(*printer)(env, cookie, DDESCR "@" DFID, PDESCR(descr), PFID(fid));
+	(*printer)(env, cookie, DDESCR "@" DFID,
+		   cl_lock_mode_name(descr->cld_mode), descr->cld_mode,
+		   descr->cld_start, descr->cld_end, descr->cld_enq_flags,
+		   PFID(fid));
 }
 EXPORT_SYMBOL(cl_lock_descr_print);
 

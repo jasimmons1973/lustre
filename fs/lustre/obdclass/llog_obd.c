@@ -127,7 +127,7 @@ int llog_cleanup(const struct lu_env *env, struct llog_ctxt *ctxt)
 		       rc, ctxt);
 
 	l_wait_event_abortable(olg->olg_waitq,
-			     llog_group_ctxt_null(olg, idx));
+			       llog_group_ctxt_null(olg, idx));
 
 	return rc;
 }
@@ -165,9 +165,9 @@ int llog_setup(const struct lu_env *env, struct obd_device *obd,
 			ctxt = llog_group_get_ctxt(olg, index);
 			if (ctxt) {
 				/*
-				 * mds_lov_update_desc() might call here multiple
-				 * times. So if the llog is already set up then
-				 * don't to do it again.
+				 * mds_lov_update_desc() might call here
+				 * multiple times. So if the llog is already
+				 * set up then don't to do it again.
 				 */
 				CDEBUG(D_CONFIG, "obd %s ctxt %d already set up\n",
 				       obd->obd_name, index);

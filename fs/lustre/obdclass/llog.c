@@ -327,7 +327,8 @@ repeat:
 					rc = 0;
 					goto out;
 				}
-				CDEBUG(D_OTHER, "Re-read last llog buffer for new records, index %u, last %u\n",
+				CDEBUG(D_OTHER,
+				       "Re-read last llog buffer for new records, index %u, last %u\n",
 				       index, loghandle->lgh_last_idx);
 				/* save offset inside buffer for the re-read */
 				buf_offset = (char *)rec - (char *)buf;

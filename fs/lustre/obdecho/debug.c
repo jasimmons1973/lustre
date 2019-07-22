@@ -68,24 +68,28 @@ int block_debug_check(char *who, void *addr, int end, u64 off, u64 id)
 	ne_off = le64_to_cpu(off);
 	id = le64_to_cpu(id);
 	if (memcmp(addr, (char *)&ne_off, LPDS)) {
-		CDEBUG(D_ERROR, "%s: id %#llx offset %llu off: %#llx != %#llx\n",
+		CDEBUG(D_ERROR,
+		       "%s: id %#llx offset %llu off: %#llx != %#llx\n",
 		       who, id, off, *(u64 *)addr, ne_off);
 		err = -EINVAL;
 	}
 	if (memcmp(addr + LPDS, (char *)&id, LPDS)) {
-		CDEBUG(D_ERROR, "%s: id %#llx offset %llu id: %#llx != %#llx\n",
+		CDEBUG(D_ERROR,
+		       "%s: id %#llx offset %llu id: %#llx != %#llx\n",
 		       who, id, off, *(u64 *)(addr + LPDS), id);
 		err = -EINVAL;
 	}
 
 	addr += end - LPDS - LPDS;
 	if (memcmp(addr, (char *)&ne_off, LPDS)) {
-		CDEBUG(D_ERROR, "%s: id %#llx offset %llu end off: %#llx != %#llx\n",
+		CDEBUG(D_ERROR,
+		       "%s: id %#llx offset %llu end off: %#llx != %#llx\n",
 		       who, id, off, *(u64 *)addr, ne_off);
 		err = -EINVAL;
 	}
 	if (memcmp(addr + LPDS, (char *)&id, LPDS)) {
-		CDEBUG(D_ERROR, "%s: id %#llx offset %llu end id: %#llx != %#llx\n",
+		CDEBUG(D_ERROR,
+		       "%s: id %#llx offset %llu end id: %#llx != %#llx\n",
 		       who, id, off, *(u64 *)(addr + LPDS), id);
 		err = -EINVAL;
 	}

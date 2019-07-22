@@ -498,7 +498,8 @@ static struct lu_context_key lu_global_key = {
 	.lct_tags	= LCT_MD_THREAD | LCT_DT_THREAD |
 			  LCT_MG_THREAD | LCT_CL_THREAD | LCT_LOCAL,
 	.lct_init	= lu_global_key_init,
-	.lct_fini	= lu_global_key_fini
+	.lct_fini	= lu_global_key_fini,
+	.lct_owner	= THIS_MODULE,
 };
 
 /**

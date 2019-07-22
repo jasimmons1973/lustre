@@ -148,8 +148,8 @@ struct cl_page *cl_page_alloc(const struct lu_env *env,
 		lu_ref_init(&page->cp_reference);
 		cl_object_for_each(o2, o) {
 			if (o2->co_ops->coo_page_init) {
-				result = o2->co_ops->coo_page_init(env, o2, page,
-								   ind);
+				result = o2->co_ops->coo_page_init(env, o2,
+								   page, ind);
 				if (result != 0) {
 					__cl_page_delete(env, page);
 					cl_page_free(env, page);
@@ -418,8 +418,9 @@ EXPORT_SYMBOL(cl_page_is_owned);
  * Return:	0 success
  *
  *		-ve failure, e.g., page was destroyed (and landed in
- *		cl_page_state::CPS_FREEING instead of cl_page_state::CPS_CACHED).
- *		or, page was owned by another thread, or in IO.
+ *		cl_page_state::CPS_FREEING instead of
+ *		cl_page_state::CPS_CACHED). or, page was owned by
+ *		another thread, or in IO.
  *
  * \see cl_page_disown()
  * \see cl_page_operations::cpo_own()

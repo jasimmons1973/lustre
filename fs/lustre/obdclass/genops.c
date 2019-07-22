@@ -74,7 +74,8 @@ static struct obd_device *obd_device_alloc(void)
 
 static void obd_device_free(struct obd_device *obd)
 {
-	LASSERTF(obd->obd_magic == OBD_DEVICE_MAGIC, "obd %p obd_magic %08x != %08x\n",
+	LASSERTF(obd->obd_magic == OBD_DEVICE_MAGIC,
+		 "obd %p obd_magic %08x != %08x\n",
 		 obd, obd->obd_magic, OBD_DEVICE_MAGIC);
 	if (obd->obd_namespace) {
 		CERROR("obd %p: namespace %p was not properly cleaned up (obd_force=%d)!\n",
@@ -801,7 +802,8 @@ EXPORT_SYMBOL(class_export_put);
 
 static void obd_zombie_exp_cull(struct work_struct *ws)
 {
-	struct obd_export *export = container_of(ws, struct obd_export, exp_zombie_work);
+	struct obd_export *export = container_of(ws, struct obd_export,
+						 exp_zombie_work);
 
 	class_export_destroy(export);
 }
@@ -998,7 +1000,8 @@ static void init_imp_at(struct imp_at *at)
 
 static void obd_zombie_imp_cull(struct work_struct *ws)
 {
-	struct obd_import *import = container_of(ws, struct obd_import, imp_zombie_work);
+	struct obd_import *import = container_of(ws, struct obd_import,
+						 imp_zombie_work);
 
 	class_import_destroy(import);
 }

@@ -509,7 +509,8 @@ static int class_cleanup(struct obd_device *obd, struct lustre_cfg *lcfg)
 		       obd->obd_name, err);
 
 	/* destroy an uuid-export hash body */
-	rhashtable_free_and_destroy(&obd->obd_uuid_hash, uuid_export_exit, NULL);
+	rhashtable_free_and_destroy(&obd->obd_uuid_hash, uuid_export_exit,
+				    NULL);
 
 	class_decref(obd, "setup", obd);
 	obd->obd_set_up = 0;
@@ -831,11 +832,13 @@ int class_process_config(struct lustre_cfg *lcfg)
 		goto out;
 	}
 	case LCFG_ADD_UUID: {
-		CDEBUG(D_IOCTL, "adding mapping from uuid %s to nid %#llx (%s)\n",
+		CDEBUG(D_IOCTL,
+		       "adding mapping from uuid %s to nid %#llx (%s)\n",
 		       lustre_cfg_string(lcfg, 1), lcfg->lcfg_nid,
 		       libcfs_nid2str(lcfg->lcfg_nid));
 
-		err = class_add_uuid(lustre_cfg_string(lcfg, 1), lcfg->lcfg_nid);
+		err = class_add_uuid(lustre_cfg_string(lcfg, 1),
+				     lcfg->lcfg_nid);
 		goto out;
 	}
 	case LCFG_DEL_UUID: {
@@ -893,7 +896,8 @@ int class_process_config(struct lustre_cfg *lcfg)
 
 		marker = lustre_cfg_buf(lcfg, 1);
 		CDEBUG(D_IOCTL, "marker %d (%#x) %.16s %s\n", marker->cm_step,
-		       marker->cm_flags, marker->cm_tgtname, marker->cm_comment);
+		       marker->cm_flags, marker->cm_tgtname,
+		       marker->cm_comment);
 		err = 0;
 		goto out;
 	}

@@ -330,7 +330,6 @@ void ldebugfs_add_vars(struct dentry *parent, struct lprocfs_vars *list,
 				    list->fops ?: &lprocfs_generic_fops);
 		list++;
 	}
-	return;
 }
 EXPORT_SYMBOL_GPL(ldebugfs_add_vars);
 
@@ -558,7 +557,8 @@ EXPORT_SYMBOL(lprocfs_rd_conn_uuid);
  * @flags:	CPU interrupt saved state for IRQ-safe locking
  *
  * Returns:	cpuid of current thread or number of allocated structs
- *		negative on error (only for opc LPROCFS_GET_SMP_ID + per-CPU stats)
+ *		negative on error (only for opc LPROCFS_GET_SMP_ID +
+ *				   per-CPU stats)
  */
 int lprocfs_stats_lock(struct lprocfs_stats *stats,
 		       enum lprocfs_stats_lock_ops opc,

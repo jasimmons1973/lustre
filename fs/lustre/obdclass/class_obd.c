@@ -364,7 +364,8 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 		 * Today that information is in the sysfs tree so we can in the
 		 * future remove this.
 		 */
-		BUILD_BUG_ON(OBD_OCD_VERSION(3, 0, 53, 0) <= LUSTRE_VERSION_CODE);
+		BUILD_BUG_ON(OBD_OCD_VERSION(3, 0, 53, 0) <=
+			     LUSTRE_VERSION_CODE);
 
 		if (!data->ioc_inlbuf1) {
 			CERROR("No buffer passed in ioctl\n");

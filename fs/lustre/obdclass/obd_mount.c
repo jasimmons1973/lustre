@@ -1187,7 +1187,8 @@ int lmd_parse(char *options, struct lustre_mount_data *lmd)
 	}
 
 	if (!devname) {
-		LCONSOLE_ERROR_MSG(0x164, "Can't find the device name (need mount option 'device=...')\n");
+		LCONSOLE_ERROR_MSG(0x164,
+				   "Can't find the device name (need mount option 'device=...')\n");
 		goto invalid;
 	}
 
