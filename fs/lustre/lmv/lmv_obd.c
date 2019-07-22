@@ -1630,7 +1630,8 @@ static int lmv_create(struct obd_export *exp, struct md_op_data *op_data,
 	if (rc == 0) {
 		if (!*request)
 			return rc;
-		CDEBUG(D_INODE, "Created - " DFID "\n", PFID(&op_data->op_fid2));
+		CDEBUG(D_INODE, "Created - " DFID "\n",
+		       PFID(&op_data->op_fid2));
 	}
 	return rc;
 }
@@ -1749,8 +1750,8 @@ static int lmv_early_cancel(struct obd_export *exp, struct lmv_tgt_desc *tgt,
 }
 
 /*
- * llite passes fid of an target inode in op_data->op_fid1 and id of directory in
- * op_data->op_fid2
+ * llite passes fid of an target inode in op_data->op_fid1 and id of
+ * directory in op_data->op_fid2
  */
 static int lmv_link(struct obd_export *exp, struct md_op_data *op_data,
 		    struct ptlrpc_request **request)
@@ -1823,7 +1824,8 @@ static int lmv_rename(struct obd_export *exp, struct md_op_data *op_data,
 	op_data->op_cap = current_cap();
 
 	if (op_data->op_cli_flags & CLI_MIGRATE) {
-		LASSERTF(fid_is_sane(&op_data->op_fid3), "invalid FID " DFID "\n",
+		LASSERTF(fid_is_sane(&op_data->op_fid3),
+			 "invalid FID " DFID "\n",
 			 PFID(&op_data->op_fid3));
 
 		if (op_data->op_mea1) {
@@ -2302,8 +2304,10 @@ static int lmv_read_page(struct obd_export *exp, struct md_op_data *op_data,
 	struct lmv_obd *lmv = &obd->u.lmv;
 	struct lmv_tgt_desc *tgt;
 
-	if (unlikely(lsm))
-		return lmv_read_striped_page(exp, op_data, cb_op, offset, ppage);
+	if (unlikely(lsm)) {
+		return lmv_read_striped_page(exp, op_data, cb_op,
+					     offset, ppage);
+	}
 
 	tgt = lmv_find_target(lmv, &op_data->op_fid1);
 	if (IS_ERR(tgt))
@@ -2647,7 +2651,8 @@ static int lmv_unpack_md_v1(struct obd_export *exp, struct lmv_stripe_md *lsm,
 	if (cplen >= sizeof(lsm->lsm_md_pool_name))
 		return -E2BIG;
 
-	CDEBUG(D_INFO, "unpack lsm count %d, master %d hash_type %d layout_version %d\n",
+	CDEBUG(D_INFO,
+	       "unpack lsm count %d, master %d hash_type %d layout_version %d\n",
 	       lsm->lsm_md_stripe_count, lsm->lsm_md_master_mdt_index,
 	       lsm->lsm_md_hash_type, lsm->lsm_md_layout_version);
 
@@ -3016,7 +3021,8 @@ static int lmv_merge_attr(struct obd_export *exp,
 	for (i = 0; i < lsm->lsm_md_stripe_count; i++) {
 		struct inode *inode = lsm->lsm_md_oinfo[i].lmo_root;
 
-		CDEBUG(D_INFO, "" DFID " size %llu, blocks %llu nlink %u, atime %lld ctime %lld, mtime %lld.\n",
+		CDEBUG(D_INFO,
+		       "" DFID " size %llu, blocks %llu nlink %u, atime %lld ctime %lld, mtime %lld.\n",
 		       PFID(&lsm->lsm_md_oinfo[i].lmo_fid),
 		       i_size_read(inode), (unsigned long long)inode->i_blocks,
 		       inode->i_nlink, inode->i_atime.tv_sec,

@@ -222,7 +222,8 @@ int lmv_revalidate_slaves(struct obd_export *exp,
 						      &RMF_MDT_BODY);
 			if (!body) {
 				if (it.it_lock_mode && lockh) {
-					ldlm_lock_decref(lockh, it.it_lock_mode);
+					ldlm_lock_decref(lockh,
+							 it.it_lock_mode);
 					it.it_lock_mode = 0;
 				}
 
@@ -309,7 +310,8 @@ static int lmv_intent_open(struct obd_export *exp, struct md_op_data *op_data,
 			return rc;
 	}
 
-	CDEBUG(D_INODE, "OPEN_INTENT with fid1=" DFID ", fid2=" DFID ", name='%s' -> mds #%u\n",
+	CDEBUG(D_INODE,
+	       "OPEN_INTENT with fid1=" DFID ", fid2=" DFID ", name='%s' -> mds #%u\n",
 	       PFID(&op_data->op_fid1),
 	       PFID(&op_data->op_fid2), op_data->op_name, tgt->ltd_idx);
 
@@ -387,7 +389,8 @@ static int lmv_intent_lookup(struct obd_export *exp,
 	if (!fid_is_sane(&op_data->op_fid2))
 		fid_zero(&op_data->op_fid2);
 
-	CDEBUG(D_INODE, "LOOKUP_INTENT with fid1=" DFID ", fid2=" DFID ", name='%s' -> mds #%u lsm=%p lsm_magic=%x\n",
+	CDEBUG(D_INODE,
+	       "LOOKUP_INTENT with fid1=" DFID ", fid2=" DFID ", name='%s' -> mds #%u lsm=%p lsm_magic=%x\n",
 	       PFID(&op_data->op_fid1), PFID(&op_data->op_fid2),
 	       op_data->op_name ? op_data->op_name : "<NULL>",
 	       tgt->ltd_idx, lsm, !lsm ? -1 : lsm->lsm_md_magic);
