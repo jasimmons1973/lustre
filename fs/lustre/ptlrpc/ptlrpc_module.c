@@ -46,7 +46,7 @@ extern spinlock_t ptlrpc_rs_debug_lock;
 #endif
 
 DEFINE_MUTEX(ptlrpc_startup);
-static int ptlrpc_active = 0;
+static int ptlrpc_active;
 
 int ptlrpc_inc_ref(void)
 {
@@ -58,7 +58,7 @@ int ptlrpc_inc_ref(void)
 
 		rc = ptlrpc_init_portals();
 		if (!rc) {
-			rc= ptlrpc_start_pinger();
+			rc = ptlrpc_start_pinger();
 			if (rc)
 				ptlrpc_exit_portals();
 		}
@@ -160,7 +160,7 @@ cleanup:
 		req_layout_fini();
 		/* Fall through */
 	default:
-		;
+		break;
 	}
 
 	return rc;

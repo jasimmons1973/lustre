@@ -416,11 +416,16 @@ struct sptlrpc_conf_tgt {
 struct sptlrpc_conf {
 	struct list_head		sc_list;
 	char				sc_fsname[MTI_NAME_MAXLEN];
-	unsigned int			sc_modified;	/* modified during updating */
-	unsigned int			sc_updated:1,	/* updated copy from MGS */
-					sc_local:1;	/* local copy from target */
-	struct sptlrpc_rule_set		sc_rset;	/* fs general rules */
-	struct list_head		sc_tgts;	/* target-specific rules */
+	/* modified during updating */
+	unsigned int			sc_modified;
+	unsigned int			sc_updated:1, /* updated copy from
+						       * MGS
+						       */
+					sc_local:1; /* local copy from target */
+	/* fs general rules */
+	struct sptlrpc_rule_set		sc_rset;
+	/* target-specific rules */
+	struct list_head		sc_tgts;
 };
 
 static struct mutex sptlrpc_conf_lock;

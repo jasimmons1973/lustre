@@ -105,7 +105,6 @@ do {									\
 static int ptlrpc_connect_interpret(const struct lu_env *env,
 				    struct ptlrpc_request *request,
 				    void *data, int rc);
-int ptlrpc_import_recovery_state_machine(struct obd_import *imp);
 
 /* Only this function is allowed to change the import state when it is
  * CLOSED. I would rather refcount the import and free it after
@@ -170,10 +169,12 @@ int ptlrpc_set_import_discon(struct obd_import *imp, u32 conn_cnt)
 
 		if (imp->imp_replayable) {
 			LCONSOLE_WARN("%s: Connection to %.*s (at %s) was lost; in progress operations using this service will wait for recovery to complete\n",
-				      imp->imp_obd->obd_name, target_len, target_start,
+				      imp->imp_obd->obd_name,
+				      target_len, target_start,
 				      libcfs_nid2str(imp->imp_connection->c_peer.nid));
 		} else {
-			LCONSOLE_ERROR_MSG(0x166, "%s: Connection to %.*s (at %s) was lost; in progress operations using this service will fail\n",
+			LCONSOLE_ERROR_MSG(0x166,
+					   "%s: Connection to %.*s (at %s) was lost; in progress operations using this service will fail\n",
 					   imp->imp_obd->obd_name,
 					   target_len, target_start,
 					   libcfs_nid2str(imp->imp_connection->c_peer.nid));
@@ -317,8 +318,9 @@ void ptlrpc_invalidate_import(struct obd_import *imp)
 
 			spin_lock(&imp->imp_lock);
 			if (atomic_read(&imp->imp_inflight) == 0) {
-				int count = atomic_read(&imp->imp_unregistering);
+				int count;
 
+				count = atomic_read(&imp->imp_unregistering);
 				/* We know that "unregistering" rpcs only can
 				 * survive in sending or delaying lists (they
 				 * maybe waiting for long reply unlink in
@@ -326,7 +328,8 @@ void ptlrpc_invalidate_import(struct obd_import *imp)
 				 * is no inflight and unregistering != 0, this
 				 * is bug.
 				 */
-				LASSERTF(count == 0, "Some RPCs are still unregistering: %d\n",
+				LASSERTF(count == 0,
+					 "Some RPCs are still unregistering: %d\n",
 					 count);
 
 				/* Let's save one loop as soon as inflight have
@@ -348,8 +351,7 @@ void ptlrpc_invalidate_import(struct obd_import *imp)
 
 				CERROR("%s: Unregistering RPCs found (%d). Network is sluggish? Waiting them to error out.\n",
 				       cli_tgt,
-				       atomic_read(&imp->
-						   imp_unregistering));
+				       atomic_read(&imp->imp_unregistering));
 			}
 			spin_unlock(&imp->imp_lock);
 		}
@@ -405,7 +407,8 @@ void ptlrpc_fail_import(struct obd_import *imp, u32 conn_cnt)
 
 	if (ptlrpc_set_import_discon(imp, conn_cnt)) {
 		if (!imp->imp_replayable) {
-			CDEBUG(D_HA, "import %s@%s for %s not replayable, auto-deactivating\n",
+			CDEBUG(D_HA,
+			       "import %s@%s for %s not replayable, auto-deactivating\n",
 			       obd2cli_tgt(imp->imp_obd),
 			       imp->imp_connection->c_remote_uuid.uuid,
 			       imp->imp_obd->obd_name);
@@ -466,7 +469,7 @@ static int import_select_connection(struct obd_import *imp)
 		 */
 		if ((conn->oic_last_attempt == 0) ||
 		    time_before_eq64(conn->oic_last_attempt,
-					imp->imp_last_success_conn)) {
+				     imp->imp_last_success_conn)) {
 			imp_conn = conn;
 			tried_all = 0;
 			break;
@@ -506,7 +509,8 @@ static int import_select_connection(struct obd_import *imp)
 				at_reset(at, CONNECTION_SWITCH_MAX);
 		}
 		LASSERT(imp_conn->oic_last_attempt);
-		CDEBUG(D_HA, "%s: tried all connections, increasing latency to %ds\n",
+		CDEBUG(D_HA,
+		       "%s: tried all connections, increasing latency to %ds\n",
 		       imp->imp_obd->obd_name, at_get(at));
 	}
 
@@ -526,7 +530,8 @@ static int import_select_connection(struct obd_import *imp)
 			deuuidify(obd2cli_tgt(imp->imp_obd), NULL,
 				  &target_start, &target_len);
 
-			CDEBUG(D_HA, "%s: Connection changing to %.*s (at %s)\n",
+			CDEBUG(D_HA,
+			       "%s: Connection changing to %.*s (at %s)\n",
 			       imp->imp_obd->obd_name,
 			       target_len, target_start,
 			       libcfs_nid2str(imp_conn->oic_conn->c_peer.nid));
@@ -819,9 +824,8 @@ static int ptlrpc_connect_set_flags(struct obd_import *imp,
 				      ocd->ocd_cksum_types,
 				      cksum_types_supported_client());
 			return -EPROTO;
-		} else {
-			cli->cl_supp_cksum_types = ocd->ocd_cksum_types;
 		}
+		cli->cl_supp_cksum_types = ocd->ocd_cksum_types;
 	} else {
 		/*
 		 * The server does not support OBD_CONNECT_CKSUM.
@@ -862,7 +866,8 @@ static int ptlrpc_connect_set_flags(struct obd_import *imp,
 	 * disable lru_resize, etc.
 	 */
 	if (old_connect_flags != exp_connect_flags(exp) || init_connect) {
-		CDEBUG(D_HA, "%s: Resetting ns_connect_flags to server flags: %#llx\n",
+		CDEBUG(D_HA,
+		       "%s: Resetting ns_connect_flags to server flags: %#llx\n",
 		       imp->imp_obd->obd_name, ocd->ocd_connect_flags);
 		imp->imp_obd->obd_namespace->ns_connect_flags =
 			ocd->ocd_connect_flags;
@@ -1113,20 +1118,18 @@ static int ptlrpc_connect_interpret(const struct lu_env *env,
 			 * with server again
 			 */
 			if ((msg_flags & MSG_CONNECT_RECOVERING)) {
-				CDEBUG(level, "%s@%s changed server handle from %#llx to %#llx but is still in recovery\n",
+				CDEBUG(level,
+				       "%s@%s changed server handle from %#llx to %#llx but is still in recovery\n",
 				       obd2cli_tgt(imp->imp_obd),
 				       imp->imp_connection->c_remote_uuid.uuid,
 				       imp->imp_remote_handle.cookie,
-				       lustre_msg_get_handle(
-				       request->rq_repmsg)->cookie);
+				       lustre_msg_get_handle(request->rq_repmsg)->cookie);
 			} else {
 				LCONSOLE_WARN("Evicted from %s (at %s) after server handle changed from %#llx to %#llx\n",
 					      obd2cli_tgt(imp->imp_obd),
-					      imp->imp_connection-> \
-					      c_remote_uuid.uuid,
+					      imp->imp_connection->c_remote_uuid.uuid,
 					      imp->imp_remote_handle.cookie,
-					      lustre_msg_get_handle(
-						      request->rq_repmsg)->cookie);
+					      lustre_msg_get_handle(request->rq_repmsg)->cookie);
 			}
 
 			imp->imp_remote_handle =
@@ -1145,7 +1148,8 @@ static int ptlrpc_connect_interpret(const struct lu_env *env,
 		}
 
 		if (imp->imp_invalid) {
-			CDEBUG(D_HA, "%s: reconnected but import is invalid; marking evicted\n",
+			CDEBUG(D_HA,
+			       "%s: reconnected but import is invalid; marking evicted\n",
 			       imp->imp_obd->obd_name);
 			IMPORT_SET_STATE(imp, LUSTRE_IMP_EVICTED);
 		} else if (msg_flags & MSG_CONNECT_RECOVERING) {
@@ -1169,7 +1173,8 @@ static int ptlrpc_connect_interpret(const struct lu_env *env,
 		imp->imp_replay_cursor = &imp->imp_committed_list;
 		IMPORT_SET_STATE(imp, LUSTRE_IMP_REPLAY);
 	} else {
-		DEBUG_REQ(D_HA, request, "%s: evicting (reconnect/recover flags not set: %x)",
+		DEBUG_REQ(D_HA, request,
+			  "%s: evicting (reconnect/recover flags not set: %x)",
 			  imp->imp_obd->obd_name, msg_flags);
 		imp->imp_remote_handle =
 				*lustre_msg_get_handle(request->rq_repmsg);
@@ -1191,7 +1196,8 @@ finish:
 	ptlrpc_prepare_replay(imp);
 	rc = ptlrpc_import_recovery_state_machine(imp);
 	if (rc == -ENOTCONN) {
-		CDEBUG(D_HA, "evicted/aborted by %s@%s during recovery; invalidating and reconnecting\n",
+		CDEBUG(D_HA,
+		       "evicted/aborted by %s@%s during recovery; invalidating and reconnecting\n",
 		       obd2cli_tgt(imp->imp_obd),
 		       imp->imp_connection->c_remote_uuid.uuid);
 		ptlrpc_connect_import(imp);
@@ -1236,7 +1242,8 @@ out:
 				 * connection from liblustre clients, so we
 				 * should never see this from VFS context
 				 */
-				LCONSOLE_ERROR_MSG(0x16a, "Server %s version (%d.%d.%d.%d) refused connection from this client with an incompatible version (%s).  Client must be recompiled\n",
+				LCONSOLE_ERROR_MSG(0x16a,
+						   "Server %s version (%d.%d.%d.%d) refused connection from this client with an incompatible version (%s).  Client must be recompiled\n",
 						   obd2cli_tgt(imp->imp_obd),
 						   OBD_OCD_VERSION_MAJOR(ocd->ocd_version),
 						   OBD_OCD_VERSION_MINOR(ocd->ocd_version),
@@ -1278,7 +1285,8 @@ static int completed_replay_interpret(const struct lu_env *env,
 			       "%s: version recovery fails, reconnecting\n",
 			       req->rq_import->imp_obd->obd_name);
 		} else {
-			CDEBUG(D_HA, "%s: LAST_REPLAY message error: %d, reconnecting\n",
+			CDEBUG(D_HA,
+			       "%s: LAST_REPLAY message error: %d, reconnecting\n",
 			       req->rq_import->imp_obd->obd_name,
 			       req->rq_status);
 		}
@@ -1383,7 +1391,8 @@ int ptlrpc_import_recovery_state_machine(struct obd_import *imp)
 		/* Don't care about MGC eviction */
 		if (strcmp(imp->imp_obd->obd_type->typ_name,
 			   LUSTRE_MGC_NAME) != 0) {
-			LCONSOLE_ERROR_MSG(0x167, "%s: This client was evicted by %.*s; in progress operations using this service will fail.\n",
+			LCONSOLE_ERROR_MSG(0x167,
+					   "%s: This client was evicted by %.*s; in progress operations using this service will fail.\n",
 					   imp->imp_obd->obd_name, target_len,
 					   target_start);
 		}
@@ -1638,9 +1647,9 @@ int at_measured(struct adaptive_timeout *at, unsigned int val)
 	at->at_current =  max(at->at_current, at_min);
 
 	if (at->at_current != old)
-		CDEBUG(D_OTHER, "AT %p change: old=%u new=%u delta=%d (val=%u) hist %u %u %u %u\n",
-		       at,
-		       old, at->at_current, at->at_current - old, val,
+		CDEBUG(D_OTHER,
+		       "AT %p change: old=%u new=%u delta=%d (val=%u) hist %u %u %u %u\n",
+		       at, old, at->at_current, at->at_current - old, val,
 		       at->at_hist[0], at->at_hist[1], at->at_hist[2],
 		       at->at_hist[3]);
 

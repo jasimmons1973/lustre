@@ -224,8 +224,8 @@ struct ptlrpc_nrs_policy *nrs_request_policy(struct ptlrpc_nrs_request *nrq)
  * a separating space character.
  */
 #define LPROCFS_NRS_WR_QUANTUM_MAX_CMD					       \
- sizeof(NRS_LPROCFS_QUANTUM_NAME_REG __stringify(LPROCFS_NRS_QUANTUM_MAX) " "  \
-	NRS_LPROCFS_QUANTUM_NAME_HP __stringify(LPROCFS_NRS_QUANTUM_MAX))
+	sizeof(NRS_LPROCFS_QUANTUM_NAME_REG __stringify(LPROCFS_NRS_QUANTUM_MAX) " "  \
+	       NRS_LPROCFS_QUANTUM_NAME_HP __stringify(LPROCFS_NRS_QUANTUM_MAX))
 
 /* ptlrpc/nrs_fifo.c */
 extern struct ptlrpc_nrs_pol_conf nrs_conf_fifo;
@@ -301,7 +301,6 @@ static inline int tgt_mod_init(void)
 
 static inline void tgt_mod_exit(void)
 {
-	return;
 }
 
 static inline void ptlrpc_reqset_put(struct ptlrpc_request_set *set)

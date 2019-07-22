@@ -1799,7 +1799,8 @@ void lustre_swab_mgs_nidtbl_entry(struct mgs_nidtbl_entry *entry)
 	__swab32s(&entry->mne_length);
 
 	/* mne_nid_(count|type) must be one byte size because we're gonna
-	 * access it w/o swapping. */
+	 * access it w/o swapping:
+	 */
 	BUILD_BUG_ON(sizeof(entry->mne_nid_count) != sizeof(u8));
 	BUILD_BUG_ON(sizeof(entry->mne_nid_type) != sizeof(u8));
 
@@ -2175,7 +2176,8 @@ static void dump_obdo(struct obdo *oa)
 
 	CDEBUG(D_RPCTRACE, "obdo: o_valid = %08x\n", valid);
 	if (valid & OBD_MD_FLID)
-		CDEBUG(D_RPCTRACE, "obdo: id = " DOSTID "\n", POSTID(&oa->o_oi));
+		CDEBUG(D_RPCTRACE, "obdo: id = " DOSTID "\n",
+		       POSTID(&oa->o_oi));
 	if (valid & OBD_MD_FLFID)
 		CDEBUG(D_RPCTRACE, "obdo: o_parent_seq = %#llx\n",
 		       oa->o_parent_seq);

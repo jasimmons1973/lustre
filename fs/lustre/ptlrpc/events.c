@@ -254,13 +254,14 @@ static void ptlrpc_req_add_history(struct ptlrpc_service_part *svcpt,
 				   struct ptlrpc_request *req)
 {
 	u64 sec = req->rq_arrival_time.tv_sec;
-	u32 usec = req->rq_arrival_time.tv_nsec / NSEC_PER_USEC / 16; /* usec / 16 */
 	u64 new_seq;
+	u32 usec;
 
+	/* usec /16 */
+	usec = req->rq_arrival_time.tv_nsec / NSEC_PER_USEC / 16;
 	/* set sequence ID for request and add it to history list,
 	 * it must be called with hold svcpt::scp_lock
 	 */
-
 	new_seq = (sec << REQS_SEC_SHIFT) |
 		  (usec << REQS_USEC_SHIFT) |
 		  (svcpt->scp_cpt < 0 ? 0 : svcpt->scp_cpt);

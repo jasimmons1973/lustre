@@ -445,7 +445,8 @@ out:
 	svc->srv_nthrs_cpt_init = init;
 
 	if (nthrs * svc->srv_ncpts > tc->tc_nthrs_max) {
-		CDEBUG(D_OTHER, "%s: This service may have more threads (%d) than the given soft limit (%d)\n",
+		CDEBUG(D_OTHER,
+		       "%s: This service may have more threads (%d) than the given soft limit (%d)\n",
 		       svc->srv_name, nthrs * svc->srv_ncpts,
 		       tc->tc_nthrs_max);
 	}
@@ -1042,7 +1043,8 @@ static int ptlrpc_at_send_early_reply(struct ptlrpc_request *req)
 		return 0;
 
 	if (olddl < 0) {
-		DEBUG_REQ(D_WARNING, req, "Already past deadline (%+lds), not sending early reply. Consider increasing at_early_margin (%d)?",
+		DEBUG_REQ(D_WARNING, req,
+			  "Already past deadline (%+lds), not sending early reply. Consider increasing at_early_margin (%d)?",
 			  olddl, at_early_margin);
 
 		/* Return an error so we're not re-added to the timed list. */
@@ -1050,7 +1052,8 @@ static int ptlrpc_at_send_early_reply(struct ptlrpc_request *req)
 	}
 
 	if (!(lustre_msghdr_get_flags(req->rq_reqmsg) & MSGHDR_AT_SUPPORT)) {
-		DEBUG_REQ(D_INFO, req, "Wanted to ask client for more time, but no AT support");
+		DEBUG_REQ(D_INFO, req,
+			  "Wanted to ask client for more time, but no AT support");
 		return -ENOSYS;
 	}
 
@@ -1098,7 +1101,8 @@ static int ptlrpc_at_send_early_reply(struct ptlrpc_request *req)
 	LASSERT(atomic_read(&req->rq_refcount));
 	/** if it is last refcount then early reply isn't needed */
 	if (atomic_read(&req->rq_refcount) == 1) {
-		DEBUG_REQ(D_ADAPTTO, reqcopy, "Normal reply already sent out, abort sending early reply\n");
+		DEBUG_REQ(D_ADAPTTO, reqcopy,
+			  "Normal reply already sent out, abort sending early reply\n");
 		rc = -EINVAL;
 		goto out;
 	}
@@ -1223,7 +1227,8 @@ static void ptlrpc_at_check_timed(struct ptlrpc_service_part *svcpt)
 
 	spin_unlock(&svcpt->scp_at_lock);
 
-	CDEBUG(D_ADAPTTO, "timeout in %+ds, asking for %d secs on %d early replies\n",
+	CDEBUG(D_ADAPTTO,
+	       "timeout in %+ds, asking for %d secs on %d early replies\n",
 	       first, at_extra, counter);
 	if (first < 0) {
 		/* We're already past request deadlines before we even get a
@@ -1566,7 +1571,8 @@ ptlrpc_server_handle_req_in(struct ptlrpc_service_part *svcpt,
 		if (rc == 0) {
 			rc = sptlrpc_target_export_check(req->rq_export, req);
 			if (rc)
-				DEBUG_REQ(D_ERROR, req, "DROPPING req with illegal security flavor,");
+				DEBUG_REQ(D_ERROR, req,
+					  "DROPPING req with illegal security flavor,");
 		}
 
 		if (rc)
@@ -1684,7 +1690,8 @@ ptlrpc_server_handle_request(struct ptlrpc_service_part *svcpt,
 	 * The deadline is increased if we send an early reply.
 	 */
 	if (ktime_get_real_seconds() > request->rq_deadline) {
-		DEBUG_REQ(D_ERROR, request, "Dropping timed-out request from %s: deadline %lld:%llds ago\n",
+		DEBUG_REQ(D_ERROR, request,
+			  "Dropping timed-out request from %s: deadline %lld:%llds ago\n",
 			  libcfs_id2str(request->rq_peer),
 			  request->rq_deadline -
 			  request->rq_arrival_time.tv_sec,
@@ -1692,7 +1699,8 @@ ptlrpc_server_handle_request(struct ptlrpc_service_part *svcpt,
 		goto put_conn;
 	}
 
-	CDEBUG(D_RPCTRACE, "Handling RPC pname:cluuid+ref:pid:xid:nid:opc %s:%s+%d:%d:x%llu:%s:%d\n",
+	CDEBUG(D_RPCTRACE,
+	       "Handling RPC pname:cluuid+ref:pid:xid:nid:opc %s:%s+%d:%d:x%llu:%s:%d\n",
 	       current->comm,
 	       (request->rq_export ?
 		(char *)request->rq_export->exp_client_uuid.uuid : "0"),
@@ -1722,8 +1730,7 @@ ptlrpc_server_handle_request(struct ptlrpc_service_part *svcpt,
 put_conn:
 	if (unlikely(ktime_get_real_seconds() > request->rq_deadline)) {
 		DEBUG_REQ(D_WARNING, request,
-			  "Request took longer than estimated (%lld:%llds); "
-			  "client may timeout.",
+			  "Request took longer than estimated (%lld:%llds); client may timeout.",
 			  (s64)request->rq_deadline -
 			       request->rq_arrival_time.tv_sec,
 			  (s64)ktime_get_real_seconds() - request->rq_deadline);
@@ -1736,7 +1743,8 @@ put_conn:
 	arrived = timespec64_sub(work_end, request->rq_arrival_time);
 	arrived_usecs = arrived.tv_sec * USEC_PER_SEC +
 			 arrived.tv_nsec / NSEC_PER_USEC;
-	CDEBUG(D_RPCTRACE, "Handled RPC pname:cluuid+ref:pid:xid:nid:opc %s:%s+%d:%d:x%llu:%s:%d Request processed in %ldus (%ldus total) trans %llu rc %d/%d\n",
+	CDEBUG(D_RPCTRACE,
+	       "Handled RPC pname:cluuid+ref:pid:xid:nid:opc %s:%s+%d:%d:x%llu:%s:%d Request processed in %ldus (%ldus total) trans %llu rc %d/%d\n",
 	       current->comm,
 	       (request->rq_export ?
 		(char *)request->rq_export->exp_client_uuid.uuid : "0"),
@@ -1841,9 +1849,9 @@ ptlrpc_handle_rs(struct ptlrpc_reply_state *rs)
 		/* If we see this, we should already have seen the warning
 		 * in mds_steal_ack_locks()
 		 */
-		CDEBUG(D_HA, "All locks stolen from rs %p x%lld.t%lld o%d NID %s\n",
-		       rs,
-		       rs->rs_xid, rs->rs_transno, rs->rs_opc,
+		CDEBUG(D_HA,
+		       "All locks stolen from rs %p x%lld.t%lld o%d NID %s\n",
+		       rs, rs->rs_xid, rs->rs_transno, rs->rs_opc,
 		       libcfs_nid2str(exp->exp_connection->c_peer.nid));
 	}
 
@@ -1995,7 +2003,7 @@ ptlrpc_wait_event(struct ptlrpc_service_part *svcpt,
 						      false) ||
 			ptlrpc_rqbd_pending(svcpt) ||
 			ptlrpc_at_check(svcpt));
-	else if (0 == wait_event_idle_exclusive_lifo_timeout(
+	else if (wait_event_idle_exclusive_lifo_timeout(
 			 svcpt->scp_waitq,
 			 ptlrpc_thread_stopping(thread) ||
 			 ptlrpc_server_request_incoming(svcpt) ||
@@ -2003,7 +2011,7 @@ ptlrpc_wait_event(struct ptlrpc_service_part *svcpt,
 						       false) ||
 			 ptlrpc_rqbd_pending(svcpt) ||
 			 ptlrpc_at_check(svcpt),
-			 svcpt->scp_rqbd_timeout))
+			 svcpt->scp_rqbd_timeout) == 0)
 		svcpt->scp_rqbd_timeout = 0;
 
 	if (ptlrpc_thread_stopping(thread))

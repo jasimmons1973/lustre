@@ -204,7 +204,8 @@ struct ptlrpc_bulk_desc *ptlrpc_prep_bulk_imp(struct ptlrpc_request *req,
 EXPORT_SYMBOL(ptlrpc_prep_bulk_imp);
 
 void __ptlrpc_prep_bulk_page(struct ptlrpc_bulk_desc *desc,
-			     struct page *page, int pageoffset, int len, int pin)
+			     struct page *page, int pageoffset, int len,
+			     int pin)
 {
 	struct bio_vec *kiov;
 
@@ -342,9 +343,11 @@ static void ptlrpc_at_adj_service(struct ptlrpc_request *req,
 	 */
 	oldse = at_measured(&at->iat_service_estimate[idx], serv_est);
 	if (oldse != 0)
-		CDEBUG(D_ADAPTTO, "The RPC service estimate for %s ptl %d has changed from %d to %d\n",
-		       req->rq_import->imp_obd->obd_name, req->rq_request_portal,
-		       oldse, at_get(&at->iat_service_estimate[idx]));
+		CDEBUG(D_ADAPTTO,
+		       "The RPC service estimate for %s ptl %d has changed from %d to %d\n",
+		       req->rq_import->imp_obd->obd_name,
+		       req->rq_request_portal, oldse,
+		       at_get(&at->iat_service_estimate[idx]));
 }
 
 /* Expected network latency per remote node (secs) */
@@ -386,10 +389,10 @@ void ptlrpc_at_adj_net_latency(struct ptlrpc_request *req,
 
 	oldnl = at_measured(&at->iat_net_latency, nl);
 	if (oldnl != 0)
-		CDEBUG(D_ADAPTTO, "The network latency for %s (nid %s) has changed from %d to %d\n",
+		CDEBUG(D_ADAPTTO,
+		       "The network latency for %s (nid %s) has changed from %d to %d\n",
 		       req->rq_import->imp_obd->obd_name,
-		       obd_uuid2str(
-			       &req->rq_import->imp_connection->c_remote_uuid),
+		       obd_uuid2str(&req->rq_import->imp_connection->c_remote_uuid),
 		       oldnl, at_get(&at->iat_net_latency));
 }
 
@@ -513,7 +516,8 @@ void ptlrpc_free_rq_pool(struct ptlrpc_request_pool *pool)
 	struct ptlrpc_request *req;
 
 	while ((req = list_first_entry_or_null(&pool->prp_req_list,
-					       struct ptlrpc_request, rq_list))) {
+					       struct ptlrpc_request,
+					       rq_list))) {
 		list_del(&req->rq_list);
 		LASSERT(req->rq_reqbuf);
 		LASSERT(req->rq_reqbuf_len == pool->prp_rq_size);
@@ -665,7 +669,8 @@ void ptlrpc_add_unreplied(struct ptlrpc_request *req)
 	LASSERT(list_empty(&req->rq_unreplied_list));
 
 	/* unreplied list is sorted by xid in ascending order */
-	list_for_each_entry_reverse(iter, &imp->imp_unreplied_list, rq_unreplied_list) {
+	list_for_each_entry_reverse(iter, &imp->imp_unreplied_list,
+				    rq_unreplied_list) {
 		LASSERT(req->rq_xid != iter->rq_xid);
 		if (req->rq_xid < iter->rq_xid)
 			continue;
@@ -1136,7 +1141,9 @@ static int ptlrpc_import_delay_req(struct obd_import *imp,
 			  D_HA : D_ERROR, req, "IMP_CLOSED ");
 		*status = -EIO;
 	} else if (ptlrpc_send_limit_expired(req)) {
-		/* probably doesn't need to be a D_ERROR after initial testing */
+		/* probably doesn't need to be a D_ERROR after initial
+		 * testing
+		 */
 		DEBUG_REQ(D_HA, req, "send limit expired ");
 		*status = -ETIMEDOUT;
 	} else if (req->rq_send_state == LUSTRE_IMP_CONNECTING &&
@@ -1230,7 +1237,8 @@ static int ptlrpc_check_status(struct ptlrpc_request *req)
 		/* -EAGAIN is normal when using POSIX flocks */
 		if (ptlrpc_console_allow(req) &&
 		    !(opc == LDLM_ENQUEUE && err == -EAGAIN))
-			LCONSOLE_ERROR_MSG(0x011, "%s: operation %s to node %s failed: rc = %d\n",
+			LCONSOLE_ERROR_MSG(0x011,
+					   "%s: operation %s to node %s failed: rc = %d\n",
 					   imp->imp_obd->obd_name,
 					   ll_opcode2str(opc),
 					   libcfs_nid2str(nid), err);
@@ -1306,7 +1314,8 @@ static int after_reply(struct ptlrpc_request *req)
 
 	if (req->rq_reply_truncated) {
 		if (ptlrpc_no_resend(req)) {
-			DEBUG_REQ(D_ERROR, req, "reply buffer overflow, expected: %d, actual size: %d",
+			DEBUG_REQ(D_ERROR, req,
+				  "reply buffer overflow, expected: %d, actual size: %d",
 				  req->rq_nob_received, req->rq_repbuf_len);
 			return -EOVERFLOW;
 		}
@@ -1520,7 +1529,8 @@ static int ptlrpc_send_new_req(struct ptlrpc_request *req)
 		req->rq_waiting = 1;
 		spin_unlock(&req->rq_lock);
 
-		DEBUG_REQ(D_HA, req, "req from PID %d waiting for recovery: (%s != %s)",
+		DEBUG_REQ(D_HA, req,
+			  "req from PID %d waiting for recovery: (%s != %s)",
 			  lustre_msg_get_status(req->rq_reqmsg),
 			  ptlrpc_import_state_name(req->rq_send_state),
 			  ptlrpc_import_state_name(imp->imp_state));
@@ -1574,7 +1584,8 @@ static int ptlrpc_send_new_req(struct ptlrpc_request *req)
 		return 0;
 	}
 
-	CDEBUG(D_RPCTRACE, "Sending RPC pname:cluuid:pid:xid:nid:opc %s:%s:%d:%llu:%s:%d\n",
+	CDEBUG(D_RPCTRACE,
+	       "Sending RPC pname:cluuid:pid:xid:nid:opc %s:%s:%d:%llu:%s:%d\n",
 	       current->comm,
 	       imp->imp_obd->obd_uuid.uuid,
 	       lustre_msg_get_status(req->rq_reqmsg), req->rq_xid,
@@ -1837,7 +1848,9 @@ int ptlrpc_check_set(const struct lu_env *env, struct ptlrpc_request_set *set)
 				spin_unlock(&req->rq_lock);
 
 				if (req->rq_timedout || req->rq_resend) {
-					/* This is re-sending anyway, let's mark req as resend. */
+					/* This is re-sending anyway,
+					 * let's mark req as resend.
+					 */
 					spin_lock(&req->rq_lock);
 					req->rq_resend = 1;
 					spin_unlock(&req->rq_lock);
@@ -2158,10 +2171,9 @@ void ptlrpc_expired_set(struct ptlrpc_request_set *set)
 static void ptlrpc_interrupted_set(struct ptlrpc_request_set *set)
 {
 	struct ptlrpc_request *req;
+
 	CDEBUG(D_RPCTRACE, "INTERRUPTED SET %p\n", set);
-
 	list_for_each_entry(req, &set->set_requests, rq_set_chain) {
-
 		if (req->rq_phase != RQ_PHASE_RPC &&
 		    req->rq_phase != RQ_PHASE_UNREG_RPC)
 			continue;
@@ -2260,8 +2272,9 @@ int ptlrpc_set_wait(struct ptlrpc_request_set *set)
 			} else if (rc < 0) {
 				rc = -EINTR;
 				ptlrpc_interrupted_set(set);
-			} else
+			} else {
 				rc = 0;
+			}
 		} else {
 			/*
 			 * At least one request is in flight, so no
@@ -2283,8 +2296,9 @@ int ptlrpc_set_wait(struct ptlrpc_request_set *set)
 				 */
 				if (l_fatal_signal_pending(current))
 					ptlrpc_interrupted_set(set);
-			} else
+			} else {
 				rc = 0;
+			}
 		}
 
 		LASSERT(rc == 0 || rc == -EINTR || rc == -ETIMEDOUT);
@@ -2299,7 +2313,8 @@ int ptlrpc_set_wait(struct ptlrpc_request_set *set)
 		 * the error cases -eeb.
 		 */
 		if (rc == 0 && atomic_read(&set->set_remaining) == 0) {
-			list_for_each_entry(req, &set->set_requests, rq_set_chain) {
+			list_for_each_entry(req, &set->set_requests,
+					    rq_set_chain) {
 				spin_lock(&req->rq_lock);
 				req->rq_invalid_rqset = 1;
 				spin_unlock(&req->rq_lock);
@@ -2513,7 +2528,7 @@ static int ptlrpc_unregister_reply(struct ptlrpc_request *request, int async)
 		return 0;
 
 	/*
-	 * We have to wait_event_idle_timeout() whatever the result, to give liblustre
+	 * We have to wait_event_idle_timeout() whatever the result, to get
 	 * a chance to run reply_in_callback(), and to make sure we've
 	 * unlinked before returning a req to the pool.
 	 */
@@ -2528,6 +2543,7 @@ static int ptlrpc_unregister_reply(struct ptlrpc_request *request, int async)
 		 * timeout lets us CWARN for visibility of sluggish NALs
 		 */
 		int cnt = 0;
+
 		while (cnt < LONG_UNLINK &&
 		       (rc = wait_event_idle_timeout(*wq,
 						     !ptlrpc_client_recv_or_unlink(request),
@@ -2716,6 +2732,7 @@ void ptlrpc_retain_replayable_request(struct ptlrpc_request *req,
 				      struct obd_import *imp)
 {
 	struct ptlrpc_request *iter;
+
 	assert_spin_locked(&imp->imp_lock);
 
 	if (req->rq_transno == 0) {
@@ -2742,7 +2759,8 @@ void ptlrpc_retain_replayable_request(struct ptlrpc_request *req,
 	LASSERT(imp->imp_replayable);
 	/* Balanced in ptlrpc_free_committed, usually. */
 	ptlrpc_request_addref(req);
-	list_for_each_entry_reverse(iter, &imp->imp_replay_list, rq_replay_list) {
+	list_for_each_entry_reverse(iter, &imp->imp_replay_list,
+				    rq_replay_list) {
 		/*
 		 * We may have duplicate transnos if we create and then
 		 * open a file, or for closes retained if to match creating
@@ -3110,7 +3128,8 @@ void ptlrpc_set_bulk_mbits(struct ptlrpc_request *req)
 		 * 'resend for the -EINPROGRESS resend'. To make it simple,
 		 * we opt to generate mbits for all resend cases.
 		 */
-		if (OCD_HAS_FLAG(&bd->bd_import->imp_connect_data, BULK_MBITS)) {
+		if (OCD_HAS_FLAG(&bd->bd_import->imp_connect_data,
+				 BULK_MBITS)) {
 			req->rq_mbits = ptlrpc_next_xid();
 		} else {
 			/* old version transfers rq_xid to peer as matchbits */
@@ -3188,7 +3207,7 @@ EXPORT_SYMBOL(ptlrpc_sample_next_xid);
  *    have delay before it really runs by ptlrpcd thread.
  */
 struct ptlrpc_work_async_args {
-	int (*cb)(const struct lu_env *, void *);
+	int (*cb)(const struct lu_env *env, void *cbdata);
 	void *cbdata;
 };
 

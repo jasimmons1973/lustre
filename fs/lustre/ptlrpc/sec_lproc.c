@@ -160,7 +160,8 @@ static struct dentry *sptlrpc_debugfs_dir;
 
 void sptlrpc_lproc_init(void)
 {
-	sptlrpc_debugfs_dir = debugfs_create_dir("sptlrpc", debugfs_lustre_root);
+	sptlrpc_debugfs_dir = debugfs_create_dir("sptlrpc",
+						 debugfs_lustre_root);
 	ldebugfs_add_vars(sptlrpc_debugfs_dir, sptlrpc_lprocfs_vars, NULL);
 }
 

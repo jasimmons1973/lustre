@@ -427,7 +427,8 @@ int sptlrpc_req_ctx_switch(struct ptlrpc_request *req,
 	LASSERT(req->rq_reqlen);
 	LASSERT(req->rq_replen);
 
-	CDEBUG(D_SEC, "req %p: switch ctx %p(%u->%s) -> %p(%u->%s), switch sec %p(%s) -> %p(%s)\n",
+	CDEBUG(D_SEC,
+	       "req %p: switch ctx %p(%u->%s) -> %p(%u->%s), switch sec %p(%s) -> %p(%s)\n",
 	       req,
 	       oldctx, oldctx->cc_vcred.vc_uid, sec2target_str(oldctx->cc_sec),
 	       newctx, newctx->cc_vcred.vc_uid, sec2target_str(newctx->cc_sec),
@@ -515,7 +516,8 @@ static int sptlrpc_req_replace_dead_ctx(struct ptlrpc_request *req)
 		       newctx, newctx->cc_flags);
 
 		schedule_timeout_interruptible(HZ);
-	} else if (unlikely(!test_bit(PTLRPC_CTX_UPTODATE_BIT, &newctx->cc_flags))) {
+	} else if (unlikely(!test_bit(PTLRPC_CTX_UPTODATE_BIT,
+				      &newctx->cc_flags))) {
 		/*
 		 * new ctx not up to date yet
 		 */
@@ -1819,7 +1821,8 @@ int sptlrpc_target_export_check(struct obd_export *exp,
 							req->rq_svc_ctx,
 							&flavor);
 		} else {
-			CDEBUG(D_SEC, "exp %p (%x|%x|%x): is current flavor, install rvs ctx\n",
+			CDEBUG(D_SEC,
+			       "exp %p (%x|%x|%x): is current flavor, install rvs ctx\n",
 			       exp, exp->exp_flvr.sf_rpc,
 			       exp->exp_flvr_old[0].sf_rpc,
 			       exp->exp_flvr_old[1].sf_rpc);
@@ -1833,8 +1836,9 @@ int sptlrpc_target_export_check(struct obd_export *exp,
 	if (exp->exp_flvr_expire[0]) {
 		if (exp->exp_flvr_expire[0] >= ktime_get_real_seconds()) {
 			if (flavor_allowed(&exp->exp_flvr_old[0], req)) {
-				CDEBUG(D_SEC, "exp %p (%x|%x|%x): match the middle one (%lld)\n", exp,
-				       exp->exp_flvr.sf_rpc,
+				CDEBUG(D_SEC,
+				       "exp %p (%x|%x|%x): match the middle one (%lld)\n",
+				       exp, exp->exp_flvr.sf_rpc,
 				       exp->exp_flvr_old[0].sf_rpc,
 				       exp->exp_flvr_old[1].sf_rpc,
 				       (s64)(exp->exp_flvr_expire[0] -
@@ -1846,8 +1850,8 @@ int sptlrpc_target_export_check(struct obd_export *exp,
 			CDEBUG(D_SEC, "mark middle expired\n");
 			exp->exp_flvr_expire[0] = 0;
 		}
-		CDEBUG(D_SEC, "exp %p (%x|%x|%x): %x not match middle\n", exp,
-		       exp->exp_flvr.sf_rpc,
+		CDEBUG(D_SEC, "exp %p (%x|%x|%x): %x not match middle\n",
+		       exp, exp->exp_flvr.sf_rpc,
 		       exp->exp_flvr_old[0].sf_rpc, exp->exp_flvr_old[1].sf_rpc,
 		       req->rq_flvr.sf_rpc);
 	}
@@ -1858,7 +1862,8 @@ int sptlrpc_target_export_check(struct obd_export *exp,
 	if (exp->exp_flvr_changed == 0 && exp->exp_flvr_expire[1]) {
 		if (exp->exp_flvr_expire[1] >= ktime_get_real_seconds()) {
 			if (flavor_allowed(&exp->exp_flvr_old[1], req)) {
-				CDEBUG(D_SEC, "exp %p (%x|%x|%x): match the oldest one (%lld)\n",
+				CDEBUG(D_SEC,
+				       "exp %p (%x|%x|%x): match the oldest one (%lld)\n",
 				       exp,
 				       exp->exp_flvr.sf_rpc,
 				       exp->exp_flvr_old[0].sf_rpc,

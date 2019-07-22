@@ -105,7 +105,7 @@ ptlrpc_connection_get(struct lnet_process_id peer, lnet_nid_t self,
 	 */
 	conn2 = rhashtable_lookup_get_insert_fast(&conn_hash, &conn->c_hash,
 						  conn_hash_params);
-	if (conn2 != NULL) {
+	if (conn2) {
 		/* insertion failed */
 		kfree(conn);
 		if (IS_ERR(conn2))

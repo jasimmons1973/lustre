@@ -282,7 +282,8 @@ ptlrpc_lprocfs_req_history_max_seq_write(struct file *file,
 					 const char __user *buffer,
 					 size_t count, loff_t *off)
 {
-	struct ptlrpc_service *svc = ((struct seq_file *)file->private_data)->private;
+	struct seq_file *m = file->private_data;
+	struct ptlrpc_service *svc = m->private;
 	int bufpages;
 	int val;
 	int rc;
@@ -628,7 +629,8 @@ static ssize_t ptlrpc_lprocfs_nrs_seq_write(struct file *file,
 					    const char __user *buffer,
 					    size_t count, loff_t *off)
 {
-	struct ptlrpc_service *svc = ((struct seq_file *)file->private_data)->private;
+	struct seq_file *m = file->private_data;
+	struct ptlrpc_service *svc = m->private;
 	enum ptlrpc_nrs_queue_type queue = PTLRPC_NRS_QUEUE_BOTH;
 	char *cmd;
 	char *cmd_copy = NULL;
@@ -1180,7 +1182,8 @@ EXPORT_SYMBOL(ptlrpc_lprocfs_unregister_obd);
 int lprocfs_wr_ping(struct file *file, const char __user *buffer,
 		    size_t count, loff_t *off)
 {
-	struct obd_device *obd = ((struct seq_file *)file->private_data)->private;
+	struct seq_file *m = file->private_data;
+	struct obd_device *obd = m->private;
 	struct ptlrpc_request *req;
 	int rc;
 
@@ -1211,7 +1214,8 @@ EXPORT_SYMBOL(lprocfs_wr_ping);
 int lprocfs_wr_import(struct file *file, const char __user *buffer,
 		      size_t count, loff_t *off)
 {
-	struct obd_device *obd = ((struct seq_file *)file->private_data)->private;
+	struct seq_file *m = file->private_data;
+	struct obd_device *obd = m->private;
 	struct obd_import *imp = obd->u.cli.cl_import;
 	char *kbuf = NULL;
 	char *uuid;
@@ -1253,12 +1257,14 @@ int lprocfs_wr_import(struct file *file, const char __user *buffer,
 		if (*endptr) {
 			CERROR("config: wrong instance # %s\n", ptr);
 		} else if (inst != imp->imp_connect_data.ocd_instance) {
-			CDEBUG(D_INFO, "IR: %s is connecting to an obsoleted target(%u/%u), reconnecting...\n",
+			CDEBUG(D_INFO,
+			       "IR: %s is connecting to an obsoleted target(%u/%u), reconnecting...\n",
 			       imp->imp_obd->obd_name,
 			       imp->imp_connect_data.ocd_instance, inst);
 			do_reconn = 1;
 		} else {
-			CDEBUG(D_INFO, "IR: %s has already been connecting to new target(%u)\n",
+			CDEBUG(D_INFO,
+			       "IR: %s has already been connecting to new target(%u)\n",
 			       imp->imp_obd->obd_name, inst);
 		}
 	}
@@ -1292,7 +1298,8 @@ EXPORT_SYMBOL(lprocfs_rd_pinger_recov);
 int lprocfs_wr_pinger_recov(struct file *file, const char __user *buffer,
 			    size_t count, loff_t *off)
 {
-	struct obd_device *obd = ((struct seq_file *)file->private_data)->private;
+	struct seq_file *m = file->private_data;
+	struct obd_device *obd = m->private;
 	struct client_obd *cli = &obd->u.cli;
 	struct obd_import *imp = cli->cl_import;
 	int rc, val;

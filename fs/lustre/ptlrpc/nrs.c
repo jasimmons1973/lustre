@@ -79,7 +79,7 @@ static int nrs_policy_ctl_locked(struct ptlrpc_nrs_policy *policy,
 
 	return policy->pol_desc->pd_ops->op_policy_ctl ?
 	       policy->pol_desc->pd_ops->op_policy_ctl(policy, opc, arg) :
-	       -ENOSYS;
+	       -ENXIO;
 }
 
 static void __nrs_policy_stop(struct ptlrpc_nrs_policy *policy)

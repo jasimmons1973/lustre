@@ -775,8 +775,8 @@ struct req_msg_field {
 	 * but the actual size must be a whole multiple of @rmf_size.
 	 */
 	const int   rmf_size;
-	void	(*rmf_swabber)(void *);
-	void	(*rmf_dumper)(void *);
+	void	(*rmf_swabber)(void *value);
+	void	(*rmf_dumper)(void *value);
 	int	 rmf_offset[ARRAY_SIZE(req_formats)][RCL_NR];
 };
 
@@ -1053,7 +1053,8 @@ EXPORT_SYMBOL(RMF_LAYOUT_INTENT);
  */
 struct req_msg_field RMF_OST_BODY =
 	DEFINE_MSGF("ost_body", 0,
-		    sizeof(struct ost_body), lustre_swab_ost_body, dump_ost_body);
+		    sizeof(struct ost_body), lustre_swab_ost_body,
+		    dump_ost_body);
 EXPORT_SYMBOL(RMF_OST_BODY);
 
 struct req_msg_field RMF_OBD_IOOBJ =
@@ -1868,7 +1869,8 @@ swabber_dumper_helper(struct req_capsule *pill,
 	     i < n;
 	     i++, p += field->rmf_size) {
 		if (dump) {
-			CDEBUG(D_RPCTRACE, "Dump of %sarray field %s, element %d follows\n",
+			CDEBUG(D_RPCTRACE,
+			       "Dump of %sarray field %s, element %d follows\n",
 			       do_swab ? "unswabbed " : "", field->rmf_name, i);
 			field->rmf_dumper(p);
 		}
@@ -1876,7 +1878,8 @@ swabber_dumper_helper(struct req_capsule *pill,
 			continue;
 		swabber(p);
 		if (dump) {
-			CDEBUG(D_RPCTRACE, "Dump of swabbed array field %s, element %d follows\n",
+			CDEBUG(D_RPCTRACE,
+			       "Dump of swabbed array field %s, element %d follows\n",
 			       field->rmf_name, i);
 			field->rmf_dumper(value);
 		}
@@ -2145,8 +2148,7 @@ u32 req_capsule_fmt_size(u32 magic, const struct req_format *fmt,
 
 	for (; i < fmt->rf_fields[loc].nr; ++i)
 		if (fmt->rf_fields[loc].d[i]->rmf_size != -1)
-			size += cfs_size_round(fmt->rf_fields[loc].d[i]->
-					       rmf_size);
+			size += cfs_size_round(fmt->rf_fields[loc].d[i]->rmf_size);
 	return size;
 }
 
@@ -2185,8 +2187,9 @@ void req_capsule_extend(struct req_capsule *pill, const struct req_format *fmt)
 	for (i = 0; i < RCL_NR; ++i) {
 		LASSERT(fmt->rf_fields[i].nr >= old->rf_fields[i].nr);
 		for (j = 0; j < old->rf_fields[i].nr - 1; ++j) {
-			const struct req_msg_field *ofield = FMT_FIELD(old, i, j);
+			const struct req_msg_field *ofield;
 
+			ofield = FMT_FIELD(old, i, j);
 			/* "opaque" fields can be transmogrified */
 			if (!ofield->rmf_swabber &&
 			    (ofield->rmf_flags & ~RMF_F_NO_SIZE_CHECK) == 0 &&
