@@ -40,8 +40,8 @@
 #include <linux/posix_acl_xattr.h>
 
 #define LUSTRE_POSIX_ACL_MAX_ENTRIES	32
-#define LUSTRE_POSIX_ACL_MAX_SIZE_OLD						\
-	(sizeof(struct posix_acl_xattr_header) +				\
+#define LUSTRE_POSIX_ACL_MAX_SIZE_OLD					\
+	(sizeof(struct posix_acl_xattr_header) +			\
 	 LUSTRE_POSIX_ACL_MAX_ENTRIES * sizeof(struct posix_acl_xattr_entry))
 
 #else /* ! CONFIG_FS_POSIX_ACL */

@@ -142,10 +142,10 @@ struct lu_device_operations {
 	/**
 	 * process config specific for device.
 	 */
-	int (*ldo_process_config)(const struct lu_env *env,
-				  struct lu_device *, struct lustre_cfg *);
-	int (*ldo_recovery_complete)(const struct lu_env *,
-				     struct lu_device *);
+	int (*ldo_process_config)(const struct lu_env *env, struct lu_device *d,
+				  struct lustre_cfg *cfg);
+	int (*ldo_recovery_complete)(const struct lu_env *env,
+				     struct lu_device *dev);
 
 	/**
 	 * initialize local objects for device. this method called after layer
@@ -153,7 +153,7 @@ struct lu_device_operations {
 	 * serving user requests.
 	 */
 
-	int (*ldo_prepare)(const struct lu_env *,
+	int (*ldo_prepare)(const struct lu_env *env,
 			   struct lu_device *parent,
 			   struct lu_device *dev);
 
@@ -347,22 +347,22 @@ struct lu_device_type_operations {
 	 * lu_device_type_operations::ldto_device_alloc(). Returns pointer to
 	 * the next device in the stack.
 	 */
-	struct lu_device *(*ldto_device_free)(const struct lu_env *,
-					      struct lu_device *);
+	struct lu_device *(*ldto_device_free)(const struct lu_env *env,
+					      struct lu_device *dev);
 
 	/**
 	 * Initialize the devices after allocation
 	 */
 	int  (*ldto_device_init)(const struct lu_env *env,
-				 struct lu_device *, const char *,
-				 struct lu_device *);
+				 struct lu_device *dev, const char *name,
+				 struct lu_device *next);
 	/**
 	 * Finalize device. Dual to
 	 * lu_device_type_operations::ldto_device_init(). Returns pointer to
 	 * the next device in the stack.
 	 */
 	struct lu_device *(*ldto_device_fini)(const struct lu_env *env,
-					      struct lu_device *);
+					      struct lu_device *dev);
 	/**
 	 * Initialize device type. This is called on module load.
 	 */
@@ -753,8 +753,9 @@ int lu_cdebug_printer(const struct lu_env *env,
 /**
  * Print object description followed by a user-supplied message.
  */
-#define LU_OBJECT_DEBUG(mask, env, object, format, ...)			\
+#define LU_OBJECT_DEBUG(_mask, env, object, format, ...)		\
 do {									\
+	typeof(_mask) (mask) = (_mask);					\
 	if (cfs_cdebug_show(mask, DEBUG_SUBSYSTEM)) {			\
 		LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, mask, NULL);	\
 		lu_object_print(env, &msgdata, lu_cdebug_printer, object);\
@@ -765,8 +766,9 @@ do {									\
 /**
  * Print short object description followed by a user-supplied message.
  */
-#define LU_OBJECT_HEADER(mask, env, object, format, ...)		\
+#define LU_OBJECT_HEADER(_mask, env, object, format, ...)		\
 do {									\
+	typeof(_mask) (mask) = (_mask);					\
 	if (cfs_cdebug_show(mask, DEBUG_SUBSYSTEM)) {			\
 		LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, mask, NULL);	\
 		lu_object_header_print(env, &msgdata, lu_cdebug_printer,\

@@ -435,11 +435,11 @@ void lprocfs_counter_sub(struct lprocfs_stats *stats, int idx, long amount);
 	lprocfs_counter_sub(stats, idx, 1)
 
 s64 lprocfs_read_helper(struct lprocfs_counter *lc,
-			  struct lprocfs_counter_header *header,
-			  enum lprocfs_stats_flags flags,
-			  enum lprocfs_fields_flags field);
+			struct lprocfs_counter_header *header,
+			enum lprocfs_stats_flags flags,
+			enum lprocfs_fields_flags field);
 u64 lprocfs_stats_collector(struct lprocfs_stats *stats, int idx,
-			      enum lprocfs_fields_flags field);
+			    enum lprocfs_fields_flags field);
 
 extern struct lprocfs_stats *
 lprocfs_alloc_stats(unsigned int num, enum lprocfs_stats_flags flags);
@@ -553,7 +553,8 @@ static const struct file_operations name##_fops = {			\
 	{								\
 		return lprocfs_wr_##type(file, buffer, count, off);	\
 	}								\
-	static int name##_##type##_open(struct inode *inode, struct file *file) \
+	static int name##_##type##_open(struct inode *inode,		\
+					struct file *file)		\
 	{								\
 		return single_open(file, NULL, inode->i_private);	\
 	}								\

@@ -165,10 +165,9 @@ static inline int lockmode_compat(enum ldlm_mode exist_mode,
 #define DLM_MDS_NAMESPACE 2
 
 /* XXX
-   - do we just separate this by security domains and use a prefix for
-     multiple namespaces in the same domain?
-   -
-*/
+ * - do we just separate this by security domains and use a prefix for
+ *    multiple namespaces in the same domain?
+ */
 
 /**
  * Locking rules for LDLM:
@@ -444,7 +443,7 @@ struct ldlm_namespace {
 	enum ldlm_appetite	ns_appetite;
 
 	/** Limit of parallel AST RPC count. */
-	unsigned		ns_max_parallel_ast;
+	unsigned int		ns_max_parallel_ast;
 
 	/**
 	 * Callback to check if a lock is good to be canceled by ELC or
@@ -845,8 +844,10 @@ struct ldlm_resource {
 	 */
 	struct ldlm_interval_tree	*lr_itree;
 
-	/** Type of locks this resource can hold. Only one type per resource. */
-	enum ldlm_type			lr_type; /* LDLM_{PLAIN,EXTENT,FLOCK,IBITS} */
+	/** Type of locks this resource can hold. Only one type per resource.
+	 *  LDLM_{PLAIN,EXTENT,FLOCK,IBITS}
+	 */
+	enum ldlm_type			lr_type;
 
 	/**
 	 * Server-side-only lock value block elements.
@@ -944,13 +945,20 @@ struct ldlm_ast_work {
  * Common ldlm_enqueue parameters
  */
 struct ldlm_enqueue_info {
-	enum ldlm_type		ei_type;  /** Type of the lock being enqueued. */
-	enum ldlm_mode		ei_mode;  /** Mode of the lock being enqueued. */
-	void			*ei_cb_bl;  /** blocking lock callback */
-	void			*ei_cb_cp;  /** lock completion callback */
-	void			*ei_cb_gl;  /** lock glimpse callback */
-	void			*ei_cbdata; /** Data to be passed into callbacks. */
-	unsigned int		ei_enq_slave:1; /* whether enqueue slave stripes */
+	/* Type of the lock being enqueued. */
+	enum ldlm_type		ei_type;
+	/* Mode of the lock being enqueued. */
+	enum ldlm_mode		ei_mode;
+	/* blocking lock callback */
+	void			*ei_cb_bl;
+	/* lock completion callback */
+	void			*ei_cb_cp;
+	/* lock glimpse callback */
+	void			*ei_cb_gl;
+	/* Data to be passed into callbacks. */
+	void			*ei_cbdata;
+	/* whether enqueue slave stripes */
+	unsigned int		ei_enq_slave:1;
 };
 
 extern struct obd_ops ldlm_obd_ops;
@@ -1027,7 +1035,8 @@ typedef int (*ldlm_res_iterator_t)(struct ldlm_resource *, void *);
  * namespace or every resource in a namespace.
  * @{
  */
-int ldlm_resource_iterate(struct ldlm_namespace *, const struct ldlm_res_id *,
+int ldlm_resource_iterate(struct ldlm_namespace *ns,
+			  const struct ldlm_res_id *res_id,
 			  ldlm_iterator_t iter, void *data);
 /** @} ldlm_iterator */
 
@@ -1053,9 +1062,10 @@ struct ldlm_lock *ldlm_request_lock(struct ptlrpc_request *req);
 /* ldlm_lock.c */
 void ldlm_lock2handle(const struct ldlm_lock *lock,
 		      struct lustre_handle *lockh);
-struct ldlm_lock *__ldlm_handle2lock(const struct lustre_handle *, u64 flags);
-void ldlm_cancel_callback(struct ldlm_lock *);
-int ldlm_lock_remove_from_lru(struct ldlm_lock *);
+struct ldlm_lock *__ldlm_handle2lock(const struct lustre_handle *lh,
+				     u64 flags);
+void ldlm_cancel_callback(struct ldlm_lock *lock);
+int ldlm_lock_remove_from_lru(struct ldlm_lock *lock);
 int ldlm_lock_set_data(const struct lustre_handle *lockh, void *data);
 
 /**
@@ -1155,9 +1165,10 @@ void ldlm_lock_fail_match_locked(struct ldlm_lock *lock);
 void ldlm_lock_allow_match(struct ldlm_lock *lock);
 void ldlm_lock_allow_match_locked(struct ldlm_lock *lock);
 enum ldlm_mode ldlm_lock_match(struct ldlm_namespace *ns, u64 flags,
-			       const struct ldlm_res_id *,
-			       enum ldlm_type type, union ldlm_policy_data *,
-			       enum ldlm_mode mode, struct lustre_handle *,
+			       const struct ldlm_res_id *res_id,
+			       enum ldlm_type type,
+			       union ldlm_policy_data *policy,
+			       enum ldlm_mode mode, struct lustre_handle *lh,
 			       int unref);
 enum ldlm_mode ldlm_revalidate_lock_handle(const struct lustre_handle *lockh,
 					   u64 *bits);

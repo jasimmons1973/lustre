@@ -987,8 +987,9 @@ struct cl_page_operations {
 /**
  * Helper macro, dumping detailed information about @page into a log.
  */
-#define CL_PAGE_DEBUG(mask, env, page, format, ...)			\
+#define CL_PAGE_DEBUG(_mask, env, page, format, ...)			\
 do {									\
+	typeof(_mask) (mask) = (_mask);					\
 	if (cfs_cdebug_show(mask, DEBUG_SUBSYSTEM)) {			\
 		LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, mask, NULL);	\
 		cl_page_print(env, &msgdata, lu_cdebug_printer, page);  \
@@ -999,8 +1000,9 @@ do {									\
 /**
  * Helper macro, dumping shorter information about @page into a log.
  */
-#define CL_PAGE_HEADER(mask, env, page, format, ...)			\
+#define CL_PAGE_HEADER(_mask, env, page, format, ...)			\
 do {									\
+	typeof(_mask) (mask) = (_mask);					\
 	if (cfs_cdebug_show(mask, DEBUG_SUBSYSTEM)) {			\
 		LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, mask, NULL);	\
 		cl_page_header_print(env, &msgdata, lu_cdebug_printer, page); \
@@ -1163,9 +1165,6 @@ struct cl_lock_descr {
 };
 
 #define DDESCR "%s(%d):[%lu, %lu]:%x"
-#define PDESCR(descr)							\
-	cl_lock_mode_name((descr)->cld_mode), (descr)->cld_mode,	\
-	(descr)->cld_start, (descr)->cld_end, (descr)->cld_enq_flags
 
 const char *cl_lock_mode_name(const enum cl_lock_mode mode);
 
@@ -1237,8 +1236,9 @@ struct cl_lock_operations {
 			 const struct cl_lock_slice *slice);
 };
 
-#define CL_LOCK_DEBUG(mask, env, lock, format, ...)			\
+#define CL_LOCK_DEBUG(_mask, env, lock, format, ...)			\
 do {									\
+	typeof(_mask) (mask) = (_mask);					\
 	LIBCFS_DEBUG_MSG_DATA_DECL(msgdata, mask, NULL);		\
 									\
 	if (cfs_cdebug_show(mask, DEBUG_SUBSYSTEM)) {			\
@@ -1657,6 +1657,7 @@ struct cl_io_lock_link {
 	void	       (*cill_fini)(const struct lu_env *env,
 				    struct cl_io_lock_link *link);
 };
+
 #define cill_descr	cill_lock.cll_descr
 
 /**
