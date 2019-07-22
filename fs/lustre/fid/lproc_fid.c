@@ -131,7 +131,8 @@ ldebugfs_fid_space_seq_show(struct seq_file *m, void *unused)
 	if (seq->lcs_update)
 		rc = -EBUSY;
 	else
-		seq_printf(m, "[%#llx - %#llx]:%x:%s\n", PRANGE(&seq->lcs_space));
+		seq_printf(m, "[%#llx - %#llx]:%x:%s\n",
+			   PRANGE(&seq->lcs_space));
 	spin_unlock(&seq->lcs_lock);
 
 	return rc;

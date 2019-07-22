@@ -267,7 +267,6 @@ EXPORT_SYMBOL(seq_client_alloc_fid);
  */
 void seq_client_flush(struct lu_client_seq *seq)
 {
-
 	LASSERT(seq);
 	spin_lock(&seq->lcs_lock);
 

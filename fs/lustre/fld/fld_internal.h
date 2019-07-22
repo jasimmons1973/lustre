@@ -70,8 +70,9 @@ struct fld_stats {
 
 struct lu_fld_hash {
 	const char	      *fh_name;
-	int (*fh_hash_func)(struct lu_client_fld *, u64);
-	struct lu_fld_target *(*fh_scan_func)(struct lu_client_fld *, u64);
+	int (*fh_hash_func)(struct lu_client_fld *fld, u64 seq);
+	struct lu_fld_target *(*fh_scan_func)(struct lu_client_fld *fld,
+					      u64 seq);
 };
 
 struct fld_cache_entry {
