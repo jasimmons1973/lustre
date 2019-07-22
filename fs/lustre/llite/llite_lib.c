@@ -131,7 +131,7 @@ static struct ll_sb_info *ll_init_sbi(void)
 	sbi->ll_squash.rsi_uid = 0;
 	sbi->ll_squash.rsi_gid = 0;
 	INIT_LIST_HEAD(&sbi->ll_squash.rsi_nosquash_nids);
-	init_rwsem(&sbi->ll_squash.rsi_sem);
+	spin_lock_init(&sbi->ll_squash.rsi_lock);
 
 	return sbi;
 }
@@ -2578,7 +2578,7 @@ void ll_compute_rootsquash_state(struct ll_sb_info *sbi)
 	int i;
 
 	/* Update norootsquash flag */
-	down_write(&squash->rsi_sem);
+	spin_lock(&squash->rsi_lock);
 	if (list_empty(&squash->rsi_nosquash_nids)) {
 		spin_lock(&sbi->ll_lock);
 		sbi->ll_flags &= ~LL_SBI_NOROOTSQUASH;
@@ -2606,7 +2606,7 @@ void ll_compute_rootsquash_state(struct ll_sb_info *sbi)
 			sbi->ll_flags &= ~LL_SBI_NOROOTSQUASH;
 		spin_unlock(&sbi->ll_lock);
 	}
-	up_write(&squash->rsi_sem);
+	spin_unlock(&squash->rsi_lock);
 }
 
 /**
