@@ -2559,6 +2559,7 @@ void kiblnd_destroy_dev(struct kib_dev *dev)
 
 static struct kib_dev *kiblnd_create_dev(char *ifname)
 {
+	const struct in_ifaddr *ifa;
 	struct net_device *netdev;
 	struct in_device *in_dev;
 	struct kib_dev *dev;
@@ -2595,12 +2596,12 @@ static struct kib_dev *kiblnd_create_dev(char *ifname)
 		goto unlock;
 	}
 
-	for_primary_ifa(in_dev)
-		if (strcmp(ifa->ifa_label, ifname) == 0) {
+	in_dev_for_each_ifa_rcu(ifa, in_dev)
+		if (!(ifa->ifa_flags & IFA_F_SECONDARY) &&
+		    strcmp(ifa->ifa_label, ifname) == 0) {
 			dev->ibd_ifip = ntohl(ifa->ifa_local);
 			break;
 		}
-	endfor_ifa(in_dev);
 	rtnl_unlock();
 
 	if (dev->ibd_ifip == 0) {

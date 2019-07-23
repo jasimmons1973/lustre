@@ -1576,6 +1576,7 @@ lnet_ipaddr_enumerate(u32 **ipaddrsp)
 
 	rtnl_lock();
 	for_each_netdev(&init_net, dev) {
+		const struct in_ifaddr *ifa;
 		struct in_device *in_dev;
 
 		if (strcmp(dev->name, "lo") == 0)
@@ -1604,12 +1605,12 @@ lnet_ipaddr_enumerate(u32 **ipaddrsp)
 			ipaddrs = ipaddrs2;
 		}
 
-		for_primary_ifa(in_dev)
-			if (strcmp(ifa->ifa_label, dev->name) == 0) {
+		in_dev_for_each_ifa_rcu(ifa, in_dev)
+			if (!(ifa->ifa_flags & IFA_F_SECONDARY) &&
+			    strcmp(ifa->ifa_label, dev->name) == 0) {
 				ipaddrs[nip++] = ifa->ifa_local;
 				break;
 			}
-		endfor_ifa(in_dev);
 	}
 	rtnl_unlock();
 

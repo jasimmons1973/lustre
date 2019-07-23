@@ -2610,6 +2610,7 @@ ksocknal_enumerate_interfaces(struct ksock_net *net, char *iname)
 	rtnl_lock();
 	for_each_netdev(&init_net, dev) {
 		const char *name = dev->name;
+		const struct in_ifaddr *ifa;
 		struct in_device *in_dev;
 		struct ksock_interface *ksi =
 			&net->ksnn_interfaces[net->ksnn_ninterfaces + j];
@@ -2634,8 +2635,9 @@ ksocknal_enumerate_interfaces(struct ksock_net *net, char *iname)
 			CWARN("Interface %s has no IPv4 status.\n", name);
 			continue;
 		}
-		for_primary_ifa(in_dev)
-			if (strcmp(ifa->ifa_label, name) == 0) {
+		in_dev_for_each_ifa_rcu(ifa, in_dev)
+			if (!(ifa->ifa_flags & IFA_F_SECONDARY) &&
+			    strcmp(ifa->ifa_label, name) == 0) {
 				ksi->ksni_ipaddr = ntohl(ifa->ifa_local);
 				ksi->ksni_netmask = ifa->ifa_mask;
 				strlcpy(ksi->ksni_name,
@@ -2643,7 +2645,6 @@ ksocknal_enumerate_interfaces(struct ksock_net *net, char *iname)
 				j++;
 				break;
 			}
-		endfor_ifa(in_dev);
 	}
 	rtnl_unlock();
 
