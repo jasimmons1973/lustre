@@ -2888,17 +2888,6 @@ ll_file_flock(struct file *file, int cmd, struct file_lock *file_lock)
 	flock.l_flock.start = file_lock->fl_start;
 	flock.l_flock.end = file_lock->fl_end;
 
-	/* Somewhat ugly workaround for svc lockd.
-	 * lockd installs custom fl_lmops->lm_compare_owner that checks
-	 * for the fl_owner to be the same (which it always is on local node
-	 * I guess between lockd processes) and then compares pid.
-	 * As such we assign pid to the owner field to make it all work,
-	 * conflict with normal locks is unlikely since pid space and
-	 * pointer space for current->files are not intersecting
-	 */
-	if (file_lock->fl_lmops && file_lock->fl_lmops->lm_compare_owner)
-		flock.l_flock.owner = (unsigned long)file_lock->fl_pid;
-
 	switch (fl_type) {
 	case F_RDLCK:
 		einfo.ei_mode = LCK_PR;
