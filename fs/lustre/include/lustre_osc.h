@@ -31,22 +31,97 @@
  * Lustre is a trademark of Sun Microsystems, Inc.
  */
 /*
- * This file is part of Lustre, http://www.lustre.org/
- * Lustre is a trademark of Sun Microsystems, Inc.
+ * fs/lustre/include/lustre_osc.h
  *
- * Internal interfaces of OSC layer.
+ * OSC layer structures and methods common for both OSC and MDC.
+ *
+ * This file contains OSC interfaces used by OSC and MDC. Most of them
+ * were just moved from fs/lustre/osc/osc_cl_internal.h for Data-on-MDT
+ * purposes
  *
  *   Author: Nikita Danilov <nikita.danilov@sun.com>
- *   Author: Jinshan Xiong <jinshan.xiong@whamcloud.com>
+ *   Author: Jinshan Xiong <jinshan.xiong@gmail.com>
+ *   Author: Mikhail Pershin <mpershin@whamcloud.com>
  */
 
-#ifndef OSC_CL_INTERNAL_H
-#define OSC_CL_INTERNAL_H
+#ifndef LUSTRE_OSC_H
+#define LUSTRE_OSC_H
+
+#include <linux/rhashtable.h>
 
 #include <obd.h>
-/* osc_build_res_name() */
 #include <cl_object.h>
-#include "osc_internal.h"
+
+struct osc_quota_info {
+	/* linkage for quota hash table */
+	struct rhash_head	oqi_hash;
+	u32			oqi_id;
+	struct rcu_head		rcu;
+};
+
+enum async_flags {
+	ASYNC_READY		= 0x1,	/* osc_make_ready will not be called
+					 * before this page is added to an rpc
+					 */
+	ASYNC_URGENT		= 0x2,	/* page must be put into an RPC before
+					 * return
+					 */
+	ASYNC_COUNT_STABLE	= 0x4,	/* osc_refresh_count will not be called
+					 * to give the caller a chance to update
+					 * or cancel the size of the io
+					 */
+	ASYNC_HP = 0x10,
+};
+
+struct osc_async_page {
+	int			oap_magic;
+	unsigned short		oap_cmd;
+
+	struct list_head        oap_pending_item;
+	struct list_head        oap_rpc_item;
+
+	u64			oap_obj_off;
+	unsigned int		oap_page_off;
+	enum async_flags	oap_async_flags;
+
+	struct brw_page		oap_brw_page;
+
+	struct ptlrpc_request	*oap_request;
+	struct client_obd	*oap_cli;
+	struct osc_object	*oap_obj;
+
+	spinlock_t		oap_lock;
+};
+
+#define oap_page	oap_brw_page.pg
+#define oap_count	oap_brw_page.count
+#define oap_brw_flags	oap_brw_page.flag
+
+static inline struct osc_async_page *brw_page2oap(struct brw_page *pga)
+{
+	return container_of(pga, struct osc_async_page, oap_brw_page);
+}
+
+static inline void osc_wake_cache_waiters(struct client_obd *cli)
+{
+	wake_up(&cli->cl_cache_waiters);
+}
+
+struct osc_device {
+	struct cl_device	od_cl;
+	struct obd_export	*od_exp;
+
+	/* Write stats is actually protected by client_obd's lock. */
+	struct osc_stats {
+		u64		os_lockless_writes;	/* by bytes */
+		u64		os_lockless_reads;	/* by bytes */
+		u64		os_lockless_truncates;	/* by times */
+	} od_stats;
+
+	/* configuration item(s) */
+	int			od_contention_time;
+	int			od_lockless_truncate;
+};
 
 /* \defgroup osc osc
  *  @{
@@ -166,6 +241,8 @@ struct osc_object {
 	/* number of active IOs of this object */
 	atomic_t		oo_nr_ios;
 	wait_queue_head_t	oo_io_waitq;
+
+	bool			oo_initialized;
 };
 
 static inline void osc_object_lock(struct osc_object *obj)
@@ -353,21 +430,13 @@ extern struct kmem_cache *osc_object_kmem;
 extern struct kmem_cache *osc_thread_kmem;
 extern struct kmem_cache *osc_session_kmem;
 extern struct kmem_cache *osc_extent_kmem;
+extern struct kmem_cache *osc_quota_kmem;
 
-extern struct lu_device_type osc_device_type;
 extern struct lu_context_key osc_key;
 extern struct lu_context_key osc_session_key;
 
 #define OSC_FLAGS (ASYNC_URGENT | ASYNC_READY)
 
-int osc_lock_init(const struct lu_env *env,
-		  struct cl_object *obj, struct cl_lock *lock,
-		  const struct cl_io *io);
-int osc_io_init(const struct lu_env *env,
-		struct cl_object *obj, struct cl_io *io);
-struct lu_object *osc_object_alloc(const struct lu_env *env,
-				   const struct lu_object_header *hdr,
-				   struct lu_device *dev);
 int osc_page_init(const struct lu_env *env, struct cl_object *obj,
 		  struct cl_page *page, pgoff_t ind);
 
@@ -413,7 +482,7 @@ int osc_lock_is_lockless(const struct osc_lock *olck);
 
 /****************************************************************************
  *
- * Accessors.
+ * Accessors and type conversions.
  *
  */
 
@@ -440,14 +509,8 @@ static inline struct osc_io *osc_env_io(const struct lu_env *env)
 	return &osc_env_session(env)->os_io;
 }
 
-static inline int osc_is_object(const struct lu_object *obj)
-{
-	return obj->lo_dev->ld_type == &osc_device_type;
-}
-
 static inline struct osc_device *lu2osc_dev(const struct lu_device *d)
 {
-	LINVRNT(d->ld_type == &osc_device_type);
 	return container_of(d, struct osc_device, od_cl.cd_lu_dev);
 }
 
@@ -463,13 +526,42 @@ static inline struct client_obd *osc_cli(const struct osc_object *obj)
 
 static inline struct osc_object *cl2osc(const struct cl_object *obj)
 {
-	LINVRNT(osc_is_object(&obj->co_lu));
 	return container_of(obj, struct osc_object, oo_cl);
 }
 
 static inline struct cl_object *osc2cl(const struct osc_object *obj)
 {
 	return (struct cl_object *)&obj->oo_cl;
+}
+
+static inline struct osc_device *obd2osc_dev(const struct obd_device *d)
+{
+	return container_of_safe(d->obd_lu_dev, struct osc_device,
+				 od_cl.cd_lu_dev);
+}
+
+static inline struct lu_device *osc2lu_dev(struct osc_device *osc)
+{
+	return &osc->od_cl.cd_lu_dev;
+}
+
+static inline struct lu_object *osc2lu(struct osc_object *osc)
+{
+	return &osc->oo_cl.co_lu;
+}
+
+static inline struct osc_object *lu2osc(const struct lu_object *obj)
+{
+	return container_of_safe(obj, struct osc_object, oo_cl.co_lu);
+}
+
+static inline struct osc_io *cl2osc_io(const struct lu_env *env,
+				       const struct cl_io_slice *slice)
+{
+	struct osc_io *oio = container_of_safe(slice, struct osc_io, oi_cl);
+
+	LINVRNT(oio == osc_env_io(env));
+	return oio;
 }
 
 static inline enum ldlm_mode osc_cl_lock2ldlm(enum cl_lock_mode mode)
@@ -496,7 +588,6 @@ static inline enum cl_lock_mode osc_ldlm2cl_lock(enum ldlm_mode mode)
 
 static inline struct osc_page *cl2osc_page(const struct cl_page_slice *slice)
 {
-	LINVRNT(osc_is_object(&slice->cpl_obj->co_lu));
 	return container_of(slice, struct osc_page, ops_cl);
 }
 
@@ -532,13 +623,7 @@ osc_cl_page_osc(struct cl_page *page, struct osc_object *osc)
 
 static inline struct osc_lock *cl2osc_lock(const struct cl_lock_slice *slice)
 {
-	LINVRNT(osc_is_object(&slice->cls_obj->co_lu));
 	return container_of(slice, struct osc_lock, ols_cl);
-}
-
-static inline struct osc_lock *osc_lock_at(const struct cl_lock *lock)
-{
-	return cl2osc_lock(cl_lock_at(lock, &osc_device_type));
 }
 
 static inline int osc_io_srvlock(struct osc_io *oio)
@@ -667,4 +752,4 @@ bool osc_page_gang_lookup(const struct lu_env *env, struct cl_io *io,
 			  osc_page_gang_cbt cb, void *cbdata);
 /* @} osc */
 
-#endif /* OSC_CL_INTERNAL_H */
+#endif /* LUSTRE_OSC_H */

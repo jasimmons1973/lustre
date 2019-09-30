@@ -38,6 +38,8 @@
 #include <obd_class.h>
 #include <lprocfs_status.h>
 #include <linux/seq_file.h>
+#include <lustre_osc.h>
+
 #include "osc_internal.h"
 
 static ssize_t active_show(struct kobject *kobj, struct attribute *attr,

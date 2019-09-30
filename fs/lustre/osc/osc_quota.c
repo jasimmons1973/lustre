@@ -25,6 +25,8 @@
  */
 
 #include <obd_class.h>
+#include <lustre_osc.h>
+
 #include "osc_internal.h"
 
 static const struct rhashtable_params quota_hash_params = {

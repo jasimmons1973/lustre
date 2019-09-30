@@ -50,8 +50,9 @@
 #include <lustre_fid.h>
 #include <obd_class.h>
 #include <obd.h>
+#include <lustre_osc.h>
+
 #include "osc_internal.h"
-#include "osc_cl_internal.h"
 
 atomic_t osc_pool_req_count;
 unsigned int osc_reqpool_maxreqcount;
