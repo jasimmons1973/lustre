@@ -137,8 +137,8 @@
 /**
  * Immediately cancel such locks when they block some other locks. Send
  * cancel notification to original lock holder, but expect no reply. This
- * is for clients (like liblustre) that cannot be expected to reliably
- * response to blocking AST.
+ * is for clients that cannot be expected to reliably response to blocking
+ * AST.
  */
 #define LDLM_FL_CANCEL_ON_BLOCK		0x0000000000800000ULL /* bit 23 */
 #define ldlm_is_cancel_on_block(_l)	LDLM_TEST_FLAG((_l), 1ULL << 23)

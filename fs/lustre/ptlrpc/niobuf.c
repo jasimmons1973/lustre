@@ -256,7 +256,7 @@ int ptlrpc_unregister_bulk(struct ptlrpc_request *req, int async)
 
 	/* the unlink ensures the callback happens ASAP and is the last
 	 * one.  If it fails, it must be because completion just happened,
-	 * but we must still wait_event() in this case to give liblustre
+	 * but we must still wait_event() in this case to give lustre
 	 * a chance to run client_bulk_callback()
 	 */
 	mdunlink_iterate_helper(desc->bd_mds, desc->bd_md_max_brw);
