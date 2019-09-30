@@ -791,6 +791,7 @@ struct ptlrpc_body_v2 {
 #define OBD_CONNECT2_LOCKAHEAD		0x2ULL		/* ladvise lockahead
 							 * v2
 							 */
+#define OBD_CONNECT2_FLR		0x20ULL		/* FLR support */
 
 /* XXX README XXX:
  * Please DO NOT add flag values here before first ensuring that this same
