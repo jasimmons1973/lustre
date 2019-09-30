@@ -36,6 +36,7 @@
 #ifndef __LNET_LIB_LNET_H__
 #define __LNET_LIB_LNET_H__
 
+#include <linux/netdevice.h>
 #include <linux/libcfs/libcfs.h>
 #include <linux/libcfs/libcfs_cpu.h>
 #include <linux/libcfs/libcfs_string.h>
@@ -649,6 +650,15 @@ int lnet_acceptor_port(void);
 int lnet_acceptor_start(void);
 void lnet_acceptor_stop(void);
 
+struct lnet_inetdev {
+	u32	li_cpt;
+	u32	li_flags;
+	u32	li_ipaddr;
+	u32	li_netmask;
+	char	li_name[IFNAMSIZ];
+};
+
+int lnet_inet_enumerate(struct lnet_inetdev **dev_list);
 int lnet_sock_setbuf(struct socket *socket, int txbufsize, int rxbufsize);
 int lnet_sock_getbuf(struct socket *socket, int *txbufsize, int *rxbufsize);
 int lnet_sock_getaddr(struct socket *socket, bool remote, u32 *ip, int *port);

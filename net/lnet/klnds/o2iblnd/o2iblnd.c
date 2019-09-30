@@ -2553,81 +2553,6 @@ void kiblnd_destroy_dev(struct kib_dev *dev)
 	kfree(dev);
 }
 
-static struct kib_dev *kiblnd_create_dev(char *ifname)
-{
-	const struct in_ifaddr *ifa;
-	struct net_device *netdev;
-	struct kib_dev *dev = NULL;
-	int flags;
-	int rc;
-
-	rtnl_lock();
-	for_each_netdev(&init_net, netdev) {
-		struct in_device *in_dev;
-
-		if (strcmp(netdev->name, "lo") == 0) /* skip the loopback IF */
-			continue;
-
-		flags = dev_get_flags(netdev);
-		if (!(flags & IFF_UP)) {
-			CWARN("Can't query IPoIB interface %s: it's down\n",
-			      netdev->name);
-			continue;
-		}
-
-		in_dev = __in_dev_get_rtnl(netdev);
-		if (!in_dev) {
-			CWARN("Interface %s has no IPv4 status.\n",
-			      netdev->name);
-			continue;
-		}
-
-		in_dev_for_each_ifa_rcu(ifa, in_dev) {
-			if (strcmp(ifname, ifa->ifa_label) == 0) {
-				dev = kzalloc(sizeof(*dev), GFP_NOFS);
-				if (!dev)
-					goto unlock;
-
-				dev->ibd_can_failover = !!(flags & IFF_MASTER);
-				dev->ibd_ifip = ntohl(ifa->ifa_local);
-
-				INIT_LIST_HEAD(&dev->ibd_nets);
-				/* not yet in kib_devs */
-				INIT_LIST_HEAD(&dev->ibd_list);
-				INIT_LIST_HEAD(&dev->ibd_fail_list);
-				break;
-			}
-		}
-	}
-	rtnl_unlock();
-
-	if (!dev) {
-		CERROR("Can't find any usable interfaces\n");
-		return NULL;
-	}
-
-	if (dev->ibd_ifip == 0) {
-		CERROR("Can't initialize device: no IP address\n");
-		goto free_dev;
-	}
-	strcpy(&dev->ibd_ifname[0], ifname);
-
-	/* initialize the device */
-	rc = kiblnd_dev_failover(dev);
-	if (rc) {
-		CERROR("Can't initialize device: %d\n", rc);
-		goto free_dev;
-	}
-
-	list_add_tail(&dev->ibd_list, &kiblnd_data.kib_devs);
-	return dev;
-unlock:
-	rtnl_unlock();
-free_dev:
-	kfree(dev);
-	return NULL;
-}
-
 static void kiblnd_base_shutdown(void)
 {
 	struct kib_sched_info *sched;
@@ -2887,8 +2812,7 @@ static int kiblnd_start_schedulers(struct kib_sched_info *sched)
 	return rc;
 }
 
-static int kiblnd_dev_start_threads(struct kib_dev *dev, int newdev, u32 *cpts,
-				    int ncpts)
+static int kiblnd_dev_start_threads(struct kib_dev *dev, u32 *cpts, int ncpts)
 {
 	int cpt;
 	int rc;
@@ -2900,7 +2824,7 @@ static int kiblnd_dev_start_threads(struct kib_dev *dev, int newdev, u32 *cpts,
 		cpt = !cpts ? i : cpts[i];
 		sched = kiblnd_data.kib_scheds[cpt];
 
-		if (!newdev && sched->ibs_nthreads > 0)
+		if (sched->ibs_nthreads > 0)
 			continue;
 
 		rc = kiblnd_start_schedulers(kiblnd_data.kib_scheds[cpt]);
@@ -2913,47 +2837,15 @@ static int kiblnd_dev_start_threads(struct kib_dev *dev, int newdev, u32 *cpts,
 	return 0;
 }
 
-static struct kib_dev *kiblnd_dev_search(char *ifname)
-{
-	struct kib_dev *alias = NULL;
-	struct kib_dev *dev;
-	char *colon;
-	char *colon2;
-
-	colon = strchr(ifname, ':');
-	list_for_each_entry(dev, &kiblnd_data.kib_devs, ibd_list) {
-		if (!strcmp(&dev->ibd_ifname[0], ifname))
-			return dev;
-
-		if (alias)
-			continue;
-
-		colon2 = strchr(dev->ibd_ifname, ':');
-		if (colon)
-			*colon = 0;
-		if (colon2)
-			*colon2 = 0;
-
-		if (!strcmp(&dev->ibd_ifname[0], ifname))
-			alias = dev;
-
-		if (colon)
-			*colon = ':';
-		if (colon2)
-			*colon2 = ':';
-	}
-	return alias;
-}
-
 static int kiblnd_startup(struct lnet_ni *ni)
 {
 	char *ifname;
+	struct lnet_inetdev *ifaces = NULL;
 	struct kib_dev *ibdev = NULL;
 	struct kib_net *net;
 	unsigned long flags;
 	int rc;
-	int newdev;
-	int node_id;
+	int i;
 
 	LASSERT(ni->ni_net->net_lnd == &the_o2iblnd);
 
@@ -2981,9 +2873,8 @@ static int kiblnd_startup(struct lnet_ni *ni)
 	if (ni->ni_interfaces[0]) {
 		/* Use the IPoIB interface specified in 'networks=' */
 
-		BUILD_BUG_ON(LNET_INTERFACES_NUM <= 1);
 		if (ni->ni_interfaces[1]) {
-			CERROR("Multiple interfaces not supported\n");
+			CERROR("ko2iblnd: Multiple interfaces not supported\n");
 			goto failed;
 		}
 
@@ -2997,24 +2888,51 @@ static int kiblnd_startup(struct lnet_ni *ni)
 		goto failed;
 	}
 
-	ibdev = kiblnd_dev_search(ifname);
-
-	newdev = !ibdev;
-	/* hmm...create kib_dev even for alias */
-	if (!ibdev || strcmp(&ibdev->ibd_ifname[0], ifname))
-		ibdev = kiblnd_create_dev(ifname);
-
-	if (!ibdev)
+	rc = lnet_inet_enumerate(&ifaces);
+	if (rc < 0)
 		goto failed;
 
-	node_id = dev_to_node(ibdev->ibd_hdev->ibh_ibdev->dma_device);
-	ni->ni_dev_cpt = cfs_cpt_of_node(lnet_cpt_table(), node_id);
+	for (i = 0; i < rc; i++) {
+		if (strcmp(ifname, ifaces[i].li_name) == 0)
+			break;
+	}
+
+	if (i == rc) {
+		CERROR("ko2iblnd: No matching interfaces\n");
+		rc = -ENOENT;
+		goto failed;
+	}
+
+	ibdev = kzalloc(sizeof(*ibdev), GFP_KERNEL);
+	if (!ibdev) {
+		rc = -ENOMEM;
+		goto failed;
+	}
+
+	ibdev->ibd_ifip = ifaces[i].li_ipaddr;
+	strlcpy(ibdev->ibd_ifname, ifaces[i].li_name,
+		sizeof(ibdev->ibd_ifname));
+	ibdev->ibd_can_failover = !!(ifaces[i].li_flags & IFF_MASTER);
+
+	INIT_LIST_HEAD(&ibdev->ibd_nets);
+	INIT_LIST_HEAD(&ibdev->ibd_list); /* not yet in kib_devs */
+	INIT_LIST_HEAD(&ibdev->ibd_fail_list);
+
+	/* initialize the device */
+	rc = kiblnd_dev_failover(ibdev);
+	if (rc) {
+		CERROR("ko2iblnd: Can't initialize device: rc = %d\n", rc);
+		goto failed;
+	}
+
+	list_add_tail(&ibdev->ibd_list, &kiblnd_data.kib_devs);
 
 	net->ibn_dev = ibdev;
 	ni->ni_nid = LNET_MKNID(LNET_NIDNET(ni->ni_nid), ibdev->ibd_ifip);
 
-	rc = kiblnd_dev_start_threads(ibdev, newdev,
-				      ni->ni_cpts, ni->ni_ncpts);
+	ni->ni_dev_cpt = ifaces[i].li_cpt;
+
+	rc = kiblnd_dev_start_threads(ibdev, ni->ni_cpts, ni->ni_ncpts);
 	if (rc)
 		goto failed;
 
@@ -3037,6 +2955,7 @@ failed:
 	if (!net->ibn_dev && ibdev)
 		kiblnd_destroy_dev(ibdev);
 
+	kfree(ifaces);
 net_failed:
 	kiblnd_shutdown(ni);
 
