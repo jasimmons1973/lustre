@@ -1551,8 +1551,7 @@ static int ptlrpc_send_new_req(struct ptlrpc_request *req)
 		spin_unlock(&req->rq_lock);
 
 		DEBUG_REQ(D_HA, req,
-			  "req from PID %d waiting for recovery: (%s != %s)",
-			  lustre_msg_get_status(req->rq_reqmsg),
+			  "req waiting for recovery: (%s != %s)",
 			  ptlrpc_import_state_name(req->rq_send_state),
 			  ptlrpc_import_state_name(imp->imp_state));
 		LASSERT(list_empty(&req->rq_list));
