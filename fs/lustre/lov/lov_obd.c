@@ -852,6 +852,9 @@ int lov_process_config_base(struct obd_device *obd, struct lustre_cfg *lcfg,
 	int rc = 0;
 
 	switch (cmd = lcfg->lcfg_command) {
+	case LCFG_ADD_MDC:
+	case LCFG_DEL_MDC:
+		break;
 	case LCFG_LOV_ADD_OBD:
 	case LCFG_LOV_ADD_INA:
 	case LCFG_LOV_DEL_OBD: {
@@ -1179,31 +1182,32 @@ static int lov_set_info_async(const struct lu_env *env, struct obd_export *exp,
 {
 	struct obd_device *obddev = class_exp2obd(exp);
 	struct lov_obd *lov = &obddev->u.lov;
-	u32 count;
-	int i, rc = 0, err;
 	struct lov_tgt_desc *tgt;
-	int do_inactive = 0, no_set = 0;
+	bool do_inactive = false;
+	bool no_set = false;
+	int rc = 0;
+	int err;
+	u32 i;
 
 	if (!set) {
-		no_set = 1;
+		no_set = true;
 		set = ptlrpc_prep_set();
 		if (!set)
 			return -ENOMEM;
 	}
 
 	lov_tgts_getref(obddev);
-	count = lov->desc.ld_tgt_count;
 
 	if (KEY_IS(KEY_CHECKSUM)) {
-		do_inactive = 1;
+		do_inactive = true;
 	} else if (KEY_IS(KEY_CACHE_SET)) {
 		LASSERT(!lov->lov_cache);
 		lov->lov_cache = val;
-		do_inactive = 1;
+		do_inactive = true;
 		cl_cache_incref(lov->lov_cache);
 	}
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < lov->desc.ld_tgt_count; i++) {
 		tgt = lov->lov_tgts[i];
 
 		/* OST was disconnected */
@@ -1216,14 +1220,29 @@ static int lov_set_info_async(const struct lu_env *env, struct obd_export *exp,
 
 		err = obd_set_info_async(env, tgt->ltd_exp, keylen, key,
 					 vallen, val, set);
-		if (!rc)
+
+		if (rc == 0)
+			rc = err;
+	}
+
+	/* cycle through MDC target for Data-on-MDT */
+	for (i = 0; i < LOV_MDC_TGT_MAX; i++) {
+		struct obd_device *mdc;
+
+		mdc = lov->lov_mdc_tgts[i].lmtd_mdc;
+		if (!mdc)
+			continue;
+
+		err = obd_set_info_async(env, mdc->obd_self_export,
+					 keylen, key, vallen, val, set);
+		if (rc == 0)
 			rc = err;
 	}
 
 	lov_tgts_putref(obddev);
 	if (no_set) {
 		err = ptlrpc_set_wait(set);
-		if (!rc)
+		if (rc == 0)
 			rc = err;
 		ptlrpc_set_destroy(set);
 	}

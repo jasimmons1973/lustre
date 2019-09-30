@@ -43,6 +43,9 @@ static u64 stripe_width(struct lov_stripe_md *lsm, unsigned int index)
 
 	LASSERT(index < lsm->lsm_entry_count);
 
+	if (lsme_is_dom(entry))
+		return (loff_t)entry->lsme_stripe_size;
+
 	return entry->lsme_stripe_size * entry->lsme_stripe_count;
 }
 

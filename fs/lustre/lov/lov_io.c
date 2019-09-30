@@ -533,7 +533,11 @@ static int lov_io_setattr_iter_init(const struct lu_env *env,
 
 	if (cl_io_is_trunc(io) && lio->lis_pos > 0) {
 		index = lov_lsm_entry(lsm, lio->lis_pos - 1);
-		if (index > 0 && !lsm_entry_inited(lsm, index)) {
+		/* no entry found for such offset */
+		if (index < 0) {
+			io->ci_result = -ENODATA;
+			return io->ci_result;
+		} else if (!lsm_entry_inited(lsm, index)) {
 			io->ci_need_write_intent = 1;
 			io->ci_result = -ENODATA;
 			return io->ci_result;

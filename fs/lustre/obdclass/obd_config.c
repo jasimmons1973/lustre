@@ -972,7 +972,6 @@ int class_process_config(struct lustre_cfg *lcfg)
 		err = -EINVAL;
 		goto out;
 	}
-
 	switch (lcfg->lcfg_command) {
 	case LCFG_SETUP: {
 		err = class_setup(obd, lcfg);
@@ -1018,6 +1017,41 @@ int class_process_config(struct lustre_cfg *lcfg)
 	case LCFG_POOL_DEL: {
 		err = obd_pool_del(obd, lustre_cfg_string(lcfg, 2));
 		err = 0;
+		goto out;
+	}
+	/* Process config log ADD_MDC record twice to add MDC also to LOV
+	 * for Data-on-MDT:
+	 *
+	 * add 0:lustre-clilmv 1:lustre-MDT0000_UUID 2:0 3:1
+	 *     4:lustre-MDT0000-mdc_UUID
+	 */
+	case LCFG_ADD_MDC: {
+		struct obd_device *lov_obd;
+		char *clilmv;
+
+		err = obd_process_config(obd, sizeof(*lcfg), lcfg);
+		if (err)
+			goto out;
+
+		/* make sure this is client LMV log entry */
+		clilmv = strstr(lustre_cfg_string(lcfg, 0), "clilmv");
+		if (!clilmv)
+			goto out;
+
+		/* replace 'lmv' with 'lov' name to address LOV device and
+		 * process llog record to add MDC there.
+		 */
+		clilmv[4] = 'o';
+		lov_obd = class_name2obd(lustre_cfg_string(lcfg, 0));
+		if (!lov_obd) {
+			err = -ENOENT;
+			CERROR("%s: Cannot find LOV by %s name, rc = %d\n",
+			       obd->obd_name, lustre_cfg_string(lcfg, 0), err);
+		} else {
+			err = obd_process_config(lov_obd, sizeof(*lcfg), lcfg);
+		}
+		/* restore 'lmv' name */
+		clilmv[4] = 'm';
 		goto out;
 	}
 	default: {

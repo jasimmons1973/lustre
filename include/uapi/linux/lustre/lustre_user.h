@@ -337,7 +337,7 @@ enum ll_lease_type {
 
 #define LOV_PATTERN_RAID0	0x001
 #define LOV_PATTERN_RAID1	0x002
-#define LOV_PATTERN_FIRST	0x100
+#define LOV_PATTERN_MDT		0x100
 #define LOV_PATTERN_CMOBD	0x200
 
 #define LOV_PATTERN_F_MASK	0xffff0000
