@@ -1763,7 +1763,7 @@ kiblnd_recv(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg,
 	struct kib_tx *tx;
 	int nob;
 	int post_credit = IBLND_POSTRX_PEER_CREDIT;
-	u64 ibprm_cookie;
+	u64 ibprm_cookie = rxmsg->ibm_u.putreq.ibprm_cookie;
 	int rc = 0;
 
 	LASSERT(iov_iter_count(to) <= rlen);
@@ -1796,7 +1796,6 @@ kiblnd_recv(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg,
 		break;
 
 	case IBLND_MSG_PUT_REQ: {
-		u64 ibprm_cookie = rxmsg->ibm_u.putreq.ibprm_cookie;
 		struct kib_msg *txmsg;
 		struct kib_rdma_desc *rd;
 
