@@ -336,6 +336,9 @@ static int proc_dobitmasks(struct ctl_table *table, int write,
 	return rc;
 }
 
+static int min_watchdog_ratelimit;			/* disable ratelimiting */
+static int max_watchdog_ratelimit = (24 * 60 * 60);	/* limit to once per day */
+
 static int proc_dump_kernel(struct ctl_table *table, int write,
 			    void __user *buffer, size_t *lenp, loff_t *ppos)
 {
@@ -529,6 +532,15 @@ static struct ctl_table lnet_table[] = {
 		.mode		= 0644,
 		.maxlen		= 256,
 		.proc_handler	= &proc_daemon_file,
+	},
+	{
+		.procname	= "watchdog_ratelimit",
+		.data		= &libcfs_watchdog_ratelimit,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= &proc_dointvec_minmax,
+		.extra1		= &min_watchdog_ratelimit,
+		.extra2		= &max_watchdog_ratelimit,
 	},
 	{
 		.procname	= "force_lbug",
