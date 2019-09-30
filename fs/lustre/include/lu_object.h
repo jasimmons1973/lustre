@@ -425,25 +425,6 @@ struct lu_attr {
 	u64	  la_valid;
 };
 
-/** Bit-mask of valid attributes */
-enum la_valid {
-	LA_ATIME	= 1 << 0,
-	LA_MTIME	= 1 << 1,
-	LA_CTIME	= 1 << 2,
-	LA_SIZE		= 1 << 3,
-	LA_MODE		= 1 << 4,
-	LA_UID		= 1 << 5,
-	LA_GID		= 1 << 6,
-	LA_BLOCKS	= 1 << 7,
-	LA_TYPE		= 1 << 8,
-	LA_FLAGS	= 1 << 9,
-	LA_NLINK	= 1 << 10,
-	LA_RDEV		= 1 << 11,
-	LA_BLKSIZE	= 1 << 12,
-	LA_KILL_SUID	= 1 << 13,
-	LA_KILL_SGID	= 1 << 14,
-};
-
 /**
  * Layer in the layered object.
  */
