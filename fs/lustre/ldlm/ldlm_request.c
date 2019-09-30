@@ -445,14 +445,15 @@ int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
 			}
 			LDLM_DEBUG(lock, "client-side enqueue, new resource");
 		}
-		if (with_policy)
-			if (!(type == LDLM_IBITS &&
-			      !(exp_connect_flags(exp) & OBD_CONNECT_IBITS)))
-				/* We assume lock type cannot change on server*/
-				ldlm_convert_policy_to_local(exp,
-							     lock->l_resource->lr_type,
-							     &reply->lock_desc.l_policy_data,
-							     &lock->l_policy_data);
+
+		if (with_policy) {
+			/* We assume lock type cannot change on server*/
+			ldlm_convert_policy_to_local(exp,
+						     lock->l_resource->lr_type,
+						     &reply->lock_desc.l_policy_data,
+						     &lock->l_policy_data);
+		}
+
 		if (type != LDLM_PLAIN)
 			LDLM_DEBUG(lock,
 				   "client-side enqueue, new policy data");

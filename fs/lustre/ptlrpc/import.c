@@ -754,16 +754,6 @@ static int ptlrpc_connect_set_flags(struct obd_import *imp,
 	struct client_obd *cli = &imp->imp_obd->u.cli;
 	static bool warned;
 
-	if ((imp->imp_connect_flags_orig & OBD_CONNECT_IBITS) &&
-	    !(ocd->ocd_connect_flags & OBD_CONNECT_IBITS)) {
-		LCONSOLE_WARN("%s: MDS %s does not support ibits lock, either very old or invalid: requested %#llx, replied %#llx\n",
-			      imp->imp_obd->obd_name,
-			      imp->imp_connection->c_remote_uuid.uuid,
-			      imp->imp_connect_flags_orig,
-			      ocd->ocd_connect_flags);
-		return -EPROTO;
-	}
-
 	spin_lock(&imp->imp_lock);
 	list_del(&imp->imp_conn_current->oic_item);
 	list_add(&imp->imp_conn_current->oic_item, &imp->imp_conn_list);

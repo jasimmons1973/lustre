@@ -702,7 +702,7 @@ struct ptlrpc_body_v2 {
 #define OBD_CONNECT_LARGE_ACL		0x200ULL /* more than 32 ACL entries */
 #define OBD_CONNECT_TRUNCLOCK		0x400ULL /*locks on server for punch */
 #define OBD_CONNECT_TRANSNO		0x800ULL /*replay sends init transno */
-#define OBD_CONNECT_IBITS	       0x1000ULL /*support for inodebits locks*/
+#define OBD_CONNECT_IBITS	       0x1000ULL /* not checked in 2.11+ */
 #define OBD_CONNECT_JOIN	       0x2000ULL /*files can be concatenated.
 						  *We do not support JOIN FILE
 						  *anymore, reserve this flags
@@ -809,7 +809,7 @@ struct ptlrpc_body_v2 {
 	(!!((ocd)->ocd_connect_flags & OBD_CONNECT_##flg))
 
 /* Features required for this version of the client to work with server */
-#define CLIENT_CONNECT_MDT_REQD (OBD_CONNECT_IBITS | OBD_CONNECT_FID | \
+#define CLIENT_CONNECT_MDT_REQD (OBD_CONNECT_FID |	\
 				 OBD_CONNECT_FULL20)
 
 /* This structure is used for both request and reply.
