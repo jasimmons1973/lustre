@@ -2018,6 +2018,7 @@ void lustre_swab_lov_comp_md_v1(struct lov_comp_md_v1 *lum)
 	__swab32s(&lum->lcm_layout_gen);
 	__swab16s(&lum->lcm_flags);
 	__swab16s(&lum->lcm_entry_count);
+	__swab16s(&lum->lcm_mirror_count);
 	BUILD_BUG_ON(offsetof(typeof(*lum), lcm_padding1) == 0);
 	BUILD_BUG_ON(offsetof(typeof(*lum), lcm_padding2) == 0);
 

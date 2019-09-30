@@ -431,8 +431,7 @@ static void mdc_intent_close_pack(struct ptlrpc_request *req,
 	struct close_data *data;
 	struct ldlm_lock *lock;
 
-	if (!(bias & (MDS_HSM_RELEASE | MDS_CLOSE_LAYOUT_SWAP |
-		      MDS_RENAME_MIGRATE)))
+	if (!(bias & (MDS_CLOSE_INTENT | MDS_RENAME_MIGRATE)))
 		return;
 
 	data = req_capsule_client_get(&req->rq_pill, &RMF_CLOSE_DATA);
