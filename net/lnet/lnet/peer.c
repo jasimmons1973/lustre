@@ -1983,13 +1983,16 @@ void lnet_peer_push_event(struct lnet_event *ev)
 
 out:
 	/*
-	 * Queue the peer for discovery, and wake the discovery thread
-	 * if the peer was already queued, because its status changed.
+	 * Queue the peer for discovery if not done, force it on the request
+	 * queue and wake the discovery thread if the peer was already queued,
+	 * because its status changed.
 	 */
 	spin_unlock(&lp->lp_lock);
 	lnet_net_lock(LNET_LOCK_EX);
-	if (lnet_peer_queue_for_discovery(lp))
+	if (!lnet_peer_is_uptodate(lp) && lnet_peer_queue_for_discovery(lp)) {
+		list_move(&lp->lp_dc_list, &the_lnet.ln_dc_request);
 		wake_up(&the_lnet.ln_dc_waitq);
+	}
 	/* Drop refcount from lookup */
 	lnet_peer_decref_locked(lp);
 	lnet_net_unlock(LNET_LOCK_EX);
@@ -2348,7 +2351,11 @@ static void lnet_discovery_event_handler(struct lnet_event *event)
 		lnet_ping_buffer_decref(pbuf);
 		lnet_peer_decref_locked(lp);
 	}
-	if (rc == LNET_REDISCOVER_PEER) {
+
+	/* Put peer back at end of request queue, if discovery not already
+	 * done
+	 */
+	if (rc == LNET_REDISCOVER_PEER && !lnet_peer_is_uptodate(lp)) {
 		list_move_tail(&lp->lp_dc_list, &the_lnet.ln_dc_request);
 		wake_up(&the_lnet.ln_dc_waitq);
 	}
