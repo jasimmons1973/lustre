@@ -1891,6 +1891,10 @@ struct cl_io {
 	 */
 	unsigned int		ci_ndelay_tried;
 	/**
+	 * Designated mirror index for this I/O.
+	 */
+	unsigned int	     ci_designated_mirror;
+	/**
 	 * Number of pages owned by this IO. For invariant checking.
 	 */
 	unsigned int		ci_owned_nr;
