@@ -12,6 +12,9 @@
  *
  * header for lnet ioctl
  */
+/*
+ * Copyright (c) 2014, 2017, Intel Corporation.
+ */
 #ifndef _LNETCTL_H_
 #define _LNETCTL_H_
 
