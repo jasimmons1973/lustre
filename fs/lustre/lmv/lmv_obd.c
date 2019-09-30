@@ -2139,6 +2139,26 @@ out:
 	return ent;
 }
 
+static int lmv_file_resync(struct obd_export *exp, struct md_op_data *data)
+{
+	struct obd_device *obd = exp->exp_obd;
+	struct lmv_obd *lmv = &obd->u.lmv;
+	struct lmv_tgt_desc *tgt;
+	int rc;
+
+	rc = lmv_check_connect(obd);
+	if (rc != 0)
+		return rc;
+
+	tgt = lmv_find_target(lmv, &data->op_fid1);
+	if (IS_ERR(tgt))
+		return PTR_ERR(tgt);
+
+	data->op_flags |= MF_MDC_CANCEL_FID1;
+	rc = md_file_resync(tgt->ltd_exp, data);
+	return rc;
+}
+
 /**
  * Get dirent with the closest hash for striped directory
  *
@@ -3120,6 +3140,7 @@ static const struct md_ops lmv_md_ops = {
 	.setattr		= lmv_setattr,
 	.setxattr		= lmv_setxattr,
 	.fsync			= lmv_fsync,
+	.file_resync		= lmv_file_resync,
 	.read_page		= lmv_read_page,
 	.unlink			= lmv_unlink,
 	.init_ea_size		= lmv_init_ea_size,

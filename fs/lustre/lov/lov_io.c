@@ -229,8 +229,17 @@ static int lov_io_mirror_write_intent(struct lov_io *lio,
 	      cl_io_is_mkwrite(io)))
 		return 0;
 
+	/* FLR: check if it needs to send a write intent RPC to server.
+	 * Writing to sync_pending file needs write intent RPC to change
+	 * the file state back to write_pending, so that the layout version
+	 * can be increased when the state changes to sync_pending at a later
+	 * time. Otherwise there exists a chance that an evicted client may
+	 * dirty the file data while resync client is working on it.
+	 * Designated I/O is allowed for resync workload.
+	 */
 	if (lov_flr_state(obj) == LCM_FL_RDONLY ||
-	    lov_flr_state(obj) == LCM_FL_SYNC_PENDING) {
+	    (lov_flr_state(obj) == LCM_FL_SYNC_PENDING &&
+	     io->ci_designated_mirror == 0)) {
 		io->ci_need_write_intent = 1;
 		return 0;
 	}
@@ -299,11 +308,30 @@ static int lov_io_mirror_init(struct lov_io *lio, struct lov_object *obj,
 		return 0;
 	}
 
+	/* transfer the layout version for verification */
+	if (io->ci_layout_version == 0)
+		io->ci_layout_version = obj->lo_lsm->lsm_layout_gen;
+
 	/* find the corresponding mirror for designated mirror IO */
 	if (io->ci_designated_mirror > 0) {
 		struct lov_mirror_entry *entry;
 
 		LASSERT(!io->ci_ndelay);
+
+		CDEBUG(D_LAYOUT, "designated I/O mirror state: %d\n",
+		      lov_flr_state(obj));
+
+		if ((cl_io_is_trunc(io) || io->ci_type == CIT_WRITE) &&
+		    (io->ci_layout_version != obj->lo_lsm->lsm_layout_gen)) {
+			/* For resync I/O, the ci_layout_version was the layout
+			 * version when resync starts. If it doesn't match the
+			 * current object layout version, it means the layout
+			 * has been changed
+			 */
+			return -ESTALE;
+		}
+
+		io->ci_layout_version |= LU_LAYOUT_RESYNC;
 
 		index = 0;
 		lio->lis_mirror_index = -1;
@@ -317,7 +345,7 @@ static int lov_io_mirror_init(struct lov_io *lio, struct lov_object *obj,
 			index++;
 		}
 
-		return (lio->lis_mirror_index < 0) ? -EINVAL : 0;
+		return lio->lis_mirror_index < 0 ? -EINVAL : 0;
 	}
 
 	result = lov_io_mirror_write_intent(lio, obj, io);
@@ -332,9 +360,6 @@ static int lov_io_mirror_init(struct lov_io *lio, struct lov_object *obj,
 		/* stop cl_io_init() loop */
 		return 1;
 	}
-
-	/* transfer the layout version for verification */
-	io->ci_layout_version = obj->lo_lsm->lsm_layout_gen;
 
 	if (io->ci_ndelay_tried == 0 || /* first time to try */
 	    /* reset the mirror index if layout has changed */
@@ -529,9 +554,27 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 		if (!lsm_entry_inited(obj->lo_lsm, index)) {
 			io->ci_need_write_intent = 1;
 			io->ci_write_intent = ext;
-			result = 1;
-			goto out;
+			break;
 		}
+	}
+
+	if (io->ci_need_write_intent && io->ci_designated_mirror > 0) {
+		/* REINT_SYNC RPC has already tried to instantiate all of the
+		 * components involved, obviously it didn't succeed. Skip this
+		 * mirror for now. The server won't be able to figure out
+		 * which mirror it should instantiate components
+		 */
+		CERROR(DFID": trying to instantiate components for designated I/O, file state: %d\n",
+		       PFID(lu_object_fid(lov2lu(obj))), lov_flr_state(obj));
+
+		io->ci_need_write_intent = 0;
+		result = -EIO;
+		goto out;
+	}
+
+	if (io->ci_need_write_intent) {
+		result = 1;
+		goto out;
 	}
 
 out:
@@ -661,7 +704,8 @@ static int lov_io_iter_init(const struct lu_env *env,
 	ext.e_end = lio->lis_endpos;
 
 	lov_foreach_io_layout(index, lio, &ext) {
-		struct lov_layout_raid0 *r0 = lov_r0(lio->lis_object, index);
+		struct lov_layout_entry *le = lov_entry(lio->lis_object, index);
+		struct lov_layout_raid0 *r0 = &le->lle_raid0;
 		int stripe;
 		u64 start;
 		u64 end;
@@ -673,6 +717,12 @@ static int lov_io_iter_init(const struct lu_env *env,
 			 * zero filled pages.
 			 */
 			continue;
+		}
+
+		if (!le->lle_valid && !ios->cis_io->ci_designated_mirror) {
+			CERROR("I/O to invalid component: %d, mirror: %d\n",
+			       index, lio->lis_mirror_index);
+			return -EIO;
 		}
 
 		for (stripe = 0; stripe < r0->lo_nr; stripe++) {
@@ -743,6 +793,10 @@ static int lov_io_rw_iter_init(const struct lu_env *env,
 
 		return -ENODATA;
 	}
+
+	if (!lov_entry(lio->lis_object, index)->lle_valid &&
+	    !io->ci_designated_mirror)
+		return io->ci_type == CIT_READ ? -EAGAIN : -EIO;
 
 	lse = lov_lse(lio->lis_object, index);
 

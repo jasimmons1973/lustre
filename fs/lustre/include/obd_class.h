@@ -1349,6 +1349,21 @@ static inline int md_fsync(struct obd_export *exp, const struct lu_fid *fid,
 	return MDP(exp->exp_obd, fsync)(exp, fid, request);
 }
 
+/* FLR: resync mirrored files. */
+static inline int md_file_resync(struct obd_export *exp,
+				 struct md_op_data *data)
+{
+	int rc;
+
+	rc = exp_check_ops(exp);
+	if (rc)
+		return rc;
+
+	rc = MDP(exp->exp_obd, file_resync)(exp, data);
+
+	return rc;
+}
+
 static inline int md_read_page(struct obd_export *exp,
 			       struct md_op_data *op_data,
 			       struct md_callback *cb_op,

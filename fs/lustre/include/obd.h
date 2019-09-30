@@ -931,6 +931,8 @@ struct lookup_intent;
 struct cl_attr;
 
 struct md_ops {
+	int (*file_resync)(struct obd_export *exp, struct md_op_data *data);
+
 	int (*get_root)(struct obd_export *exp, const char *fileset,
 			 struct lu_fid *fid);
 	int (*null_inode)(struct obd_export *, const struct lu_fid *);

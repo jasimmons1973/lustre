@@ -653,12 +653,16 @@ struct ll_file_data {
 	 */
 	bool fd_write_failed;
 	bool ll_lock_no_expand;
+	rwlock_t fd_lock; /* protect lcc list */
+	struct list_head fd_lccs; /* list of ll_cl_context */
 	/* Used by mirrored file to lead IOs to a specific mirror, usually
 	 * for mirror resync. 0 means default.
 	 */
 	u32 fd_designated_mirror;
-	rwlock_t fd_lock; /* protect lcc list */
-	struct list_head fd_lccs; /* list of ll_cl_context */
+	/* The layout version when resync starts. Resync I/O should carry this
+	 * layout version for verification to OST objects
+	 */
+	u32 fd_layout_version;
 };
 
 void llite_tunables_unregister(void);

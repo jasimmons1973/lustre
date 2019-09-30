@@ -121,7 +121,8 @@ static const struct req_msg_field *mdt_intent_close_client[] = {
 	&RMF_MDT_EPOCH,
 	&RMF_REC_REINT,
 	&RMF_CAPA1,
-	&RMF_CLOSE_DATA
+	&RMF_CLOSE_DATA,
+	&RMF_U32
 };
 
 static const struct req_msg_field *obd_statfs_server[] = {
@@ -295,6 +296,12 @@ static const struct req_msg_field *mds_reint_setxattr_client[] = {
 	&RMF_CAPA1,
 	&RMF_NAME,
 	&RMF_EADATA,
+	&RMF_DLM_REQ
+};
+
+static const struct req_msg_field *mds_reint_resync[] = {
+	&RMF_PTLRPC_BODY,
+	&RMF_REC_REINT,
 	&RMF_DLM_REQ
 };
 
@@ -713,6 +720,7 @@ static struct req_format *req_formats[] = {
 	&RQF_MDS_REINT_MIGRATE,
 	&RQF_MDS_REINT_SETATTR,
 	&RQF_MDS_REINT_SETXATTR,
+	&RQF_MDS_REINT_RESYNC,
 	&RQF_MDS_QUOTACTL,
 	&RQF_MDS_HSM_PROGRESS,
 	&RQF_MDS_HSM_CT_REGISTER,
@@ -842,7 +850,7 @@ struct req_msg_field RMF_MGS_CONFIG_RES =
 EXPORT_SYMBOL(RMF_MGS_CONFIG_RES);
 
 struct req_msg_field RMF_U32 =
-	DEFINE_MSGF("generic u32", 0,
+	DEFINE_MSGF("generic u32", RMF_F_STRUCT_ARRAY,
 		    sizeof(u32), lustre_swab_generic_32s, NULL);
 EXPORT_SYMBOL(RMF_U32);
 
@@ -1342,6 +1350,10 @@ struct req_format RQF_MDS_REINT_SETXATTR =
 	DEFINE_REQ_FMT0("MDS_REINT_SETXATTR",
 			mds_reint_setxattr_client, mdt_body_only);
 EXPORT_SYMBOL(RQF_MDS_REINT_SETXATTR);
+
+struct req_format RQF_MDS_REINT_RESYNC =
+	DEFINE_REQ_FMT0("MDS_REINT_RESYNC", mds_reint_resync, mdt_body_only);
+EXPORT_SYMBOL(RQF_MDS_REINT_RESYNC);
 
 struct req_format RQF_MDS_CONNECT =
 	DEFINE_REQ_FMT0("MDS_CONNECT",
