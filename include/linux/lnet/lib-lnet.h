@@ -477,6 +477,7 @@ struct lnet_ni *lnet_net2ni_addref(u32 net);
 bool lnet_is_ni_healthy_locked(struct lnet_ni *ni);
 struct lnet_net *lnet_get_net_locked(u32 net_id);
 
+extern unsigned int lnet_transaction_timeout;
 extern unsigned int lnet_numa_range;
 extern unsigned int lnet_peer_discovery_disabled;
 extern int portal_rotor;

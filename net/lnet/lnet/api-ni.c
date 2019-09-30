@@ -92,6 +92,13 @@ module_param_call(lnet_peer_discovery_disabled, discovery_set, param_get_int,
 MODULE_PARM_DESC(lnet_peer_discovery_disabled,
 		 "Set to 1 to disable peer discovery on this node.");
 
+unsigned int lnet_transaction_timeout = 5;
+static int transaction_to_set(const char *val, const struct kernel_param *kp);
+module_param_call(lnet_transaction_timeout, transaction_to_set, param_get_int,
+		  &lnet_transaction_timeout, 0444);
+MODULE_PARM_DESC(lnet_transaction_timeout,
+		 "Time in seconds to wait for a REPLY or an ACK");
+
 /*
  * This sequence number keeps track of how many times DLC was used to
  * update the local NIs. It is incremented when a NI is added or
@@ -151,6 +158,43 @@ discovery_set(const char *val, const struct kernel_param *kp)
 	lnet_net_unlock(LNET_LOCK_EX);
 
 	lnet_push_update_to_peers(1);
+
+	mutex_unlock(&the_lnet.ln_api_mutex);
+
+	return 0;
+}
+
+static int
+transaction_to_set(const char *val, const struct kernel_param *kp)
+{
+	unsigned int *transaction_to = (unsigned int *)kp->arg;
+	unsigned long value;
+	int rc;
+
+	rc = kstrtoul(val, 0, &value);
+	if (rc) {
+		CERROR("Invalid module parameter value for 'lnet_transaction_timeout'\n");
+		return rc;
+	}
+
+	/* The purpose of locking the api_mutex here is to ensure that
+	 * the correct value ends up stored properly.
+	 */
+	mutex_lock(&the_lnet.ln_api_mutex);
+
+	if (value == 0) {
+		mutex_unlock(&the_lnet.ln_api_mutex);
+		CERROR("Invalid value for lnet_transaction_timeout (%lu).\n",
+		       value);
+		return -EINVAL;
+	}
+
+	if (value == *transaction_to) {
+		mutex_unlock(&the_lnet.ln_api_mutex);
+		return 0;
+	}
+
+	*transaction_to = value;
 
 	mutex_unlock(&the_lnet.ln_api_mutex);
 
