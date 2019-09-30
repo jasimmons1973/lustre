@@ -245,6 +245,13 @@ static inline bool imp_connect_disp_stripe(struct obd_import *imp)
 	return ocd->ocd_connect_flags & OBD_CONNECT_DISP_STRIPE;
 }
 
+static inline bool imp_connect_shortio(struct obd_import *imp)
+{
+	struct obd_connect_data *ocd = &imp->imp_connect_data;
+
+	return ocd->ocd_connect_flags & OBD_CONNECT_SHORTIO;
+}
+
 static inline int exp_connect_lockahead_old(struct obd_export *exp)
 {
 	return !!(exp_connect_flags(exp) & OBD_CONNECT_LOCKAHEAD_OLD);

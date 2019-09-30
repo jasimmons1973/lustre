@@ -62,18 +62,6 @@ struct ptlrpc_request_pool *osc_rq_pool;
 static unsigned int osc_reqpool_mem_max = 5;
 module_param(osc_reqpool_mem_max, uint, 0444);
 
-struct osc_brw_async_args {
-	struct obdo		*aa_oa;
-	int			aa_requested_nob;
-	int			aa_nio_count;
-	u32			aa_page_count;
-	int			aa_resends;
-	struct brw_page		**aa_ppga;
-	struct client_obd	*aa_cli;
-	struct list_head	aa_oaps;
-	struct list_head	aa_exts;
-};
-
 struct osc_async_args {
 	struct obd_info		*aa_oi;
 };
@@ -1010,7 +998,8 @@ static int check_write_rcs(struct ptlrpc_request *req,
 		}
 	}
 
-	if (req->rq_bulk->bd_nob_transferred != requested_nob) {
+	if (req->rq_bulk &&
+	    req->rq_bulk->bd_nob_transferred != requested_nob) {
 		CERROR("Unexpected # bytes transferred: %d (requested %d)\n",
 		       req->rq_bulk->bd_nob_transferred, requested_nob);
 		return -EPROTO;
@@ -1111,10 +1100,11 @@ static int osc_brw_prep_request(int cmd, struct client_obd *cli,
 	struct ost_body	*body;
 	struct obd_ioobj *ioobj;
 	struct niobuf_remote *niobuf;
-	int niocount, i, requested_nob, opc, rc;
+	int niocount, i, requested_nob, opc, rc, short_io_size = 0;
 	struct osc_brw_async_args *aa;
 	struct req_capsule *pill;
 	struct brw_page *pg_prev;
+	void *short_io_buf;
 
 	if (OBD_FAIL_CHECK(OBD_FAIL_OSC_BRW_PREP_REQ))
 		return -ENOMEM; /* Recoverable */
@@ -1144,6 +1134,20 @@ static int osc_brw_prep_request(int cmd, struct client_obd *cli,
 	req_capsule_set_size(pill, &RMF_NIOBUF_REMOTE, RCL_CLIENT,
 			     niocount * sizeof(*niobuf));
 
+	for (i = 0; i < page_count; i++)
+		short_io_size += pga[i]->count;
+
+	/* Check if we can do a short io. */
+	if (!(short_io_size <= cli->cl_short_io_bytes && niocount == 1 &&
+	    imp_connect_shortio(cli->cl_import)))
+		short_io_size = 0;
+
+	req_capsule_set_size(pill, &RMF_SHORT_IO, RCL_CLIENT,
+			     opc == OST_READ ? 0 : short_io_size);
+	if (opc == OST_READ)
+		req_capsule_set_size(pill, &RMF_SHORT_IO, RCL_SERVER,
+				     short_io_size);
+
 	rc = ptlrpc_request_pack(req, LUSTRE_OST_VERSION, opc);
 	if (rc) {
 		ptlrpc_request_free(req);
@@ -1152,10 +1156,17 @@ static int osc_brw_prep_request(int cmd, struct client_obd *cli,
 	osc_set_io_portal(req);
 
 	ptlrpc_at_set_req_timeout(req);
+
 	/* ask ptlrpc not to resend on EINPROGRESS since BRWs have their own
 	 * retry logic
 	 */
 	req->rq_no_retry_einprogress = 1;
+
+	if (short_io_size != 0) {
+		desc = NULL;
+		short_io_buf = NULL;
+		goto no_bulk;
+	}
 
 	desc = ptlrpc_prep_bulk_imp(
 		req, page_count,
@@ -1169,7 +1180,7 @@ static int osc_brw_prep_request(int cmd, struct client_obd *cli,
 		goto out;
 	}
 	/* NB request now owns desc and will free it when it gets freed */
-
+no_bulk:
 	body = req_capsule_client_get(pill, &RMF_OST_BODY);
 	ioobj = req_capsule_client_get(pill, &RMF_OBD_IOOBJ);
 	niobuf = req_capsule_client_get(pill, &RMF_NIOBUF_REMOTE);
@@ -1185,7 +1196,26 @@ static int osc_brw_prep_request(int cmd, struct client_obd *cli,
 	 * "max - 1" for old client compatibility sending "0", and also so the
 	 * the actual maximum is a power-of-two number, not one less. LU-1431
 	 */
-	ioobj_max_brw_set(ioobj, desc->bd_md_max_brw);
+	if (desc)
+		ioobj_max_brw_set(ioobj, desc->bd_md_max_brw);
+	else /* short i/o */
+		ioobj_max_brw_set(ioobj, 0);
+
+	if (short_io_size != 0) {
+		if ((body->oa.o_valid & OBD_MD_FLFLAGS) == 0) {
+			body->oa.o_valid |= OBD_MD_FLFLAGS;
+			body->oa.o_flags = 0;
+		}
+		body->oa.o_flags |= OBD_FL_SHORT_IO;
+		CDEBUG(D_CACHE, "Using short io for data transfer, size = %d\n",
+		       short_io_size);
+		if (opc == OST_WRITE) {
+			short_io_buf = req_capsule_client_get(pill,
+							      &RMF_SHORT_IO);
+			LASSERT(short_io_buf);
+		}
+	}
+
 	LASSERT(page_count > 0);
 	pg_prev = pga[0];
 	for (requested_nob = i = 0; i < page_count; i++, niobuf++) {
@@ -1210,7 +1240,17 @@ static int osc_brw_prep_request(int cmd, struct client_obd *cli,
 		LASSERT((pga[0]->flag & OBD_BRW_SRVLOCK) ==
 			(pg->flag & OBD_BRW_SRVLOCK));
 
-		desc->bd_frag_ops->add_kiov_frag(desc, pg->pg, poff, pg->count);
+		if (short_io_size != 0 && opc == OST_WRITE) {
+			unsigned char *ptr = kmap_atomic(pg->pg);
+
+			LASSERT(short_io_size >= requested_nob + pg->count);
+			memcpy(short_io_buf + requested_nob, ptr + poff,
+			       pg->count);
+			kunmap_atomic(ptr);
+		} else if (short_io_size == 0) {
+			desc->bd_frag_ops->add_kiov_frag(desc, pg->pg, poff,
+							 pg->count);
+		}
 		requested_nob += pg->count;
 
 		if (i > 0 && can_merge_pages(pg_prev, pg)) {
@@ -1477,7 +1517,8 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 		}
 		LASSERT(req->rq_bulk->bd_nob == aa->aa_requested_nob);
 
-		if (sptlrpc_cli_unwrap_bulk_write(req, req->rq_bulk))
+		if (req->rq_bulk &&
+		    sptlrpc_cli_unwrap_bulk_write(req, req->rq_bulk))
 			return -EAGAIN;
 
 		if ((aa->aa_oa->o_valid & OBD_MD_FLCKSUM) && client_cksum &&
@@ -1493,8 +1534,14 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 
 	/* The rest of this function executes only for OST_READs */
 
-	/* if unwrap_bulk failed, return -EAGAIN to retry */
-	rc = sptlrpc_cli_unwrap_bulk_read(req, req->rq_bulk, rc);
+	if (!req->rq_bulk) {
+		rc = req_capsule_get_size(&req->rq_pill, &RMF_SHORT_IO,
+					  RCL_SERVER);
+		LASSERT(rc == req->rq_status);
+	} else {
+		/* if unwrap_bulk failed, return -EAGAIN to retry */
+		rc = sptlrpc_cli_unwrap_bulk_read(req, req->rq_bulk, rc);
+	}
 	if (rc < 0) {
 		rc = -EAGAIN;
 		goto out;
@@ -1506,10 +1553,40 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 		return -EPROTO;
 	}
 
-	if (rc != req->rq_bulk->bd_nob_transferred) {
+	if (req->rq_bulk && rc != req->rq_bulk->bd_nob_transferred) {
 		CERROR("Unexpected rc %d (%d transferred)\n",
 		       rc, req->rq_bulk->bd_nob_transferred);
 		return -EPROTO;
+	}
+
+	if (!req->rq_bulk) {
+		/* short io */
+		int nob, pg_count, i = 0;
+		unsigned char *buf;
+
+		CDEBUG(D_CACHE, "Using short io read, size %d\n", rc);
+		pg_count = aa->aa_page_count;
+		buf = req_capsule_server_sized_get(&req->rq_pill, &RMF_SHORT_IO,
+						   rc);
+		nob = rc;
+
+		while (nob > 0 && pg_count > 0) {
+			int count = aa->aa_ppga[i]->count > nob ?
+				    nob : aa->aa_ppga[i]->count;
+			unsigned char *ptr;
+
+			CDEBUG(D_CACHE, "page %p count %d\n",
+			       aa->aa_ppga[i]->pg, count);
+			ptr = kmap_atomic(aa->aa_ppga[i]->pg);
+			memcpy(ptr + (aa->aa_ppga[i]->off & ~PAGE_MASK), buf,
+			       count);
+			kunmap_atomic((void *) ptr);
+
+			buf += count;
+			nob -= count;
+			i++;
+			pg_count--;
+		}
 	}
 
 	if (rc < aa->aa_requested_nob)
@@ -1529,7 +1606,8 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 						 aa->aa_ppga, OST_READ,
 						 cksum_type);
 
-		if (peer->nid != req->rq_bulk->bd_sender) {
+		if (req->rq_bulk &&
+		    peer->nid != req->rq_bulk->bd_sender) {
 			via = " via ";
 			router = libcfs_nid2str(req->rq_bulk->bd_sender);
 		}
@@ -1705,6 +1783,7 @@ static int brw_interpret(const struct lu_env *env,
 	struct osc_extent *ext;
 	struct osc_extent *tmp;
 	struct client_obd *cli = aa->aa_cli;
+	unsigned long transferred = 0;
 
 	rc = osc_brw_fini_request(req, rc);
 	CDEBUG(D_INODE, "request %p aa %p rc %d\n", req, aa, rc);
@@ -1798,8 +1877,12 @@ static int brw_interpret(const struct lu_env *env,
 	LASSERT(list_empty(&aa->aa_exts));
 	LASSERT(list_empty(&aa->aa_oaps));
 
+	transferred = (!req->rq_bulk ? /* short io */
+		       aa->aa_requested_nob :
+		       req->rq_bulk->bd_nob_transferred);
+
 	osc_release_ppga(aa->aa_ppga, aa->aa_page_count);
-	ptlrpc_lprocfs_brw(req, req->rq_bulk->bd_nob_transferred);
+	ptlrpc_lprocfs_brw(req, transferred);
 
 	spin_lock(&cli->cl_loi_list_lock);
 	/* We need to decrement before osc_ap_completion->osc_wake_cache_waiters

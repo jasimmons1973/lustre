@@ -1868,3 +1868,58 @@ ssize_t max_pages_per_rpc_store(struct kobject *kobj, struct attribute *attr,
 	return count;
 }
 EXPORT_SYMBOL(max_pages_per_rpc_store);
+
+ssize_t short_io_bytes_show(struct kobject *kobj, struct attribute *attr,
+			    char *buf)
+{
+	struct obd_device *dev = container_of(kobj, struct obd_device,
+					      obd_kset.kobj);
+	struct client_obd *cli = &dev->u.cli;
+	int rc;
+
+	spin_lock(&cli->cl_loi_list_lock);
+	rc = sprintf(buf, "%d\n", cli->cl_short_io_bytes);
+	spin_unlock(&cli->cl_loi_list_lock);
+	return rc;
+}
+EXPORT_SYMBOL(short_io_bytes_show);
+
+/* Used to catch people who think they're specifying pages. */
+#define MIN_SHORT_IO_BYTES 64
+
+ssize_t short_io_bytes_store(struct kobject *kobj, struct attribute *attr,
+			     const char *buffer, size_t count)
+{
+	struct obd_device *dev = container_of(kobj, struct obd_device,
+					      obd_kset.kobj);
+	struct client_obd *cli = &dev->u.cli;
+	u32 val;
+	int rc;
+
+	rc = lprocfs_climp_check(dev);
+	if (rc)
+		return rc;
+
+	rc = kstrtouint(buffer, 0, &val);
+	if (rc)
+		goto out;
+
+	if (val > OBD_MAX_SHORT_IO_BYTES || val < MIN_SHORT_IO_BYTES) {
+		rc = -ERANGE;
+		goto out;
+	}
+
+	rc = count;
+
+	spin_lock(&cli->cl_loi_list_lock);
+	if (val > (cli->cl_max_pages_per_rpc << PAGE_SHIFT))
+		rc = -ERANGE;
+	else
+		cli->cl_short_io_bytes = val;
+	spin_unlock(&cli->cl_loi_list_lock);
+
+out:
+	up_read(&dev->u.cli.cl_sem);
+	return rc;
+}
+EXPORT_SYMBOL(short_io_bytes_store);

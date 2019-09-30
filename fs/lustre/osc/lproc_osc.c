@@ -573,7 +573,9 @@ static ssize_t destroys_in_flight_show(struct kobject *kobj,
 		       atomic_read(&obd->u.cli.cl_destroy_in_flight));
 }
 LUSTRE_RO_ATTR(destroys_in_flight);
+
 LUSTRE_RW_ATTR(max_pages_per_rpc);
+LUSTRE_RW_ATTR(short_io_bytes);
 
 static int osc_unstable_stats_seq_show(struct seq_file *m, void *v)
 {
@@ -807,6 +809,7 @@ static struct attribute *osc_attrs[] = {
 	&lustre_attr_max_dirty_mb.attr,
 	&lustre_attr_max_pages_per_rpc.attr,
 	&lustre_attr_max_rpcs_in_flight.attr,
+	&lustre_attr_short_io_bytes.attr,
 	&lustre_attr_resend_count.attr,
 	&lustre_attr_ost_conn_uuid.attr,
 	NULL,
