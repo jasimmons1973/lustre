@@ -924,6 +924,10 @@ static inline int obd_statfs(const struct lu_env *env, struct obd_export *exp,
 	if (!obd)
 		return -EINVAL;
 
+	rc = obd_check_dev_active(obd);
+	if (rc)
+		return rc;
+
 	if (!obd->obd_type || !obd->obd_type->typ_dt_ops->statfs) {
 		CERROR("%s: no %s operation\n", obd->obd_name, __func__);
 		return -EOPNOTSUPP;
