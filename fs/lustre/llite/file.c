@@ -4206,8 +4206,8 @@ int ll_layout_write_intent(struct inode *inode, u64 start, u64 end)
 {
 	struct layout_intent intent = {
 		.li_opc = LAYOUT_INTENT_WRITE,
-		.li_start = start,
-		.li_end = end,
+		.li_extent.e_start = start,
+		.li_extent.e_end = end,
 	};
 	int rc;
 
