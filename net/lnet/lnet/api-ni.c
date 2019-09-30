@@ -211,6 +211,7 @@ static void
 lnet_init_locks(void)
 {
 	spin_lock_init(&the_lnet.ln_eq_wait_lock);
+	spin_lock_init(&the_lnet.ln_msg_resend_lock);
 	init_waitqueue_head(&the_lnet.ln_eq_waitq);
 	init_waitqueue_head(&the_lnet.ln_rc_waitq);
 	mutex_init(&the_lnet.ln_lnd_mutex);
@@ -1652,6 +1653,10 @@ static void
 lnet_shutdown_lndnets(void)
 {
 	struct lnet_net *net;
+	struct list_head resend;
+	struct lnet_msg *msg, *tmp;
+
+	INIT_LIST_HEAD(&resend);
 
 	/* NB called holding the global mutex */
 
@@ -1681,6 +1686,15 @@ lnet_shutdown_lndnets(void)
 					       struct lnet_net,
 					       net_list)) != NULL)
 		lnet_shutdown_lndnet(net);
+
+	spin_lock(&the_lnet.ln_msg_resend_lock);
+	list_splice(&the_lnet.ln_msg_resend, &resend);
+	spin_unlock(&the_lnet.ln_msg_resend_lock);
+
+	list_for_each_entry_safe(msg, tmp, &resend, msg_list) {
+		list_del_init(&msg->msg_list);
+		lnet_finalize(msg, -ECANCELED);
+	}
 
 	lnet_net_lock(LNET_LOCK_EX);
 	the_lnet.ln_state = LNET_STATE_SHUTDOWN;
@@ -2025,6 +2039,7 @@ int lnet_lib_init(void)
 	INIT_LIST_HEAD(&the_lnet.ln_lnds);
 	INIT_LIST_HEAD(&the_lnet.ln_net_zombie);
 	INIT_LIST_HEAD(&the_lnet.ln_rcd_zombie);
+	INIT_LIST_HEAD(&the_lnet.ln_msg_resend);
 	INIT_LIST_HEAD(&the_lnet.ln_rcd_deathrow);
 
 	/*

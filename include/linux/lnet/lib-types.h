@@ -945,6 +945,10 @@ struct lnet {
 	struct list_head		ln_net_zombie;
 	/* the loopback NI */
 	struct lnet_ni		       *ln_loni;
+	/* resend messages list */
+	struct list_head		ln_msg_resend;
+	/* spin lock to protect the msg resend list */
+	spinlock_t			ln_msg_resend_lock;
 
 	/* remote networks with routes to them */
 	struct list_head	       *ln_remote_nets_hash;
