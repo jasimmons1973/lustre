@@ -550,6 +550,7 @@ static int mdc_finish_enqueue(struct obd_export *exp,
 	struct ldlm_request *lockreq;
 	struct ldlm_reply *lockrep;
 	struct ldlm_lock *lock;
+	struct mdt_body *body = NULL;
 	void *lvb_data = NULL;
 	u32 lvb_len = 0;
 
@@ -611,8 +612,6 @@ static int mdc_finish_enqueue(struct obd_export *exp,
 
 	/* We know what to expect, so we do any byte flipping required here */
 	if (it_has_reply_body(it)) {
-		struct mdt_body *body;
-
 		body = req_capsule_server_get(pill, &RMF_MDT_BODY);
 		if (!body) {
 			CERROR("Can't swab mdt_body\n");
@@ -699,7 +698,10 @@ static int mdc_finish_enqueue(struct obd_export *exp,
 	 * server. - Jinshan
 	 */
 	lock = ldlm_handle2lock(lockh);
-	if (lock && ldlm_has_layout(lock) && lvb_data &&
+	if (!lock)
+		return rc;
+
+	if (ldlm_has_layout(lock) && lvb_data &&
 	    !(lockrep->lock_flags & LDLM_FL_BLOCKED_MASK)) {
 		void *lmm;
 
@@ -708,8 +710,8 @@ static int mdc_finish_enqueue(struct obd_export *exp,
 
 		lmm = kvzalloc(lvb_len, GFP_NOFS);
 		if (!lmm) {
-			LDLM_LOCK_PUT(lock);
-			return -ENOMEM;
+			rc = -ENOMEM;
+			goto out_lock;
 		}
 		memcpy(lmm, lvb_data, lvb_len);
 
@@ -725,8 +727,25 @@ static int mdc_finish_enqueue(struct obd_export *exp,
 		if (lmm)
 			kvfree(lmm);
 	}
-	if (lock)
-		LDLM_LOCK_PUT(lock);
+
+	if (ldlm_has_dom(lock)) {
+		LASSERT(lock->l_glimpse_ast == mdc_ldlm_glimpse_ast);
+
+		body = req_capsule_server_get(pill, &RMF_MDT_BODY);
+		if (!(body->mbo_valid & OBD_MD_DOM_SIZE)) {
+			LDLM_ERROR(lock, "%s: DoM lock without size.\n",
+				   exp->exp_obd->obd_name);
+			rc = -EPROTO;
+			goto out_lock;
+		}
+
+		LDLM_DEBUG(lock, "DoM lock is returned by: %s, size: %llu",
+			   ldlm_it2str(it->it_op), body->mbo_dom_size);
+
+		rc = mdc_fill_lvb(req, &lock->l_ost_lvb);
+	}
+out_lock:
+	LDLM_LOCK_PUT(lock);
 
 	return rc;
 }
@@ -830,6 +849,14 @@ resend:
 			return rc;
 		}
 	}
+
+	/* With Data-on-MDT the glimpse callback is needed too.
+	 * It is set here in advance but not in mdc_finish_enqueue()
+	 * to avoid possible races. It is safe to have glimpse handler
+	 * for non-DOM locks and costs nothing.
+	 */
+	if (!einfo->ei_cb_gl)
+		einfo->ei_cb_gl = mdc_ldlm_glimpse_ast;
 
 	rc = ldlm_cli_enqueue(exp, &req, einfo, &res_id, policy, &flags, NULL,
 			      0, lvb_type, lockh, 0);
@@ -1133,6 +1160,7 @@ int mdc_intent_lock(struct obd_export *exp, struct md_op_data *op_data,
 		.ei_mode	= it_to_lock_mode(it),
 		.ei_cb_bl	= cb_blocking,
 		.ei_cb_cp	= ldlm_completion_ast,
+		.ei_cb_gl	= mdc_ldlm_glimpse_ast,
 	};
 	struct lustre_handle lockh;
 	int rc = 0;
@@ -1257,6 +1285,14 @@ int mdc_intent_getattr_async(struct obd_export *exp,
 		ptlrpc_req_finished(req);
 		return rc;
 	}
+
+	/* With Data-on-MDT the glimpse callback is needed too.
+	 * It is set here in advance but not in mdc_finish_enqueue()
+	 * to avoid possible races. It is safe to have glimpse handler
+	 * for non-DOM locks and costs nothing.
+	 */
+	if (!minfo->mi_einfo.ei_cb_gl)
+		minfo->mi_einfo.ei_cb_gl = mdc_ldlm_glimpse_ast;
 
 	rc = ldlm_cli_enqueue(exp, &req, &minfo->mi_einfo, &res_id, &policy,
 			      &flags, NULL, 0, LVB_T_NONE, &minfo->mi_lockh, 1);

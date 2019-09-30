@@ -1758,8 +1758,8 @@ void lustre_swab_mdt_body(struct mdt_body *b)
 	__swab32s(&b->mbo_uid_h);
 	__swab32s(&b->mbo_gid_h);
 	__swab32s(&b->mbo_projid);
-	BUILD_BUG_ON(offsetof(typeof(*b), mbo_padding_6) == 0);
-	BUILD_BUG_ON(offsetof(typeof(*b), mbo_padding_7) == 0);
+	__swab64s(&b->mbo_dom_size);
+	__swab64s(&b->mbo_dom_blocks);
 	BUILD_BUG_ON(offsetof(typeof(*b), mbo_padding_8) == 0);
 	BUILD_BUG_ON(offsetof(typeof(*b), mbo_padding_9) == 0);
 	BUILD_BUG_ON(offsetof(typeof(*b), mbo_padding_10) == 0);

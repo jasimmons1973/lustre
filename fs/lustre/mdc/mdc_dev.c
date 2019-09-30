@@ -63,16 +63,26 @@ static void mdc_lock_build_einfo(const struct lu_env *env,
 	einfo->ei_cbdata = osc; /* value to be put into ->l_ast_data */
 }
 
-static int mdc_set_dom_lock_data(struct ldlm_lock *lock, void *data)
+static void mdc_lock_lvb_update(const struct lu_env *env,
+				struct osc_object *osc,
+				struct ldlm_lock *dlmlock,
+				struct ost_lvb *lvb);
+
+static int mdc_set_dom_lock_data(const struct lu_env *env,
+				 struct ldlm_lock *lock, void *data)
 {
+	struct osc_object *obj = data;
 	int set = 0;
 
 	LASSERT(lock);
+	LASSERT(lock->l_glimpse_ast == mdc_ldlm_glimpse_ast);
 
 	lock_res_and_lock(lock);
-
-	if (!lock->l_ast_data)
+	if (!lock->l_ast_data) {
 		lock->l_ast_data = data;
+		mdc_lock_lvb_update(env, obj, lock, NULL);
+	}
+
 	if (lock->l_ast_data == data)
 		set = 1;
 
@@ -81,7 +91,8 @@ static int mdc_set_dom_lock_data(struct ldlm_lock *lock, void *data)
 	return set;
 }
 
-int mdc_dom_lock_match(struct obd_export *exp, struct ldlm_res_id *res_id,
+int mdc_dom_lock_match(const struct lu_env *env, struct obd_export *exp,
+		       struct ldlm_res_id *res_id,
 		       enum ldlm_type type, union ldlm_policy_data *policy,
 		       enum ldlm_mode mode, u64 *flags, void *data,
 		       struct lustre_handle *lockh, int unref)
@@ -99,7 +110,7 @@ int mdc_dom_lock_match(struct obd_export *exp, struct ldlm_res_id *res_id,
 		struct ldlm_lock *lock = ldlm_handle2lock(lockh);
 
 		LASSERT(lock);
-		if (!mdc_set_dom_lock_data(lock, data)) {
+		if (!mdc_set_dom_lock_data(env, lock, data)) {
 			ldlm_lock_decref(lockh, rc);
 			rc = 0;
 		}
@@ -137,8 +148,8 @@ again:
 	 * VFS and page cache already protect us locally, so lots of readers/
 	 * writers can share a single PW lock.
 	 */
-	mode = mdc_dom_lock_match(osc_export(obj), resname, LDLM_IBITS, policy,
-				  LCK_PR | LCK_PW, &flags, obj, &lockh,
+	mode = mdc_dom_lock_match(env, osc_export(obj), resname, LDLM_IBITS,
+				  policy, LCK_PR | LCK_PW, &flags, obj, &lockh,
 				  dap_flags & OSC_DAP_FL_CANCELING);
 	if (mode) {
 		lock = ldlm_handle2lock(&lockh);
@@ -297,6 +308,7 @@ static int mdc_dlm_blocking_ast0(const struct lu_env *env,
 		dlmlock->l_ast_data = NULL;
 		cl_object_get(obj);
 	}
+	ldlm_set_kms_ignore(dlmlock);
 	unlock_res_and_lock(dlmlock);
 
 	/* if l_ast_data is NULL, the dlmlock was enqueued by AGL or
@@ -377,10 +389,8 @@ int mdc_ldlm_blocking_ast(struct ldlm_lock *dlmlock,
  *
  * Called under lock and resource spin-locks.
  */
-static void mdc_lock_lvb_update(const struct lu_env *env,
-				struct osc_object *osc,
-				struct ldlm_lock *dlmlock,
-				struct ost_lvb *lvb)
+void mdc_lock_lvb_update(const struct lu_env *env, struct osc_object *osc,
+			 struct ldlm_lock *dlmlock, struct ost_lvb *lvb)
 {
 	struct cl_object *obj = osc2cl(osc);
 	struct lov_oinfo *oinfo = osc->oo_oinfo;
@@ -409,9 +419,8 @@ static void mdc_lock_lvb_update(const struct lu_env *env,
 			attr->cat_kms = size;
 		} else {
 			LDLM_DEBUG(dlmlock,
-				   "lock acquired, setting rss=%llu, leaving kms=%llu, end=%llu",
-				   lvb->lvb_size, oinfo->loi_kms,
-				   dlmlock->l_policy_data.l_extent.end);
+				   "lock acquired, setting rss=%llu, leaving kms=%llu",
+				   lvb->lvb_size, oinfo->loi_kms);
 		}
 	}
 	cl_object_attr_update(env, obj, attr, valid);
@@ -541,8 +550,9 @@ int mdc_fill_lvb(struct ptlrpc_request *req, struct ost_lvb *lvb)
 	lvb->lvb_mtime = body->mbo_mtime;
 	lvb->lvb_atime = body->mbo_atime;
 	lvb->lvb_ctime = body->mbo_ctime;
-	lvb->lvb_blocks = body->mbo_blocks;
-	lvb->lvb_size = body->mbo_size;
+	lvb->lvb_blocks = body->mbo_dom_blocks;
+	lvb->lvb_size = body->mbo_dom_size;
+
 	return 0;
 }
 
@@ -643,8 +653,9 @@ int mdc_enqueue_interpret(const struct lu_env *env, struct ptlrpc_request *req,
  * is excluded from the cluster -- such scenarious make the life difficult, so
  * release locks just after they are obtained.
  */
-int mdc_enqueue_send(struct obd_export *exp, struct ldlm_res_id *res_id,
-		     u64 *flags, union ldlm_policy_data *policy,
+int mdc_enqueue_send(const struct lu_env *env, struct obd_export *exp,
+		     struct ldlm_res_id *res_id, u64 *flags,
+		     union ldlm_policy_data *policy,
 		     struct ost_lvb *lvb, int kms_valid,
 		     osc_enqueue_upcall_f upcall, void *cookie,
 		     struct ldlm_enqueue_info *einfo, int async)
@@ -657,9 +668,6 @@ int mdc_enqueue_send(struct obd_export *exp, struct ldlm_res_id *res_id,
 	bool glimpse = *flags & LDLM_FL_HAS_INTENT;
 	u64 match_flags = *flags;
 	int rc;
-
-	if (!kms_valid)
-		goto no_match;
 
 	mode = einfo->ei_mode;
 	if (einfo->ei_mode == LCK_PR)
@@ -676,10 +684,10 @@ int mdc_enqueue_send(struct obd_export *exp, struct ldlm_res_id *res_id,
 			return ELDLM_OK;
 
 		matched = ldlm_handle2lock(&lockh);
-		if (!mdc_set_dom_lock_data(matched, einfo->ei_cbdata)) {
-			ldlm_lock_decref(&lockh, mode);
-			LDLM_LOCK_PUT(matched);
-		} else {
+		if (ldlm_is_kms_ignore(matched))
+			goto no_match;
+
+		if (mdc_set_dom_lock_data(env, matched, einfo->ei_cbdata)) {
 			*flags |= LDLM_FL_LVB_READY;
 
 			/* We already have a lock, and it's referenced. */
@@ -689,9 +697,11 @@ int mdc_enqueue_send(struct obd_export *exp, struct ldlm_res_id *res_id,
 			LDLM_LOCK_PUT(matched);
 			return ELDLM_OK;
 		}
+no_match:
+		ldlm_lock_decref(&lockh, mode);
+		LDLM_LOCK_PUT(matched);
 	}
 
-no_match:
 	if (*flags & (LDLM_FL_TEST_LOCK | LDLM_FL_MATCH_LOCK))
 		return -ENOLCK;
 
@@ -828,9 +838,9 @@ enqueue_base:
 	fid_build_reg_res_name(lu_object_fid(osc2lu(osc)), resname);
 	mdc_lock_build_policy(env, policy);
 	LASSERT(!oscl->ols_speculative);
-	result = mdc_enqueue_send(osc_export(osc), resname, &oscl->ols_flags,
-				  policy, &oscl->ols_lvb,
-				  osc->oo_oinfo->loi_kms_valid,
+	result = mdc_enqueue_send(env, osc_export(osc), resname,
+				  &oscl->ols_flags, policy,
+				  &oscl->ols_lvb, osc->oo_oinfo->loi_kms_valid,
 				  upcall, cookie, &oscl->ols_einfo, async);
 	if (result == 0) {
 		if (osc_lock_is_lockless(oscl)) {
@@ -1155,6 +1165,30 @@ static int mdc_attr_get(const struct lu_env *env, struct cl_object *obj,
 	return osc_attr_get(env, obj, attr);
 }
 
+static int mdc_object_ast_clear(struct ldlm_lock *lock, void *data)
+{
+	if ((!lock->l_ast_data && !ldlm_is_kms_ignore(lock)) ||
+	    (lock->l_ast_data == data)) {
+		lock->l_ast_data = NULL;
+		ldlm_set_kms_ignore(lock);
+	}
+	return LDLM_ITER_CONTINUE;
+}
+
+int mdc_object_prune(const struct lu_env *env, struct cl_object *obj)
+{
+	struct osc_object *osc = cl2osc(obj);
+	struct ldlm_res_id *resname = &osc_env_info(env)->oti_resname;
+
+	/* DLM locks don't hold a reference of osc_object so we have to
+	 * clear it before the object is being destroyed.
+	 */
+	osc_build_res_name(osc, resname);
+	ldlm_resource_iterate(osc_export(osc)->exp_obd->obd_namespace, resname,
+			      mdc_object_ast_clear, osc);
+	return 0;
+}
+
 static const struct cl_object_operations mdc_ops = {
 	.coo_page_init		= osc_page_init,
 	.coo_lock_init		= mdc_lock_init,
@@ -1163,7 +1197,7 @@ static const struct cl_object_operations mdc_ops = {
 	.coo_attr_update	= osc_attr_update,
 	.coo_glimpse		= osc_object_glimpse,
 	.coo_req_attr_set	= mdc_req_attr_set,
-	.coo_prune		= osc_object_prune,
+	.coo_prune		= mdc_object_prune,
 };
 
 static const struct osc_object_operations mdc_object_ops = {

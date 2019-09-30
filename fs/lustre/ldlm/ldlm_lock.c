@@ -981,7 +981,7 @@ static void ldlm_granted_list_add_lock(struct ldlm_lock *lock,
  * Add a lock to granted list on a resource maintaining skiplist
  * correctness.
  */
-static void ldlm_grant_lock_with_skiplist(struct ldlm_lock *lock)
+void ldlm_grant_lock_with_skiplist(struct ldlm_lock *lock)
 {
 	struct sl_insert_point prev;
 
