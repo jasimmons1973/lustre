@@ -140,31 +140,53 @@ int llog_cat_close(const struct lu_env *env, struct llog_handle *cathandle)
 }
 EXPORT_SYMBOL(llog_cat_close);
 
+static int llog_cat_process_common(const struct lu_env *env,
+				   struct llog_handle *cat_llh,
+				   struct llog_rec_hdr *rec,
+				   struct llog_handle **llhp)
+{
+	struct llog_logid_rec *lir = container_of(rec, typeof(*lir), lid_hdr);
+	int rc;
+
+	if (rec->lrh_type != le32_to_cpu(LLOG_LOGID_MAGIC)) {
+		rc = -EINVAL;
+		CWARN("%s: invalid record in catalog " DFID ":%x: rc = %d\n",
+		      cat_llh->lgh_ctxt->loc_obd->obd_name,
+		      PFID(&cat_llh->lgh_id.lgl_oi.oi_fid),
+		      cat_llh->lgh_id.lgl_ogen, rc);
+
+		return rc;
+	}
+	CDEBUG(D_HA,
+	       "processing log " DFID ":%x at index %u of catalog " DFID "\n",
+	       PFID(&lir->lid_id.lgl_oi.oi_fid), lir->lid_id.lgl_ogen,
+	       le32_to_cpu(rec->lrh_index),
+	       PFID(&cat_llh->lgh_id.lgl_oi.oi_fid));
+
+	rc = llog_cat_id2handle(env, cat_llh, llhp, &lir->lid_id);
+	if (rc) {
+		CWARN("%s: can't find llog handle " DFID ":%x: rc = %d\n",
+		      cat_llh->lgh_ctxt->loc_obd->obd_name,
+		      PFID(&lir->lid_id.lgl_oi.oi_fid),
+		      lir->lid_id.lgl_ogen, rc);
+
+		return rc;
+	}
+
+	return rc;
+}
+
 static int llog_cat_process_cb(const struct lu_env *env,
 			       struct llog_handle *cat_llh,
 			       struct llog_rec_hdr *rec, void *data)
 {
 	struct llog_process_data *d = data;
-	struct llog_logid_rec *lir = (struct llog_logid_rec *)rec;
-	struct llog_handle *llh;
+	struct llog_handle *llh = NULL;
 	int rc;
 
-	if (rec->lrh_type != LLOG_LOGID_MAGIC) {
-		CERROR("invalid record in catalog\n");
-		return -EINVAL;
-	}
-	CDEBUG(D_HA,
-	       "processing log " DFID ":%x at index %u of catalog " DFID "\n",
-	       PFID(&lir->lid_id.lgl_oi.oi_fid), lir->lid_id.lgl_ogen,
-	       rec->lrh_index, PFID(&cat_llh->lgh_id.lgl_oi.oi_fid));
-
-	rc = llog_cat_id2handle(env, cat_llh, &llh, &lir->lid_id);
-	if (rc) {
-		CERROR("%s: cannot find handle for llog " DFID ": %d\n",
-		       cat_llh->lgh_ctxt->loc_obd->obd_name,
-		       PFID(&lir->lid_id.lgl_oi.oi_fid), rc);
-		return rc;
-	}
+	rc = llog_cat_process_common(env, cat_llh, rec, &llh);
+	if (rc)
+		goto out;
 
 	if (rec->lrh_index < d->lpd_startcat)
 		/* Skip processing of the logs until startcat */
@@ -183,6 +205,7 @@ static int llog_cat_process_cb(const struct lu_env *env,
 					  NULL, false);
 	}
 
+out:
 	llog_handle_put(llh);
 
 	return rc;
