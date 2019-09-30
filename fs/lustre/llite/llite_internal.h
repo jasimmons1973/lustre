@@ -183,13 +183,6 @@ struct ll_inode_info {
 		struct {
 			struct mutex			lli_size_mutex;
 			char			       *lli_symlink_name;
-			/*
-			 * struct rw_semaphore {
-			 *    signed long	count;     // align d.d_def_acl
-			 *    spinlock_t	wait_lock; // align d.d_sa_lock
-			 *    struct list_head wait_list;
-			 * }
-			 */
 			struct rw_semaphore		lli_trunc_sem;
 			struct range_lock_tree		lli_write_tree;
 
