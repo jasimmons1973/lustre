@@ -76,49 +76,6 @@ EXPORT_SYMBOL(at_early_margin);
 int at_extra = 30;
 EXPORT_SYMBOL(at_extra);
 
-char obd_jobid_var[JOBSTATS_JOBID_VAR_MAX_LEN + 1] = JOBSTATS_DISABLE;
-char obd_jobid_node[LUSTRE_JOBID_SIZE + 1];
-
-/* Get jobid of current process from stored variable or calculate
- * it from pid and user_id.
- *
- * Historically this was also done by reading the environment variable
- * stored in between the "env_start" & "env_end" of task struct.
- * This is now deprecated.
- */
-int lustre_get_jobid(char *jobid)
-{
-	char tmp_jobid[LUSTRE_JOBID_SIZE] = { 0 };
-
-	/* Jobstats isn't enabled */
-	if (strcmp(obd_jobid_var, JOBSTATS_DISABLE) == 0)
-		goto out_cache_jobid;
-
-	/* Use process name + fsuid as jobid */
-	if (strcmp(obd_jobid_var, JOBSTATS_PROCNAME_UID) == 0) {
-		snprintf(tmp_jobid, LUSTRE_JOBID_SIZE, "%s.%u",
-			 current->comm,
-			 from_kuid(&init_user_ns, current_fsuid()));
-		goto out_cache_jobid;
-	}
-
-	/* Whole node dedicated to single job */
-	if (strcmp(obd_jobid_var, JOBSTATS_NODELOCAL) == 0) {
-		strcpy(tmp_jobid, obd_jobid_node);
-		goto out_cache_jobid;
-	}
-
-	return -ENOENT;
-
-out_cache_jobid:
-	/* Only replace the job ID if it changed. */
-	if (strcmp(jobid, tmp_jobid) != 0)
-		strcpy(jobid, tmp_jobid);
-
-	return 0;
-}
-EXPORT_SYMBOL(lustre_get_jobid);
-
 static int class_resolve_dev_name(u32 len, const char *name)
 {
 	int rc;
