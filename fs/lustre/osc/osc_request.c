@@ -236,8 +236,7 @@ int osc_setattr_async(struct obd_export *exp, struct obdo *oa,
 		req->rq_interpret_reply =
 			(ptlrpc_interpterer_t)osc_setattr_interpret;
 
-		BUILD_BUG_ON(sizeof(*sa) > sizeof(req->rq_async_args));
-		sa = ptlrpc_req_async_args(req);
+		sa = ptlrpc_req_async_args(sa, req);
 		sa->sa_oa = oa;
 		sa->sa_upcall = upcall;
 		sa->sa_cookie = cookie;
@@ -321,8 +320,7 @@ int osc_ladvise_base(struct obd_export *exp, struct obdo *oa,
 	}
 
 	req->rq_interpret_reply = osc_ladvise_interpret;
-	BUILD_BUG_ON(sizeof(*la) > sizeof(req->rq_async_args));
-	la = ptlrpc_req_async_args(req);
+	la = ptlrpc_req_async_args(la, req);
 	la->la_oa = oa;
 	la->la_upcall = upcall;
 	la->la_cookie = cookie;
@@ -417,8 +415,7 @@ int osc_punch_send(struct obd_export *exp, struct obdo *oa,
 	ptlrpc_request_set_replen(req);
 
 	req->rq_interpret_reply = (ptlrpc_interpterer_t)osc_setattr_interpret;
-	BUILD_BUG_ON(sizeof(*sa) > sizeof(req->rq_async_args));
-	sa = ptlrpc_req_async_args(req);
+	sa = ptlrpc_req_async_args(sa, req);
 	sa->sa_oa = oa;
 	sa->sa_upcall = upcall;
 	sa->sa_cookie = cookie;
@@ -497,8 +494,7 @@ int osc_sync_base(struct osc_object *obj, struct obdo *oa,
 	ptlrpc_request_set_replen(req);
 	req->rq_interpret_reply = osc_sync_interpret;
 
-	BUILD_BUG_ON(sizeof(*fa) > sizeof(req->rq_async_args));
-	fa = ptlrpc_req_async_args(req);
+	fa = ptlrpc_req_async_args(fa, req);
 	fa->fa_obj = obj;
 	fa->fa_oa = oa;
 	fa->fa_upcall = upcall;
@@ -1338,8 +1334,7 @@ no_bulk:
 	}
 	ptlrpc_request_set_replen(req);
 
-	BUILD_BUG_ON(sizeof(*aa) > sizeof(req->rq_async_args));
-	aa = ptlrpc_req_async_args(req);
+	aa = ptlrpc_req_async_args(aa, req);
 	aa->aa_oa = oa;
 	aa->aa_requested_nob = requested_nob;
 	aa->aa_nio_count = niocount;
@@ -1725,7 +1720,7 @@ static int osc_brw_redo_request(struct ptlrpc_request *request,
 	new_req->rq_generation_set = 1;
 	new_req->rq_import_generation = request->rq_import_generation;
 
-	new_aa = ptlrpc_req_async_args(new_req);
+	new_aa = ptlrpc_req_async_args(new_aa, new_req);
 
 	INIT_LIST_HEAD(&new_aa->aa_oaps);
 	list_splice_init(&aa->aa_oaps, &new_aa->aa_oaps);
@@ -2074,8 +2069,7 @@ int osc_build_rpc(const struct lu_env *env, struct client_obd *cli,
 	cl_req_attr_set(env, osc2cl(obj), crattr);
 	lustre_msg_set_jobid(req->rq_reqmsg, crattr->cra_jobid);
 
-	BUILD_BUG_ON(sizeof(*aa) > sizeof(req->rq_async_args));
-	aa = ptlrpc_req_async_args(req);
+	aa = ptlrpc_req_async_args(aa, req);
 	INIT_LIST_HEAD(&aa->aa_oaps);
 	list_splice_init(&rpc_list, &aa->aa_oaps);
 	INIT_LIST_HEAD(&aa->aa_exts);
@@ -2365,8 +2359,7 @@ no_match:
 		if (!rc) {
 			struct osc_enqueue_args *aa;
 
-			BUILD_BUG_ON(sizeof(*aa) > sizeof(req->rq_async_args));
-			aa = ptlrpc_req_async_args(req);
+			aa = ptlrpc_req_async_args(aa, req);
 			aa->oa_exp = exp;
 			aa->oa_mode = einfo->ei_mode;
 			aa->oa_type = einfo->ei_type;
@@ -2519,8 +2512,7 @@ static int osc_statfs_async(struct obd_export *exp,
 	}
 
 	req->rq_interpret_reply = (ptlrpc_interpterer_t)osc_statfs_interpret;
-	BUILD_BUG_ON(sizeof(*aa) > sizeof(req->rq_async_args));
-	aa = ptlrpc_req_async_args(req);
+	aa = ptlrpc_req_async_args(aa, req);
 	aa->aa_oi = oinfo;
 
 	ptlrpc_set_add_req(rqset, req);
@@ -2725,8 +2717,7 @@ int osc_set_info_async(const struct lu_env *env, struct obd_export *exp,
 		struct osc_brw_async_args *aa;
 		struct obdo *oa;
 
-		BUILD_BUG_ON(sizeof(*aa) > sizeof(req->rq_async_args));
-		aa = ptlrpc_req_async_args(req);
+		aa = ptlrpc_req_async_args(aa, req);
 		oa = kmem_cache_zalloc(obdo_cachep, GFP_NOFS);
 		if (!oa) {
 			ptlrpc_req_finished(req);

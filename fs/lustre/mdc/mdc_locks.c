@@ -49,8 +49,8 @@
 #include "mdc_internal.h"
 
 struct mdc_getattr_args {
-	struct obd_export	   *ga_exp;
-	struct md_enqueue_info      *ga_minfo;
+	struct obd_export	*ga_exp;
+	struct md_enqueue_info	*ga_minfo;
 };
 
 int it_open_error(int phase, struct lookup_intent *it)
@@ -1329,8 +1329,7 @@ int mdc_intent_getattr_async(struct obd_export *exp,
 		return rc;
 	}
 
-	BUILD_BUG_ON(sizeof(*ga) > sizeof(req->rq_async_args));
-	ga = ptlrpc_req_async_args(req);
+	ga = ptlrpc_req_async_args(ga, req);
 	ga->ga_exp = exp;
 	ga->ga_minfo = minfo;
 
