@@ -1158,22 +1158,21 @@ int ll_readpage(struct file *file, struct page *vmpage)
 {
 	struct cl_object *clob = ll_i2info(file_inode(file))->lli_clob;
 	struct ll_cl_context *lcc;
-	const struct lu_env  *env;
-	struct cl_io   *io;
+	const struct lu_env *env = NULL;
+	struct cl_io *io = NULL;
 	struct cl_page *page;
 	int result;
 
 	lcc = ll_cl_find(file);
-	if (!lcc) {
-		unlock_page(vmpage);
-		return -EIO;
+	if (lcc) {
+		env = lcc->lcc_env;
+		io = lcc->lcc_io;
 	}
 
-	env = lcc->lcc_env;
-	io = lcc->lcc_io;
 	if (!io) { /* fast read */
 		struct ll_file_data *fd = LUSTRE_FPRIVATE(file);
 		struct ll_readahead_state *ras = &fd->fd_ras;
+		struct lu_env *local_env = NULL;
 		struct inode *inode = file_inode(file);
 		struct vvp_page *vpg;
 
@@ -1189,11 +1188,16 @@ int ll_readpage(struct file *file, struct page *vmpage)
 			return result;
 		}
 
+		if (!env) {
+			local_env = cl_env_percpu_get();
+			env = local_env;
+		}
+
 		vpg = cl2vvp_page(cl_object_page_slice(page->cp_obj, page));
 		if (vpg->vpg_defer_uptodate) {
 			enum ras_update_flags flags = LL_RAS_HIT;
 
-			if (lcc->lcc_type == LCC_MMAP)
+			if (lcc && lcc->lcc_type == LCC_MMAP)
 				flags |= LL_RAS_MMAP;
 
 			/*
@@ -1220,8 +1224,15 @@ int ll_readpage(struct file *file, struct page *vmpage)
 			}
 		}
 
-		unlock_page(vmpage);
+		/* release page refcount before unlocking the page to ensure
+		 * the object won't be destroyed in the calling path of
+		 * cl_page_put(). Please see comment in ll_releasepage().
+		 */
 		cl_page_put(env, page);
+		unlock_page(vmpage);
+		if (local_env)
+			cl_env_percpu_put(local_env);
+
 		return result;
 	}
 

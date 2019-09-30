@@ -1270,15 +1270,13 @@ out:
  * doesn't make the situation worse on single node but it may interleave write
  * results from multiple nodes due to short read handling in ll_file_aio_read().
  *
- * @env:	lu_env
  * @iocb:	kiocb from kernel
  * @iter:	user space buffers where the data will be copied
  *
  * Returns:	number of bytes have been read, or error code if error occurred.
  */
 static ssize_t
-ll_do_fast_read(const struct lu_env *env, struct kiocb *iocb,
-		struct iov_iter *iter)
+ll_do_fast_read(struct kiocb *iocb, struct iov_iter *iter)
 {
 	ssize_t result;
 
@@ -1292,9 +1290,7 @@ ll_do_fast_read(const struct lu_env *env, struct kiocb *iocb,
 	if (iocb->ki_filp->f_flags & O_DIRECT)
 		return 0;
 
-	ll_cl_add(iocb->ki_filp, env, NULL, LCC_RW);
 	result = generic_file_read_iter(iocb, iter);
-	ll_cl_remove(iocb->ki_filp, env);
 
 	/*
 	 * If the first page is not in cache, generic_file_aio_read() will be
@@ -1319,13 +1315,13 @@ static ssize_t ll_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 	u16 refcheck;
 	ssize_t rc2;
 
+	result = ll_do_fast_read(iocb, to);
+	if (result < 0 || iov_iter_count(to) == 0)
+		goto out;
+
 	env = cl_env_get(&refcheck);
 	if (IS_ERR(env))
 		return PTR_ERR(env);
-
-	result = ll_do_fast_read(env, iocb, to);
-	if (result < 0 || iov_iter_count(to) == 0)
-		goto out;
 
 	args = ll_env_args(env);
 	args->u.normal.via_iter = to;
@@ -1338,8 +1334,8 @@ static ssize_t ll_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 	else if (result == 0)
 		result = rc2;
 
-out:
 	cl_env_put(env, &refcheck);
+out:
 	return result;
 }
 
