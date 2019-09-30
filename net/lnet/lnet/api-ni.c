@@ -170,8 +170,8 @@ intf_max_set(const char *val, const struct kernel_param *kp)
 
 	if (value < LNET_INTERFACES_MIN) {
 		CWARN("max interfaces provided are too small, setting to %d\n",
-		      LNET_INTERFACES_MIN);
-		value = LNET_INTERFACES_MIN;
+		      LNET_INTERFACES_MAX_DEFAULT);
+		value = LNET_INTERFACES_MAX_DEFAULT;
 	}
 
 	*(int *)kp->arg = value;
@@ -3407,8 +3407,14 @@ static int lnet_ping(struct lnet_process_id id, signed long timeout,
 	int rc2;
 
 	/* n_ids limit is arbitrary */
-	if (n_ids <= 0 || n_ids > lnet_interfaces_max || id.nid == LNET_NID_ANY)
+	if (n_ids <= 0 || id.nid == LNET_NID_ANY)
 		return -EINVAL;
+
+	/* if the user buffer has more space than the lnet_interfaces_max
+	 * then only fill it up to lnet_interfaces_max
+	 */
+	if (n_ids > lnet_interfaces_max)
+		n_ids = lnet_interfaces_max;
 
 	if (id.pid == LNET_PID_ANY)
 		id.pid = LNET_PID_LUSTRE;
@@ -3575,12 +3581,17 @@ lnet_discover(struct lnet_process_id id, u32 force,
 	int max_intf = lnet_interfaces_max;
 
 	if (n_ids <= 0 ||
-	    id.nid == LNET_NID_ANY ||
-	    n_ids > max_intf)
+	    id.nid == LNET_NID_ANY)
 		return -EINVAL;
 
 	if (id.pid == LNET_PID_ANY)
 		id.pid = LNET_PID_LUSTRE;
+
+	/* if the user buffer has more space than the max_intf
+	 * then only fill it up to max_intf
+	 */
+	if (n_ids > max_intf)
+		n_ids = max_intf;
 
 	buf = kcalloc(n_ids, sizeof(*buf), GFP_KERNEL);
 	if (!buf)
