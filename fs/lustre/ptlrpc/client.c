@@ -2934,7 +2934,7 @@ int ptlrpc_replay_req(struct ptlrpc_request *req)
 
 	LASSERT(req->rq_import->imp_state == LUSTRE_IMP_REPLAY);
 
-	LASSERT(sizeof(*aa) <= sizeof(req->rq_async_args));
+	BUILD_BUG_ON(sizeof(*aa) > sizeof(req->rq_async_args));
 	aa = ptlrpc_req_async_args(req);
 	memset(aa, 0, sizeof(*aa));
 

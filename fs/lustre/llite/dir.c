@@ -1229,9 +1229,9 @@ lmv_out_free:
 
 		BUILD_BUG_ON(sizeof(struct lov_user_md_v3) <=
 			     sizeof(struct lov_comp_md_v1));
-		LASSERT(sizeof(lumv3) == sizeof(*lumv3p));
-		LASSERT(sizeof(lumv3.lmm_objects[0]) ==
-			sizeof(lumv3p->lmm_objects[0]));
+		BUILD_BUG_ON(sizeof(lumv3) != sizeof(*lumv3p));
+		BUILD_BUG_ON(sizeof(lumv3.lmm_objects[0]) !=
+			     sizeof(lumv3p->lmm_objects[0]));
 		/* first try with v1 which is smaller than v3 */
 		if (copy_from_user(lumv1, lumv1p, sizeof(*lumv1)))
 			return -EFAULT;

@@ -449,6 +449,7 @@ static void nrs_policy_get_info_locked(struct ptlrpc_nrs_policy *policy,
 {
 	assert_spin_locked(&policy->pol_nrs->nrs_lock);
 
+	BUILD_BUG_ON(sizeof(info->pi_arg) != sizeof(policy->pol_arg));
 	memcpy(info->pi_name, policy->pol_desc->pd_name, NRS_POL_NAME_MAX);
 
 	info->pi_fallback = !!(policy->pol_flags & PTLRPC_NRS_FL_FALLBACK);
