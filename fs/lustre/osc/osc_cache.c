@@ -248,7 +248,9 @@ static int __osc_extent_sanity_check(struct osc_extent *ext,
 		goto out;
 	}
 
-	if (ext->oe_dlmlock && !ldlm_is_failed(ext->oe_dlmlock)) {
+	if (ext->oe_dlmlock &&
+	    ext->oe_dlmlock->l_resource->lr_type == LDLM_EXTENT &&
+	    !ldlm_is_failed(ext->oe_dlmlock)) {
 		struct ldlm_extent *extent;
 
 		extent = &ext->oe_dlmlock->l_policy_data.l_extent;
@@ -3096,6 +3098,7 @@ bool osc_page_gang_lookup(const struct lu_env *env, struct cl_io *io,
 
 	return res;
 }
+EXPORT_SYMBOL(osc_page_gang_lookup);
 
 /**
  * Check if page @page is covered by an extra lock or discard it.
@@ -3140,8 +3143,8 @@ static bool check_and_discard_cb(const struct lu_env *env, struct cl_io *io,
 	return true;
 }
 
-static bool discard_cb(const struct lu_env *env, struct cl_io *io,
-		       struct osc_page *ops, void *cbdata)
+bool osc_discard_cb(const struct lu_env *env, struct cl_io *io,
+		    struct osc_page *ops, void *cbdata)
 {
 	struct osc_thread_info *info = osc_env_info(env);
 	struct cl_page *page = ops->ops_cl.cpl_page;
@@ -3163,6 +3166,7 @@ static bool discard_cb(const struct lu_env *env, struct cl_io *io,
 
 	return true;
 }
+EXPORT_SYMBOL(osc_discard_cb);
 
 /**
  * Discard pages protected by the given lock. This function traverses radix
@@ -3186,7 +3190,7 @@ int osc_lock_discard_pages(const struct lu_env *env, struct osc_object *osc,
 	if (result != 0)
 		goto out;
 
-	cb = discard ? discard_cb : check_and_discard_cb;
+	cb = discard ? osc_discard_cb : check_and_discard_cb;
 	info->oti_fn_index = start;
 	info->oti_next_index = start;
 

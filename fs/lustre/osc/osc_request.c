@@ -97,18 +97,6 @@ struct osc_ladvise_args {
 	void			*la_cookie;
 };
 
-struct osc_enqueue_args {
-	struct obd_export	*oa_exp;
-	enum ldlm_type		oa_type;
-	enum ldlm_mode		oa_mode;
-	u64			*oa_flags;
-	osc_enqueue_upcall_f	oa_upcall;
-	void			*oa_cookie;
-	struct ost_lvb		*oa_lvb;
-	struct lustre_handle	oa_lockh;
-	unsigned int		oa_speculative;
-};
-
 static void osc_release_ppga(struct brw_page **ppga, u32 count);
 static int brw_interpret(const struct lu_env *env,
 			 struct ptlrpc_request *req, void *data, int rc);
@@ -2042,10 +2030,10 @@ static int osc_set_lock_data(struct ldlm_lock *lock, void *data)
 	return set;
 }
 
-static int osc_enqueue_fini(struct ptlrpc_request *req,
-			    osc_enqueue_upcall_f upcall, void *cookie,
-			    struct lustre_handle *lockh, enum ldlm_mode mode,
-			    u64 *flags, int speculative, int errcode)
+int osc_enqueue_fini(struct ptlrpc_request *req, osc_enqueue_upcall_f upcall,
+		     void *cookie, struct lustre_handle *lockh,
+		     enum ldlm_mode mode, u64 *flags, int speculative,
+		     int errcode)
 {
 	bool intent = *flags & LDLM_FL_HAS_INTENT;
 	int rc;
@@ -2077,9 +2065,8 @@ static int osc_enqueue_fini(struct ptlrpc_request *req,
 	return rc;
 }
 
-static int osc_enqueue_interpret(const struct lu_env *env,
-				 struct ptlrpc_request *req,
-				 struct osc_enqueue_args *aa, int rc)
+int osc_enqueue_interpret(const struct lu_env *env, struct ptlrpc_request *req,
+			  struct osc_enqueue_args *aa, int rc)
 {
 	struct ldlm_lock *lock;
 	struct lustre_handle *lockh = &aa->oa_lockh;

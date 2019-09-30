@@ -1914,7 +1914,7 @@ static int lmv_rename(struct obd_export *exp, struct md_op_data *op_data,
 			return rc;
 
 		rc = lmv_early_cancel(exp, NULL, op_data, src_tgt->ltd_idx,
-				      LCK_EX, MDS_INODELOCK_FULL,
+				      LCK_EX, MDS_INODELOCK_ELC,
 				      MF_MDC_CANCEL_FID3);
 		if (rc)
 			return rc;
@@ -1928,7 +1928,7 @@ retry_rename:
 		struct lmv_tgt_desc *tgt;
 
 		rc = lmv_early_cancel(exp, NULL, op_data, src_tgt->ltd_idx,
-				      LCK_EX, MDS_INODELOCK_FULL,
+				      LCK_EX, MDS_INODELOCK_ELC,
 				      MF_MDC_CANCEL_FID4);
 		if (rc)
 			return rc;
@@ -2472,7 +2472,7 @@ try_next_stripe:
 	}
 
 	rc = lmv_early_cancel(exp, NULL, op_data, tgt->ltd_idx, LCK_EX,
-			      MDS_INODELOCK_FULL, MF_MDC_CANCEL_FID3);
+			      MDS_INODELOCK_ELC, MF_MDC_CANCEL_FID3);
 	if (rc != 0)
 		return rc;
 

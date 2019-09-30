@@ -45,9 +45,11 @@ extern struct ptlrpc_request_pool *osc_rq_pool;
 int osc_shrink_grant_to_target(struct client_obd *cli, u64 target_bytes);
 void osc_update_next_shrink(struct client_obd *cli);
 int lru_queue_work(const struct lu_env *env, void *data);
-
-typedef int (*osc_enqueue_upcall_f)(void *cookie, struct lustre_handle *lockh,
-				    int rc);
+int osc_extent_finish(const struct lu_env *env, struct osc_extent *ext,
+		      int sent, int rc);
+void  osc_extent_release(const struct lu_env *env, struct osc_extent *ext);
+int osc_lock_discard_pages(const struct lu_env *env, struct osc_object *osc,
+			   pgoff_t start, pgoff_t end, bool discard);
 
 int osc_enqueue_base(struct obd_export *exp, struct ldlm_res_id *res_id,
 		     u64 *flags, union ldlm_policy_data *policy,
@@ -136,24 +138,10 @@ void osc_inc_unstable_pages(struct ptlrpc_request *req);
 void osc_dec_unstable_pages(struct ptlrpc_request *req);
 bool osc_over_unstable_soft_limit(struct client_obd *cli);
 
-/*
- * Bit flags for osc_dlm_lock_at_pageoff().
- */
-enum osc_dap_flags {
-	/*
-	 * Just check if the desired lock exists, it won't hold reference
-	 * count on lock.
-	 */
-	OSC_DAP_FL_TEST_LOCK	= BIT(0),
-	/*
-	 * Return the lock even if it is being canceled.
-	 */
-	OSC_DAP_FL_CANCELING	= BIT(1),
-};
-
-struct ldlm_lock *osc_dlmlock_at_pgoff(const struct lu_env *env,
-				       struct osc_object *obj, pgoff_t index,
-				       enum osc_dap_flags flags);
+struct ldlm_lock *osc_obj_dlmlock_at_pgoff(const struct lu_env *env,
+					   struct osc_object *obj,
+					   pgoff_t index,
+					   enum osc_dap_flags flags);
 
 int osc_object_invalidate(const struct lu_env *env, struct osc_object *osc);
 
