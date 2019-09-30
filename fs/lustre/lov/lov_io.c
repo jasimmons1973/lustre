@@ -136,6 +136,7 @@ static int lov_io_sub_init(const struct lu_env *env, struct lov_io *lio,
 	sub_io->ci_noatime = io->ci_noatime;
 	sub_io->ci_lock_no_expand = io->ci_lock_no_expand;
 	sub_io->ci_ndelay = io->ci_ndelay;
+	sub_io->ci_layout_version = io->ci_layout_version;
 
 	rc = cl_io_sub_init(sub->sub_env, sub_io, io->ci_type, sub_obj);
 	if (rc < 0)
@@ -208,12 +209,88 @@ static int lov_io_subio_init(const struct lu_env *env, struct lov_io *lio,
 	return 0;
 }
 
+/**
+ * Decide if it will need write intent RPC
+ */
+static int lov_io_mirror_write_intent(struct lov_io *lio,
+	struct lov_object *obj, struct cl_io *io)
+{
+	struct lov_layout_composite *comp = &obj->u.composite;
+	struct lu_extent *ext = &io->ci_write_intent;
+	struct lov_mirror_entry *lre;
+	struct lov_mirror_entry *primary;
+	struct lov_layout_entry *lle;
+	size_t count = 0;
+
+	*ext = (typeof(*ext)) { lio->lis_pos, lio->lis_endpos };
+	io->ci_need_write_intent = 0;
+
+	if (!(io->ci_type == CIT_WRITE || cl_io_is_trunc(io) ||
+	      cl_io_is_mkwrite(io)))
+		return 0;
+
+	if (lov_flr_state(obj) == LCM_FL_RDONLY ||
+	    lov_flr_state(obj) == LCM_FL_SYNC_PENDING) {
+		io->ci_need_write_intent = 1;
+		return 0;
+	}
+
+	LASSERT((lov_flr_state(obj) == LCM_FL_WRITE_PENDING));
+	LASSERT(comp->lo_preferred_mirror >= 0);
+
+	/* need to iterate all components to see if there are
+	 * multiple components covering the writing component
+	 */
+	primary = &comp->lo_mirrors[comp->lo_preferred_mirror];
+	LASSERT(!primary->lre_stale);
+	lov_foreach_mirror_layout_entry(obj, lle, primary) {
+		LASSERT(lle->lle_valid);
+		if (!lu_extent_is_overlapped(ext, lle->lle_extent))
+			continue;
+
+		ext->e_start = min(ext->e_start, lle->lle_extent->e_start);
+		ext->e_end = max(ext->e_end, lle->lle_extent->e_end);
+		++count;
+	}
+	if (count == 0) {
+		CERROR(DFID ": cannot find any valid components covering file extent " DEXT ", mirror: %d\n",
+		       PFID(lu_object_fid(lov2lu(obj))), PEXT(ext),
+		       primary->lre_mirror_id);
+		return -EIO;
+	}
+
+	count = 0;
+	lov_foreach_mirror_entry(obj, lre) {
+		if (lre == primary)
+			continue;
+
+		lov_foreach_mirror_layout_entry(obj, lle, lre) {
+			if (!lle->lle_valid)
+				continue;
+
+			if (lu_extent_is_overlapped(ext, lle->lle_extent)) {
+				++count;
+				break;
+			}
+		}
+	}
+
+	CDEBUG(D_VFSTRACE,
+	       DFID "there are %zd components to be staled to modify file extent " DEXT ", iot: %d\n",
+	       PFID(lu_object_fid(lov2lu(obj))), count, PEXT(ext), io->ci_type);
+
+	io->ci_need_write_intent = count > 0;
+
+	return 0;
+}
+
 static int lov_io_mirror_init(struct lov_io *lio, struct lov_object *obj,
 			       struct cl_io *io)
 {
 	struct lov_layout_composite *comp = &obj->u.composite;
 	int index;
 	int i;
+	int result;
 
 	if (!lov_is_flr(obj)) {
 		LASSERT(comp->lo_preferred_mirror == 0);
@@ -221,6 +298,22 @@ static int lov_io_mirror_init(struct lov_io *lio, struct lov_object *obj,
 		io->ci_ndelay = 0;
 		return 0;
 	}
+
+	result = lov_io_mirror_write_intent(lio, obj, io);
+	if (result)
+		return result;
+
+	if (io->ci_need_write_intent) {
+		CDEBUG(D_VFSTRACE, DFID " need write intent for [%llu, %llu)\n",
+		       PFID(lu_object_fid(lov2lu(obj))),
+		       lio->lis_pos, lio->lis_endpos);
+
+		/* stop cl_io_init() loop */
+		return 1;
+	}
+
+	/* transfer the layout version for verification */
+	io->ci_layout_version = obj->lo_lsm->lsm_layout_gen;
 
 	if (io->ci_ndelay_tried == 0 || /* first time to try */
 	    /* reset the mirror index if layout has changed */
@@ -325,8 +418,10 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 			 * the current file-tail exactly.
 			 */
 			if (unlikely(obj->lo_lsm->lsm_entries[0]->lsme_pattern &
-				     LOV_PATTERN_F_HOLE))
-				return -EIO;
+				     LOV_PATTERN_F_HOLE)) {
+				result = -EIO;
+				goto out;
+			}
 
 			lio->lis_pos = 0;
 			lio->lis_endpos = OBD_OBJECT_EOF;
@@ -371,8 +466,11 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 		lio->lis_endpos = OBD_OBJECT_EOF;
 
 		if (lov_flr_state(obj) == LCM_FL_RDONLY &&
-		    !OBD_FAIL_CHECK(OBD_FAIL_FLR_GLIMPSE_IMMUTABLE))
-			return 1; /* SoM is accurate, no need glimpse */
+		    !OBD_FAIL_CHECK(OBD_FAIL_FLR_GLIMPSE_IMMUTABLE)) {
+			/* SoM is accurate, no need glimpse */
+			result = 1;
+			goto out;
+		}
 		break;
 
 	case CIT_MISC:
@@ -385,12 +483,14 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 	}
 	result = lov_io_mirror_init(lio, obj, io);
 	if (result)
-		return result;
+		goto out;
 
 	/* check if it needs to instantiate layout */
 	if (!(io->ci_type == CIT_WRITE || cl_io_is_mkwrite(io) ||
-	      (cl_io_is_trunc(io) && io->u.ci_setattr.sa_attr.lvb_size > 0)))
-		return 0;
+	      (cl_io_is_trunc(io) && io->u.ci_setattr.sa_attr.lvb_size > 0))) {
+		result = 0;
+		goto out;
+	}
 
 	ext.e_start = lio->lis_pos;
 	ext.e_end = lio->lis_endpos;
@@ -409,10 +509,11 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 			io->ci_need_write_intent = 1;
 			io->ci_write_intent = ext;
 			result = 1;
-			break;
+			goto out;
 		}
 	}
 
+out:
 	return result;
 }
 
@@ -798,6 +899,10 @@ static int lov_io_read_ahead(const struct lu_env *env,
 	index = lov_io_layout_at(lio, offset);
 	if (index < 0 || !lsm_entry_inited(loo->lo_lsm, index))
 		return -ENODATA;
+
+	/* avoid readahead to expand to stale components */
+	if (!lov_entry(loo, index)->lle_valid)
+		return -EIO;
 
 	stripe = lov_stripe_number(loo->lo_lsm, index, offset);
 

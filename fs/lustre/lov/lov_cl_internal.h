@@ -230,6 +230,7 @@ struct lov_layout_entry {
 struct lov_mirror_entry {
 	unsigned short	lre_mirror_id;
 	unsigned short	lre_preferred:1,
+			lre_stale:1,	/* set if any components is stale */
 			lre_valid:1;	/* set if at least one of components
 					 * in this mirror is valid
 					 */
@@ -438,6 +439,8 @@ struct lov_page {
 	struct cl_page_slice	lps_cl;
 	/** layout_entry + stripe index, composed using lov_comp_index() */
 	unsigned int		lps_index;
+	/* the layout gen when this page was created */
+	u32			lps_layout_gen;
 };
 
 /*

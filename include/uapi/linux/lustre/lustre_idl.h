@@ -1092,7 +1092,9 @@ lov_mds_md_max_stripe_count(size_t buf_size, __u32 lmm_magic)
 #define OBD_MD_DOM_SIZE		(0x00001000ULL) /* Data-on-MDT component size */
 #define OBD_MD_FLNLINK		(0x00002000ULL) /* link count */
 #define OBD_MD_FLGENER		(0x00004000ULL) /* generation number */
-/*#define OBD_MD_FLINLINE	(0x00008000ULL)  inline data. used until 1.6.5 */
+#define OBD_MD_LAYOUT_VERSION	(0x00008000ULL) /* layout version for
+						 * OST objects
+						 */
 #define OBD_MD_FLRDEV		(0x00010000ULL) /* device number */
 #define OBD_MD_FLEASIZE		(0x00020000ULL) /* extended attribute data */
 #define OBD_MD_LINKNAME		(0x00040000ULL) /* symbolic link target */
@@ -2675,7 +2677,7 @@ struct obdo {
 	 * sizeof(ost_layout) + sizeof(__u32) == sizeof(llog_cookie).
 	 */
 	struct ost_layout	o_layout;
-	__u32			o_padding_3;
+	__u32			o_layout_version;
 	__u32		o_uid_h;
 	__u32		o_gid_h;
 

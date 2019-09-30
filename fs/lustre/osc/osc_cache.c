@@ -2479,6 +2479,9 @@ int osc_queue_async_io(const struct lu_env *env, struct cl_io *io,
 		++ext->oe_nr_pages;
 		list_add_tail(&oap->oap_pending_item, &ext->oe_pages);
 		osc_object_unlock(osc);
+
+		if (!ext->oe_layout_version)
+			ext->oe_layout_version = io->ci_layout_version;
 	}
 
 	return rc;
@@ -2604,8 +2607,9 @@ out:
 	return rc;
 }
 
-int osc_queue_sync_pages(const struct lu_env *env, struct osc_object *obj,
-			 struct list_head *list, int brw_flags)
+int osc_queue_sync_pages(const struct lu_env *env, const struct cl_io *io,
+			 struct osc_object *obj, struct list_head *list,
+			 int brw_flags)
 {
 	struct client_obd *cli = osc_cli(obj);
 	struct osc_extent *ext;
@@ -2656,6 +2660,7 @@ int osc_queue_sync_pages(const struct lu_env *env, struct osc_object *obj,
 	ext->oe_nr_pages = page_count;
 	ext->oe_mppr = mppr;
 	list_splice_init(list, &ext->oe_pages);
+	ext->oe_layout_version = io->ci_layout_version;
 
 	osc_object_lock(obj);
 	/* Reuse the initial refcount for RPC, don't drop it */
