@@ -100,7 +100,7 @@
 #define MDC_REPLY_PORTAL	10
 /*#define MDC_BULK_PORTAL	11 */
 #define MDS_REQUEST_PORTAL	12
-/*#define MDS_REPLY_PORTAL	13 */
+#define MDS_IO_PORTAL		13
 #define MDS_BULK_PORTAL		14
 #define LDLM_CB_REQUEST_PORTAL	15
 #define LDLM_CB_REPLY_PORTAL	16
@@ -1429,8 +1429,9 @@ enum mdt_reint_cmd {
  */
 #define MDS_INODELOCK_PERM	0x000010
 #define MDS_INODELOCK_XATTR	0x000020	/* extended attributes */
+#define MDS_INODELOCK_DOM    0x000040 /* Data for data-on-mdt files */
 
-#define MDS_INODELOCK_MAXSHIFT 5
+#define MDS_INODELOCK_MAXSHIFT 6
 /* This FULL lock is useful to take on unlink sort of operations */
 #define MDS_INODELOCK_FULL ((1 << (MDS_INODELOCK_MAXSHIFT + 1)) - 1)
 
