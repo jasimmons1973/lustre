@@ -1367,6 +1367,10 @@ enum cl_io_type {
 	 */
 	CIT_FSYNC,
 	/**
+	 * glimpse. An io context to acquire glimpse lock.
+	 */
+	CIT_GLIMPSE,
+	/**
 	 * Miscellaneous io. This is used for occasional io activity that
 	 * doesn't fit into other types. Currently this is used for:
 	 *
@@ -1376,8 +1380,6 @@ enum cl_io_type {
 	 *
 	 *     - VM induced page write-out. An io context for writing page out
 	 *     for memory cleansing;
-	 *
-	 *     - glimpse. An io context to acquire glimpse lock.
 	 *
 	 *     - grouplock. An io context to acquire group lock.
 	 *

@@ -189,10 +189,13 @@ int __cl_glimpse_size(struct inode *inode, int agl)
 	u16 refcheck;
 
 	result = cl_io_get(inode, &env, &io, &refcheck);
-	if (result > 0) {
-again:
+	if (result <= 0)
+		return result;
+
+	do {
+		io->ci_need_restart = 0;
 		io->ci_verify_layout = 1;
-		result = cl_io_init(env, io, CIT_MISC, io->ci_obj);
+		result = cl_io_init(env, io, CIT_GLIMPSE, io->ci_obj);
 		if (result > 0)
 			/*
 			 * nothing to do for this io. This currently happens
@@ -205,9 +208,8 @@ again:
 
 		OBD_FAIL_TIMEOUT(OBD_FAIL_GLIMPSE_DELAY, 2);
 		cl_io_fini(env, io);
-		if (unlikely(io->ci_need_restart))
-			goto again;
-		cl_env_put(env, &refcheck);
-	}
+	} while (unlikely(io->ci_need_restart));
+
+	cl_env_put(env, &refcheck);
 	return result;
 }
