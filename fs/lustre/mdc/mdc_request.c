@@ -2173,10 +2173,12 @@ static int mdc_ioc_hsm_ct_start(struct obd_export *exp,
 /**
  * Send a message to any listening copytools
  *
+ * @uuid:	obd device UUID
  * @val:	KUC message (kuc_hdr + hsm_action_list)
  * @len:	total length of message
  */
-static int mdc_hsm_copytool_send(size_t len, void *val)
+static int mdc_hsm_copytool_send(const struct obd_uuid *uuid,
+				 size_t len, void *val)
 {
 	struct kuc_hdr *lh = (struct kuc_hdr *)val;
 	struct hsm_action_list *hal = (struct hsm_action_list *)(lh + 1);
@@ -2200,7 +2202,7 @@ static int mdc_hsm_copytool_send(size_t len, void *val)
 	       lh->kuc_msglen, hal->hal_count, hal->hal_fsname);
 
 	/* Broadcast to HSM listeners */
-	return libcfs_kkuc_group_put(KUC_GRP_HSM, lh);
+	return libcfs_kkuc_group_put(uuid, KUC_GRP_HSM, lh);
 }
 
 /**
@@ -2218,9 +2220,6 @@ static int mdc_hsm_ct_reregister(void *data, void *cb_arg)
 
 	if (!kcd || kcd->kcd_magic != KKUC_CT_DATA_MAGIC)
 		return -EPROTO;
-
-	if (!obd_uuid_equals(&kcd->kcd_uuid, &imp->imp_obd->obd_uuid))
-		return 0;
 
 	CDEBUG(D_HA, "%s: recover copytool registration to MDT (archive=%#x)\n",
 	       imp->imp_obd->obd_name, kcd->kcd_archive);
@@ -2264,7 +2263,8 @@ static int mdc_set_info_async(const struct lu_env *env,
 		return rc;
 	}
 	if (KEY_IS(KEY_HSM_COPYTOOL_SEND)) {
-		rc = mdc_hsm_copytool_send(vallen, val);
+		rc = mdc_hsm_copytool_send(&imp->imp_obd->obd_uuid, vallen,
+					   val);
 		return rc;
 	}
 	if (KEY_IS(KEY_DEFAULT_EASIZE)) {
@@ -2403,11 +2403,13 @@ static int mdc_import_event(struct obd_device *obd, struct obd_import *imp,
 	case IMP_EVENT_ACTIVE:
 		rc = obd_notify_observer(obd, obd, OBD_NOTIFY_ACTIVE);
 		/* redo the kuc registration after reconnecting */
-		if (rc == 0)
+		if (rc == 0) {
 			/* re-register HSM agents */
-			rc = libcfs_kkuc_group_foreach(KUC_GRP_HSM,
+			rc = libcfs_kkuc_group_foreach(&imp->imp_obd->obd_uuid,
+						       KUC_GRP_HSM,
 						       mdc_hsm_ct_reregister,
 						       (void *)imp);
+		}
 		break;
 	case IMP_EVENT_OCD: {
 		struct obd_connect_data *ocd = &imp->imp_connect_data;
@@ -2575,10 +2577,6 @@ static int mdc_init_ea_size(struct obd_export *exp, u32 easize, u32 def_easize)
 static int mdc_precleanup(struct obd_device *obd)
 {
 	osc_precleanup_common(obd);
-
-	/* Failsafe, ok if racy */
-	if (atomic_read(&obd->obd_type->typ_refcnt) <= 1)
-		libcfs_kkuc_group_rem(0, KUC_GRP_HSM);
 
 	mdc_changelog_cdev_finish(obd);
 

@@ -267,7 +267,6 @@ struct obd_export *class_conn2export(struct lustre_handle *conn);
 #define KKUC_CT_DATA_MAGIC	0x092013cea
 struct kkuc_ct_data {
 	u32			kcd_magic;
-	struct obd_uuid		kcd_uuid;
 	u32			kcd_archive;
 };
 

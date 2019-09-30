@@ -90,6 +90,7 @@ static int libcfs_kkuc_msg_put(struct file *filp, void *payload)
 /** A single group registration has a uid and a file pointer */
 struct kkuc_reg {
 	struct list_head	kr_chain;
+	struct obd_uuid		kr_uuid;
 	int			kr_uid;
 	struct file	       *kr_fp;
 	char			kr_data[0];
@@ -115,12 +116,13 @@ void libcfs_kkuc_init(void)
 /** Add a receiver to a broadcast group
  *
  * @filp:	pipe to write into
+ * @uuid:	obd device UUID
  * @uid:	identifier for this receiver
  * @group:	group number
  * @data:	user data
  */
-int libcfs_kkuc_group_add(struct file *filp, int uid, unsigned int group,
-			  void *data, size_t data_len)
+int libcfs_kkuc_group_add(struct file *filp, const struct obd_uuid *uuid,
+			  int uid, int group, void *data, size_t data_len)
 {
 	struct kkuc_reg *reg;
 
@@ -134,10 +136,11 @@ int libcfs_kkuc_group_add(struct file *filp, int uid, unsigned int group,
 		return -EBADF;
 
 	/* freed in group_rem */
-	reg = kmalloc(sizeof(*reg) + data_len, GFP_KERNEL);
+	reg = kzalloc(sizeof(*reg) + data_len, GFP_KERNEL);
 	if (!reg)
 		return -ENOMEM;
 
+	reg->kr_uuid = *uuid;
 	reg->kr_fp = filp;
 	reg->kr_uid = uid;
 	memcpy(reg->kr_data, data, data_len);
@@ -152,7 +155,7 @@ int libcfs_kkuc_group_add(struct file *filp, int uid, unsigned int group,
 }
 EXPORT_SYMBOL(libcfs_kkuc_group_add);
 
-int libcfs_kkuc_group_rem(int uid, unsigned int group)
+int libcfs_kkuc_group_rem(const struct obd_uuid *uuid, int uid, int group)
 {
 	struct kkuc_reg *reg, *next;
 
@@ -169,12 +172,13 @@ int libcfs_kkuc_group_rem(int uid, unsigned int group)
 		lh.kuc_transport = KUC_TRANSPORT_GENERIC;
 		lh.kuc_msgtype = KUC_MSG_SHUTDOWN;
 		lh.kuc_msglen = sizeof(lh);
-		libcfs_kkuc_group_put(group, &lh);
+		libcfs_kkuc_group_put(uuid, group, &lh);
 	}
 
 	down_write(&kg_sem);
 	list_for_each_entry_safe(reg, next, &kkuc_groups[group], kr_chain) {
-		if (!uid || (uid == reg->kr_uid)) {
+		if (obd_uuid_equals(uuid, &reg->kr_uuid) &&
+		    (!uid || uid == reg->kr_uid)) {
 			list_del(&reg->kr_chain);
 			CDEBUG(D_HSM, "Removed uid=%d fp=%p from group %d\n",
 			       reg->kr_uid, reg->kr_fp, group);
@@ -189,7 +193,7 @@ int libcfs_kkuc_group_rem(int uid, unsigned int group)
 }
 EXPORT_SYMBOL(libcfs_kkuc_group_rem);
 
-int libcfs_kkuc_group_put(unsigned int group, void *payload)
+int libcfs_kkuc_group_put(const struct obd_uuid *uuid, int group, void *payload)
 {
 	struct kkuc_reg	*reg;
 	int rc = 0;
@@ -210,7 +214,7 @@ int libcfs_kkuc_group_put(unsigned int group, void *payload)
 	}
 
 	list_for_each_entry(reg, &kkuc_groups[group], kr_chain) {
-		if (reg->kr_fp) {
+		if (obd_uuid_equals(uuid, &reg->kr_uuid) && reg->kr_fp) {
 			rc = libcfs_kkuc_msg_put(reg->kr_fp, payload);
 			if (!rc) {
 				one_success = 1;
@@ -240,8 +244,8 @@ EXPORT_SYMBOL(libcfs_kkuc_group_put);
  * @cb_func:	the function to be called.
  * @cb_arg:	extra argument to be passed to the callback function.
  */
-int libcfs_kkuc_group_foreach(unsigned int group, libcfs_kkuc_cb_t cb_func,
-			      void *cb_arg)
+int libcfs_kkuc_group_foreach(const struct obd_uuid *uuid, int group,
+			      libcfs_kkuc_cb_t cb_func, void *cb_arg)
 {
 	struct kkuc_reg *reg;
 	int rc = 0;
@@ -253,7 +257,7 @@ int libcfs_kkuc_group_foreach(unsigned int group, libcfs_kkuc_cb_t cb_func,
 
 	down_read(&kg_sem);
 	list_for_each_entry(reg, &kkuc_groups[group], kr_chain) {
-		if (reg->kr_fp)
+		if (obd_uuid_equals(uuid, &reg->kr_uuid) && reg->kr_fp)
 			rc = cb_func(reg->kr_data, cb_arg);
 	}
 	up_read(&kg_sem);

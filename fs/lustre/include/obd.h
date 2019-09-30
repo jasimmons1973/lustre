@@ -430,7 +430,6 @@ struct lmv_obd {
 	struct lu_client_fld	lmv_fld;
 	spinlock_t		lmv_lock;
 	struct lmv_desc		desc;
-	struct obd_uuid		cluuid;
 
 	struct mutex		lmv_init_mutex;
 	int			connected;
