@@ -298,10 +298,16 @@ ptlrpc_lprocfs_req_history_max_seq_write(struct file *file,
 
 	/* This sanity check is more of an insanity check; we can still
 	 * hose a kernel by allowing the request history to grow too
-	 * far.
+	 * far. The roundup to the next power of two is an empirical way
+	 * to take care that request buffer is allocated in Slab and thus
+	 * will be upgraded.
 	 */
-	bufpages = (svc->srv_buf_size + PAGE_SIZE - 1) >> PAGE_SHIFT;
-	if (val > totalram_pages() / (2 * bufpages))
+	bufpages = (roundup_pow_of_two(svc->srv_buf_size) + PAGE_SIZE - 1) >>
+		   PAGE_SHIFT;
+	/* do not allow history to consume more than half max number of rqbds */
+	if ((svc->srv_nrqbds_max == 0 &&
+	     val > totalram_pages() / (2 * bufpages)) ||
+	    (svc->srv_nrqbds_max != 0 && val > svc->srv_nrqbds_max / 2))
 		return -ERANGE;
 
 	spin_lock(&svc->srv_lock);
@@ -317,6 +323,43 @@ ptlrpc_lprocfs_req_history_max_seq_write(struct file *file,
 }
 
 LPROC_SEQ_FOPS(ptlrpc_lprocfs_req_history_max);
+
+static int
+ptlrpc_lprocfs_req_buffers_max_seq_show(struct seq_file *m, void *n)
+{
+	struct ptlrpc_service *svc = m->private;
+
+	seq_printf(m, "%d\n", svc->srv_nrqbds_max);
+	return 0;
+}
+
+static ssize_t
+ptlrpc_lprocfs_req_buffers_max_seq_write(struct file *file,
+					 const char __user *buffer,
+					 size_t count, loff_t *off)
+{
+	struct seq_file *m = file->private_data;
+	struct ptlrpc_service *svc = m->private;
+	int val;
+	int rc;
+
+	rc = kstrtoint_from_user(buffer, count, 0, &val);
+	if (rc < 0)
+		return rc;
+
+	if (val < svc->srv_nbuf_per_group && val != 0)
+		return -ERANGE;
+
+	spin_lock(&svc->srv_lock);
+
+	svc->srv_nrqbds_max = (uint)val;
+
+	spin_unlock(&svc->srv_lock);
+
+	return count;
+}
+
+LPROC_SEQ_FOPS(ptlrpc_lprocfs_req_buffers_max);
 
 static ssize_t threads_min_show(struct kobject *kobj, struct attribute *attr,
 				char *buf)
@@ -1089,6 +1132,9 @@ void ptlrpc_ldebugfs_register_service(struct dentry *entry,
 		  .data		= svc },
 		{ .name		= "nrs_policies",
 		  .fops		= &ptlrpc_lprocfs_nrs_fops,
+		  .data		= svc },
+		{ .name		= "req_buffers_max",
+		  .fops		= &ptlrpc_lprocfs_req_buffers_max_fops,
 		  .data		= svc },
 		{ NULL }
 	};
