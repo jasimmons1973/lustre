@@ -1325,8 +1325,8 @@ static int after_reply(struct ptlrpc_request *req)
 	struct obd_import *imp = req->rq_import;
 	struct obd_device *obd = req->rq_import->imp_obd;
 	int rc;
-	struct timespec64 work_start;
-	long timediff;
+	ktime_t work_start;
+	s64 timediff;
 	u64 committed;
 
 	LASSERT(obd);
@@ -1355,10 +1355,9 @@ static int after_reply(struct ptlrpc_request *req)
 		return 0;
 	}
 
-	ktime_get_real_ts64(&work_start);
-	timediff = (work_start.tv_sec - req->rq_sent_tv.tv_sec) * USEC_PER_SEC +
-		   (work_start.tv_nsec - req->rq_sent_tv.tv_nsec) /
-								 NSEC_PER_USEC;
+	work_start = ktime_get_real();
+	timediff = ktime_us_delta(work_start, req->rq_sent_ns);
+
 	/*
 	 * NB Until this point, the whole of the incoming message,
 	 * including buflens, status etc is in the sender's byte order.

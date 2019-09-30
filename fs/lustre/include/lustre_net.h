@@ -537,8 +537,8 @@ struct ptlrpc_cli_req {
 	long				 cr_delay_limit;
 	/** time request was first queued */
 	unsigned long			 cr_queued_time;
-	/** request sent timeval */
-	struct timespec64		 cr_sent_tv;
+	/** request sent in nanosseconds */
+	ktime_t				 cr_sent_ns;
 	/** time for request really sent out */
 	time64_t			 cr_sent_out;
 	/** when req reply unlink must finish. */
@@ -600,7 +600,7 @@ struct ptlrpc_cli_req {
 #define rq_bulk			rq_cli.cr_bulk
 #define rq_delay_limit		rq_cli.cr_delay_limit
 #define rq_queued_time		rq_cli.cr_queued_time
-#define rq_sent_tv		rq_cli.cr_sent_tv
+#define rq_sent_ns		rq_cli.cr_sent_ns
 #define rq_real_sent		rq_cli.cr_sent_out
 #define rq_reply_deadline	rq_cli.cr_reply_deadline
 #define rq_bulk_deadline	rq_cli.cr_bulk_deadline

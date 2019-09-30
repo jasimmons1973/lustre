@@ -1649,12 +1649,11 @@ ptlrpc_server_handle_request(struct ptlrpc_service_part *svcpt,
 {
 	struct ptlrpc_service *svc = svcpt->scp_service;
 	struct ptlrpc_request *request;
-	struct timespec64 work_start;
-	struct timespec64 work_end;
-	struct timespec64 timediff;
-	struct timespec64 arrived;
-	unsigned long timediff_usecs;
-	unsigned long arrived_usecs;
+	ktime_t work_start;
+	ktime_t work_end;
+	ktime_t arrived;
+	s64 timediff_usecs;
+	s64 arrived_usecs;
 	int fail_opc = 0;
 
 	request = ptlrpc_server_request_get(svcpt, false);
@@ -1676,10 +1675,9 @@ ptlrpc_server_handle_request(struct ptlrpc_service_part *svcpt,
 	if (OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_DUMP_LOG))
 		libcfs_debug_dumplog();
 
-	ktime_get_real_ts64(&work_start);
-	timediff = timespec64_sub(work_start, request->rq_arrival_time);
-	timediff_usecs = timediff.tv_sec * USEC_PER_SEC +
-			 timediff.tv_nsec / NSEC_PER_USEC;
+	work_start = ktime_get_real();
+	arrived = timespec64_to_ktime(request->rq_arrival_time);
+	timediff_usecs = ktime_us_delta(work_start, arrived);
 	if (likely(svc->srv_stats)) {
 		lprocfs_counter_add(svc->srv_stats, PTLRPC_REQWAIT_CNTR,
 				    timediff_usecs);
@@ -1746,15 +1744,11 @@ put_conn:
 			  (s64)ktime_get_real_seconds() - request->rq_deadline);
 	}
 
-	ktime_get_real_ts64(&work_end);
-	timediff = timespec64_sub(work_end, work_start);
-	timediff_usecs = timediff.tv_sec * USEC_PER_SEC +
-			 timediff.tv_nsec / NSEC_PER_USEC;
-	arrived = timespec64_sub(work_end, request->rq_arrival_time);
-	arrived_usecs = arrived.tv_sec * USEC_PER_SEC +
-			 arrived.tv_nsec / NSEC_PER_USEC;
+	work_end = ktime_get_real();
+	timediff_usecs = ktime_us_delta(work_end, work_start);
+	arrived_usecs = ktime_us_delta(work_end, arrived);
 	CDEBUG(D_RPCTRACE,
-	       "Handled RPC pname:cluuid+ref:pid:xid:nid:opc %s:%s+%d:%d:x%llu:%s:%d Request processed in %ldus (%ldus total) trans %llu rc %d/%d\n",
+	       "Handled RPC pname:cluuid+ref:pid:xid:nid:opc %s:%s+%d:%d:x%llu:%s:%d Request processed in %lldus (%lldus total) trans %llu rc %d/%d\n",
 	       current->comm,
 	       (request->rq_export ?
 		(char *)request->rq_export->exp_client_uuid.uuid : "0"),
@@ -1787,8 +1781,7 @@ put_conn:
 		DEBUG_REQ(D_ADAPTTO, request,
 			  "sent %d early replies before finishing in %llds",
 			  request->rq_early_count,
-			  (s64)work_end.tv_sec -
-			  request->rq_arrival_time.tv_sec);
+			  arrived_usecs / USEC_PER_SEC);
 	}
 
 	ptlrpc_server_finish_active_request(svcpt, request);
