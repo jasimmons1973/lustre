@@ -773,7 +773,7 @@ lnet_ptl_cleanup(struct lnet_portal *ptl)
 			       != NULL) {
 				CERROR("Active ME %p on exit\n", me);
 				list_del(&me->me_list);
-				kfree(me);
+				kmem_cache_free(lnet_mes_cachep, me);
 			}
 		}
 		/* the extra entry is for MEs with ignore bits */

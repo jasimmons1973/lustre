@@ -82,7 +82,7 @@ lnet_md_unlink(struct lnet_libmd *md)
 
 	LASSERT(!list_empty(&md->md_list));
 	list_del_init(&md->md_list);
-	kfree(md);
+	lnet_md_free(md);
 }
 
 struct page *lnet_kvaddr_to_page(unsigned long vaddr)

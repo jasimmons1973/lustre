@@ -80,6 +80,12 @@ extern struct lnet the_lnet;	/* THE network */
 /* default timeout */
 #define DEFAULT_PEER_TIMEOUT    180
 
+#define LNET_SMALL_MD_SIZE	offsetof(struct lnet_libmd, md_iov.iov[1])
+extern struct kmem_cache *lnet_mes_cachep;	 /* MEs kmem_cache */
+extern struct kmem_cache *lnet_small_mds_cachep; /* <= LNET_SMALL_MD_SIZE bytes
+						  * MDs kmem_cache
+						  */
+
 static inline int lnet_is_route_alive(struct lnet_route *route)
 {
 	/* gateway is down */
@@ -151,6 +157,24 @@ lnet_res_unlock(int cpt)
 	cfs_percpt_unlock(the_lnet.ln_res_lock, cpt);
 }
 
+static inline void
+lnet_md_free(struct lnet_libmd *md)
+{
+	unsigned int size;
+
+	if ((md->md_options & LNET_MD_KIOV) != 0)
+		size = offsetof(struct lnet_libmd, md_iov.kiov[md->md_niov]);
+	else
+		size = offsetof(struct lnet_libmd, md_iov.iov[md->md_niov]);
+
+	if (size <= LNET_SMALL_MD_SIZE) {
+		CDEBUG(D_MALLOC, "slab-freed 'md' at %p.\n", md);
+		kmem_cache_free(lnet_small_mds_cachep, md);
+	} else {
+		kfree(md);
+	}
+}
+
 static inline int
 lnet_res_lock_current(void)
 {
@@ -205,7 +229,20 @@ lnet_md_alloc(struct lnet_md *umd)
 		size = offsetof(struct lnet_libmd, md_iov.iov[niov]);
 	}
 
-	md = kzalloc(size, GFP_NOFS);
+	if (size <= LNET_SMALL_MD_SIZE) {
+		md = kmem_cache_alloc(lnet_small_mds_cachep,
+				      GFP_NOFS | __GFP_ZERO);
+		if (md) {
+			CDEBUG(D_MALLOC,
+			       "slab-alloced 'md' of size %u at %p.\n",
+			       size, md);
+		} else {
+			CDEBUG(D_MALLOC, "failed to allocate 'md' of size %u\n",
+			       size);
+		}
+	} else {
+		md = kzalloc(size, GFP_NOFS);
+	}
 	if (md) {
 		/* Set here in case of early free */
 		md->md_options = umd->options;

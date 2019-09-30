@@ -91,7 +91,7 @@ LNetMEAttach(unsigned int portal,
 	if (!mtable) /* can't match portal type */
 		return -EPERM;
 
-	me = kzalloc(sizeof(*me), GFP_NOFS);
+	me = kmem_cache_alloc(lnet_mes_cachep, GFP_NOFS | __GFP_ZERO);
 	if (!me)
 		return -ENOMEM;
 
