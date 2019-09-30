@@ -750,8 +750,8 @@ int osc_io_write_start(const struct lu_env *env,
 }
 EXPORT_SYMBOL(osc_io_write_start);
 
-static int osc_fsync_ost(const struct lu_env *env, struct osc_object *obj,
-			 struct cl_fsync_io *fio)
+int osc_fsync_ost(const struct lu_env *env, struct osc_object *obj,
+		  struct cl_fsync_io *fio)
 {
 	struct osc_io *oio = osc_env_io(env);
 	struct obdo *oa = &oio->oi_oa;
@@ -775,6 +775,7 @@ static int osc_fsync_ost(const struct lu_env *env, struct osc_object *obj,
 	rc = osc_sync_base(obj, oa, osc_async_upcall, cbargs, PTLRPCD_SET);
 	return rc;
 }
+EXPORT_SYMBOL(osc_fsync_ost);
 
 int osc_io_fsync_start(const struct lu_env *env,
 		       const struct cl_io_slice *slice)
@@ -815,7 +816,6 @@ int osc_io_fsync_start(const struct lu_env *env,
 
 	return result;
 }
-EXPORT_SYMBOL(osc_io_fsync_start);
 
 void osc_io_fsync_end(const struct lu_env *env,
 		      const struct cl_io_slice *slice)
