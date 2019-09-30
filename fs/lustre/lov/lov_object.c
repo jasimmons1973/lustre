@@ -453,8 +453,17 @@ static int lov_attr_get_dom(const struct lu_env *env, struct lov_object *lov,
 		return OST_LVB_GET_ERR(loi->loi_lvb.lvb_blocks);
 
 	cl_lvb2attr(attr, &loi->loi_lvb);
-	attr->cat_kms = attr->cat_size > loi->loi_kms ? attr->cat_size :
-							loi->loi_kms;
+
+	/* DoM component size can be bigger than stripe size after
+	 * client's setattr RPC, so do not count anything beyound
+	 * component end. Alternatively, check that limit on server
+	 * and do not allow size overflow there.
+	 */
+	if (attr->cat_size > lle->lle_extent.e_end)
+		attr->cat_size = lle->lle_extent.e_end;
+
+	attr->cat_kms = attr->cat_size;
+
 	dom->lo_dom_r0.lo_attr_valid = 1;
 	*lov_attr = attr;
 
@@ -530,7 +539,6 @@ static int lov_init_dom(const struct lu_env *env, struct lov_device *dev,
 	struct cl_device *mdcdev;
 	struct lov_oinfo *loi = NULL;
 	struct cl_object_conf *sconf = &lti->lti_stripe_conf;
-	struct inode *inode = conf->coc_inode;
 	u32 idx = 0;
 	int rc;
 
@@ -560,15 +568,6 @@ static int lov_init_dom(const struct lu_env *env, struct lov_device *dev,
 		return -ENOMEM;
 
 	fid_to_ostid(lu_object_fid(lov2lu(lov)), &loi->loi_oi);
-	/* Initialize lvb structure */
-	loi->loi_lvb.lvb_mtime = inode->i_mtime.tv_sec;
-	loi->loi_lvb.lvb_atime = inode->i_atime.tv_sec;
-	loi->loi_lvb.lvb_ctime = inode->i_ctime.tv_sec;
-	loi->loi_lvb.lvb_blocks = inode->i_blocks;
-	loi->loi_lvb.lvb_size = i_size_read(inode);
-	if (loi->loi_lvb.lvb_size > lsme->lsme_stripe_size)
-		loi->loi_lvb.lvb_size = lsme->lsme_stripe_size;
-	loi_kms_set(loi, loi->loi_lvb.lvb_size);
 
 	sconf->u.coc_oinfo = loi;
 again:
@@ -864,6 +863,12 @@ static int lov_attr_get_composite(const struct lu_env *env,
 
 		if (!lov_attr)
 			continue;
+
+		CDEBUG(D_INODE,
+		       "COMP ID #%i: s=%llu m=%llu a=%llu c=%llu b=%llu\n",
+		       index - 1, lov_attr->cat_size,
+		       lov_attr->cat_mtime, lov_attr->cat_atime,
+		       lov_attr->cat_ctime, lov_attr->cat_blocks);
 
 		/* merge results */
 		attr->cat_blocks += lov_attr->cat_blocks;
