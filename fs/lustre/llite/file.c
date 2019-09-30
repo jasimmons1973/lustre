@@ -1851,18 +1851,8 @@ gf_free:
 	return rc;
 }
 
-/*
- * Read the data_version for inode.
- *
- * This value is computed using stripe object version on OST.
- * Version is computed using server side locking.
- *
- * @flags:	if do sync on the OST side;
- *		0: no sync
- *		LL_DV_RD_FLUSH: flush dirty pages, LCK_PR on OSTs
- *		LL_DV_WR_FLUSH: drop all caching pages, LCK_PW on OSTs
- */
-int ll_data_version(struct inode *inode, u64 *data_version, int flags)
+static int
+ll_ioc_data_version(struct inode *inode, struct ioc_data_version *ioc)
 {
 	struct cl_object *obj = ll_i2info(inode)->lli_clob;
 	struct lu_env *env;
@@ -1870,11 +1860,12 @@ int ll_data_version(struct inode *inode, u64 *data_version, int flags)
 	u16 refcheck;
 	int result;
 
+	ioc->idv_version = 0;
+	ioc->idv_layout_version = UINT_MAX;
+
 	/* If no file object initialized, we consider its version is 0. */
-	if (!obj) {
-		*data_version = 0;
+	if (!obj)
 		return 0;
-	}
 
 	env = cl_env_get(&refcheck);
 	if (IS_ERR(env))
@@ -1883,7 +1874,8 @@ int ll_data_version(struct inode *inode, u64 *data_version, int flags)
 	io = vvp_env_thread_io(env);
 	io->ci_obj = obj;
 	io->u.ci_data_version.dv_data_version = 0;
-	io->u.ci_data_version.dv_flags = flags;
+	io->u.ci_data_version.dv_layout_version = UINT_MAX;
+	io->u.ci_data_version.dv_flags = ioc->idv_flags;
 
 restart:
 	if (!cl_io_init(env, io, CIT_DATA_VERSION, io->ci_obj))
@@ -1891,7 +1883,8 @@ restart:
 	else
 		result = io->ci_result;
 
-	*data_version = io->u.ci_data_version.dv_data_version;
+	ioc->idv_version = io->u.ci_data_version.dv_data_version;
+	ioc->idv_layout_version = io->u.ci_data_version.dv_layout_version;
 
 	cl_io_fini(env, io);
 
@@ -1901,6 +1894,29 @@ restart:
 	cl_env_put(env, &refcheck);
 
 	return result;
+}
+
+/*
+ * Read the data_version for inode.
+ *
+ * This value is computed using stripe object version on OST.
+ * Version is computed using server side locking.
+ *
+ * @param flags if do sync on the OST side;
+ *		0: no sync
+ *		LL_DV_RD_FLUSH: flush dirty pages, LCK_PR on OSTs
+ *		LL_DV_WR_FLUSH: drop all caching pages, LCK_PW on OSTs
+ */
+int ll_data_version(struct inode *inode, u64 *data_version, int flags)
+{
+	struct ioc_data_version ioc = { .idv_flags = flags };
+	int rc;
+
+	rc = ll_ioc_data_version(inode, &ioc);
+	if (!rc)
+		*data_version = ioc.idv_version;
+
+	return rc;
 }
 
 /*
@@ -2677,7 +2693,7 @@ out:
 			return -EFAULT;
 
 		idv.idv_flags &= LL_DV_RD_FLUSH | LL_DV_WR_FLUSH;
-		rc = ll_data_version(inode, &idv.idv_version, idv.idv_flags);
+		rc = ll_ioc_data_version(inode, &idv);
 		if (rc == 0 && copy_to_user((char __user *)arg, &idv,
 					    sizeof(idv)))
 			return -EFAULT;
