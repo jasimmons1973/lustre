@@ -143,7 +143,7 @@ extern struct req_format RQF_MDS_GETATTR;
  */
 extern struct req_format RQF_MDS_GETATTR_NAME;
 extern struct req_format RQF_MDS_CLOSE;
-extern struct req_format RQF_MDS_INTENT_CLOSE;
+extern struct req_format RQF_MDS_CLOSE_INTENT;
 extern struct req_format RQF_MDS_CONNECT;
 extern struct req_format RQF_MDS_DISCONNECT;
 extern struct req_format RQF_MDS_GET_INFO;
@@ -210,7 +210,7 @@ extern struct req_format RQF_LDLM_CALLBACK;
 extern struct req_format RQF_LDLM_CP_CALLBACK;
 extern struct req_format RQF_LDLM_BL_CALLBACK;
 extern struct req_format RQF_LDLM_GL_CALLBACK;
-extern struct req_format RQF_LDLM_GL_DESC_CALLBACK;
+extern struct req_format RQF_LDLM_GL_CALLBACK_DESC;
 /* LOG req_format */
 extern struct req_format RQF_LOG_CANCEL;
 extern struct req_format RQF_LLOG_ORIGIN_HANDLE_CREATE;
