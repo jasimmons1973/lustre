@@ -148,6 +148,11 @@ static int ll_close_inode_openhandle(struct inode *inode,
 	ll_prepare_close(inode, op_data, och);
 	switch (bias) {
 	case MDS_CLOSE_LAYOUT_MERGE:
+		/* merge blocks from the victim inode */
+		op_data->op_attr_blocks += ((struct inode *)data)->i_blocks;
+		op_data->op_attr.ia_valid |= ATTR_SIZE;
+		op_data->op_xvalid |= OP_XVALID_BLOCKS;
+		/* fallthrough */
 	case MDS_CLOSE_LAYOUT_SWAP:
 		LASSERT(data);
 		op_data->op_bias |= bias;
