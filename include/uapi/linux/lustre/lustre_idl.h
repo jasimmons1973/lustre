@@ -2541,6 +2541,7 @@ enum llog_flag {
 	LLOG_F_EXT_X_UIDGID	= 0x40,
 	LLOG_F_EXT_X_NID	= 0x80,
 	LLOG_F_EXT_X_OMODE	= 0x100,
+	LLOG_F_EXT_X_XATTR	= 0x200,
 
 	/*
 	 * Note: Flags covered by LLOG_F_EXT_MASK will be inherited from
@@ -2550,7 +2551,7 @@ enum llog_flag {
 	 */
 	LLOG_F_EXT_MASK = LLOG_F_EXT_JOBID | LLOG_F_EXT_EXTRA_FLAGS |
 			  LLOG_F_EXT_X_UIDGID | LLOG_F_EXT_X_NID |
-			  LLOG_F_EXT_X_OMODE,
+			  LLOG_F_EXT_X_OMODE | LLOG_F_EXT_X_XATTR,
 };
 
 /* On-disk header structure of each log object, stored in little endian order */
