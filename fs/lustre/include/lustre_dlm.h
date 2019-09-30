@@ -1206,6 +1206,35 @@ void ldlm_namespace_put(struct ldlm_namespace *ns);
 void ldlm_debugfs_setup(void);
 void ldlm_debugfs_cleanup(void);
 
+static inline void ldlm_svc_get_eopc(const struct ldlm_request *dlm_req,
+				      struct lprocfs_stats *srv_stats)
+{
+	int lock_type = 0, op = 0;
+
+	lock_type = dlm_req->lock_desc.l_resource.lr_type;
+
+	switch (lock_type) {
+	case LDLM_PLAIN:
+		op = PTLRPC_LAST_CNTR + LDLM_PLAIN_ENQUEUE;
+		break;
+	case LDLM_EXTENT:
+		op = PTLRPC_LAST_CNTR + LDLM_EXTENT_ENQUEUE;
+		break;
+	case LDLM_FLOCK:
+		op = PTLRPC_LAST_CNTR + LDLM_FLOCK_ENQUEUE;
+		break;
+	case LDLM_IBITS:
+		op = PTLRPC_LAST_CNTR + LDLM_IBITS_ENQUEUE;
+		break;
+	default:
+		op = 0;
+		break;
+	}
+
+	if (op != 0)
+		lprocfs_counter_incr(srv_stats, op);
+}
+
 /* resource.c - internal */
 struct ldlm_resource *ldlm_resource_get(struct ldlm_namespace *ns,
 					struct ldlm_resource *parent,
