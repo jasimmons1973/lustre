@@ -52,14 +52,18 @@
 /* Format: [0x64BIT_INT - 0x64BIT_INT] + 32 bytes just in case */
 #define MAX_FID_RANGE_STRLEN (32 + 2 * 2 * sizeof(u64))
 /*
- * Note: this function is only used for testing, it is no safe for production
- * use.
+ * Reduce the SEQ range allocated to a node to a strict subset of the range
+ * currently-allocated SEQ range.  If the specified range is "clear", then
+ * drop all allocated sequences and request a new one from the master.
+ *
+ * Note: this function should only be used for testing, it is not necessarily
+ * safe for production use.
  */
 static int
 ldebugfs_fid_write_common(const char __user *buffer, size_t count,
 			  struct lu_seq_range *range)
 {
-	struct lu_seq_range tmp;
+	struct lu_seq_range tmp = { 0, };
 	int rc;
 	char kernbuf[MAX_FID_RANGE_STRLEN];
 
@@ -82,8 +86,6 @@ ldebugfs_fid_write_common(const char __user *buffer, size_t count,
 	rc = sscanf(kernbuf, "[%llx - %llx]\n",
 		    (unsigned long long *)&tmp.lsr_start,
 		    (unsigned long long *)&tmp.lsr_end);
-	if (rc != 2)
-		return -EINVAL;
 	if (!lu_seq_range_is_sane(&tmp) || lu_seq_range_is_zero(&tmp) ||
 	    tmp.lsr_start < range->lsr_start || tmp.lsr_end > range->lsr_end)
 		return -EINVAL;
