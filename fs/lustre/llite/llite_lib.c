@@ -939,7 +939,7 @@ int ll_fill_super(struct super_block *sb)
 {
 	struct lustre_profile *lprof = NULL;
 	struct lustre_sb_info *lsi = s2lsi(sb);
-	struct ll_sb_info *sbi;
+	struct ll_sb_info *sbi = NULL;
 	char *dt = NULL, *md = NULL;
 	char *profilenm = get_profile_name(sb);
 	struct config_llog_instance *cfg;
@@ -950,21 +950,20 @@ int ll_fill_super(struct super_block *sb)
 
 	CDEBUG(D_VFSTRACE, "VFS Op: sb %p\n", sb);
 
+	try_module_get(THIS_MODULE);
+
 	cfg = kzalloc(sizeof(*cfg), GFP_NOFS);
 	if (!cfg) {
-		ll_common_put_super(sb);
-		return -ENOMEM;
+		err = -ENOMEM;
+		goto out_free;
 	}
-	try_module_get(THIS_MODULE);
 
 	/* client additional sb info */
 	sbi = ll_init_sbi();
 	lsi->lsi_llsbi = sbi;
 	if (!sbi) {
-		module_put(THIS_MODULE);
-		kfree(cfg);
-		ll_common_put_super(sb);
-		return -ENOMEM;
+		err = -ENOMEM;
+		goto out_free;
 	}
 
 	err = ll_options(lsi->lsi_lmd->lmd_opts, &sbi->ll_flags);
@@ -1048,12 +1047,12 @@ out_free:
 	kfree(dt);
 	if (lprof)
 		class_put_profile(lprof);
+	kfree(cfg);
 	if (err)
 		ll_put_super(sb);
 	else if (sbi->ll_flags & LL_SBI_VERBOSE)
 		LCONSOLE_WARN("Mounted %s\n", profilenm);
 
-	kfree(cfg);
 	return err;
 } /* ll_fill_super */
 
@@ -1072,6 +1071,9 @@ void ll_put_super(struct super_block *sb)
 	char *profilenm = get_profile_name(sb);
 	int next, force = 1, rc = 0;
 	long ccc_count;
+
+	if (!sbi)
+		goto out_no_sbi;
 
 	CDEBUG(D_VFSTRACE, "VFS Op: sb %p - %s\n", sb, profilenm);
 
@@ -1125,6 +1127,7 @@ void ll_put_super(struct super_block *sb)
 	ll_free_sbi(sb);
 	lsi->lsi_llsbi = NULL;
 
+out_no_sbi:
 	ll_common_put_super(sb);
 
 	cl_env_cache_purge(~0);
