@@ -440,7 +440,7 @@ static int mdc_getxattr(struct obd_export *exp, const struct lu_fid *fid,
 				req);
 }
 
-#ifdef CONFIG_FS_POSIX_ACL
+#ifdef CONFIG_LUSTRE_FS_POSIX_ACL
 static int mdc_unpack_acl(struct ptlrpc_request *req, struct lustre_md *md)
 {
 	struct req_capsule *pill = &req->rq_pill;
@@ -567,7 +567,7 @@ static int mdc_get_lustre_md(struct obd_export *exp,
 			rc = mdc_unpack_acl(req, md);
 			if (rc)
 				goto out;
-#ifdef CONFIG_FS_POSIX_ACL
+#ifdef CONFIG_LUSTRE_FS_POSIX_ACL
 		} else {
 			md->posix_acl = NULL;
 #endif
@@ -576,7 +576,7 @@ static int mdc_get_lustre_md(struct obd_export *exp,
 
 out:
 	if (rc) {
-#ifdef CONFIG_FS_POSIX_ACL
+#ifdef CONFIG_LUSTRE_FS_POSIX_ACL
 		posix_acl_release(md->posix_acl);
 #endif
 	}
