@@ -160,7 +160,7 @@ static void ldlm_handle_cp_callback(struct ptlrpc_request *req,
 	LDLM_DEBUG(lock, "client completion callback handler START");
 
 	if (OBD_FAIL_CHECK(OBD_FAIL_LDLM_CANCEL_BL_CB_RACE)) {
-		int to = HZ;
+		long to = HZ;
 
 		while (to > 0) {
 			schedule_timeout_interruptible(to);

@@ -110,16 +110,16 @@ static void ldlm_expired_completion_wait(struct ldlm_lock *lock, u32 conn_cnt)
 	struct obd_device *obd;
 
 	if (!lock->l_conn_export) {
-		static unsigned long next_dump, last_dump;
+		static time64_t next_dump, last_dump;
 
 		LDLM_ERROR(lock,
 			   "lock timed out (enqueued at %lld, %llds ago); not entering recovery in server code, just going back to sleep",
 			   (s64)lock->l_last_activity,
 			   (s64)(ktime_get_real_seconds() -
 				 lock->l_last_activity));
-		if (time_after(jiffies, next_dump)) {
+		if (ktime_get_seconds() > next_dump) {
 			last_dump = next_dump;
-			next_dump = jiffies + 300 * HZ;
+			next_dump = ktime_get_seconds() + 300;
 			ldlm_namespace_dump(D_DLMTRACE,
 					    ldlm_lock_to_ns(lock));
 			if (last_dump == 0)
@@ -150,9 +150,9 @@ static void ldlm_expired_completion_wait(struct ldlm_lock *lock, u32 conn_cnt)
 /* We use the same basis for both server side and client side functions
  * from a single node.
  */
-static unsigned int ldlm_cp_timeout(struct ldlm_lock *lock)
+static time64_t ldlm_cp_timeout(struct ldlm_lock *lock)
 {
-	unsigned int timeout;
+	time64_t timeout;
 
 	if (AT_OFF)
 		return obd_timeout;
@@ -163,7 +163,7 @@ static unsigned int ldlm_cp_timeout(struct ldlm_lock *lock)
 	 * doesn't respond reasonably, and then give us the lock.
 	 */
 	timeout = at_get(ldlm_lock_to_ns_at(lock));
-	return max(3 * timeout, ldlm_enqueue_min);
+	return max(3 * timeout, (time64_t) ldlm_enqueue_min);
 }
 
 /**
@@ -218,7 +218,7 @@ int ldlm_completion_ast(struct ldlm_lock *lock, u64 flags, void *data)
 	/* XXX ALLOCATE - 160 bytes */
 	struct obd_device *obd;
 	struct obd_import *imp = NULL;
-	u32 timeout;
+	time64_t timeout;
 	u32 conn_cnt = 0;
 	int rc = 0;
 

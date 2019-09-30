@@ -418,7 +418,7 @@ struct ldlm_namespace {
 	 * \see ldlm_namespace_dump. Increased by 10 seconds every time
 	 * it is called.
 	 */
-	unsigned long		ns_next_dump;
+	time64_t		ns_next_dump;
 
 	/**
 	 * LVB operations for this namespace.
@@ -754,7 +754,7 @@ struct ldlm_lock {
 	 * under this lock.
 	 * \see ost_rw_prolong_locks
 	 */
-	unsigned long			l_callback_timeout;
+	time64_t			l_callback_timeout;
 
 	/** Local PID of process which created this lock. */
 	u32				l_pid;

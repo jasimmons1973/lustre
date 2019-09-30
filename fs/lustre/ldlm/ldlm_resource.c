@@ -274,7 +274,6 @@ static ssize_t lru_max_age_store(struct kobject *kobj, struct attribute *attr,
 	int scale = NSEC_PER_MSEC;
 	unsigned long long tmp;
 	char *buf;
-	int err;
 
 	/* Did the user ask in seconds or milliseconds. Default is in ms */
 	buf = strstr(buffer, "ms");
@@ -287,8 +286,7 @@ static ssize_t lru_max_age_store(struct kobject *kobj, struct attribute *attr,
 	if (buf)
 		*buf = '\0';
 
-	err = kstrtoull(buffer, 10, &tmp);
-	if (err != 0)
+	if (kstrtoull(buffer, 10, &tmp))
 		return -EINVAL;
 
 	ns->ns_max_age = ktime_set(0, tmp * scale);
@@ -1283,14 +1281,14 @@ void ldlm_namespace_dump(int level, struct ldlm_namespace *ns)
 	CDEBUG(level, "--- Namespace: %s (rc: %d, side: client)\n",
 	       ldlm_ns_name(ns), atomic_read(&ns->ns_bref));
 
-	if (time_before(jiffies, ns->ns_next_dump))
+	if (ktime_get_seconds() < ns->ns_next_dump)
 		return;
 
 	cfs_hash_for_each_nolock(ns->ns_rs_hash,
 				 ldlm_res_hash_dump,
 				 (void *)(unsigned long)level, 0);
 	spin_lock(&ns->ns_lock);
-	ns->ns_next_dump = jiffies + 10 * HZ;
+	ns->ns_next_dump = ktime_get_seconds() + 10;
 	spin_unlock(&ns->ns_lock);
 }
 
