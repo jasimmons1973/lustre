@@ -104,9 +104,8 @@ static int osc_io_read_ahead(const struct lu_env *env,
  * or, if page is already submitted, changes osc flags through
  * osc_set_async_flags().
  */
-static int osc_io_submit(const struct lu_env *env,
-			 const struct cl_io_slice *ios,
-			 enum cl_req_type crt, struct cl_2queue *queue)
+int osc_io_submit(const struct lu_env *env, const struct cl_io_slice *ios,
+		  enum cl_req_type crt, struct cl_2queue *queue)
 {
 	struct cl_page *page;
 	struct cl_page *tmp;
@@ -212,6 +211,7 @@ static int osc_io_submit(const struct lu_env *env,
 	CDEBUG(D_INFO, "%d/%d %d\n", qin->pl_nr, qout->pl_nr, result);
 	return qout->pl_nr > 0 ? 0 : result;
 }
+EXPORT_SYMBOL(osc_io_submit);
 
 /**
  * This is called when a page is accessed within file in a way that creates
@@ -258,10 +258,10 @@ static void osc_page_touch_at(const struct lu_env *env,
 	cl_object_attr_unlock(obj);
 }
 
-static int osc_io_commit_async(const struct lu_env *env,
-			       const struct cl_io_slice *ios,
-			       struct cl_page_list *qin, int from, int to,
-			       cl_commit_cbt cb)
+int osc_io_commit_async(const struct lu_env *env,
+			const struct cl_io_slice *ios,
+			struct cl_page_list *qin, int from, int to,
+			cl_commit_cbt cb)
 {
 	struct cl_io *io = ios->cis_io;
 	struct osc_io *oio = cl2osc_io(env, ios);
@@ -331,9 +331,9 @@ static int osc_io_commit_async(const struct lu_env *env,
 	CDEBUG(D_INFO, "%d %d\n", qin->pl_nr, result);
 	return result;
 }
+EXPORT_SYMBOL(osc_io_commit_async);
 
-static int osc_io_iter_init(const struct lu_env *env,
-			    const struct cl_io_slice *ios)
+int osc_io_iter_init(const struct lu_env *env, const struct cl_io_slice *ios)
 {
 	struct osc_object *osc = cl2osc(ios->cis_obj);
 	struct obd_import *imp = osc_cli(osc)->cl_import;
@@ -351,9 +351,10 @@ static int osc_io_iter_init(const struct lu_env *env,
 
 	return rc;
 }
+EXPORT_SYMBOL(osc_io_iter_init);
 
-static int osc_io_write_iter_init(const struct lu_env *env,
-				  const struct cl_io_slice *ios)
+int osc_io_write_iter_init(const struct lu_env *env,
+			   const struct cl_io_slice *ios)
 {
 	struct cl_io *io = ios->cis_io;
 	struct osc_io *oio = osc_env_io(env);
@@ -371,9 +372,10 @@ static int osc_io_write_iter_init(const struct lu_env *env,
 
 	return osc_io_iter_init(env, ios);
 }
+EXPORT_SYMBOL(osc_io_write_iter_init);
 
-static void osc_io_iter_fini(const struct lu_env *env,
-			     const struct cl_io_slice *ios)
+void osc_io_iter_fini(const struct lu_env *env,
+		      const struct cl_io_slice *ios)
 {
 	struct osc_io *oio = osc_env_io(env);
 
@@ -386,9 +388,10 @@ static void osc_io_iter_fini(const struct lu_env *env,
 			wake_up_all(&osc->oo_io_waitq);
 	}
 }
+EXPORT_SYMBOL(osc_io_iter_fini);
 
-static void osc_io_write_iter_fini(const struct lu_env *env,
-				   const struct cl_io_slice *ios)
+void osc_io_write_iter_fini(const struct lu_env *env,
+			    const struct cl_io_slice *ios)
 {
 	struct osc_io *oio = osc_env_io(env);
 	struct osc_object *osc = cl2osc(ios->cis_obj);
@@ -401,9 +404,9 @@ static void osc_io_write_iter_fini(const struct lu_env *env,
 
 	osc_io_iter_fini(env, ios);
 }
+EXPORT_SYMBOL(osc_io_write_iter_fini);
 
-static int osc_io_fault_start(const struct lu_env *env,
-			      const struct cl_io_slice *ios)
+int osc_io_fault_start(const struct lu_env *env, const struct cl_io_slice *ios)
 {
 	struct cl_io *io;
 	struct cl_fault_io *fio;
@@ -422,6 +425,7 @@ static int osc_io_fault_start(const struct lu_env *env,
 				  fio->ft_index, fio->ft_nob);
 	return 0;
 }
+EXPORT_SYMBOL(osc_io_fault_start);
 
 static int osc_async_upcall(void *a, int rc)
 {
@@ -563,9 +567,8 @@ static int osc_io_setattr_start(const struct lu_env *env,
 		init_completion(&cbargs->opc_sync);
 
 		if (ia_avalid & ATTR_SIZE)
-			result = osc_punch_base(osc_export(cl2osc(obj)),
-						oa, osc_async_upcall,
-						cbargs, PTLRPCD_SET);
+			result = osc_punch_send(osc_export(cl2osc(obj)),
+						oa, osc_async_upcall, cbargs);
 		else
 			result = osc_setattr_async(osc_export(cl2osc(obj)),
 						   oa, osc_async_upcall,
@@ -575,8 +578,8 @@ static int osc_io_setattr_start(const struct lu_env *env,
 	return result;
 }
 
-static void osc_io_setattr_end(const struct lu_env *env,
-			       const struct cl_io_slice *slice)
+void osc_io_setattr_end(const struct lu_env *env,
+			const struct cl_io_slice *slice)
 {
 	struct cl_io *io = slice->cis_io;
 	struct osc_io *oio = cl2osc_io(env, slice);
@@ -608,6 +611,7 @@ static void osc_io_setattr_end(const struct lu_env *env,
 		oio->oi_trunc = NULL;
 	}
 }
+EXPORT_SYMBOL(osc_io_setattr_end);
 
 struct osc_data_version_args {
 	struct osc_io *dva_oio;
@@ -710,10 +714,10 @@ static void osc_io_data_version_end(const struct lu_env *env,
 	}
 }
 
-static int osc_io_read_start(const struct lu_env *env,
-			     const struct cl_io_slice *slice)
+int osc_io_read_start(const struct lu_env *env,
+		      const struct cl_io_slice *slice)
 {
-	struct cl_object *obj = slice->cis_obj;
+	struct cl_object *obj  = slice->cis_obj;
 	struct cl_attr *attr = &osc_env_info(env)->oti_attr;
 	int rc = 0;
 
@@ -725,11 +729,12 @@ static int osc_io_read_start(const struct lu_env *env,
 	}
 	return rc;
 }
+EXPORT_SYMBOL(osc_io_read_start);
 
-static int osc_io_write_start(const struct lu_env *env,
-			      const struct cl_io_slice *slice)
+int osc_io_write_start(const struct lu_env *env,
+		       const struct cl_io_slice *slice)
 {
-	struct cl_object *obj = slice->cis_obj;
+	struct cl_object *obj   = slice->cis_obj;
 	struct cl_attr *attr = &osc_env_info(env)->oti_attr;
 	int rc = 0;
 
@@ -742,6 +747,7 @@ static int osc_io_write_start(const struct lu_env *env,
 
 	return rc;
 }
+EXPORT_SYMBOL(osc_io_write_start);
 
 static int osc_fsync_ost(const struct lu_env *env, struct osc_object *obj,
 			 struct cl_fsync_io *fio)
@@ -769,8 +775,8 @@ static int osc_fsync_ost(const struct lu_env *env, struct osc_object *obj,
 	return rc;
 }
 
-static int osc_io_fsync_start(const struct lu_env *env,
-			      const struct cl_io_slice *slice)
+int osc_io_fsync_start(const struct lu_env *env,
+		       const struct cl_io_slice *slice)
 {
 	struct cl_io *io = slice->cis_io;
 	struct cl_fsync_io *fio = &io->u.ci_fsync;
@@ -808,9 +814,10 @@ static int osc_io_fsync_start(const struct lu_env *env,
 
 	return result;
 }
+EXPORT_SYMBOL(osc_io_fsync_start);
 
-static void osc_io_fsync_end(const struct lu_env *env,
-			     const struct cl_io_slice *slice)
+void osc_io_fsync_end(const struct lu_env *env,
+		      const struct cl_io_slice *slice)
 {
 	struct cl_fsync_io *fio = &slice->cis_io->u.ci_fsync;
 	struct cl_object *obj = slice->cis_obj;
@@ -830,6 +837,7 @@ static void osc_io_fsync_end(const struct lu_env *env,
 	}
 	slice->cis_io->ci_result = result;
 }
+EXPORT_SYMBOL(osc_io_fsync_end);
 
 static int osc_io_ladvise_start(const struct lu_env *env,
 				const struct cl_io_slice *slice)
@@ -905,8 +913,7 @@ static void osc_io_ladvise_end(const struct lu_env *env,
 	slice->cis_io->ci_result = result;
 }
 
-static void osc_io_end(const struct lu_env *env,
-		       const struct cl_io_slice *slice)
+void osc_io_end(const struct lu_env *env, const struct cl_io_slice *slice)
 {
 	struct osc_io *oio = cl2osc_io(env, slice);
 
@@ -915,6 +922,7 @@ static void osc_io_end(const struct lu_env *env,
 		oio->oi_active = NULL;
 	}
 }
+EXPORT_SYMBOL(osc_io_end);
 
 static const struct cl_io_operations osc_io_ops = {
 	.op = {

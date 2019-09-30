@@ -276,6 +276,7 @@ int osc_page_init(const struct lu_env *env, struct cl_object *obj,
 
 	return result;
 }
+EXPORT_SYMBOL(osc_page_init);
 
 /**
  * Helper function called by osc_io_submit() for every page in an immediate

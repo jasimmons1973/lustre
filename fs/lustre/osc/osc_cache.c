@@ -2309,6 +2309,7 @@ int osc_prep_async_page(struct osc_object *osc, struct osc_page *ops,
 
 	return 0;
 }
+EXPORT_SYMBOL(osc_prep_async_page);
 
 int osc_queue_async_io(const struct lu_env *env, struct cl_io *io,
 		       struct osc_page *ops)
@@ -2798,6 +2799,7 @@ again:
 
 	return result;
 }
+EXPORT_SYMBOL(osc_cache_truncate_start);
 
 /**
  * Called after osc_io_setattr_end to add oio->oi_trunc back to cache.
@@ -2883,6 +2885,7 @@ again:
 	OSC_IO_DEBUG(obj, "sync file range.\n");
 	return result;
 }
+EXPORT_SYMBOL(osc_cache_wait_range);
 
 /**
  * Called to write out a range of osc object.
@@ -3004,6 +3007,7 @@ int osc_cache_writeback_range(const struct lu_env *env, struct osc_object *obj,
 	OSC_IO_DEBUG(obj, "pageout [%lu, %lu], %d.\n", start, end, result);
 	return result;
 }
+EXPORT_SYMBOL(osc_cache_writeback_range);
 
 /**
  * Returns a list of pages by a given [start, end] of @obj.

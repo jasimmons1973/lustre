@@ -65,9 +65,6 @@ int osc_match_base(struct obd_export *exp, struct ldlm_res_id *res_id,
 int osc_setattr_async(struct obd_export *exp, struct obdo *oa,
 		      obd_enqueue_update_f upcall, void *cookie,
 		      struct ptlrpc_request_set *rqset);
-int osc_punch_base(struct obd_export *exp, struct obdo *oa,
-		   obd_enqueue_update_f upcall, void *cookie,
-		   struct ptlrpc_request_set *rqset);
 int osc_sync_base(struct osc_object *exp, struct obdo *oa,
 		  obd_enqueue_update_f upcall, void *cookie,
 		  struct ptlrpc_request_set *rqset);
@@ -169,4 +166,14 @@ unsigned long osc_cache_shrink_count(struct shrinker *sk,
 unsigned long osc_cache_shrink_scan(struct shrinker *sk,
 				    struct shrink_control *sc);
 
+static inline void osc_set_io_portal(struct ptlrpc_request *req)
+{
+	struct obd_import *imp = req->rq_import;
+
+	/* Distinguish OSC from MDC here to use OST or MDS portal */
+	if (OCD_HAS_FLAG(&imp->imp_connect_data, IBITS))
+		req->rq_request_portal = MDS_IO_PORTAL;
+	else
+		req->rq_request_portal = OST_IO_PORTAL;
+}
 #endif /* OSC_INTERNAL_H */

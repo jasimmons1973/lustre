@@ -410,30 +410,32 @@ out:
 	return rc;
 }
 
-int osc_punch_base(struct obd_export *exp, struct obdo *oa,
-		   obd_enqueue_update_f upcall, void *cookie,
-		   struct ptlrpc_request_set *rqset)
+int osc_punch_send(struct obd_export *exp, struct obdo *oa,
+		   obd_enqueue_update_f upcall, void *cookie)
 {
 	struct ptlrpc_request *req;
 	struct osc_setattr_args *sa;
+	struct obd_import *imp = class_exp2cliimp(exp);
 	struct ost_body *body;
 	int rc;
 
-	req = ptlrpc_request_alloc(class_exp2cliimp(exp), &RQF_OST_PUNCH);
+	req = ptlrpc_request_alloc(imp, &RQF_OST_PUNCH);
 	if (!req)
 		return -ENOMEM;
 
 	rc = ptlrpc_request_pack(req, LUSTRE_OST_VERSION, OST_PUNCH);
-	if (rc) {
+	if (rc < 0) {
 		ptlrpc_request_free(req);
 		return rc;
 	}
-	req->rq_request_portal = OST_IO_PORTAL; /* bug 7198 */
+
+	osc_set_io_portal(req);
+
 	ptlrpc_at_set_req_timeout(req);
 
 	body = req_capsule_client_get(&req->rq_pill, &RMF_OST_BODY);
-	LASSERT(body);
-	lustre_set_wire_obdo(&req->rq_import->imp_connect_data, &body->oa,
+
+	lustre_set_wire_obdo(&imp->imp_connect_data, &body->oa,
 			     oa);
 
 	ptlrpc_request_set_replen(req);
@@ -444,10 +446,12 @@ int osc_punch_base(struct obd_export *exp, struct obdo *oa,
 	sa->sa_oa = oa;
 	sa->sa_upcall = upcall;
 	sa->sa_cookie = cookie;
-	ptlrpc_set_add_req(rqset, req);
+
+	ptlrpcd_add_req(req);
 
 	return 0;
 }
+EXPORT_SYMBOL(osc_punch_send);
 
 static int osc_sync_interpret(const struct lu_env *env,
 			      struct ptlrpc_request *req,
@@ -1157,7 +1161,8 @@ static int osc_brw_prep_request(int cmd, struct client_obd *cli,
 		ptlrpc_request_free(req);
 		return rc;
 	}
-	req->rq_request_portal = OST_IO_PORTAL; /* bug 7198 */
+	osc_set_io_portal(req);
+
 	ptlrpc_at_set_req_timeout(req);
 	/* ask ptlrpc not to resend on EINPROGRESS since BRWs have their own
 	 * retry logic
