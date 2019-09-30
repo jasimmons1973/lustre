@@ -780,6 +780,8 @@ struct md_op_data {
 	u32			op_default_stripe_offset;
 
 	u32			op_projid;
+
+	u16			op_mirror_id;
 };
 
 struct md_callback {

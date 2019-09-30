@@ -50,6 +50,11 @@
 #include <cl_object.h>
 #include "llite_internal.h"
 
+struct split_param {
+	struct inode	*sp_inode;
+	u16		sp_mirror_id;
+};
+
 static int
 ll_put_grouplock(struct inode *inode, struct file *file, unsigned long arg);
 
@@ -153,13 +158,22 @@ static int ll_close_inode_openhandle(struct inode *inode,
 		op_data->op_attr.ia_valid |= ATTR_SIZE;
 		op_data->op_xvalid |= OP_XVALID_BLOCKS;
 		/* fallthrough */
-	case MDS_CLOSE_LAYOUT_SWAP:
+	case MDS_CLOSE_LAYOUT_SPLIT:
+	case MDS_CLOSE_LAYOUT_SWAP: {
+		struct split_param *sp = data;
+
 		LASSERT(data);
 		op_data->op_bias |= bias;
 		op_data->op_data_version = 0;
 		op_data->op_lease_handle = och->och_lease_handle;
-		op_data->op_fid2 = *ll_inode2fid(data);
+		if (bias == MDS_CLOSE_LAYOUT_SPLIT) {
+			op_data->op_fid2 = *ll_inode2fid(sp->sp_inode);
+			op_data->op_mirror_id = sp->sp_mirror_id;
+		} else {
+			op_data->op_fid2 = *ll_inode2fid(data);
+		}
 		break;
+	}
 
 	case MDS_CLOSE_RESYNC_DONE: {
 		struct ll_ioc_lease *ioc = data;
@@ -2659,6 +2673,7 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 	struct ll_file_data *fd = LUSTRE_FPRIVATE(file);
 	struct ll_inode_info *lli = ll_i2info(inode);
 	struct obd_client_handle *och = NULL;
+	struct split_param sp;
 	bool lease_broken;
 	fmode_t fmode = 0;
 	enum mds_op_bias bias = 0;
@@ -2732,6 +2747,40 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 		bias = MDS_CLOSE_LAYOUT_MERGE;
 		break;
 	}
+	case LL_LEASE_LAYOUT_SPLIT: {
+		int fdv;
+		int mirror_id;
+
+		if (ioc->lil_count != 2) {
+			rc = -EINVAL;
+			goto out;
+		}
+
+		arg += sizeof(*ioc);
+		if (copy_from_user(&fdv, (void __user *)arg, sizeof(u32))) {
+			rc = -EFAULT;
+			goto out;
+		}
+
+		arg += sizeof(u32);
+		if (copy_from_user(&mirror_id, (void __user *)arg,
+				   sizeof(u32))) {
+			rc = -EFAULT;
+			goto out;
+		}
+
+		layout_file = fget(fdv);
+		if (!layout_file) {
+			rc = -EBADF;
+			goto out;
+		}
+
+		sp.sp_inode = file_inode(layout_file);
+		sp.sp_mirror_id = (u16)mirror_id;
+		data = &sp;
+		bias = MDS_CLOSE_LAYOUT_SPLIT;
+		break;
+	}
 	default:
 		/* without close intent */
 		break;
@@ -2754,6 +2803,7 @@ out:
 		kfree(data);
 		break;
 	case LL_LEASE_LAYOUT_MERGE:
+	case LL_LEASE_LAYOUT_SPLIT:
 		if (layout_file)
 			fput(layout_file);
 		break;

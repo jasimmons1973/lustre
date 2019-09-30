@@ -54,6 +54,11 @@ struct mds_group_info {
 	int			group;
 };
 
+struct md_rejig_data {
+	struct md_object	*mrd_obj;
+	u16			mrd_mirror_id;
+};
+
 #define MDD_OBD_NAME     "mdd_obd"
 #define MDD_OBD_UUID     "mdd_obd_uuid"
 
