@@ -302,6 +302,8 @@ static int lov_io_mirror_init(struct lov_io *lio, struct lov_object *obj,
 static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 			     struct cl_io *io)
 {
+	struct lu_extent ext;
+	int index;
 	int result = 0;
 
 	io->ci_result = 0;
@@ -382,6 +384,35 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 		LBUG();
 	}
 	result = lov_io_mirror_init(lio, obj, io);
+	if (result)
+		return result;
+
+	/* check if it needs to instantiate layout */
+	if (!(io->ci_type == CIT_WRITE || cl_io_is_mkwrite(io) ||
+	      (cl_io_is_trunc(io) && io->u.ci_setattr.sa_attr.lvb_size > 0)))
+		return 0;
+
+	ext.e_start = lio->lis_pos;
+	ext.e_end = lio->lis_endpos;
+
+	/* for truncate, it only needs to instantiate the components
+	 * before the truncated size.
+	 */
+	if (cl_io_is_trunc(io)) {
+		ext.e_start = 0;
+		ext.e_end = io->u.ci_setattr.sa_attr.lvb_size;
+	}
+
+	index = 0;
+	lov_foreach_io_layout(index, lio, &ext) {
+		if (!lsm_entry_inited(obj->lo_lsm, index)) {
+			io->ci_need_write_intent = 1;
+			io->ci_write_intent = ext;
+			result = 1;
+			break;
+		}
+	}
+
 	return result;
 }
 
@@ -499,7 +530,6 @@ static int lov_io_iter_init(const struct lu_env *env,
 {
 	struct lov_io *lio = cl2lov_io(env, ios);
 	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
-	struct cl_io *io = ios->cis_io;
 	struct lov_io_sub *sub;
 	struct lu_extent ext;
 	int rc = 0;
@@ -517,15 +547,6 @@ static int lov_io_iter_init(const struct lu_env *env,
 		CDEBUG(D_VFSTRACE, "component[%d] flags %#x\n",
 		       index, lsm->lsm_entries[index]->lsme_flags);
 		if (!lsm_entry_inited(lsm, index)) {
-			/* truncate IO will trigger write intent as well, and
-			 * it's handled in lov_io_setattr_iter_init()
-			 */
-			if (io->ci_type == CIT_WRITE || cl_io_is_mkwrite(io)) {
-				io->ci_need_write_intent = 1;
-				rc = -ENODATA;
-				break;
-			}
-
 			/* Read from uninitialized components should return
 			 * zero filled pages.
 			 */
@@ -641,17 +662,12 @@ static int lov_io_setattr_iter_init(const struct lu_env *env,
 {
 	struct lov_io *lio = cl2lov_io(env, ios);
 	struct cl_io *io = ios->cis_io;
-	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
 	int index;
 
 	if (cl_io_is_trunc(io) && lio->lis_pos > 0) {
 		index = lov_io_layout_at(lio, lio->lis_pos - 1);
 		/* no entry found for such offset */
 		if (index < 0) {
-			io->ci_result = -ENODATA;
-			return io->ci_result;
-		} else if (!lsm_entry_inited(lsm, index)) {
-			io->ci_need_write_intent = 1;
 			io->ci_result = -ENODATA;
 			return io->ci_result;
 		}
