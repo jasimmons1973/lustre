@@ -383,9 +383,11 @@ out:
 
 /**
  * Prepare partially written-to page for a write.
+ * @pg is owned when passed in and disowned when it returns non-zero result to
+ * the caller.
  */
 static int ll_prepare_partial_page(const struct lu_env *env, struct cl_io *io,
-				   struct cl_page *pg)
+				   struct cl_page *pg, struct file *file)
 {
 	struct cl_attr *attr = vvp_env_thread_attr(env);
 	struct cl_object *obj = io->ci_obj;
@@ -396,23 +398,48 @@ static int ll_prepare_partial_page(const struct lu_env *env, struct cl_io *io,
 	cl_object_attr_lock(obj);
 	result = cl_object_attr_get(env, obj, attr);
 	cl_object_attr_unlock(obj);
-	if (result == 0) {
-		/*
-		 * If are writing to a new page, no need to read old data.
-		 * The extent locking will have updated the KMS, and for our
-		 * purposes here we can treat it like i_size.
-		 */
-		if (attr->cat_kms <= offset) {
-			char *kaddr = kmap_atomic(vpg->vpg_page);
-
-			memset(kaddr, 0, cl_page_size(obj));
-			kunmap_atomic(kaddr);
-		} else if (vpg->vpg_defer_uptodate) {
-			vpg->vpg_ra_used = 1;
-		} else {
-			result = ll_page_sync_io(env, io, pg, CRT_READ);
-		}
+	if (result) {
+		cl_page_disown(env, io, pg);
+		goto out;
 	}
+
+	/*
+	 * If are writing to a new page, no need to read old data.
+	 * The extent locking will have updated the KMS, and for our
+	 * purposes here we can treat it like i_size.
+	 */
+	if (attr->cat_kms <= offset) {
+		char *kaddr = kmap_atomic(vpg->vpg_page);
+
+		memset(kaddr, 0, cl_page_size(obj));
+		kunmap_atomic(kaddr);
+		result = 0;
+		goto out;
+	}
+
+	if (vpg->vpg_defer_uptodate) {
+		vpg->vpg_ra_used = 1;
+		result = 0;
+		goto out;
+	}
+
+	result = ll_io_read_page(env, io, pg, file);
+	if (result)
+		goto out;
+
+	/* ll_io_read_page() disowns the page */
+	result = cl_page_own(env, io, pg);
+	if (!result) {
+		if (!PageUptodate(cl_page_vmpage(pg))) {
+			cl_page_disown(env, io, pg);
+			result = -EIO;
+		}
+	} else if (result == -ENOENT) {
+		/* page was truncated */
+		result = -EAGAIN;
+	}
+
+out:
 	return result;
 }
 
@@ -452,7 +479,7 @@ static int ll_write_begin(struct file *file, struct address_space *mapping,
 		result = -EBUSY;
 		goto out;
 	}
-
+again:
 	/* To avoid deadlock, try to lock page first. */
 	vmpage = grab_cache_page_nowait(mapping, index);
 	if (unlikely(!vmpage || PageDirty(vmpage) || PageWriteback(vmpage))) {
@@ -509,13 +536,19 @@ static int ll_write_begin(struct file *file, struct address_space *mapping,
 			 * is a lockless IO. In that case, it's not necessary
 			 * to read the data.
 			 */
-			result = ll_prepare_partial_page(env, io, page);
-			if (result == 0)
-				SetPageUptodate(vmpage);
+			result = ll_prepare_partial_page(env, io, page, file);
+			if (result) {
+				/* vmpage should have been unlocked */
+				put_page(vmpage);
+				vmpage = NULL;
+
+				if (result == -EAGAIN)
+					goto again;
+
+				goto out;
+			}
 		}
 	}
-	if (result < 0)
-		cl_page_unassume(env, io, page);
 out:
 	if (result < 0) {
 		if (vmpage) {

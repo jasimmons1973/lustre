@@ -1094,7 +1094,7 @@ void ll_cl_remove(struct file *file, const struct lu_env *env)
 	write_unlock(&fd->fd_lock);
 }
 
-static int ll_io_read_page(const struct lu_env *env, struct cl_io *io,
+int ll_io_read_page(const struct lu_env *env, struct cl_io *io,
 			   struct cl_page *page, struct file *file)
 {
 	struct inode *inode = vvp_object_inode(page->cp_obj);
@@ -1153,6 +1153,7 @@ static int ll_io_read_page(const struct lu_env *env, struct cl_io *io,
 		if (!rc)
 			task_io_account_read(PAGE_SIZE * count);
 	}
+
 	if (anchor && !cl_page_is_owned(page, io)) { /* have sent */
 		rc = cl_sync_io_wait(env, anchor, 0);
 
@@ -1174,10 +1175,9 @@ static int ll_io_read_page(const struct lu_env *env, struct cl_io *io,
 	/* TODO: discard all pages until page reinit route is implemented */
 	cl_page_list_discard(env, io, &queue->c2_qin);
 
-	/*
-	 * Unlock unsent pages in case of error.
-	 */
+	/* Unlock unsent read pages in case of error. */
 	cl_page_list_disown(env, io, &queue->c2_qin);
+
 	cl_2queue_fini(env, queue);
 
 	return rc;
@@ -1270,6 +1270,7 @@ int ll_readpage(struct file *file, struct page *vmpage)
 		LASSERT(page->cp_type == CPT_CACHEABLE);
 		if (likely(!PageUptodate(vmpage))) {
 			cl_page_assume(env, io, page);
+
 			result = ll_io_read_page(env, io, page, file);
 		} else {
 			/* Page from a non-object file. */
@@ -1281,30 +1282,5 @@ int ll_readpage(struct file *file, struct page *vmpage)
 		unlock_page(vmpage);
 		result = PTR_ERR(page);
 	}
-	return result;
-}
-
-int ll_page_sync_io(const struct lu_env *env, struct cl_io *io,
-		    struct cl_page *page, enum cl_req_type crt)
-{
-	struct cl_2queue  *queue;
-	int result;
-
-	LASSERT(io->ci_type == CIT_READ || io->ci_type == CIT_WRITE);
-
-	queue = &io->ci_queue;
-	cl_2queue_init_page(queue, page);
-
-	result = cl_io_submit_sync(env, io, crt, queue, 0);
-	LASSERT(cl_page_is_owned(page, io));
-
-	if (crt == CRT_READ)
-		/*
-		 * in CRT_WRITE case page is left locked even in case of
-		 * error.
-		 */
-		cl_page_list_disown(env, io, &queue->c2_qin);
-	cl_2queue_fini(env, queue);
-
 	return result;
 }
