@@ -38,6 +38,7 @@
 #include <linux/errno.h>
 #include <linux/unistd.h>
 #include <linux/uaccess.h>
+#include <linux/delay.h>
 
 #include <linux/fs.h>
 #include <linux/pagemap.h>
@@ -153,7 +154,7 @@ static int __ll_page_mkwrite(struct vm_area_struct *vma, struct page *vmpage,
 	int result;
 	u16 refcheck;
 	sigset_t old, new;
-	struct inode *inode;
+	struct inode *inode = NULL;
 	struct ll_inode_info *lli;
 
 	env = cl_env_get(&refcheck);
@@ -228,6 +229,17 @@ out:
 	cl_env_put(env, &refcheck);
 	CDEBUG(D_MMAP, "%s mkwrite with %d\n", current->comm, result);
 	LASSERT(ergo(result == 0, PageLocked(vmpage)));
+
+	/* if page has been unmapped, presumably due to lock reclaim for
+	 * concurrent usage, add some delay before retrying to prevent
+	 * entering live-lock situation with competitors
+	 */
+	if (result == -ENODATA && inode) {
+		CDEBUG(D_MMAP,
+		       "delaying new page-fault for inode %p to prevent live-lock\n",
+		       inode);
+		msleep(20);
+	}
 
 	return result;
 }
