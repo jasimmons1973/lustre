@@ -2904,30 +2904,25 @@ static int lmv_intent_getattr_async(struct obd_export *exp,
 	struct md_op_data *op_data = &minfo->mi_data;
 	struct obd_device *obd = exp->exp_obd;
 	struct lmv_obd *lmv = &obd->u.lmv;
-	struct lmv_tgt_desc *ptgt = NULL;
-	struct lmv_tgt_desc *ctgt = NULL;
+	struct lmv_tgt_desc *tgt = NULL;
 
 	if (!fid_is_sane(&op_data->op_fid2))
 		return -EINVAL;
 
-	ptgt = lmv_locate_mds(lmv, op_data, &op_data->op_fid1);
-	if (IS_ERR(ptgt))
-		return PTR_ERR(ptgt);
-
-	ctgt = lmv_locate_mds(lmv, op_data, &op_data->op_fid2);
-	if (IS_ERR(ctgt))
-		return PTR_ERR(ctgt);
+	tgt = lmv_locate_mds(lmv, op_data, &op_data->op_fid1);
+	if (IS_ERR(tgt))
+		return PTR_ERR(tgt);
 
 	/*
-	 * if child is on remote MDT, we need 2 async RPCs to fetch both LOOKUP
-	 * lock on parent, and UPDATE lock on child MDT, which makes all
-	 * complicated. Considering remote dir is rare case, and not supporting
-	 * it in statahead won't cause any issue, drop its support for now.
+	 * no special handle for remote dir, which needs to fetch both LOOKUP
+	 * lock on parent, and then UPDATE lock on child MDT, which makes all
+	 * complicated because this is done async. So only LOOKUP lock is
+	 * fetched for remote dir, but considering remote dir is rare case,
+	 * and not supporting it in statahead won't cause any issue, just leave
+	 * it as is.
 	 */
-	if (ptgt != ctgt)
-		return -ENOTSUPP;
 
-	return md_intent_getattr_async(ptgt->ltd_exp, minfo);
+	return md_intent_getattr_async(tgt->ltd_exp, minfo);
 }
 
 static int lmv_revalidate_lock(struct obd_export *exp, struct lookup_intent *it,
