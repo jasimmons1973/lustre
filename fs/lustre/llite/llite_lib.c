@@ -945,7 +945,6 @@ int ll_fill_super(struct super_block *sb)
 	char *ptr;
 	int len;
 	int err;
-	static atomic_t ll_bdi_num = ATOMIC_INIT(0);
 
 	CDEBUG(D_VFSTRACE, "VFS Op: sb %p\n", sb);
 
@@ -970,8 +969,7 @@ int ll_fill_super(struct super_block *sb)
 	if (err)
 		goto out_free;
 
-	err = super_setup_bdi_name(sb, "lustre-%d",
-				   atomic_inc_return(&ll_bdi_num));
+	err = super_setup_bdi_name(sb, "lustre-%p", sb);
 	if (err)
 		goto out_free;
 
