@@ -108,7 +108,7 @@ static struct ptlrpc_enc_page_pool {
 	unsigned long		epp_st_missings;	/* # of cache missing */
 	unsigned long		epp_st_lowfree;		/* lowest free pages reached */
 	unsigned int		epp_st_max_wqlen;	/* highest waitqueue length */
-	unsigned long		epp_st_max_wait;	/* in jiffies */
+	ktime_t			epp_st_max_wait;	/* in nanoseconds */
 	unsigned long		epp_st_outofmem;	/* # of out of mem requests */
 	/*
 	 * pointers to pools
@@ -131,8 +131,8 @@ int sptlrpc_proc_enc_pool_seq_show(struct seq_file *m, void *v)
 		   "total pages:	     %lu\n"
 		   "total free:	      %lu\n"
 		   "idle index:	      %lu/100\n"
-		   "last shrink:	     %lds\n"
-		   "last access:	     %lds\n"
+		   "last shrink:	     %llds\n"
+		   "last access:	     %llds\n"
 		   "max pages reached:       %lu\n"
 		   "grows:		   %u\n"
 		   "grows failure:	   %u\n"
@@ -141,7 +141,7 @@ int sptlrpc_proc_enc_pool_seq_show(struct seq_file *m, void *v)
 		   "cache missing:	   %lu\n"
 		   "low free mark:	   %lu\n"
 		   "max waitqueue depth:     %u\n"
-		   "max wait time:	   %ld/%lu\n"
+		   "max wait time ms:        %lld\n"
 		   "out of mem:		 %lu\n",
 		   totalram_pages(),
 		   PAGES_PER_POOL,
@@ -150,8 +150,8 @@ int sptlrpc_proc_enc_pool_seq_show(struct seq_file *m, void *v)
 		   page_pools.epp_total_pages,
 		   page_pools.epp_free_pages,
 		   page_pools.epp_idle_idx,
-		   (long)(ktime_get_seconds() - page_pools.epp_last_shrink),
-		   (long)(ktime_get_seconds() - page_pools.epp_last_access),
+		   ktime_get_seconds() - page_pools.epp_last_shrink,
+		   ktime_get_seconds() - page_pools.epp_last_access,
 		   page_pools.epp_st_max_pages,
 		   page_pools.epp_st_grows,
 		   page_pools.epp_st_grow_fails,
@@ -160,8 +160,7 @@ int sptlrpc_proc_enc_pool_seq_show(struct seq_file *m, void *v)
 		   page_pools.epp_st_missings,
 		   page_pools.epp_st_lowfree,
 		   page_pools.epp_st_max_wqlen,
-		   page_pools.epp_st_max_wait,
-		   msecs_to_jiffies(MSEC_PER_SEC),
+		   ktime_to_ms(page_pools.epp_st_max_wait),
 		   page_pools.epp_st_outofmem);
 
 	spin_unlock(&page_pools.epp_lock);
@@ -432,7 +431,7 @@ int sptlrpc_enc_pool_init(void)
 	page_pools.epp_st_missings = 0;
 	page_pools.epp_st_lowfree = 0;
 	page_pools.epp_st_max_wqlen = 0;
-	page_pools.epp_st_max_wait = 0;
+	page_pools.epp_st_max_wait = ktime_set(0, 0);
 	page_pools.epp_st_outofmem = 0;
 
 	enc_pools_alloc();
@@ -463,13 +462,12 @@ void sptlrpc_enc_pool_fini(void)
 
 	if (page_pools.epp_st_access > 0) {
 		CDEBUG(D_SEC,
-		       "max pages %lu, grows %u, grow fails %u, shrinks %u, access %lu, missing %lu, max qlen %u, max wait %ld/%ld, out of mem %lu\n",
+		       "max pages %lu, grows %u, grow fails %u, shrinks %u, access %lu, missing %lu, max qlen %u, max wait ms %lld, out of mem %lu\n",
 		       page_pools.epp_st_max_pages, page_pools.epp_st_grows,
 		       page_pools.epp_st_grow_fails,
 		       page_pools.epp_st_shrinks, page_pools.epp_st_access,
 		       page_pools.epp_st_missings, page_pools.epp_st_max_wqlen,
-		       page_pools.epp_st_max_wait,
-		       msecs_to_jiffies(MSEC_PER_SEC),
+		       ktime_to_ms(page_pools.epp_st_max_wait),
 		       page_pools.epp_st_outofmem);
 	}
 }
