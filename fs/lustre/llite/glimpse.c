@@ -187,24 +187,28 @@ int __cl_glimpse_size(struct inode *inode, int agl)
 	struct cl_io *io  = NULL;
 	int result;
 	u16 refcheck;
+	int retried = 0;
 
 	result = cl_io_get(inode, &env, &io, &refcheck);
 	if (result <= 0)
 		return result;
 
 	do {
-		io->ci_need_restart = 0;
-		io->ci_verify_layout = 1;
+		io->ci_ndelay_tried = retried++;
+		io->ci_ndelay = io->ci_verify_layout = 1;
 		result = cl_io_init(env, io, CIT_GLIMPSE, io->ci_obj);
-		if (result > 0)
+		if (result > 0) {
 			/*
 			 * nothing to do for this io. This currently happens
 			 * when stripe sub-object's are not yet created.
 			 */
 			result = io->ci_result;
-		else if (result == 0)
+		} else if (result == 0) {
 			result = cl_glimpse_lock(env, io, inode, io->ci_obj,
 						 agl);
+			if (!agl && result == -EWOULDBLOCK)
+				io->ci_need_restart = 1;
+		}
 
 		OBD_FAIL_TIMEOUT(OBD_FAIL_GLIMPSE_DELAY, 2);
 		cl_io_fini(env, io);

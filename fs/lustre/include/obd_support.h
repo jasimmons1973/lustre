@@ -474,6 +474,9 @@ extern char obd_jobid_var[];
 /* LMV */
 #define OBD_FAIL_UNKNOWN_LMV_STRIPE			0x1901
 
+/* FLR */
+#define OBD_FAIL_FLR_GLIMPSE_IMMUTABLE			0x1A00
+
 /* Assign references to moved code to reduce code changes */
 #define OBD_FAIL_PRECHECK(id)			CFS_FAIL_PRECHECK(id)
 #define OBD_FAIL_CHECK(id)			CFS_FAIL_CHECK(id)

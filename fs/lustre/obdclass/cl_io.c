@@ -191,6 +191,9 @@ int cl_io_init(const struct lu_env *env, struct cl_io *io,
 {
 	LASSERT(obj == cl_object_top(obj));
 
+	/* clear I/O restart from previous instance */
+	io->ci_need_restart = 0;
+
 	return __cl_io_init(env, io, iot, obj);
 }
 EXPORT_SYMBOL(cl_io_init);
@@ -722,6 +725,12 @@ int cl_io_loop(const struct lu_env *env, struct cl_io *io)
 		}
 		cl_io_iter_fini(env, io);
 	} while (result == 0 && io->ci_continue);
+
+	if (result == -EWOULDBLOCK && io->ci_ndelay) {
+		io->ci_need_restart = 1;
+		result = 0;
+	}
+
 	if (result == 0)
 		result = io->ci_result;
 	return result < 0 ? result : 0;
@@ -917,8 +926,8 @@ static void cl_page_list_assume(const struct lu_env *env,
 /**
  * Discards all pages in a queue.
  */
-static void cl_page_list_discard(const struct lu_env *env, struct cl_io *io,
-				 struct cl_page_list *plist)
+void cl_page_list_discard(const struct lu_env *env, struct cl_io *io,
+			  struct cl_page_list *plist)
 {
 	struct cl_page *page;
 
@@ -926,6 +935,7 @@ static void cl_page_list_discard(const struct lu_env *env, struct cl_io *io,
 	cl_page_list_for_each(page, plist)
 		cl_page_discard(env, io, page);
 }
+EXPORT_SYMBOL(cl_page_list_discard);
 
 /**
  * Initialize dual page queue.

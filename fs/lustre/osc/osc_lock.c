@@ -301,6 +301,8 @@ static int osc_lock_upcall(void *cookie, struct lustre_handle *lockh,
 				    NULL, &oscl->ols_lvb);
 		/* Hide the error. */
 		rc = 0;
+	} else if (rc < 0 && oscl->ols_flags & LDLM_FL_NDELAY) {
+		rc = -EWOULDBLOCK;
 	}
 
 	if (oscl->ols_owner)
@@ -1167,6 +1169,8 @@ int osc_lock_init(const struct lu_env *env,
 		oscl->ols_flags |= LDLM_FL_BLOCK_GRANTED;
 		oscl->ols_glimpse = 1;
 	}
+	if (io->ci_ndelay && cl_object_same(io->ci_obj, obj))
+		oscl->ols_flags |= LDLM_FL_NDELAY;
 	osc_lock_build_einfo(env, lock, cl2osc(obj), &oscl->ols_einfo);
 
 	cl_lock_slice_add(lock, &oscl->ols_cl, obj, &osc_lock_ops);

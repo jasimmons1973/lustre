@@ -1871,7 +1871,20 @@ struct cl_io {
 	 */
 				ci_noatime:1,
 	/* Tell sublayers not to expand LDLM locks requested for this IO */
-				ci_lock_no_expand:1;
+				ci_lock_no_expand:1,
+	/**
+	 * Set if non-delay RPC should be used for this IO.
+	 *
+	 * If this file has multiple mirrors, and if the OSTs of the current
+	 * mirror is inaccessible, non-delay RPC would error out quickly so
+	 * that the upper layer can try to access the next mirror.
+	 */
+				ci_ndelay:1;
+	/**
+	 * How many times the read has retried before this one.
+	 * Set by the top level and consumed by the LOV.
+	 */
+	unsigned int		ci_ndelay_tried;
 	/**
 	 * Number of pages owned by this IO. For invariant checking.
 	 */
@@ -2336,9 +2349,8 @@ struct cl_io *cl_io_top(struct cl_io *io);
 do {									\
 	typeof(foo_io) __foo_io = (foo_io);				\
 									\
-	BUILD_BUG_ON(offsetof(typeof(*__foo_io), base) != 0);		\
-	memset(&__foo_io->base + 1, 0,					\
-	       sizeof(*__foo_io) - sizeof(__foo_io->base));		\
+	memset(&__foo_io->base, 0,					\
+	       sizeof(*__foo_io) - offsetof(typeof(*__foo_io), base));	\
 } while (0)
 
 /** @} cl_io */
@@ -2385,6 +2397,8 @@ void cl_page_list_del(const struct lu_env *env, struct cl_page_list *plist,
 		      struct cl_page *page);
 void cl_page_list_disown(const struct lu_env *env,
 			 struct cl_io *io, struct cl_page_list *plist);
+void cl_page_list_discard(const struct lu_env *env,
+			  struct cl_io *io, struct cl_page_list *plist);
 void cl_page_list_fini(const struct lu_env *env, struct cl_page_list *plist);
 
 void cl_2queue_init(struct cl_2queue *queue);

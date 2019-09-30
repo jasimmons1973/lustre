@@ -1155,6 +1155,11 @@ static void ll_io_init(struct cl_io *io, const struct file *file, int write)
 	}
 
 	io->ci_noatime = file_is_noatime(file);
+
+	/* FLR: only use non-delay I/O for read as there is only one
+	 * available mirror for write.
+	 */
+	io->ci_ndelay = !write;
 }
 
 static ssize_t
@@ -1169,6 +1174,7 @@ ll_file_io_generic(const struct lu_env *env, struct vvp_io_args *args,
 	struct cl_io *io;
 	ssize_t result = 0;
 	int rc = 0;
+	unsigned int retried = 0;
 
 	CDEBUG(D_VFSTRACE, "file: %pD, type: %d ppos: %llu, count: %zu\n",
 	       file, iot, *ppos, count);
@@ -1176,6 +1182,7 @@ ll_file_io_generic(const struct lu_env *env, struct vvp_io_args *args,
 restart:
 	io = vvp_env_thread_io(env);
 	ll_io_init(io, file, iot == CIT_WRITE);
+	io->ci_ndelay_tried = retried;
 
 	if (cl_io_rw_init(env, io, iot, *ppos, count) == 0) {
 		struct vvp_io *vio = vvp_env_io(env);
@@ -1232,12 +1239,19 @@ restart:
 out:
 	cl_io_fini(env, io);
 
+	CDEBUG(D_VFSTRACE,
+	       "%s: %d io complete with rc: %d, result: %zd, restart: %d\n",
+	       file->f_path.dentry->d_name.name,
+	       iot, rc, result, io->ci_need_restart);
+
 	if ((!rc || rc == -ENODATA) && count > 0 && io->ci_need_restart) {
 		CDEBUG(D_VFSTRACE,
 		       "%s: restart %s from %lld, count:%zu, result: %zd\n",
 		       file_dentry(file)->d_name.name,
 		       iot == CIT_READ ? "read" : "write",
 		       *ppos, count, result);
+		/* preserve the tried count for FLR */
+		retried = io->ci_ndelay_tried;
 		goto restart;
 	}
 

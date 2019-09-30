@@ -87,6 +87,15 @@ static void lov_io_sub_fini(const struct lu_env *env, struct lov_io *lio,
 	}
 }
 
+static inline bool
+is_index_within_mirror(struct lov_object *lov, int index, int mirror_index)
+{
+	struct lov_layout_composite *comp = &lov->u.composite;
+	struct lov_mirror_entry *lre = &comp->lo_mirrors[mirror_index];
+
+	return (index >= lre->lre_start && index <= lre->lre_end);
+}
+
 static int lov_io_sub_init(const struct lu_env *env, struct lov_io *lio,
 			   struct lov_io_sub *sub)
 {
@@ -103,6 +112,11 @@ static int lov_io_sub_init(const struct lu_env *env, struct lov_io *lio,
 	if (unlikely(!lov_r0(lov, index)->lo_sub ||
 		     !lov_r0(lov, index)->lo_sub[stripe]))
 		return -EIO;
+
+	LASSERTF(is_index_within_mirror(lov, index, lio->lis_mirror_index),
+		 DFID "iot = %d, index = %d, mirror = %d\n",
+		 PFID(lu_object_fid(lov2lu(lov))), io->ci_type, index,
+		 lio->lis_mirror_index);
 
 	/* obtain new environment */
 	sub->sub_env = cl_env_get(&sub->sub_refcheck);
@@ -121,6 +135,7 @@ static int lov_io_sub_init(const struct lu_env *env, struct lov_io *lio,
 	sub_io->ci_no_srvlock = io->ci_no_srvlock;
 	sub_io->ci_noatime = io->ci_noatime;
 	sub_io->ci_lock_no_expand = io->ci_lock_no_expand;
+	sub_io->ci_ndelay = io->ci_ndelay;
 
 	rc = cl_io_sub_init(sub->sub_env, sub_io, io->ci_type, sub_obj);
 	if (rc < 0)
@@ -193,9 +208,102 @@ static int lov_io_subio_init(const struct lu_env *env, struct lov_io *lio,
 	return 0;
 }
 
+static int lov_io_mirror_init(struct lov_io *lio, struct lov_object *obj,
+			       struct cl_io *io)
+{
+	struct lov_layout_composite *comp = &obj->u.composite;
+	int index;
+	int i;
+
+	if (!lov_is_flr(obj)) {
+		LASSERT(comp->lo_preferred_mirror == 0);
+		lio->lis_mirror_index = comp->lo_preferred_mirror;
+		io->ci_ndelay = 0;
+		return 0;
+	}
+
+	if (io->ci_ndelay_tried == 0 || /* first time to try */
+	    /* reset the mirror index if layout has changed */
+	    lio->lis_mirror_layout_gen != obj->lo_lsm->lsm_layout_gen) {
+		lio->lis_mirror_layout_gen = obj->lo_lsm->lsm_layout_gen;
+		index = lio->lis_mirror_index = comp->lo_preferred_mirror;
+	} else {
+		index = lio->lis_mirror_index;
+		LASSERT(index >= 0);
+
+		/* move mirror index to the next one */
+		index = (index + 1) % comp->lo_mirror_count;
+	}
+
+	for (i = 0; i < comp->lo_mirror_count; i++) {
+		struct lu_extent ext = { .e_start = lio->lis_pos,
+					 .e_end   = lio->lis_pos + 1 };
+		struct lov_mirror_entry *lre;
+		struct lov_layout_entry *lle;
+		bool found = false;
+
+		lre = &comp->lo_mirrors[(index + i) % comp->lo_mirror_count];
+		if (!lre->lre_valid)
+			continue;
+
+		lov_foreach_mirror_layout_entry(obj, lle, lre) {
+			if (!lle->lle_valid)
+				continue;
+
+			if (lu_extent_is_overlapped(&ext, lle->lle_extent)) {
+				found = true;
+				break;
+			}
+		}
+
+		if (found) {
+			index = (index + i) % comp->lo_mirror_count;
+			break;
+		}
+	}
+	if (i == comp->lo_mirror_count) {
+		CERROR(DFID ": failed to find a component covering I/O region at %llu\n",
+		       PFID(lu_object_fid(lov2lu(obj))), lio->lis_pos);
+
+		dump_lsm(D_ERROR, obj->lo_lsm);
+
+		return -EIO;
+	}
+
+	CDEBUG(D_VFSTRACE,
+	       DFID ": flr state: %d, move mirror from %d to %d, have retried: %d, mirror count: %d\n",
+	       PFID(lu_object_fid(lov2lu(obj))), lov_flr_state(obj),
+	       lio->lis_mirror_index, index, io->ci_ndelay_tried,
+	       comp->lo_mirror_count);
+
+	lio->lis_mirror_index = index;
+
+	/* FLR: if all mirrors have been tried once, most likely the network
+	 * of this client has been partitioned. We should relinquish CPU for
+	 * a while before trying again.
+	 */
+	++io->ci_ndelay_tried;
+	if (io->ci_ndelay && io->ci_ndelay_tried >= comp->lo_mirror_count) {
+		set_current_state(TASK_INTERRUPTIBLE);
+		schedule_timeout(msecs_to_jiffies(MSEC_PER_SEC)); /* 10ms */
+		if (signal_pending(current))
+			return -EINTR;
+
+		/* reset retry counter */
+		io->ci_ndelay_tried = 1;
+	}
+
+	CDEBUG(D_VFSTRACE, "use %sdelayed RPC state for this IO\n",
+	       io->ci_ndelay ? "non-" : "");
+
+	return 0;
+}
+
 static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 			     struct cl_io *io)
 {
+	int result = 0;
+
 	io->ci_result = 0;
 	lio->lis_object = obj;
 
@@ -260,7 +368,8 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 		lio->lis_pos = 0;
 		lio->lis_endpos = OBD_OBJECT_EOF;
 
-		if ((obj->lo_lsm->lsm_flags & LCM_FL_FLR_MASK) == LCM_FL_RDONLY)
+		if (lov_flr_state(obj) == LCM_FL_RDONLY &&
+		    !OBD_FAIL_CHECK(OBD_FAIL_FLR_GLIMPSE_IMMUTABLE))
 			return 1; /* SoM is accurate, no need glimpse */
 		break;
 
@@ -272,7 +381,8 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 	default:
 		LBUG();
 	}
-	return 0;
+	result = lov_io_mirror_init(lio, obj, io);
+	return result;
 }
 
 static void lov_io_fini(const struct lu_env *env, const struct cl_io_slice *ios)
@@ -390,7 +500,6 @@ static int lov_io_iter_init(const struct lu_env *env,
 	struct lov_io *lio = cl2lov_io(env, ios);
 	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
 	struct cl_io *io = ios->cis_io;
-	struct lov_layout_entry *le;
 	struct lov_io_sub *sub;
 	struct lu_extent ext;
 	int rc = 0;
@@ -399,20 +508,15 @@ static int lov_io_iter_init(const struct lu_env *env,
 	ext.e_start = lio->lis_pos;
 	ext.e_end = lio->lis_endpos;
 
-	index = 0;
-	lov_foreach_layout_entry(lio->lis_object, le) {
-		struct lov_layout_raid0 *r0 = &le->lle_raid0;
+	lov_foreach_io_layout(index, lio, &ext) {
+		struct lov_layout_raid0 *r0 = lov_r0(lio->lis_object, index);
 		int stripe;
 		u64 start;
 		u64 end;
 
-		index++;
-		if (!lu_extent_is_overlapped(&ext, &le->lle_extent))
-			continue;
-
 		CDEBUG(D_VFSTRACE, "component[%d] flags %#x\n",
-		       index - 1, lsm->lsm_entries[index - 1]->lsme_flags);
-		if (!lsm_entry_inited(lsm, index - 1)) {
+		       index, lsm->lsm_entries[index]->lsme_flags);
+		if (!lsm_entry_inited(lsm, index)) {
 			/* truncate IO will trigger write intent as well, and
 			 * it's handled in lov_io_setattr_iter_init()
 			 */
@@ -429,7 +533,7 @@ static int lov_io_iter_init(const struct lu_env *env,
 		}
 
 		for (stripe = 0; stripe < r0->lo_nr; stripe++) {
-			if (!lov_stripe_intersects(lsm, index - 1, stripe,
+			if (!lov_stripe_intersects(lsm, index, stripe,
 						   &ext, &start, &end))
 				continue;
 
@@ -444,7 +548,7 @@ static int lov_io_iter_init(const struct lu_env *env,
 
 			end = lov_offset_mod(end, 1);
 			sub = lov_sub_get(env, lio,
-					  lov_comp_index(index - 1, stripe));
+					  lov_comp_index(index, stripe));
 			if (IS_ERR(sub)) {
 				rc = PTR_ERR(sub);
 				break;
@@ -472,7 +576,6 @@ static int lov_io_rw_iter_init(const struct lu_env *env,
 			       const struct cl_io_slice *ios)
 {
 	struct lov_io *lio = cl2lov_io(env, ios);
-	struct lov_stripe_md *lsm = lio->lis_object->lo_lsm;
 	struct cl_io *io = ios->cis_io;
 	u64 start = io->u.ci_rw.crw_pos;
 	struct lov_stripe_md_entry *lse;
@@ -484,7 +587,7 @@ static int lov_io_rw_iter_init(const struct lu_env *env,
 	if (cl_io_is_append(io))
 		return lov_io_iter_init(env, ios);
 
-	index = lov_lsm_entry(lsm, io->u.ci_rw.crw_pos);
+	index = lov_io_layout_at(lio, io->u.ci_rw.crw_pos);
 	if (index < 0) { /* non-existing layout component */
 		if (io->ci_type == CIT_READ) {
 			/* TODO: it needs to detect the next component and
@@ -542,7 +645,7 @@ static int lov_io_setattr_iter_init(const struct lu_env *env,
 	int index;
 
 	if (cl_io_is_trunc(io) && lio->lis_pos > 0) {
-		index = lov_lsm_entry(lsm, lio->lis_pos - 1);
+		index = lov_io_layout_at(lio, lio->lis_pos - 1);
 		/* no entry found for such offset */
 		if (index < 0) {
 			io->ci_result = -ENODATA;
@@ -676,7 +779,7 @@ static int lov_io_read_ahead(const struct lu_env *env,
 	int rc;
 
 	offset = cl_offset(obj, start);
-	index = lov_lsm_entry(loo->lo_lsm, offset);
+	index = lov_io_layout_at(lio, offset);
 	if (index < 0 || !lsm_entry_inited(loo->lo_lsm, index))
 		return -ENODATA;
 
@@ -715,7 +818,7 @@ static int lov_io_read_ahead(const struct lu_env *env,
 					       ra_end, stripe);
 
 	/* boundary of current component */
-	ra_end = cl_index(obj, (loff_t)lov_lse(loo, index)->lsme_extent.e_end);
+	ra_end = cl_index(obj, (loff_t)lov_io_extent(lio, index)->e_end);
 	if (ra_end != CL_PAGE_EOF && ra->cra_end >= ra_end)
 		ra->cra_end = ra_end - 1;
 
@@ -1148,8 +1251,8 @@ int lov_io_init_released(const struct lu_env *env, struct cl_object *obj,
 		LASSERTF(0, "invalid type %d\n", io->ci_type);
 		result = -EOPNOTSUPP;
 		break;
-	case CIT_MISC:
 	case CIT_GLIMPSE:
+	case CIT_MISC:
 	case CIT_FSYNC:
 	case CIT_LADVISE:
 	case CIT_DATA_VERSION:
@@ -1184,4 +1287,42 @@ int lov_io_init_released(const struct lu_env *env, struct cl_object *obj,
 	return result;
 }
 
-/** @} lov */
+/**
+ * Return the index in composite:lo_entries by the file offset
+ */
+int lov_io_layout_at(struct lov_io *lio, u64 offset)
+{
+	struct lov_object *lov = lio->lis_object;
+	struct lov_layout_composite *comp = &lov->u.composite;
+	int start_index = 0;
+	int end_index = comp->lo_entry_count - 1;
+	int i;
+
+	LASSERT(lov->lo_type == LLT_COMP);
+
+	/* This is actual file offset so nothing can cover eof. */
+	if (offset == LUSTRE_EOF)
+		return -1;
+
+	if (lov_is_flr(lov)) {
+		struct lov_mirror_entry *lre;
+
+		LASSERT(lio->lis_mirror_index >= 0);
+
+		lre = &comp->lo_mirrors[lio->lis_mirror_index];
+		start_index = lre->lre_start;
+		end_index = lre->lre_end;
+	}
+
+	for (i = start_index; i <= end_index; i++) {
+		struct lov_layout_entry *lle = lov_entry(lov, i);
+
+		if ((offset >= lle->lle_extent->e_start &&
+		     offset < lle->lle_extent->e_end) ||
+		    (offset == OBD_OBJECT_EOF &&
+		     lle->lle_extent->e_end == OBD_OBJECT_EOF))
+			return i;
+	}
+
+	return -1;
+}
