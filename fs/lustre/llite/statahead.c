@@ -494,10 +494,10 @@ static void ll_agl_trigger(struct inode *inode, struct ll_statahead_info *sai)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
 	u64 index = lli->lli_agl_index;
+	ktime_t expire;
 	int rc;
 
 	LASSERT(list_empty(&lli->lli_agl_list));
-
 	/* AGL maybe fall behind statahead with one entry */
 	if (is_omitted_entry(sai, index + 1)) {
 		lli->lli_agl_index = 0;
@@ -539,8 +539,9 @@ static void ll_agl_trigger(struct inode *inode, struct ll_statahead_info *sai)
 	 *    relative rare. AGL can ignore such case, and it will not muchly
 	 *    affect the performance.
 	 */
-	if (lli->lli_glimpse_time != 0 &&
-	    time_before(jiffies - 1 * HZ, lli->lli_glimpse_time)) {
+	expire = ktime_sub_ns(ktime_get(), NSEC_PER_SEC);
+	if (ktime_to_ns(lli->lli_glimpse_time) &&
+	    ktime_before(expire, lli->lli_glimpse_time)) {
 		up_write(&lli->lli_glimpse_sem);
 		lli->lli_agl_index = 0;
 		iput(inode);
@@ -552,7 +553,7 @@ static void ll_agl_trigger(struct inode *inode, struct ll_statahead_info *sai)
 
 	cl_agl(inode);
 	lli->lli_agl_index = 0;
-	lli->lli_glimpse_time = jiffies;
+	lli->lli_glimpse_time = ktime_get();
 	up_write(&lli->lli_glimpse_sem);
 
 	CDEBUG(D_READA, "Handled (init) async glimpse: inode= "

@@ -194,7 +194,7 @@ struct ll_inode_info {
 			struct range_lock_tree		lli_write_tree;
 
 			struct rw_semaphore		lli_glimpse_sem;
-			unsigned long			lli_glimpse_time;
+			ktime_t				lli_glimpse_time;
 			struct list_head		lli_agl_list;
 			u64				lli_agl_index;
 
@@ -1193,7 +1193,7 @@ static inline int ll_glimpse_size(struct inode *inode)
 
 	down_read(&lli->lli_glimpse_sem);
 	rc = cl_glimpse_size(inode);
-	lli->lli_glimpse_time = jiffies;
+	lli->lli_glimpse_time = ktime_get();
 	up_read(&lli->lli_glimpse_sem);
 	return rc;
 }
