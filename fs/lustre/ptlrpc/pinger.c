@@ -100,15 +100,15 @@ static int ptlrpc_ping(struct obd_import *imp)
 
 static void ptlrpc_update_next_ping(struct obd_import *imp, int soon)
 {
-	int time = soon ? PING_INTERVAL_SHORT : PING_INTERVAL;
+	time64_t time = soon ? PING_INTERVAL_SHORT : PING_INTERVAL;
 
 	if (imp->imp_state == LUSTRE_IMP_DISCON) {
-		int dtime = max_t(int, CONNECTION_SWITCH_MIN,
+		time64_t dtime = max_t(time64_t, CONNECTION_SWITCH_MIN,
 				  AT_OFF ? 0 :
 				  at_get(&imp->imp_at.iat_net_latency));
 		time = min(time, dtime);
 	}
-	imp->imp_next_ping = jiffies + time * HZ;
+	imp->imp_next_ping = ktime_get_seconds() + time;
 }
 
 static inline int imp_is_deactive(struct obd_import *imp)
@@ -117,23 +117,23 @@ static inline int imp_is_deactive(struct obd_import *imp)
 		OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_IMP_DEACTIVE));
 }
 
-static inline int ptlrpc_next_reconnect(struct obd_import *imp)
+static inline time64_t ptlrpc_next_reconnect(struct obd_import *imp)
 {
 	if (imp->imp_server_timeout)
-		return jiffies + obd_timeout / 2 * HZ;
+		return ktime_get_seconds() + (obd_timeout >> 1);
 	else
-		return jiffies + obd_timeout * HZ;
+		return ktime_get_seconds() + obd_timeout;
 }
 
-static long pinger_check_timeout(unsigned long time)
+static time64_t pinger_check_timeout(time64_t time)
 {
 	struct timeout_item *item;
-	unsigned long timeout = PING_INTERVAL;
+	time64_t timeout = PING_INTERVAL;
 
-	/* The timeout list is a increase order sorted list */
+	/* This list is sorted in increasing timeout order */
 	mutex_lock(&pinger_mutex);
 	list_for_each_entry(item, &timeout_list, ti_chain) {
-		int ti_timeout = item->ti_timeout;
+		time64_t ti_timeout = item->ti_timeout;
 
 		if (timeout > ti_timeout)
 			timeout = ti_timeout;
@@ -141,7 +141,7 @@ static long pinger_check_timeout(unsigned long time)
 	}
 	mutex_unlock(&pinger_mutex);
 
-	return time + timeout * HZ - jiffies;
+	return time + timeout - ktime_get_seconds();
 }
 
 static bool ir_up;
@@ -161,7 +161,7 @@ void ptlrpc_pinger_ir_down(void)
 EXPORT_SYMBOL(ptlrpc_pinger_ir_down);
 
 static void ptlrpc_pinger_process_import(struct obd_import *imp,
-					 unsigned long this_ping)
+					 time64_t this_ping)
 {
 	int level;
 	int force;
@@ -180,8 +180,7 @@ static void ptlrpc_pinger_process_import(struct obd_import *imp,
 
 	imp->imp_force_verify = 0;
 
-	if (time_after_eq(imp->imp_next_ping - 5, this_ping) &&
-	    !force) {
+	if (imp->imp_next_ping - 5 >= this_ping && !force) {
 		spin_unlock(&imp->imp_lock);
 		return;
 	}
@@ -224,8 +223,8 @@ static DECLARE_DELAYED_WORK(ping_work, ptlrpc_pinger_main);
 
 static void ptlrpc_pinger_main(struct work_struct *ws)
 {
-	unsigned long this_ping = jiffies;
-	long time_to_next_wake;
+	time64_t this_ping = ktime_get_seconds();
+	time64_t time_to_next_wake;
 	struct timeout_item *item;
 	struct obd_import *imp;
 
@@ -238,8 +237,7 @@ static void ptlrpc_pinger_main(struct work_struct *ws)
 			ptlrpc_pinger_process_import(imp, this_ping);
 			/* obd_timeout might have changed */
 			if (imp->imp_pingable && imp->imp_next_ping &&
-			    time_after(imp->imp_next_ping,
-				       this_ping + PING_INTERVAL * HZ))
+			    imp->imp_next_ping > this_ping + PING_INTERVAL)
 				ptlrpc_update_next_ping(imp, 0);
 		}
 		mutex_unlock(&pinger_mutex);
@@ -253,9 +251,9 @@ static void ptlrpc_pinger_main(struct work_struct *ws)
 		 * we will SKIP the next ping at next_ping, and the
 		 * ping will get sent 2 timeouts from now!  Beware.
 		 */
-		CDEBUG(D_INFO, "next wakeup in %ld (%ld)\n",
+		CDEBUG(D_INFO, "next wakeup in %lld (%lld)\n",
 		       time_to_next_wake,
-		       this_ping + PING_INTERVAL * HZ);
+		       this_ping + PING_INTERVAL);
 	} while (time_to_next_wake <= 0);
 
 	queue_delayed_work(pinger_wq, &ping_work,
@@ -357,7 +355,7 @@ EXPORT_SYMBOL(ptlrpc_pinger_del_import);
  * Register a timeout callback to the pinger list, and the callback will
  * be called when timeout happens.
  */
-static struct timeout_item *ptlrpc_new_timeout(int time,
+static struct timeout_item *ptlrpc_new_timeout(time64_t time,
 					       enum timeout_event event,
 					       timeout_cb_t cb, void *data)
 {
@@ -382,7 +380,7 @@ static struct timeout_item *ptlrpc_new_timeout(int time,
  * Note: the timeout list is an sorted list with increased timeout value.
  */
 static struct timeout_item*
-ptlrpc_pinger_register_timeout(int time, enum timeout_event event,
+ptlrpc_pinger_register_timeout(time64_t time, enum timeout_event event,
 			       timeout_cb_t cb, void *data)
 {
 	struct timeout_item *item, *tmp;
@@ -410,7 +408,7 @@ out:
 /* Add a client_obd to the timeout event list, when timeout(@time)
  * happens, the callback(@cb) will be called.
  */
-int ptlrpc_add_timeout_client(int time, enum timeout_event event,
+int ptlrpc_add_timeout_client(time64_t time, enum timeout_event event,
 			      timeout_cb_t cb, void *data,
 			      struct list_head *obd_list)
 {

@@ -326,7 +326,7 @@ static ssize_t grant_shrink_interval_show(struct kobject *kobj,
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
 
-	return sprintf(buf, "%d\n", obd->u.cli.cl_grant_shrink_interval);
+	return sprintf(buf, "%lld\n", obd->u.cli.cl_grant_shrink_interval);
 }
 
 static ssize_t grant_shrink_interval_store(struct kobject *kobj,

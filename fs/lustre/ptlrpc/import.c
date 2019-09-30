@@ -218,10 +218,10 @@ void ptlrpc_deactivate_import(struct obd_import *imp)
 }
 EXPORT_SYMBOL(ptlrpc_deactivate_import);
 
-static unsigned int
+static time64_t
 ptlrpc_inflight_deadline(struct ptlrpc_request *req, time64_t now)
 {
-	long dl;
+	time64_t dl;
 
 	if (!(((req->rq_phase == RQ_PHASE_RPC) && !req->rq_waiting) ||
 	      (req->rq_phase == RQ_PHASE_BULK) ||
@@ -246,7 +246,7 @@ static unsigned int ptlrpc_inflight_timeout(struct obd_import *imp)
 {
 	time64_t now = ktime_get_real_seconds();
 	struct ptlrpc_request *req, *n;
-	unsigned int timeout = 0;
+	time64_t timeout = 0;
 
 	spin_lock(&imp->imp_lock);
 	list_for_each_entry_safe(req, n, &imp->imp_sending_list, rq_list)
@@ -265,7 +265,7 @@ static unsigned int ptlrpc_inflight_timeout(struct obd_import *imp)
 void ptlrpc_invalidate_import(struct obd_import *imp)
 {
 	struct ptlrpc_request *req, *n;
-	unsigned int timeout;
+	time64_t timeout;
 	int rc;
 
 	atomic_inc(&imp->imp_inval_count);
@@ -282,6 +282,7 @@ void ptlrpc_invalidate_import(struct obd_import *imp)
 	 * no guarantee that some rdma transfer is not in progress right now.
 	 */
 	do {
+		long timeout_jiffies;
 		/* Calculate max timeout for waiting on rpcs to error
 		 * out. Use obd_timeout if calculated value is smaller
 		 * than it.
@@ -298,16 +299,17 @@ void ptlrpc_invalidate_import(struct obd_import *imp)
 		}
 
 		CDEBUG(D_RPCTRACE,
-		       "Sleeping %d sec for inflight to error out\n",
+		       "Sleeping %llds for inflight to error out\n",
 		       timeout);
 
 		/* Wait for all requests to error out and call completion
 		 * callbacks. Cap it at obd_timeout -- these should all
 		 * have been locally cancelled by ptlrpc_abort_inflight.
 		 */
+		timeout_jiffies = max_t(long, timeout * HZ, 1);
 		rc = wait_event_idle_timeout(imp->imp_recovery_waitq,
 					     atomic_read(&imp->imp_inflight) == 0,
-					     obd_timeout * HZ);
+					     timeout_jiffies);
 
 		if (rc == 0) {
 			const char *cli_tgt = obd2cli_tgt(imp->imp_obd);
@@ -421,6 +423,7 @@ void ptlrpc_fail_import(struct obd_import *imp, u32 conn_cnt)
 
 int ptlrpc_reconnect_import(struct obd_import *imp)
 {
+	long timeout_jiffies = obd_timeout * HZ;
 	int rc;
 
 	ptlrpc_pinger_force(imp);
@@ -430,7 +433,7 @@ int ptlrpc_reconnect_import(struct obd_import *imp)
 
 	rc = wait_event_idle_timeout(imp->imp_recovery_waitq,
 				     !ptlrpc_import_in_recovery(imp),
-				     obd_timeout * HZ);
+				     timeout_jiffies);
 	CDEBUG(D_HA, "%s: recovery finished s:%s\n", obd2cli_tgt(imp->imp_obd),
 	       ptlrpc_import_state_name(imp->imp_state));
 	return rc == 0 ? -ETIMEDOUT : 0;
@@ -1506,22 +1509,27 @@ int ptlrpc_disconnect_import(struct obd_import *imp, int noclose)
 	}
 
 	if (ptlrpc_import_in_recovery(imp)) {
-		unsigned long timeout;
+		long timeout_jiffies;
+		time64_t timeout;
 
 		if (AT_OFF) {
 			if (imp->imp_server_timeout)
-				timeout = obd_timeout * HZ / 2;
+				timeout = obd_timeout >> 1;
 			else
-				timeout = obd_timeout * HZ;
+				timeout = obd_timeout;
 		} else {
-			int idx = import_at_get_index(imp,
-				imp->imp_client->cli_request_portal);
-			timeout = at_get(&imp->imp_at.iat_service_estimate[idx]) * HZ;
+			u32 req_portal;
+			int idx;
+
+			req_portal = imp->imp_client->cli_request_portal;
+			idx = import_at_get_index(imp, req_portal);
+			timeout = at_get(&imp->imp_at.iat_service_estimate[idx]);
 		}
 
+		timeout_jiffies = timeout * HZ;
 		if (wait_event_idle_timeout(imp->imp_recovery_waitq,
 					    !ptlrpc_import_in_recovery(imp),
-					    max(timeout, 1UL)) == 0)
+					    max_t(long, timeout_jiffies, 1)) == 0)
 			l_wait_event_abortable(
 				imp->imp_recovery_waitq,
 				!ptlrpc_import_in_recovery(imp));

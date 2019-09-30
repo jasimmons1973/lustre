@@ -117,7 +117,7 @@ struct brw_page {
 
 struct timeout_item {
 	enum timeout_event	ti_event;
-	unsigned long		ti_timeout;
+	time64_t		ti_timeout;
 	timeout_cb_t		ti_cb;
 	void		       *ti_cb_data;
 	struct list_head	ti_obd_list;
@@ -203,9 +203,9 @@ struct client_obd {
 	 */
 	long			cl_reserved_grant;
 	wait_queue_head_t	cl_cache_waiters;	/* waiting for cache/grant */
-	unsigned long		cl_next_shrink_grant;   /* jiffies */
+	time64_t		cl_next_shrink_grant;	/* seconds */
 	struct list_head	cl_grant_shrink_list;	/* Timeout event list */
-	int			cl_grant_shrink_interval; /* seconds */
+	time64_t		cl_grant_shrink_interval; /* seconds */
 
 	/* A chunk is an optimal size used by osc_extent to determine
 	 * the extent size. A chunk is max(PAGE_SIZE, OST block size)

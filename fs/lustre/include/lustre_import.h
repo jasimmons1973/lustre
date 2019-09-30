@@ -250,7 +250,7 @@ struct obd_import {
 	 */
 	struct lustre_handle		imp_remote_handle;
 	/** When to perform next ping. time in jiffies. */
-	unsigned long			imp_next_ping;
+	time64_t			imp_next_ping;
 	/** When we last successfully connected. time in 64bit jiffies */
 	u64				imp_last_success_conn;
 

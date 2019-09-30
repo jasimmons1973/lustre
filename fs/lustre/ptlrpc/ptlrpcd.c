@@ -434,7 +434,7 @@ static int ptlrpcd(void *arg)
 	 * new_req_list and ptlrpcd_check() moves them into the set.
 	 */
 	do {
-		int timeout;
+		time64_t timeout;
 
 		timeout = ptlrpc_set_next_timeout(set);
 
