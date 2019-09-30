@@ -136,6 +136,7 @@ int lov_page_init_empty(const struct lu_env *env, struct cl_object *obj,
 	struct lov_page *lpg = cl_object_page_slice(obj, page);
 	void *addr;
 
+	lpg->lps_index = ~0;
 	cl_page_slice_add(page, &lpg->lps_cl, obj, index, &lov_empty_page_ops);
 	addr = kmap(page->cp_vmpage);
 	memset(addr, 0, cl_page_size(obj));
@@ -144,4 +145,11 @@ int lov_page_init_empty(const struct lu_env *env, struct cl_object *obj,
 	return 0;
 }
 
+bool lov_page_is_empty(const struct cl_page *page)
+{
+	const struct cl_page_slice *slice = cl_page_at(page, &lov_device_type);
+
+	LASSERT(slice);
+	return slice->cpl_ops == &lov_empty_page_ops;
+}
 /** @} lov */
