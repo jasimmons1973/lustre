@@ -1172,6 +1172,10 @@ void ptlrpc_lprocfs_unregister_service(struct ptlrpc_service *svc)
 
 void ptlrpc_lprocfs_unregister_obd(struct obd_device *obd)
 {
+	/* cleanup first to allow concurrent access to device's
+	 * stats via debugfs to complete safely
+	 */
+	lprocfs_obd_cleanup(obd);
 	debugfs_remove_recursive(obd->obd_svc_debugfs_entry);
 
 	if (obd->obd_svc_stats)
