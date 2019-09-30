@@ -681,6 +681,19 @@ int cl_page_is_vmlocked(const struct lu_env *env, const struct cl_page *pg)
 }
 EXPORT_SYMBOL(cl_page_is_vmlocked);
 
+void cl_page_touch(const struct lu_env *env, const struct cl_page *pg,
+		  size_t to)
+{
+	const struct cl_page_slice *slice;
+
+	list_for_each_entry(slice, &pg->cp_layers, cpl_linkage) {
+		if (slice->cpl_ops->cpo_page_touch)
+			(*slice->cpl_ops->cpo_page_touch)(env, slice, to);
+	}
+
+}
+EXPORT_SYMBOL(cl_page_touch);
+
 static enum cl_page_state cl_req_type_state(enum cl_req_type crt)
 {
 	return crt == CRT_WRITE ? CPS_PAGEOUT : CPS_PAGEIN;

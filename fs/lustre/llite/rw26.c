@@ -443,13 +443,23 @@ out:
 	return result;
 }
 
+static int ll_tiny_write_begin(struct page *vmpage)
+{
+	/* Page must be present, up to date, dirty, and not in writeback. */
+	if (!vmpage || !PageUptodate(vmpage) || !PageDirty(vmpage) ||
+	    PageWriteback(vmpage))
+		return -ENODATA;
+
+	return 0;
+}
+
 static int ll_write_begin(struct file *file, struct address_space *mapping,
 			  loff_t pos, unsigned int len, unsigned int flags,
 			  struct page **pagep, void **fsdata)
 {
-	struct ll_cl_context *lcc;
+	struct ll_cl_context *lcc = NULL;
 	const struct lu_env *env = NULL;
-	struct cl_io *io;
+	struct cl_io *io = NULL;
 	struct cl_page *page = NULL;
 	struct cl_object *clob = ll_i2info(mapping->host)->lli_clob;
 	pgoff_t index = pos >> PAGE_SHIFT;
@@ -462,8 +472,8 @@ static int ll_write_begin(struct file *file, struct address_space *mapping,
 
 	lcc = ll_cl_find(file);
 	if (!lcc) {
-		io = NULL;
-		result = -EIO;
+		vmpage = grab_cache_page_nowait(mapping, index);
+		result = ll_tiny_write_begin(vmpage);
 		goto out;
 	}
 
@@ -479,6 +489,7 @@ static int ll_write_begin(struct file *file, struct address_space *mapping,
 		result = -EBUSY;
 		goto out;
 	}
+
 again:
 	/* To avoid deadlock, try to lock page first. */
 	vmpage = grab_cache_page_nowait(mapping, index);
@@ -544,7 +555,6 @@ again:
 
 				if (result == -EAGAIN)
 					goto again;
-
 				goto out;
 			}
 		}
@@ -555,6 +565,7 @@ out:
 			unlock_page(vmpage);
 			put_page(vmpage);
 		}
+		/* On tiny_write failure, page and io are always null. */
 		if (!IS_ERR_OR_NULL(page)) {
 			lu_ref_del(&page->cp_reference, "cl_io", io);
 			cl_page_put(env, page);
@@ -566,6 +577,45 @@ out:
 		*fsdata = lcc;
 	}
 	return result;
+}
+
+static int ll_tiny_write_end(struct file *file, struct address_space *mapping,
+			     loff_t pos, unsigned int len, unsigned int copied,
+			     struct page *vmpage)
+{
+	struct cl_page *clpage = (struct cl_page *) vmpage->private;
+	loff_t kms = pos+copied;
+	loff_t to = kms & (PAGE_SIZE-1) ? kms & (PAGE_SIZE-1) : PAGE_SIZE;
+	u16 refcheck;
+	struct lu_env *env = cl_env_get(&refcheck);
+	int rc = 0;
+
+	if (IS_ERR(env)) {
+		rc = PTR_ERR(env);
+		goto out;
+	}
+
+	/* This page is dirty in cache, so it should have a cl_page pointer
+	 * set in vmpage->private.
+	 */
+	LASSERT(clpage);
+
+	if (copied == 0)
+		goto out_env;
+
+	/* Update the underlying size information in the OSC/LOV objects this
+	 * page is part of.
+	 */
+	cl_page_touch(env, clpage, to);
+
+out_env:
+	cl_env_put(env, &refcheck);
+
+out:
+	/* Must return page unlocked. */
+	unlock_page(vmpage);
+
+	return rc;
 }
 
 static int ll_write_end(struct file *file, struct address_space *mapping,
@@ -582,6 +632,14 @@ static int ll_write_end(struct file *file, struct address_space *mapping,
 	int result = 0;
 
 	put_page(vmpage);
+
+	CDEBUG(D_VFSTRACE, "pos %llu, len %u, copied %u\n", pos, len, copied);
+
+	if (!lcc) {
+		result = ll_tiny_write_end(file, mapping, pos, len, copied,
+					   vmpage);
+		goto out;
+	}
 
 	env  = lcc->lcc_env;
 	page = lcc->lcc_page;
@@ -632,6 +690,9 @@ static int ll_write_end(struct file *file, struct address_space *mapping,
 
 	if (result < 0)
 		io->ci_result = result;
+
+
+out:
 	return result >= 0 ? copied : result;
 }
 

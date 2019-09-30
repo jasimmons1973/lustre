@@ -216,14 +216,13 @@ int osc_io_submit(const struct lu_env *env, const struct cl_io_slice *ios,
 EXPORT_SYMBOL(osc_io_submit);
 
 /**
- * This is called when a page is accessed within file in a way that creates
- * new page, if one were missing (i.e., if there were a hole at that place in
- * the file, or accessed page is beyond the current file size).
+ * This is called to update the attributes when modifying a specific page,
+ * both when making new pages and when doing updates to existing cached pages.
  *
  * Expand stripe KMS if necessary.
  */
-static void osc_page_touch_at(const struct lu_env *env,
-			      struct cl_object *obj, pgoff_t idx, size_t to)
+void osc_page_touch_at(const struct lu_env *env, struct cl_object *obj,
+		       pgoff_t idx, size_t to)
 {
 	struct lov_oinfo *loi = cl2osc(obj)->oo_oinfo;
 	struct cl_attr *attr = &osc_env_info(env)->oti_attr;
@@ -234,13 +233,6 @@ static void osc_page_touch_at(const struct lu_env *env,
 	kms = cl_offset(obj, idx) + to;
 
 	cl_object_attr_lock(obj);
-	/*
-	 * XXX old code used
-	 *
-	 *	 ll_inode_size_lock(inode, 0); lov_stripe_lock(lsm);
-	 *
-	 * here
-	 */
 	CDEBUG(D_INODE, "stripe KMS %sincreasing %llu->%llu %llu\n",
 	       kms > loi->loi_kms ? "" : "not ", loi->loi_kms, kms,
 	       loi->loi_lvb.lvb_size);
