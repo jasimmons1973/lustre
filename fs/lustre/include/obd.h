@@ -587,7 +587,7 @@ struct obd_device {
 	spinlock_t		 obd_dev_lock; /* protect OBD bitfield above */
 	spinlock_t		 obd_osfs_lock;
 	struct obd_statfs	 obd_osfs;       /* locked by obd_osfs_lock */
-	u64			 obd_osfs_age;
+	time64_t		 obd_osfs_age;
 	u64			 obd_last_committed;
 	struct mutex		 obd_dev_mutex;
 	struct lvfs_run_ctxt	 obd_lvfs_ctxt;
@@ -850,9 +850,9 @@ struct obd_ops {
 	 * about this.
 	 */
 	int (*statfs)(const struct lu_env *, struct obd_export *exp,
-		      struct obd_statfs *osfs, u64 max_age, u32 flags);
+		      struct obd_statfs *osfs, time64_t max_age, u32 flags);
 	int (*statfs_async)(struct obd_export *exp, struct obd_info *oinfo,
-			    u64 max_age, struct ptlrpc_request_set *set);
+			    time64_t max_age, struct ptlrpc_request_set *set);
 	int (*create)(const struct lu_env *env, struct obd_export *exp,
 		      struct obdo *oa);
 	int (*destroy)(const struct lu_env *env, struct obd_export *exp,

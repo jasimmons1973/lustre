@@ -307,7 +307,7 @@ struct obd_device *class_newdev(const char *type_name, const char *name,
 	/* newdev->obd_osfs_age must be set to a value in the distant
 	 * past to guarantee a fresh statfs is fetched on mount.
 	 */
-	newdev->obd_osfs_age = get_jiffies_64() - 1000 * HZ;
+	newdev->obd_osfs_age = ktime_get_seconds() - 1000;
 
 	/* XXX belongs in setup not attach  */
 	init_rwsem(&newdev->obd_observer_link_sem);

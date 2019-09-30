@@ -2471,7 +2471,7 @@ out:
 }
 
 static int osc_statfs_async(struct obd_export *exp,
-			    struct obd_info *oinfo, u64 max_age,
+			    struct obd_info *oinfo, time64_t max_age,
 			    struct ptlrpc_request_set *rqset)
 {
 	struct obd_device *obd = class_exp2obd(exp);
@@ -2515,7 +2515,7 @@ static int osc_statfs_async(struct obd_export *exp,
 }
 
 static int osc_statfs(const struct lu_env *env, struct obd_export *exp,
-		      struct obd_statfs *osfs, u64 max_age, u32 flags)
+		      struct obd_statfs *osfs, time64_t max_age, u32 flags)
 {
 	struct obd_device *obd = class_exp2obd(exp);
 	struct obd_statfs *msfs;

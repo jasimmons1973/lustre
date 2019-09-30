@@ -134,10 +134,10 @@ struct obd_import_conn {
 	struct ptlrpc_connection	*oic_conn;
 	/** uuid of remote side */
 	struct obd_uuid			oic_uuid;
-	/**
-	 * Time (64 bit jiffies) of last connection attempt on this connection
+	/*
+	 * Time (64 bit seconds) of last connection attempt on this connection
 	 */
-	u64				oic_last_attempt;
+	time64_t			oic_last_attempt;
 };
 
 /* state history */
@@ -251,8 +251,8 @@ struct obd_import {
 	struct lustre_handle		imp_remote_handle;
 	/** When to perform next ping. time in jiffies. */
 	time64_t			imp_next_ping;
-	/** When we last successfully connected. time in 64bit jiffies */
-	u64				imp_last_success_conn;
+	/** When we last successfully connected. time in 64bit seconds */
+	time64_t			imp_last_success_conn;
 
 	/** List of all possible connection for import. */
 	struct list_head		imp_conn_list;

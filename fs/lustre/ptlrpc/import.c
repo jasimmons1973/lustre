@@ -462,7 +462,7 @@ static int import_select_connection(struct obd_import *imp)
 	}
 
 	list_for_each_entry(conn, &imp->imp_conn_list, oic_item) {
-		CDEBUG(D_HA, "%s: connect to NID %s last attempt %llu\n",
+		CDEBUG(D_HA, "%s: connect to NID %s last attempt %lld\n",
 		       imp->imp_obd->obd_name,
 		       libcfs_nid2str(conn->oic_conn->c_peer.nid),
 		       conn->oic_last_attempt);
@@ -471,8 +471,7 @@ static int import_select_connection(struct obd_import *imp)
 		 * the last successful attempt, go with this one
 		 */
 		if ((conn->oic_last_attempt == 0) ||
-		    time_before_eq64(conn->oic_last_attempt,
-				     imp->imp_last_success_conn)) {
+		    conn->oic_last_attempt <= imp->imp_last_success_conn) {
 			imp_conn = conn;
 			tried_all = 0;
 			break;
@@ -484,8 +483,7 @@ static int import_select_connection(struct obd_import *imp)
 		 */
 		if (!imp_conn)
 			imp_conn = conn;
-		else if (time_before64(conn->oic_last_attempt,
-					    imp_conn->oic_last_attempt))
+		else if (imp_conn->oic_last_attempt > conn->oic_last_attempt)
 			imp_conn = conn;
 	}
 
@@ -517,7 +515,7 @@ static int import_select_connection(struct obd_import *imp)
 		       imp->imp_obd->obd_name, at_get(at));
 	}
 
-	imp_conn->oic_last_attempt = get_jiffies_64();
+	imp_conn->oic_last_attempt = ktime_get_seconds();
 
 	/* switch connection, don't mind if it's same as the current one */
 	ptlrpc_connection_put(imp->imp_connection);

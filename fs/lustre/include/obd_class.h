@@ -874,7 +874,7 @@ static inline int obd_destroy_export(struct obd_export *exp)
  */
 static inline int obd_statfs_async(struct obd_export *exp,
 				   struct obd_info *oinfo,
-				   u64 max_age,
+				   time64_t max_age,
 				   struct ptlrpc_request_set *rqset)
 {
 	int rc = 0;
@@ -889,9 +889,9 @@ static inline int obd_statfs_async(struct obd_export *exp,
 		return -EOPNOTSUPP;
 	}
 
-	CDEBUG(D_SUPER, "%s: osfs %p age %llu, max_age %llu\n",
+	CDEBUG(D_SUPER, "%s: osfs %p age %lld, max_age %lld\n",
 	       obd->obd_name, &obd->obd_osfs, obd->obd_osfs_age, max_age);
-	if (time_before64(obd->obd_osfs_age, max_age)) {
+	if (obd->obd_osfs_age < max_age) {
 		rc = OBP(obd, statfs_async)(exp, oinfo, max_age, rqset);
 	} else {
 		CDEBUG(D_SUPER,
@@ -915,7 +915,7 @@ static inline int obd_statfs_async(struct obd_export *exp,
  * target.  Use a value of "jiffies + HZ" to guarantee freshness.
  */
 static inline int obd_statfs(const struct lu_env *env, struct obd_export *exp,
-			     struct obd_statfs *osfs, u64 max_age,
+			     struct obd_statfs *osfs, time64_t max_age,
 			     u32 flags)
 {
 	struct obd_device *obd = exp->exp_obd;
@@ -929,14 +929,14 @@ static inline int obd_statfs(const struct lu_env *env, struct obd_export *exp,
 		return -EOPNOTSUPP;
 	}
 
-	CDEBUG(D_SUPER, "osfs %llu, max_age %llu\n",
+	CDEBUG(D_SUPER, "osfs %lld, max_age %lld\n",
 	       obd->obd_osfs_age, max_age);
-	if (time_before64(obd->obd_osfs_age, max_age)) {
+	if (obd->obd_osfs_age < max_age) {
 		rc = OBP(obd, statfs)(env, exp, osfs, max_age, flags);
 		if (rc == 0) {
 			spin_lock(&obd->obd_osfs_lock);
 			memcpy(&obd->obd_osfs, osfs, sizeof(obd->obd_osfs));
-			obd->obd_osfs_age = get_jiffies_64();
+			obd->obd_osfs_age = ktime_get_seconds();
 			spin_unlock(&obd->obd_osfs_lock);
 		}
 	} else {

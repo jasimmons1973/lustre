@@ -288,7 +288,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	 * available
 	 */
 	err = obd_statfs(NULL, sbi->ll_md_exp, osfs,
-			 get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
+			 ktime_get_seconds() - OBD_STATFS_CACHE_SECONDS,
 			 OBD_STATFS_FOR_MDT0);
 	if (err)
 		goto out_md_fid;
@@ -1716,7 +1716,7 @@ int ll_setattr(struct dentry *de, struct iattr *attr)
 }
 
 int ll_statfs_internal(struct ll_sb_info *sbi, struct obd_statfs *osfs,
-		       u64 max_age, u32 flags)
+		       time64_t max_age, u32 flags)
 {
 	struct obd_statfs obd_osfs;
 	int rc;
@@ -1775,7 +1775,7 @@ int ll_statfs(struct dentry *de, struct kstatfs *sfs)
 
 	/* Some amount of caching on the client is allowed */
 	rc = ll_statfs_internal(ll_s2sbi(sb), &osfs,
-				get_jiffies_64() - OBD_STATFS_CACHE_SECONDS * HZ,
+				ktime_get_seconds() - OBD_STATFS_CACHE_SECONDS,
 				0);
 	if (rc)
 		return rc;
