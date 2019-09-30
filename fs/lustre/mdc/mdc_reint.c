@@ -231,17 +231,20 @@ resend:
 		level = LUSTRE_IMP_RECOVER;
 		goto resend;
 	} else if (rc == -EINPROGRESS) {
-		/* Retry create infinitely until succeed or get other
-		 * error code.
+		/*
+		 * Retry create infinitely until succeed or get other
+		 * error code or interrupted.
 		 */
 		ptlrpc_req_finished(req);
-		resends++;
-
-		CDEBUG(D_HA, "%s: resend:%d create on " DFID "/" DFID "\n",
-		       exp->exp_obd->obd_name, resends,
-		       PFID(&op_data->op_fid1), PFID(&op_data->op_fid2));
-
 		if (generation == import->imp_generation) {
+			if (signal_pending(current))
+				return -EINTR;
+
+			resends++;
+			CDEBUG(D_HA, "%s: resend:%d create on "DFID"/"DFID"\n",
+			       exp->exp_obd->obd_name, resends,
+			       PFID(&op_data->op_fid1),
+			       PFID(&op_data->op_fid2));
 			goto rebuild;
 		} else {
 			CDEBUG(D_HA, "resend cross eviction\n");
