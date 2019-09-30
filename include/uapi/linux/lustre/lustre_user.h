@@ -365,8 +365,10 @@ struct ll_ioc_lease {
 #define LOV_USER_MAGIC_COMP_V1	0x0BD60BD0
 
 #define LMV_USER_MAGIC		0x0CD30CD0	/*default lmv magic*/
+#define LMV_USER_MAGIC_SPECIFIC	0x0CD40CD0
 
 #define LOV_PATTERN_RAID0	0x001
+
 #define LOV_PATTERN_RAID1	0x002
 #define LOV_PATTERN_MDT		0x100
 #define LOV_PATTERN_CMOBD	0x200
