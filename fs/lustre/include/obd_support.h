@@ -478,6 +478,7 @@ extern char obd_jobid_var[];
 #define OBD_FAIL_FLR_GLIMPSE_IMMUTABLE			0x1A00
 #define OBD_FAIL_FLR_LV_DELAY			0x1A01
 #define OBD_FAIL_FLR_LV_INC			0x1A02
+#define OBD_FAIL_FLR_RANDOM_PICK_MIRROR	0x1A03
 
 /* Assign references to moved code to reduce code changes */
 #define OBD_FAIL_PRECHECK(id)			CFS_FAIL_PRECHECK(id)
