@@ -125,8 +125,10 @@ struct lustre_sb_info {
 	atomic_t		  lsi_mounts; /* references to the srv_mnt */
 	struct kobject		 *lsi_kobj;
 	char			  lsi_svname[MTI_NAME_MAXLEN];
-	char			  lsi_osd_obdname[64];
-	char			  lsi_osd_uuid[64];
+	/* lsi_osd_obdname format = 'lsi->ls_svname'-osd */
+	char			  lsi_osd_obdname[MTI_NAME_MAXLEN + 4];
+	/* lsi_osd_uuid format = 'lsi->ls_osd_obdname'_UUID */
+	char			  lsi_osd_uuid[MTI_NAME_MAXLEN + 9];
 	struct obd_export	 *lsi_osd_exp;
 	char			  lsi_osd_type[16];
 	char			  lsi_fstype[16];
