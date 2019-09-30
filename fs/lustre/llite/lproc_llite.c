@@ -140,9 +140,7 @@ static ssize_t blocksize_show(struct kobject *kobj, struct attribute *attr,
 	struct obd_statfs osfs;
 	int rc;
 
-	rc = ll_statfs_internal(sbi, &osfs,
-				ktime_get_seconds() - OBD_STATFS_CACHE_SECONDS,
-				OBD_STATFS_NODELAY);
+	rc = ll_statfs_internal(sbi, &osfs, OBD_STATFS_NODELAY);
 	if (rc)
 		return rc;
 
@@ -192,9 +190,7 @@ static ssize_t kbytestotal_show(struct kobject *kobj, struct attribute *attr,
 	u64 result;
 	int rc;
 
-	rc = ll_statfs_internal(sbi, &osfs,
-				ktime_get_seconds() - OBD_STATFS_CACHE_SECONDS,
-				OBD_STATFS_NODELAY);
+	rc = ll_statfs_internal(sbi, &osfs, OBD_STATFS_NODELAY);
 	if (rc)
 		return rc;
 
@@ -218,9 +214,7 @@ static ssize_t kbytesfree_show(struct kobject *kobj, struct attribute *attr,
 	u64 result;
 	int rc;
 
-	rc = ll_statfs_internal(sbi, &osfs,
-				ktime_get_seconds() - OBD_STATFS_CACHE_SECONDS,
-				OBD_STATFS_NODELAY);
+	rc = ll_statfs_internal(sbi, &osfs, OBD_STATFS_NODELAY);
 	if (rc)
 		return rc;
 
@@ -244,9 +238,7 @@ static ssize_t kbytesavail_show(struct kobject *kobj, struct attribute *attr,
 	u64 result;
 	int rc;
 
-	rc = ll_statfs_internal(sbi, &osfs,
-				ktime_get_seconds() - OBD_STATFS_CACHE_SECONDS,
-				OBD_STATFS_NODELAY);
+	rc = ll_statfs_internal(sbi, &osfs, OBD_STATFS_NODELAY);
 	if (rc)
 		return rc;
 
@@ -268,9 +260,7 @@ static ssize_t filestotal_show(struct kobject *kobj, struct attribute *attr,
 	struct obd_statfs osfs;
 	int rc;
 
-	rc = ll_statfs_internal(sbi, &osfs,
-				ktime_get_seconds() - OBD_STATFS_CACHE_SECONDS,
-				OBD_STATFS_NODELAY);
+	rc = ll_statfs_internal(sbi, &osfs, OBD_STATFS_NODELAY);
 	if (rc)
 		return rc;
 
@@ -286,9 +276,7 @@ static ssize_t filesfree_show(struct kobject *kobj, struct attribute *attr,
 	struct obd_statfs osfs;
 	int rc;
 
-	rc = ll_statfs_internal(sbi, &osfs,
-				ktime_get_seconds() - OBD_STATFS_CACHE_SECONDS,
-				OBD_STATFS_NODELAY);
+	rc = ll_statfs_internal(sbi, &osfs, OBD_STATFS_NODELAY);
 	if (rc)
 		return rc;
 

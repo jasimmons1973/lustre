@@ -868,9 +868,9 @@ static inline int obd_destroy_export(struct obd_export *exp)
 }
 
 /*
- * @max_age is the oldest time in jiffies that we accept using a cached data.
+ * @max_age is the oldest time in seconds that we accept using a cached data.
  * If the cache is older than @max_age we will get a new value from the
- * target.  Use a value of "jiffies + HZ" to guarantee freshness.
+ * target. Use a value of 'ktime_get_seconds() + X' to guarantee freshness.
  */
 static inline int obd_statfs_async(struct obd_export *exp,
 				   struct obd_info *oinfo,
@@ -910,9 +910,9 @@ static inline int obd_statfs_async(struct obd_export *exp,
 }
 
 /*
- * @max_age is the oldest time in jiffies that we accept using a cached data.
+ * @max_age is the oldest time in seconds that we accept using a cached data.
  * If the cache is older than @max_age we will get a new value from the
- * target.  Use a value of "jiffies + HZ" to guarantee freshness.
+ * target. Use a value of 'ktime_get_seconds() + X' to guarantee freshness.
  */
 static inline int obd_statfs(const struct lu_env *env, struct obd_export *exp,
 			     struct obd_statfs *osfs, time64_t max_age,
