@@ -342,7 +342,7 @@ static void ptlrpc_at_timer(struct timer_list *t)
 	svcpt = from_timer(svcpt, t, scp_at_timer);
 
 	svcpt->scp_at_check = 1;
-	svcpt->scp_at_checktime = jiffies;
+	svcpt->scp_at_checktime = ktime_get();
 	wake_up(&svcpt->scp_waitq);
 }
 
@@ -933,7 +933,7 @@ static int ptlrpc_check_req(struct ptlrpc_request *req)
 static void ptlrpc_at_set_timer(struct ptlrpc_service_part *svcpt)
 {
 	struct ptlrpc_at_array *array = &svcpt->scp_at_array;
-	s32 next;
+	time64_t next;
 
 	if (array->paa_count == 0) {
 		del_timer(&svcpt->scp_at_timer);
@@ -941,13 +941,14 @@ static void ptlrpc_at_set_timer(struct ptlrpc_service_part *svcpt)
 	}
 
 	/* Set timer for closest deadline */
-	next = (s32)(array->paa_deadline - ktime_get_real_seconds() -
-		       at_early_margin);
+	next = array->paa_deadline - ktime_get_real_seconds() -
+		at_early_margin;
 	if (next <= 0) {
 		ptlrpc_at_timer(&svcpt->scp_at_timer);
 	} else {
-		mod_timer(&svcpt->scp_at_timer, jiffies + next * HZ);
-		CDEBUG(D_INFO, "armed %s at %+ds\n",
+		mod_timer(&svcpt->scp_at_timer,
+			  jiffies + nsecs_to_jiffies(next * NSEC_PER_SEC));
+		CDEBUG(D_INFO, "armed %s at %+llds\n",
 		       svcpt->scp_service->srv_name, next);
 	}
 }
@@ -1181,7 +1182,7 @@ static void ptlrpc_at_check_timed(struct ptlrpc_service_part *svcpt)
 	u32 index, count;
 	time64_t deadline;
 	time64_t now = ktime_get_real_seconds();
-	long delay;
+	s64 delay;
 	int first, counter = 0;
 
 	spin_lock(&svcpt->scp_at_lock);
@@ -1189,7 +1190,7 @@ static void ptlrpc_at_check_timed(struct ptlrpc_service_part *svcpt)
 		spin_unlock(&svcpt->scp_at_lock);
 		return;
 	}
-	delay = jiffies - svcpt->scp_at_checktime;
+	delay = ktime_ms_delta(ktime_get(), svcpt->scp_at_checktime);
 	svcpt->scp_at_check = 0;
 
 	if (array->paa_count == 0) {
@@ -1254,7 +1255,7 @@ static void ptlrpc_at_check_timed(struct ptlrpc_service_part *svcpt)
 		 */
 		LCONSOLE_WARN("%s: This server is not able to keep up with request traffic (cpu-bound).\n",
 			      svcpt->scp_service->srv_name);
-		CWARN("earlyQ=%d reqQ=%d recA=%d, svcEst=%d, delay=%ld(jiff)\n",
+		CWARN("earlyQ=%d reqQ=%d recA=%d, svcEst=%d, delay=%lld\n",
 		      counter, svcpt->scp_nreqs_incoming,
 		      svcpt->scp_nreqs_active,
 		      at_get(&svcpt->scp_at_estimate), delay);

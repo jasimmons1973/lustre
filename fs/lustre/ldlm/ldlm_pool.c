@@ -887,7 +887,7 @@ static void ldlm_pools_recalc(struct work_struct *ws)
 	struct ldlm_namespace *ns;
 	struct ldlm_namespace *ns_old = NULL;
 	/* seconds of sleep if no active namespaces */
-	int time = LDLM_POOL_CLI_DEF_RECALC_PERIOD;
+	time64_t time = LDLM_POOL_CLI_DEF_RECALC_PERIOD;
 	int nr;
 
 	/*
@@ -953,7 +953,7 @@ static void ldlm_pools_recalc(struct work_struct *ws)
 		 * After setup is done - recalc the pool.
 		 */
 		if (!skip) {
-			int ttime = ldlm_pool_recalc(&ns->ns_pool);
+			time64_t ttime = ldlm_pool_recalc(&ns->ns_pool);
 
 			if (ttime < time)
 				time = ttime;

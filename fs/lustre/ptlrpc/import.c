@@ -242,7 +242,7 @@ ptlrpc_inflight_deadline(struct ptlrpc_request *req, time64_t now)
 	return dl - now;
 }
 
-static unsigned int ptlrpc_inflight_timeout(struct obd_import *imp)
+static time64_t ptlrpc_inflight_timeout(struct obd_import *imp)
 {
 	time64_t now = ktime_get_real_seconds();
 	struct ptlrpc_request *req, *n;
