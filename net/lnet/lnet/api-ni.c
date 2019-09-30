@@ -1816,8 +1816,6 @@ lnet_startup_lndnet(struct lnet_net *net, struct lnet_lnd_tunables *tun)
 	if (lnet_net_unique(net->net_id, &the_lnet.ln_nets, &net_l)) {
 		lnd_type = LNET_NETTYP(net->net_id);
 
-		LASSERT(libcfs_isknown_lnd(lnd_type));
-
 		mutex_lock(&the_lnet.ln_lnd_mutex);
 		lnd = lnet_find_lnd_by_type(lnd_type);
 
@@ -2715,7 +2713,7 @@ int lnet_dyn_add_ni(struct lnet_ioctl_config_ni *conf)
 	struct lnet_ni *ni;
 	struct lnet_ioctl_config_lnd_tunables *tun = NULL;
 	int rc, i;
-	u32 net_id;
+	u32 net_id, lnd_type;
 
 	/* get the tunables if they are available */
 	if (conf->lic_cfg_hdr.ioc_len >=
@@ -2729,6 +2727,12 @@ int lnet_dyn_add_ni(struct lnet_ioctl_config_ni *conf)
 						  tun);
 
 	net_id = LNET_NIDNET(conf->lic_nid);
+	lnd_type = LNET_NETTYP(net_id);
+
+	if (!libcfs_isknown_lnd(lnd_type)) {
+		CERROR("No valid net and lnd information provided\n");
+		return -EINVAL;
+	}
 
 	net = lnet_net_alloc(net_id, NULL);
 	if (!net)
