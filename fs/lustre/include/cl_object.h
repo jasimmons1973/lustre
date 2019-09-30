@@ -1597,10 +1597,14 @@ enum cl_enq_flags {
 	 */
 	CEF_NONBLOCK		= 0x00000001,
 	/**
-	 * take lock asynchronously (out of order), as it cannot
-	 * deadlock. This is for LDLM_FL_HAS_INTENT locks used for glimpsing.
+	 * Tell lower layers this is a glimpse request, translated to
+	 * LDLM_FL_HAS_INTENT at LDLM layer.
+	 *
+	 * Also, because glimpse locks never block other locks, we count this
+	 * as automatically compatible with other osc locks.
+	 * (see osc_lock_compatible)
 	 */
-	CEF_ASYNC		= 0x00000002,
+	CEF_GLIMPSE		= 0x00000002,
 	/**
 	 * tell the server to instruct (though a flag in the blocking ast) an
 	 * owner of the conflicting lock, that it can drop dirty pages
@@ -1609,8 +1613,9 @@ enum cl_enq_flags {
 	CEF_DISCARD_DATA	= 0x00000004,
 	/**
 	 * tell the sub layers that it must be a `real' lock. This is used for
-	 * mmapped-buffer locks and glimpse locks that must be never converted
-	 * into lockless mode.
+	 * mmapped-buffer locks and glimpse locks, manually requested locks
+	 * (LU_LADVISE_LOCKAHEAD) that must be never converted into lockless
+	 * mode.
 	 *
 	 * \see vvp_mmap_locks(), cl_glimpse_lock().
 	 */
@@ -1627,9 +1632,16 @@ enum cl_enq_flags {
 	 */
 	CEF_NEVER		= 0x00000010,
 	/**
-	 * for async glimpse lock.
+	 * tell the dlm layer this is a speculative lock request
+	 * speculative lock requests are locks which are not requested as part
+	 * of an I/O operation.  Instead, they are requested because we expect
+	 * to use them in the future.  They are requested asynchronously at the
+	 * ptlrpc layer.
+	 *
+	 * Currently used for asynchronous glimpse locks and manually requested
+	 * locks (LU_LADVISE_LOCKAHEAD).
 	 */
-	CEF_AGL			= 0x00000020,
+	CEF_SPECULATIVE		= 0x00000020,
 	/**
 	 * enqueue a lock to test DLM lock existence.
 	 */
@@ -1640,9 +1652,13 @@ enum cl_enq_flags {
 	 */
 	CEF_LOCK_MATCH		= BIT(7),
 	/**
+	 * tell the DLM layer to lock only the requested range
+	 */
+	CEF_LOCK_NO_EXPAND	= BIT(8),
+	/**
 	 * mask of enq_flags.
 	 */
-	CEF_MASK		= 0x000000ff,
+	CEF_MASK		= 0x000001ff,
 };
 
 /**
@@ -1849,7 +1865,9 @@ struct cl_io {
 	/**
 	 * O_NOATIME
 	 */
-				ci_noatime:1;
+				ci_noatime:1,
+	/* Tell sublayers not to expand LDLM locks requested for this IO */
+				ci_lock_no_expand:1;
 	/**
 	 * Number of pages owned by this IO. For invariant checking.
 	 */

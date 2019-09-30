@@ -43,6 +43,8 @@
 #include <obd_class.h>
 #include "ldlm_internal.h"
 
+struct kmem_cache *ldlm_glimpse_work_kmem;
+
 /* lock types */
 char *ldlm_lockname[] = {
 	[0]		= "--",
@@ -1756,8 +1758,11 @@ static int ldlm_work_gl_ast_lock(struct ptlrpc_request_set *rqset, void *opaq)
 
 	LDLM_LOCK_RELEASE(lock);
 
-	if ((gl_work->gl_flags & LDLM_GL_WORK_NOFREE) == 0)
+	if (gl_work->gl_flags & LDLM_GL_WORK_SLAB_ALLOCATED)
+		kmem_cache_free(ldlm_glimpse_work_kmem, gl_work);
+	else
 		kfree(gl_work);
+	gl_work = NULL;
 
 	return rc;
 }

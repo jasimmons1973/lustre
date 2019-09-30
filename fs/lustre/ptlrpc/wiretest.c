@@ -40,6 +40,8 @@
 #include <obd_class.h>
 #include <lustre_net.h>
 #include <lustre_disk.h>
+#include <uapi/linux/lustre/lustre_idl.h>
+
 #include "ptlrpc_internal.h"
 
 void lustre_assert_wire_constants(void)
@@ -1113,14 +1115,16 @@ void lustre_assert_wire_constants(void)
 		 OBD_CONNECT_DIR_STRIPE);
 	LASSERTF(OBD_CONNECT_SUBTREE == 0x800000000000000ULL, "found 0x%.16llxULL\n",
 		 OBD_CONNECT_SUBTREE);
-	LASSERTF(OBD_CONNECT_LOCK_AHEAD == 0x1000000000000000ULL, "found 0x%.16llxULL\n",
-		 OBD_CONNECT_LOCK_AHEAD);
+	LASSERTF(OBD_CONNECT_LOCKAHEAD_OLD == 0x1000000000000000ULL, "found 0x%.16llxULL\n",
+		 OBD_CONNECT_LOCKAHEAD_OLD);
 	LASSERTF(OBD_CONNECT_OBDOPACK == 0x4000000000000000ULL, "found 0x%.16llxULL\n",
 		 OBD_CONNECT_OBDOPACK);
 	LASSERTF(OBD_CONNECT_FLAGS2 == 0x8000000000000000ULL, "found 0x%.16llxULL\n",
 		 OBD_CONNECT_FLAGS2);
 	LASSERTF(OBD_CONNECT2_FILE_SECCTX == 0x1ULL, "found 0x%.16llxULL\n",
 		 OBD_CONNECT2_FILE_SECCTX);
+	LASSERTF(OBD_CONNECT2_LOCKAHEAD == 0x2ULL, "found 0x%.16llxULL\n",
+		 OBD_CONNECT2_LOCKAHEAD);
 	LASSERTF(OBD_CKSUM_CRC32 == 0x00000001UL, "found 0x%.8xUL\n",
 		 (unsigned int)OBD_CKSUM_CRC32);
 	LASSERTF(OBD_CKSUM_ADLER == 0x00000002UL, "found 0x%.8xUL\n",

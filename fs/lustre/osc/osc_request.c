@@ -106,7 +106,7 @@ struct osc_enqueue_args {
 	void			*oa_cookie;
 	struct ost_lvb		*oa_lvb;
 	struct lustre_handle	oa_lockh;
-	unsigned int		oa_agl:1;
+	unsigned int		oa_speculative;
 };
 
 static void osc_release_ppga(struct brw_page **ppga, u32 count);
@@ -2044,7 +2044,7 @@ static int osc_set_lock_data(struct ldlm_lock *lock, void *data)
 static int osc_enqueue_fini(struct ptlrpc_request *req,
 			    osc_enqueue_upcall_f upcall, void *cookie,
 			    struct lustre_handle *lockh, enum ldlm_mode mode,
-			    u64 *flags, int agl, int errcode)
+			    u64 *flags, int speculative, int errcode)
 {
 	bool intent = *flags & LDLM_FL_HAS_INTENT;
 	int rc;
@@ -2059,7 +2059,7 @@ static int osc_enqueue_fini(struct ptlrpc_request *req,
 			ptlrpc_status_ntoh(rep->lock_policy_res1);
 		if (rep->lock_policy_res1)
 			errcode = rep->lock_policy_res1;
-		if (!agl)
+		if (!speculative)
 			*flags |= LDLM_FL_LVB_READY;
 	} else if (errcode == ELDLM_OK) {
 		*flags |= LDLM_FL_LVB_READY;
@@ -2107,7 +2107,7 @@ static int osc_enqueue_interpret(const struct lu_env *env,
 	/* Let CP AST to grant the lock first. */
 	OBD_FAIL_TIMEOUT(OBD_FAIL_OSC_CP_ENQ_RACE, 1);
 
-	if (aa->oa_agl) {
+	if (aa->oa_speculative) {
 		LASSERT(!aa->oa_lvb);
 		LASSERT(!aa->oa_flags);
 		aa->oa_flags = &flags;
@@ -2119,7 +2119,7 @@ static int osc_enqueue_interpret(const struct lu_env *env,
 				   lockh, rc);
 	/* Complete osc stuff. */
 	rc = osc_enqueue_fini(req, aa->oa_upcall, aa->oa_cookie, lockh, mode,
-			      aa->oa_flags, aa->oa_agl, rc);
+			      aa->oa_flags, aa->oa_speculative, rc);
 
 	OBD_FAIL_TIMEOUT(OBD_FAIL_OSC_CP_CANCEL_RACE, 10);
 
@@ -2141,7 +2141,8 @@ int osc_enqueue_base(struct obd_export *exp, struct ldlm_res_id *res_id,
 		     struct ost_lvb *lvb, int kms_valid,
 		     osc_enqueue_upcall_f upcall, void *cookie,
 		     struct ldlm_enqueue_info *einfo,
-		     struct ptlrpc_request_set *rqset, int async, int agl)
+		     struct ptlrpc_request_set *rqset, int async,
+		     bool speculative)
 {
 	struct obd_device *obd = exp->exp_obd;
 	struct lustre_handle lockh = { 0 };
@@ -2182,7 +2183,11 @@ int osc_enqueue_base(struct obd_export *exp, struct ldlm_res_id *res_id,
 	mode = einfo->ei_mode;
 	if (einfo->ei_mode == LCK_PR)
 		mode |= LCK_PW;
-	if (agl == 0)
+	/* Normal lock requests must wait for the LVB to be ready before
+	 * matching a lock; speculative lock requests do not need to,
+	 * because they will not actually use the lock.
+	 */
+	if (!speculative)
 		match_flags |= LDLM_FL_LVB_READY;
 	if (intent != 0)
 		match_flags |= LDLM_FL_BLOCK_GRANTED;
@@ -2195,14 +2200,23 @@ int osc_enqueue_base(struct obd_export *exp, struct ldlm_res_id *res_id,
 			return ELDLM_OK;
 
 		matched = ldlm_handle2lock(&lockh);
-		if (agl) {
-			/* AGL enqueues DLM locks speculatively. Therefore if
-			 * it already exists a DLM lock, it wll just inform the
-			 * caller to cancel the AGL process for this stripe.
+		if (speculative) {
+			/* This DLM lock request is speculative, and does not
+			 * have an associated IO request. Therefore if there
+			 * is already a DLM lock, it wll just inform the
+			 * caller to cancel the request for this stripe.
 			 */
+			lock_res_and_lock(matched);
+			if (ldlm_extent_equal(&policy->l_extent,
+					      &matched->l_policy_data.l_extent))
+				rc = -EEXIST;
+			else
+				rc = -ECANCELED;
+			unlock_res_and_lock(matched);
+
 			ldlm_lock_decref(&lockh, mode);
 			LDLM_LOCK_PUT(matched);
-			return -ECANCELED;
+			return rc;
 		}
 		if (osc_set_lock_data(matched, einfo->ei_cbdata)) {
 			*flags |= LDLM_FL_LVB_READY;
@@ -2254,14 +2268,14 @@ no_match:
 			lustre_handle_copy(&aa->oa_lockh, &lockh);
 			aa->oa_upcall = upcall;
 			aa->oa_cookie = cookie;
-			aa->oa_agl = !!agl;
-			if (!agl) {
+			aa->oa_speculative = speculative;
+			if (!speculative) {
 				aa->oa_flags = flags;
 				aa->oa_lvb = lvb;
 			} else {
-				/* AGL is essentially to enqueue an DLM lock
-				 * in advance, so we don't care about the
-				 * result of AGL enqueue.
+				/* speculative locks are essentially to enqueue
+				 * a DLM lock  in advance, so we don't care
+				 * about the result of the enqueue.
 				 */
 				aa->oa_lvb = NULL;
 				aa->oa_flags = NULL;
@@ -2277,7 +2291,7 @@ no_match:
 	}
 
 	rc = osc_enqueue_fini(req, upcall, cookie, &lockh, einfo->ei_mode,
-			      flags, agl, rc);
+			      flags, speculative, rc);
 	if (intent)
 		ptlrpc_req_finished(req);
 
