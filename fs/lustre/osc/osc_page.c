@@ -122,12 +122,12 @@ static const char *osc_list(struct list_head *head)
 	return list_empty(head) ? "-" : "+";
 }
 
-static inline unsigned long osc_submit_duration(struct osc_page *opg)
+static inline s64 osc_submit_duration(struct osc_page *opg)
 {
-	if (opg->ops_submit_time == 0)
+	if (ktime_to_ns(opg->ops_submit_time) == 0)
 		return 0;
 
-	return (jiffies - opg->ops_submit_time);
+	return ktime_ms_delta(ktime_get(), opg->ops_submit_time);
 }
 
 static int osc_page_print(const struct lu_env *env,
@@ -139,7 +139,7 @@ static int osc_page_print(const struct lu_env *env,
 	struct osc_object *obj = cl2osc(slice->cpl_obj);
 	struct client_obd *cli = &osc_export(obj)->exp_obd->u.cli;
 
-	return (*printer)(env, cookie, LUSTRE_OSC_NAME "-page@%p %lu: 1< %#x %d %s %s > 2< %llu %u %u %#x %#x | %p %p %p > 3< %d %lu %d > 4< %d %d %d %lu %s | %s %s %s %s > 5< %s %s %s %s | %d %s | %d %s %s>\n",
+	return (*printer)(env, cookie, LUSTRE_OSC_NAME "-page@%p %lu: 1< %#x %d %s %s > 2< %llu %u %u %#x %#x | %p %p %p > 3< %d %lld %d > 4< %d %d %d %lu %s | %s %s %s %s > 5< %s %s %s %s | %d %s | %d %s %s>\n",
 			  opg, osc_index(opg),
 			  /* 1 */
 			  oap->oap_magic, oap->oap_cmd,
@@ -303,7 +303,7 @@ void osc_page_submit(const struct lu_env *env, struct osc_page *opg,
 		oap->oap_cmd |= OBD_BRW_NOQUOTA;
 	}
 
-	opg->ops_submit_time = jiffies;
+	opg->ops_submit_time = ktime_get();
 	osc_page_transfer_get(opg, "transfer\0imm");
 	osc_page_transfer_add(env, opg, crt);
 }

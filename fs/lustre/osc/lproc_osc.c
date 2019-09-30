@@ -506,7 +506,7 @@ static ssize_t contention_seconds_show(struct kobject *kobj,
 					      obd_kset.kobj);
 	struct osc_device *od = obd2osc_dev(obd);
 
-	return sprintf(buf, "%u\n", od->od_contention_time);
+	return sprintf(buf, "%lld\n", od->od_contention_time);
 }
 
 static ssize_t contention_seconds_store(struct kobject *kobj,

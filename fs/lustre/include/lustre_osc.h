@@ -120,7 +120,7 @@ struct osc_device {
 	} od_stats;
 
 	/* configuration item(s) */
-	int			od_contention_time;
+	time64_t		od_contention_time;
 	int			od_lockless_truncate;
 };
 
@@ -264,7 +264,7 @@ struct osc_object {
 	 * True if locking against this stripe got -EUSERS.
 	 */
 	int			oo_contended;
-	unsigned long		oo_contention_time;
+	ktime_t			oo_contention_time;
 	/*
 	 * used by the osc to keep track of what objects to build into rpcs.
 	 * Protected by client_obd->cli_loi_list_lock.
@@ -532,7 +532,7 @@ struct osc_page {
 	/*
 	 * Submit time - the time when the page is starting RPC. For debugging.
 	 */
-	unsigned long		ops_submit_time;
+	ktime_t			ops_submit_time;
 };
 
 struct osc_brw_async_args {
