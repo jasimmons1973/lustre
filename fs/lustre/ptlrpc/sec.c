@@ -1680,6 +1680,7 @@ void sptlrpc_cli_free_repbuf(struct ptlrpc_request *req)
 	policy->sp_cops->free_repbuf(ctx->cc_sec, req);
 	req->rq_repmsg = NULL;
 }
+EXPORT_SYMBOL(sptlrpc_cli_free_repbuf);
 
 static int sptlrpc_svc_install_rvs_ctx(struct obd_import *imp,
 				       struct ptlrpc_svc_ctx *ctx)

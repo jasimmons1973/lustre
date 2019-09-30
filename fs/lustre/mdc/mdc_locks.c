@@ -44,6 +44,7 @@
 #include <lustre_net.h>
 #include <lustre_req_layout.h>
 #include <lustre_swab.h>
+#include <lustre_acl.h>
 
 #include "mdc_internal.h"
 
@@ -244,7 +245,7 @@ static int mdc_save_lovea(struct ptlrpc_request *req,
 
 static struct ptlrpc_request *
 mdc_intent_open_pack(struct obd_export *exp, struct lookup_intent *it,
-		     struct md_op_data *op_data)
+		     struct md_op_data *op_data, u32 acl_bufsize)
 {
 	struct ptlrpc_request *req;
 	struct obd_device *obddev = class_exp2obd(exp);
@@ -333,8 +334,7 @@ mdc_intent_open_pack(struct obd_export *exp, struct lookup_intent *it,
 
 	req_capsule_set_size(&req->rq_pill, &RMF_MDT_MD, RCL_SERVER,
 			     obddev->u.cli.cl_max_mds_easize);
-	req_capsule_set_size(&req->rq_pill, &RMF_ACL, RCL_SERVER,
-			     req->rq_import->imp_connect_data.ocd_max_easize);
+	req_capsule_set_size(&req->rq_pill, &RMF_ACL, RCL_SERVER, acl_bufsize);
 
 	ptlrpc_request_set_replen(req);
 	return req;
@@ -440,9 +440,9 @@ static struct ptlrpc_request *mdc_intent_unlink_pack(struct obd_export *exp,
 	return req;
 }
 
-static struct ptlrpc_request *mdc_intent_getattr_pack(struct obd_export *exp,
-						      struct lookup_intent *it,
-						     struct md_op_data *op_data)
+static struct ptlrpc_request *
+mdc_intent_getattr_pack(struct obd_export *exp, struct lookup_intent *it,
+			struct md_op_data *op_data, u32 acl_bufsize)
 {
 	struct ptlrpc_request *req;
 	struct obd_device *obddev = class_exp2obd(exp);
@@ -480,8 +480,7 @@ static struct ptlrpc_request *mdc_intent_getattr_pack(struct obd_export *exp,
 	mdc_getattr_pack(req, valid, it->it_flags, op_data, easize);
 
 	req_capsule_set_size(&req->rq_pill, &RMF_MDT_MD, RCL_SERVER, easize);
-	req_capsule_set_size(&req->rq_pill, &RMF_ACL, RCL_SERVER,
-			     req->rq_import->imp_connect_data.ocd_max_easize);
+	req_capsule_set_size(&req->rq_pill, &RMF_ACL, RCL_SERVER, acl_bufsize);
 	ptlrpc_request_set_replen(req);
 	return req;
 }
@@ -782,6 +781,8 @@ int mdc_enqueue_base(struct obd_export *exp, struct ldlm_enqueue_info *einfo,
 	struct ldlm_res_id res_id;
 	int generation, resends = 0;
 	struct ldlm_reply *lockrep;
+	struct obd_import *imp = class_exp2cliimp(exp);
+	u32 acl_bufsize;
 	enum lvb_type lvb_type = LVB_T_NONE;
 	int rc;
 
@@ -804,6 +805,11 @@ int mdc_enqueue_base(struct obd_export *exp, struct ldlm_enqueue_info *einfo,
 	}
 
 	generation = obddev->u.cli.cl_import->imp_generation;
+	if (!it || (it->it_op & (IT_CREAT | IT_OPEN_CREAT)))
+		acl_bufsize = imp->imp_connect_data.ocd_max_easize;
+	else
+		acl_bufsize = LUSTRE_POSIX_ACL_MAX_SIZE_OLD;
+
 resend:
 	flags = saved_flags;
 	if (!it) {
@@ -812,15 +818,15 @@ resend:
 			 einfo->ei_type);
 		res_id.name[3] = LDLM_FLOCK;
 	} else if (it->it_op & IT_OPEN) {
-		req = mdc_intent_open_pack(exp, it, op_data);
+		req = mdc_intent_open_pack(exp, it, op_data, acl_bufsize);
 	} else if (it->it_op & IT_UNLINK) {
 		req = mdc_intent_unlink_pack(exp, it, op_data);
 	} else if (it->it_op & (IT_GETATTR | IT_LOOKUP)) {
-		req = mdc_intent_getattr_pack(exp, it, op_data);
+		req = mdc_intent_getattr_pack(exp, it, op_data, acl_bufsize);
 	} else if (it->it_op & IT_READDIR) {
 		req = mdc_enqueue_pack(exp, 0);
 	} else if (it->it_op & IT_LAYOUT) {
-		if (!imp_connect_lvb_type(class_exp2cliimp(exp)))
+		if (!imp_connect_lvb_type(imp))
 			return -EOPNOTSUPP;
 		req = mdc_intent_layout_pack(exp, it, op_data);
 		lvb_type = LVB_T_LAYOUT;
@@ -924,6 +930,15 @@ resend:
 			CDEBUG(D_HA, "resend cross eviction\n");
 			return -EIO;
 		}
+	}
+
+	if ((int)lockrep->lock_policy_res2 == -ERANGE &&
+	    it->it_op & (IT_OPEN | IT_GETATTR | IT_LOOKUP) &&
+	    acl_bufsize != imp->imp_connect_data.ocd_max_easize) {
+		mdc_clear_replay_flag(req, -ERANGE);
+		ptlrpc_req_finished(req);
+		acl_bufsize = imp->imp_connect_data.ocd_max_easize;
+		goto resend;
 	}
 
 	rc = mdc_finish_enqueue(exp, req, einfo, it, lockh, rc);
@@ -1284,7 +1299,11 @@ int mdc_intent_getattr_async(struct obd_export *exp,
 	       PFID(&op_data->op_fid1), ldlm_it2str(it->it_op), it->it_flags);
 
 	fid_build_reg_res_name(&op_data->op_fid1, &res_id);
-	req = mdc_intent_getattr_pack(exp, it, op_data);
+	/* If the MDT return -ERANGE because of large ACL, then the sponsor
+	 * of the async getattr RPC will handle that by itself.
+	 */
+	req = mdc_intent_getattr_pack(exp, it, op_data,
+				      LUSTRE_POSIX_ACL_MAX_SIZE_OLD);
 	if (IS_ERR(req))
 		return PTR_ERR(req);
 

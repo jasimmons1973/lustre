@@ -188,10 +188,23 @@ static int mdc_getattr_common(struct obd_export *exp,
 	return 0;
 }
 
+static void mdc_reset_acl_req(struct ptlrpc_request *req)
+{
+	spin_lock(&req->rq_early_free_lock);
+	sptlrpc_cli_free_repbuf(req);
+	req->rq_repbuf = NULL;
+	req->rq_repbuf_len = 0;
+	req->rq_repdata = NULL;
+	req->rq_reqdata_len = 0;
+	spin_unlock(&req->rq_early_free_lock);
+}
+
 static int mdc_getattr(struct obd_export *exp, struct md_op_data *op_data,
 		       struct ptlrpc_request **request)
 {
 	struct ptlrpc_request *req;
+	struct obd_import *imp = class_exp2cliimp(exp);
+	u32 acl_bufsize = LUSTRE_POSIX_ACL_MAX_SIZE_OLD;
 	int rc;
 
 	/* Single MDS without an LMV case */
@@ -199,8 +212,9 @@ static int mdc_getattr(struct obd_export *exp, struct md_op_data *op_data,
 		op_data->op_mds = 0;
 		return 0;
 	}
+
 	*request = NULL;
-	req = ptlrpc_request_alloc(class_exp2cliimp(exp), &RQF_MDS_GETATTR);
+	req = ptlrpc_request_alloc(imp, &RQF_MDS_GETATTR);
 	if (!req)
 		return -ENOMEM;
 
@@ -210,20 +224,28 @@ static int mdc_getattr(struct obd_export *exp, struct md_op_data *op_data,
 		return rc;
 	}
 
+again:
 	mdc_pack_body(req, &op_data->op_fid1, op_data->op_valid,
 		      op_data->op_mode, -1, 0);
-
-	req_capsule_set_size(&req->rq_pill, &RMF_ACL, RCL_SERVER,
-			     req->rq_import->imp_connect_data.ocd_max_easize);
+	req_capsule_set_size(&req->rq_pill, &RMF_ACL, RCL_SERVER, acl_bufsize);
 	req_capsule_set_size(&req->rq_pill, &RMF_MDT_MD, RCL_SERVER,
 			     op_data->op_mode);
 	ptlrpc_request_set_replen(req);
 
 	rc = mdc_getattr_common(exp, req);
-	if (rc)
+	if (rc) {
+		if (rc == -ERANGE &&
+		    acl_bufsize != imp->imp_connect_data.ocd_max_easize) {
+			acl_bufsize = imp->imp_connect_data.ocd_max_easize;
+			mdc_reset_acl_req(req);
+			goto again;
+		}
+
 		ptlrpc_req_finished(req);
-	else
+	} else {
 		*request = req;
+	}
+
 	return rc;
 }
 
@@ -231,11 +253,12 @@ static int mdc_getattr_name(struct obd_export *exp, struct md_op_data *op_data,
 			    struct ptlrpc_request **request)
 {
 	struct ptlrpc_request *req;
+	struct obd_import *imp = class_exp2cliimp(exp);
+	u32 acl_bufsize = LUSTRE_POSIX_ACL_MAX_SIZE_OLD;
 	int rc;
 
 	*request = NULL;
-	req = ptlrpc_request_alloc(class_exp2cliimp(exp),
-				   &RQF_MDS_GETATTR_NAME);
+	req = ptlrpc_request_alloc(imp, &RQF_MDS_GETATTR_NAME);
 	if (!req)
 		return -ENOMEM;
 
@@ -248,9 +271,6 @@ static int mdc_getattr_name(struct obd_export *exp, struct md_op_data *op_data,
 		return rc;
 	}
 
-	mdc_pack_body(req, &op_data->op_fid1, op_data->op_valid,
-		      op_data->op_mode, op_data->op_suppgids[0], 0);
-
 	if (op_data->op_name) {
 		char *name = req_capsule_client_get(&req->rq_pill, &RMF_NAME);
 
@@ -259,17 +279,28 @@ static int mdc_getattr_name(struct obd_export *exp, struct md_op_data *op_data,
 		memcpy(name, op_data->op_name, op_data->op_namelen);
 	}
 
+again:
+	mdc_pack_body(req, &op_data->op_fid1, op_data->op_valid,
+		      op_data->op_mode, op_data->op_suppgids[0], 0);
 	req_capsule_set_size(&req->rq_pill, &RMF_MDT_MD, RCL_SERVER,
 			     op_data->op_mode);
-	req_capsule_set_size(&req->rq_pill, &RMF_ACL, RCL_SERVER,
-			     req->rq_import->imp_connect_data.ocd_max_easize);
+	req_capsule_set_size(&req->rq_pill, &RMF_ACL, RCL_SERVER, acl_bufsize);
 	ptlrpc_request_set_replen(req);
 
 	rc = mdc_getattr_common(exp, req);
-	if (rc)
+	if (rc) {
+		if (rc == -ERANGE &&
+		    acl_bufsize != imp->imp_connect_data.ocd_max_easize) {
+			acl_bufsize = imp->imp_connect_data.ocd_max_easize;
+			mdc_reset_acl_req(req);
+			goto again;
+		}
+
 		ptlrpc_req_finished(req);
-	else
+	} else {
 		*request = req;
+	}
+
 	return rc;
 }
 
