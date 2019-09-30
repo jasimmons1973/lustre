@@ -1166,10 +1166,10 @@ static enum ldlm_policy_res ldlm_cancel_lrur_policy(struct ldlm_namespace *ns,
 						    int unused, int added,
 						    int count)
 {
-	unsigned long cur = jiffies;
+	ktime_t cur = ktime_get();
 	struct ldlm_pool *pl = &ns->ns_pool;
 	u64 slv, lvf, lv;
-	unsigned long la;
+	s64 la;
 
 	/* Stop LRU processing when we reach past @count or have checked all
 	 * locks in LRU.
@@ -1181,12 +1181,13 @@ static enum ldlm_policy_res ldlm_cancel_lrur_policy(struct ldlm_namespace *ns,
 	 * Despite of the LV, It doesn't make sense to keep the lock which
 	 * is unused for ns_max_age time.
 	 */
-	if (time_after(jiffies, lock->l_last_used + ns->ns_max_age))
+	if (ktime_after(ktime_get(),
+			ktime_add(lock->l_last_used, ns->ns_max_age)))
 		return LDLM_POLICY_CANCEL_LOCK;
 
 	slv = ldlm_pool_get_slv(pl);
 	lvf = ldlm_pool_get_lvf(pl);
-	la = (cur - lock->l_last_used) / HZ;
+	la = ktime_to_ns(ktime_sub(cur, lock->l_last_used)) / NSEC_PER_SEC;
 	lv = lvf * la * unused;
 
 	/* Inform pool about current CLV to see it via debugfs. */
@@ -1235,7 +1236,8 @@ static enum ldlm_policy_res ldlm_cancel_aged_policy(struct ldlm_namespace *ns,
 						    int count)
 {
 	if ((added >= count) &&
-	    time_before(jiffies, lock->l_last_used + ns->ns_max_age))
+	    ktime_before(ktime_get(),
+			 ktime_add(lock->l_last_used, ns->ns_max_age)))
 		return LDLM_POLICY_KEEP_LOCK;
 
 	return LDLM_POLICY_CANCEL_LOCK;
@@ -1382,7 +1384,7 @@ static int ldlm_prepare_lru_list(struct ldlm_namespace *ns,
 
 	while (!list_empty(&ns->ns_unused_list)) {
 		enum ldlm_policy_res result;
-		time_t last_use = 0;
+		ktime_t last_use = ktime_set(0, 0);
 
 		/* all unused locks */
 		if (remained-- <= 0)
@@ -1402,8 +1404,6 @@ static int ldlm_prepare_lru_list(struct ldlm_namespace *ns,
 				continue;
 
 			last_use = lock->l_last_used;
-			if (last_use == jiffies)
-				continue;
 
 			/* Somebody is already doing CANCEL. No need for this
 			 * lock in LRU, do not traverse it again.

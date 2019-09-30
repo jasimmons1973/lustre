@@ -59,7 +59,7 @@ struct obd_device;
 #define OBD_LDLM_DEVICENAME  "ldlm"
 
 #define LDLM_DEFAULT_LRU_SIZE (100 * num_online_cpus())
-#define LDLM_DEFAULT_MAX_ALIVE (65 * 60 * HZ) /* 65 min */
+#define LDLM_DEFAULT_MAX_ALIVE (64 * 60)	/* 65 min */
 #define LDLM_DEFAULT_PARALLEL_AST_LIMIT 1024
 
 /**
@@ -410,8 +410,9 @@ struct ldlm_namespace {
 	 * controlled by available memory on this client and on server.
 	 */
 	unsigned int		ns_max_unused;
+
 	/** Maximum allowed age (last used time) for locks in the LRU */
-	unsigned int		ns_max_age;
+	ktime_t			ns_max_age;
 
 	/**
 	 * Used to rate-limit ldlm_namespace_dump calls.
@@ -702,10 +703,9 @@ struct ldlm_lock {
 	time64_t			l_last_activity;
 
 	/**
-	 * Time last used by e.g. being matched by lock match.
-	 * Jiffies. Should be converted to time if needed.
+	 * Time, in nanoseconds, last used by e.g. being matched by lock match.
 	 */
-	unsigned long			l_last_used;
+	ktime_t				l_last_used;
 
 	/** Originally requested extent for the extent lock. */
 	struct ldlm_extent		l_req_extent;
