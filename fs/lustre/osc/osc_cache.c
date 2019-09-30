@@ -2260,8 +2260,8 @@ static void osc_check_rpcs(const struct lu_env *env, struct client_obd *cli)
 	spin_unlock(&cli->cl_loi_list_lock);
 }
 
-static int __osc_io_unplug(const struct lu_env *env, struct client_obd *cli,
-			   struct osc_object *osc, int async)
+int __osc_io_unplug(const struct lu_env *env, struct client_obd *cli,
+		    struct osc_object *osc, int async)
 {
 	int rc = 0;
 
@@ -2278,18 +2278,7 @@ static int __osc_io_unplug(const struct lu_env *env, struct client_obd *cli,
 
 	return rc;
 }
-
-static int osc_io_unplug_async(const struct lu_env *env,
-			       struct client_obd *cli, struct osc_object *osc)
-{
-	return __osc_io_unplug(env, cli, osc, 1);
-}
-
-void osc_io_unplug(const struct lu_env *env, struct client_obd *cli,
-		   struct osc_object *osc)
-{
-	(void)__osc_io_unplug(env, cli, osc, 0);
-}
+EXPORT_SYMBOL(__osc_io_unplug);
 
 int osc_prep_async_page(struct osc_object *osc, struct osc_page *ops,
 			struct page *page, loff_t offset)

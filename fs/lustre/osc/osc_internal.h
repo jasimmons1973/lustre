@@ -44,6 +44,7 @@ extern struct ptlrpc_request_pool *osc_rq_pool;
 
 int osc_shrink_grant_to_target(struct client_obd *cli, u64 target_bytes);
 void osc_update_next_shrink(struct client_obd *cli);
+int lru_queue_work(const struct lu_env *env, void *data);
 
 typedef int (*osc_enqueue_upcall_f)(void *cookie, struct lustre_handle *lockh,
 				    int rc);

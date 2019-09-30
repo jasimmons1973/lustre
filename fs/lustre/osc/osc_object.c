@@ -462,5 +462,5 @@ int osc_object_invalidate(const struct lu_env *env, struct osc_object *osc)
 
 	return 0;
 }
-
+EXPORT_SYMBOL(osc_object_invalidate);
 /** @} osc */

@@ -737,10 +737,6 @@ static void osc_update_grant(struct client_obd *cli, struct ost_body *body)
 	}
 }
 
-static int osc_set_info_async(const struct lu_env *env, struct obd_export *exp,
-			      u32 keylen, void *key, u32 vallen,
-			      void *val, struct ptlrpc_request_set *set);
-
 static int osc_shrink_grant_interpret(const struct lu_env *env,
 				      struct ptlrpc_request *req,
 				      void *aa, int rc)
@@ -2524,9 +2520,10 @@ out:
 	return err;
 }
 
-static int osc_set_info_async(const struct lu_env *env, struct obd_export *exp,
-			      u32 keylen, void *key, u32 vallen,
-			      void *val, struct ptlrpc_request_set *set)
+int osc_set_info_async(const struct lu_env *env, struct obd_export *exp,
+		       u32 keylen, void *key,
+		       u32 vallen, void *val,
+		       struct ptlrpc_request_set *set)
 {
 	struct ptlrpc_request *req;
 	struct obd_device *obd = exp->exp_obd;
@@ -2642,6 +2639,7 @@ static int osc_set_info_async(const struct lu_env *env, struct obd_export *exp,
 
 	return 0;
 }
+EXPORT_SYMBOL(osc_set_info_async);
 
 static int osc_reconnect(const struct lu_env *env,
 			 struct obd_export *exp, struct obd_device *obd,
@@ -2702,9 +2700,9 @@ static int osc_disconnect(struct obd_export *exp)
 	return rc;
 }
 
-static int osc_ldlm_resource_invalidate(struct cfs_hash *hs,
-					struct cfs_hash_bd *bd,
-					struct hlist_node *hnode, void *arg)
+int osc_ldlm_resource_invalidate(struct cfs_hash *hs,
+				 struct cfs_hash_bd *bd,
+				 struct hlist_node *hnode, void *arg)
 {
 	struct ldlm_resource *res = cfs_hash_object(hs, hnode);
 	struct osc_object *osc = NULL;
@@ -2734,6 +2732,7 @@ static int osc_ldlm_resource_invalidate(struct cfs_hash *hs,
 
 	return 0;
 }
+EXPORT_SYMBOL(osc_ldlm_resource_invalidate);
 
 static int osc_import_event(struct obd_device *obd,
 			    struct obd_import *imp,
@@ -2842,14 +2841,11 @@ static int brw_queue_work(const struct lu_env *env, void *data)
 	return 0;
 }
 
-int osc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
+int osc_setup_common(struct obd_device *obd, struct lustre_cfg *lcfg)
 {
 	struct client_obd *cli = &obd->u.cli;
 	void *handler;
 	int rc;
-	int adding;
-	int added;
-	int req_count;
 
 	rc = ptlrpcd_addref();
 	if (rc)
@@ -2862,7 +2858,7 @@ int osc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	handler = ptlrpcd_alloc_work(cli->cl_import, brw_queue_work, cli);
 	if (IS_ERR(handler)) {
 		rc = PTR_ERR(handler);
-		goto out_client_setup;
+		goto out_ptlrpcd_work;
 	}
 	cli->cl_writeback_work = handler;
 
@@ -2879,6 +2875,37 @@ int osc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 		goto out_ptlrpcd_work;
 
 	cli->cl_grant_shrink_interval = GRANT_SHRINK_INTERVAL;
+
+	INIT_LIST_HEAD(&cli->cl_grant_shrink_list);
+	return 0;
+
+out_ptlrpcd_work:
+	if (cli->cl_writeback_work) {
+		ptlrpcd_destroy_work(cli->cl_writeback_work);
+		cli->cl_writeback_work = NULL;
+	}
+	if (cli->cl_lru_work) {
+		ptlrpcd_destroy_work(cli->cl_lru_work);
+		cli->cl_lru_work = NULL;
+	}
+	client_obd_cleanup(obd);
+out_ptlrpcd:
+	ptlrpcd_decref();
+	return rc;
+}
+EXPORT_SYMBOL(osc_setup_common);
+
+int osc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
+{
+	struct client_obd *cli = &obd->u.cli;
+	int adding;
+	int added;
+	int req_count;
+	int rc;
+
+	rc = osc_setup_common(obd, lcfg);
+	if (rc < 0)
+		return rc;
 
 	rc = osc_tunables_init(obd);
 	if (rc)
@@ -2910,23 +2937,10 @@ int osc_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 
 out_quota:
 	osc_quota_cleanup(obd);
-out_ptlrpcd_work:
-	if (cli->cl_writeback_work) {
-		ptlrpcd_destroy_work(cli->cl_writeback_work);
-		cli->cl_writeback_work = NULL;
-	}
-	if (cli->cl_lru_work) {
-		ptlrpcd_destroy_work(cli->cl_lru_work);
-		cli->cl_lru_work = NULL;
-	}
-out_client_setup:
-	client_obd_cleanup(obd);
-out_ptlrpcd:
-	ptlrpcd_decref();
 	return rc;
 }
 
-static int osc_precleanup(struct obd_device *obd)
+int osc_precleanup_common(struct obd_device *obd)
 {
 	struct client_obd *cli = &obd->u.cli;
 
@@ -2951,12 +2965,20 @@ static int osc_precleanup(struct obd_device *obd)
 	}
 
 	obd_cleanup_client_import(obd);
+	return 0;
+}
+EXPORT_SYMBOL(osc_precleanup_common);
+
+static int osc_precleanup(struct obd_device *obd)
+{
+	osc_precleanup_common(obd);
+
 	ptlrpc_lprocfs_unregister_obd(obd);
 	lprocfs_obd_cleanup(obd);
 	return 0;
 }
 
-static int osc_cleanup(struct obd_device *obd)
+int osc_cleanup_common(struct obd_device *obd)
 {
 	struct client_obd *cli = &obd->u.cli;
 	int rc;
@@ -2984,6 +3006,7 @@ static int osc_cleanup(struct obd_device *obd)
 	ptlrpcd_decref();
 	return rc;
 }
+EXPORT_SYMBOL(osc_cleanup_common);
 
 int osc_process_config_base(struct obd_device *obd, struct lustre_cfg *lcfg)
 {
@@ -3001,7 +3024,7 @@ static const struct obd_ops osc_obd_ops = {
 	.owner		= THIS_MODULE,
 	.setup		= osc_setup,
 	.precleanup	= osc_precleanup,
-	.cleanup	= osc_cleanup,
+	.cleanup	= osc_cleanup_common,
 	.add_conn	= client_import_add_conn,
 	.del_conn	= client_import_del_conn,
 	.connect	= client_connect_import,

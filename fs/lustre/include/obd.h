@@ -316,6 +316,10 @@ struct client_obd {
 	atomic_t		cl_mgc_refcount;
 	struct obd_export      *cl_mgc_mgsexp;
 
+	/* in-flight control list and total RPCs counter */
+	struct list_head	 cl_flight_waiters;
+	u32			 cl_rpcs_in_flight;
+
 	/* checksumming for data sent over the network */
 	unsigned int		cl_checksum:1,	/* 0 = disabled, 1 = enabled */
 				cl_checksum_dump:1; /* same */

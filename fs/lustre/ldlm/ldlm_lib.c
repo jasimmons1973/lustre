@@ -351,6 +351,9 @@ int client_obd_setup(struct obd_device *obddev, struct lustre_cfg *lcfg)
 	atomic_long_set(&cli->cl_unstable_count, 0);
 	INIT_LIST_HEAD(&cli->cl_shrink_list);
 
+	INIT_LIST_HEAD(&cli->cl_flight_waiters);
+	cli->cl_rpcs_in_flight = 0;
+
 	init_waitqueue_head(&cli->cl_destroy_waitq);
 	atomic_set(&cli->cl_destroy_in_flight, 0);
 	/* Turn on checksumming by default. */
