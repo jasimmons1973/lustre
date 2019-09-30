@@ -105,7 +105,10 @@ int cl_lock_init(const struct lu_env *env, struct cl_lock *lock,
 
 	INIT_LIST_HEAD(&lock->cll_layers);
 	cl_object_for_each(scan, obj) {
-		result = scan->co_ops->coo_lock_init(env, scan, lock, io);
+		if (scan->co_ops->coo_lock_init)
+			result = scan->co_ops->coo_lock_init(env, scan, lock,
+							     io);
+
 		if (result != 0) {
 			cl_lock_fini(env, lock);
 			break;
@@ -159,7 +162,7 @@ int cl_lock_enqueue(const struct lu_env *env, struct cl_io *io,
 		    struct cl_lock *lock, struct cl_sync_io *anchor)
 {
 	const struct cl_lock_slice *slice;
-	int rc = -EBUSY;
+	int rc = 0;
 
 	list_for_each_entry(slice, &lock->cll_layers, cls_linkage) {
 		if (!slice->cls_ops->clo_enqueue)

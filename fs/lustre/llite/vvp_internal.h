@@ -119,7 +119,6 @@ extern struct lu_device_type vvp_device_type;
 extern struct lu_context_key vvp_session_key;
 extern struct lu_context_key vvp_thread_key;
 
-extern struct kmem_cache *vvp_lock_kmem;
 extern struct kmem_cache *vvp_object_kmem;
 
 struct vvp_thread_info {
@@ -247,10 +246,6 @@ struct vvp_device {
 	struct cl_device	*vdv_next;
 };
 
-struct vvp_lock {
-	struct cl_lock_slice	vlk_cl;
-};
-
 void *ccc_key_init(const struct lu_context *ctx,
 		   struct lu_context_key *key);
 void ccc_key_fini(const struct lu_context *ctx,
@@ -296,19 +291,12 @@ static inline struct page *cl2vm_page(const struct cl_page_slice *slice)
 	return cl2vvp_page(slice)->vpg_page;
 }
 
-static inline struct vvp_lock *cl2vvp_lock(const struct cl_lock_slice *slice)
-{
-	return container_of(slice, struct vvp_lock, vlk_cl);
-}
-
 # define CLOBINVRNT(env, clob, expr)					\
 	((void)sizeof(env), (void)sizeof(clob), (void)sizeof(!!(expr)))
 
 int vvp_io_init(const struct lu_env *env, struct cl_object *obj,
 		struct cl_io *io);
 int vvp_io_write_commit(const struct lu_env *env, struct cl_io *io);
-int vvp_lock_init(const struct lu_env *env, struct cl_object *obj,
-		  struct cl_lock *lock, const struct cl_io *io);
 int vvp_page_init(const struct lu_env *env, struct cl_object *obj,
 		  struct cl_page *page, pgoff_t index);
 struct lu_object *vvp_object_alloc(const struct lu_env *env,
