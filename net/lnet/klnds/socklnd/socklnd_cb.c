@@ -119,7 +119,7 @@ ksocknal_send_iov(struct ksock_conn *conn, struct ksock_tx *tx)
 	/* Never touch tx->tx_iov inside ksocknal_lib_send_iov() */
 	rc = ksocknal_lib_send_iov(conn, tx);
 
-	if (rc <= 0)			    /* sent nothing? */
+	if (rc <= 0)			/* sent nothing? */
 		return rc;
 
 	nob = rc;
@@ -157,7 +157,7 @@ ksocknal_send_kiov(struct ksock_conn *conn, struct ksock_tx *tx)
 	/* Never touch tx->tx_kiov inside ksocknal_lib_send_kiov() */
 	rc = ksocknal_lib_send_kiov(conn, tx);
 
-	if (rc <= 0)			    /* sent nothing? */
+	if (rc <= 0)			/* sent nothing? */
 		return rc;
 
 	nob = rc;
@@ -212,7 +212,7 @@ ksocknal_transmit(struct ksock_conn *conn, struct ksock_tx *tx)
 		}
 
 		bufnob = conn->ksnc_sock->sk->sk_wmem_queued;
-		if (rc > 0)		     /* sent something? */
+		if (rc > 0)			/* sent something? */
 			conn->ksnc_tx_bufnob += rc; /* account it */
 
 		if (bufnob < conn->ksnc_tx_bufnob) {
@@ -268,7 +268,7 @@ ksocknal_recv_iter(struct ksock_conn *conn)
 	conn->ksnc_peer->ksnp_last_alive = ktime_get_seconds();
 	conn->ksnc_rx_deadline = ktime_get_seconds() +
 				 *ksocknal_tunables.ksnd_timeout;
-	mb();		       /* order with setting rx_started */
+	mb();		/* order with setting rx_started */
 	conn->ksnc_rx_started = 1;
 
 	conn->ksnc_rx_nob_left -= nob;
@@ -522,8 +522,8 @@ ksocknal_launch_connection_locked(struct ksock_route *route)
 	LASSERT(!route->ksnr_connecting);
 	LASSERT(ksocknal_route_mask() & ~route->ksnr_connected);
 
-	route->ksnr_scheduled = 1;	      /* scheduling conn for connd */
-	ksocknal_route_addref(route);	   /* extra ref for connd */
+	route->ksnr_scheduled = 1;	/* scheduling conn for connd */
+	ksocknal_route_addref(route);	/* extra ref for connd */
 
 	spin_lock_bh(&ksocknal_data.ksnd_connd_lock);
 
@@ -906,7 +906,7 @@ ksocknal_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 		return -ENOMEM;
 	}
 
-	tx->tx_conn = NULL;		     /* set when assigned a conn */
+	tx->tx_conn = NULL;		/* set when assigned a conn */
 	tx->tx_lnetmsg = lntmsg;
 
 	if (payload_iov) {
@@ -984,9 +984,9 @@ ksocknal_new_packet(struct ksock_conn *conn, int nob_to_skip)
 		ksocknal_lib_eager_ack(conn);
 	}
 
-	if (!nob_to_skip) {	 /* right at next packet boundary now */
+	if (!nob_to_skip) {	/* right at next packet boundary now */
 		conn->ksnc_rx_started = 0;
-		mb();		       /* racing with timeout thread */
+		mb();		/* racing with timeout thread */
 
 		switch (conn->ksnc_proto->pro_version) {
 		case  KSOCK_PROTO_V2:
@@ -1231,8 +1231,8 @@ again:
 	case SOCKNAL_RX_SLOP:
 		/* starting new packet? */
 		if (ksocknal_new_packet(conn, conn->ksnc_rx_nob_left))
-			return 0;       /* come back later */
-		goto again;	     /* try to finish reading slop now */
+			return 0;	/* come back later */
+		goto again;		/* try to finish reading slop now */
 
 	default:
 		break;
@@ -1240,7 +1240,7 @@ again:
 
 	/* Not Reached */
 	LBUG();
-	return -EINVAL;		       /* keep gcc happy */
+	return -EINVAL;		/* keep gcc happy */
 }
 
 int
@@ -1449,7 +1449,7 @@ int ksocknal_scheduler(void *arg)
 
 			did_something = 1;
 		}
-		if (!did_something ||	   /* nothing to do */
+		if (!did_something ||		/* nothing to do */
 		    ++nloops == SOCKNAL_RESCHED) { /* hogging CPU? */
 			spin_unlock_bh(&sched->kss_lock);
 
