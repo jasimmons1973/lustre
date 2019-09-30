@@ -1808,7 +1808,8 @@ void lnet_peer_push_event(struct lnet_event *ev)
 	/* lnet_find_peer() adds a refcount */
 	lp = lnet_find_peer(ev->source.nid);
 	if (!lp) {
-		CERROR("Push Put from unknown %s (source %s)\n",
+		CDEBUG(D_NET,
+		       "Push Put from unknown %s (source %s). Ignoring...\n",
 		       libcfs_nid2str(ev->initiator.nid),
 		       libcfs_nid2str(ev->source.nid));
 		return;
