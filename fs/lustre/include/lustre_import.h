@@ -308,8 +308,11 @@ struct obd_import {
 	u64				imp_connect_flags2_orig;
 	int				imp_connect_error;
 
-	u32				imp_msg_magic;
-	u32				imp_msghdr_flags; /* adjusted based on server capability */
+	enum lustre_msg_magic		imp_msg_magic;
+					/* adjusted based on server
+					 * capability
+					 */
+	enum lustre_msghdr		imp_msghdr_flags;
 
 	struct imp_at			imp_at;	/* adaptive timeout data */
 	time64_t			imp_last_reply_time; /* for health check */

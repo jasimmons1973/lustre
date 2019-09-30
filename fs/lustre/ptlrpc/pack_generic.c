@@ -749,7 +749,7 @@ static inline struct ptlrpc_body *lustre_msg_ptlrpc_body(struct lustre_msg *msg)
 				 sizeof(struct ptlrpc_body_v2));
 }
 
-u32 lustre_msghdr_get_flags(struct lustre_msg *msg)
+enum lustre_msghdr lustre_msghdr_get_flags(struct lustre_msg *msg)
 {
 	switch (msg->lm_magic) {
 	case LUSTRE_MSG_MAGIC_V2:
@@ -762,7 +762,7 @@ u32 lustre_msghdr_get_flags(struct lustre_msg *msg)
 }
 EXPORT_SYMBOL(lustre_msghdr_get_flags);
 
-void lustre_msghdr_set_flags(struct lustre_msg *msg, u32 flags)
+void lustre_msghdr_set_flags(struct lustre_msg *msg, enum lustre_msghdr flags)
 {
 	switch (msg->lm_magic) {
 	case LUSTRE_MSG_MAGIC_V2:
