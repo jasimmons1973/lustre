@@ -668,20 +668,17 @@ ssize_t conn_uuid_show(struct kobject *kobj, struct attribute *attr, char *buf)
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
 	struct ptlrpc_connection *conn;
+	struct obd_import *imp;
 	ssize_t count;
-	int rc;
 
-	rc = lprocfs_climp_check(obd);
-	if (rc)
-		return rc;
+	with_imp_locked(obd, imp, count) {
+		conn = imp->imp_connection;
+		if (conn)
+			count = sprintf(buf, "%s\n", conn->c_remote_uuid.uuid);
+		else
+			count = sprintf(buf, "%s\n", "<none>");
+	}
 
-	conn = obd->u.cli.cl_import->imp_connection;
-	if (conn && obd->u.cli.cl_import)
-		count = sprintf(buf, "%s\n", conn->c_remote_uuid.uuid);
-	else
-		count = sprintf(buf, "%s\n", "<none>");
-
-	up_read(&obd->u.cli.cl_sem);
 	return count;
 }
 EXPORT_SYMBOL(conn_uuid_show);
@@ -694,17 +691,12 @@ int lprocfs_rd_server_uuid(struct seq_file *m, void *data)
 	int rc;
 
 	LASSERT(obd);
-	rc = lprocfs_climp_check(obd);
-	if (rc)
-		return rc;
-
-	imp = obd->u.cli.cl_import;
-	imp_state_name = ptlrpc_import_state_name(imp->imp_state);
-	seq_printf(m, "%s\t%s%s\n",
-		   obd2cli_tgt(obd), imp_state_name,
-		   imp->imp_deactive ? "\tDEACTIVATED" : "");
-
-	up_read(&obd->u.cli.cl_sem);
+	with_imp_locked(obd, imp, rc) {
+		imp_state_name = ptlrpc_import_state_name(imp->imp_state);
+		seq_printf(m, "%s\t%s%s\n",
+			   obd2cli_tgt(obd), imp_state_name,
+			   imp->imp_deactive ? "\tDEACTIVATED" : "");
+	}
 
 	return 0;
 }
@@ -902,26 +894,19 @@ static void obd_connect_seq_flags2str(struct seq_file *m, u64 flags,
 	}
 }
 
-int lprocfs_rd_import(struct seq_file *m, void *data)
+static void lprocfs_rd_import_locked(struct seq_file *m,
+				     struct obd_device *obd,
+				     struct obd_import *imp)
 {
 	char nidstr[LNET_NIDSTR_SIZE];
 	struct lprocfs_counter ret;
 	struct lprocfs_counter_header *header;
-	struct obd_device *obd = data;
-	struct obd_import *imp;
 	struct obd_import_conn *conn;
 	struct obd_connect_data *ocd;
 	int j;
 	int k;
 	int rw = 0;
-	int rc;
 
-	LASSERT(obd);
-	rc = lprocfs_climp_check(obd);
-	if (rc)
-		return rc;
-
-	imp = obd->u.cli.cl_import;
 	ocd = &imp->imp_connect_data;
 
 	seq_printf(m, "import:\n"
@@ -974,7 +959,7 @@ int lprocfs_rd_import(struct seq_file *m, void *data)
 	spin_unlock(&imp->imp_lock);
 
 	if (!obd->obd_svc_stats)
-		goto out_climp;
+		return;
 
 	header = &obd->obd_svc_stats->ls_cnt_header[PTLRPC_REQWAIT_CNTR];
 	lprocfs_stats_collect(obd->obd_svc_stats, PTLRPC_REQWAIT_CNTR, &ret);
@@ -1045,10 +1030,18 @@ int lprocfs_rd_import(struct seq_file *m, void *data)
 					   k / j, (100 * k / j) % 100);
 		}
 	}
+}
 
-out_climp:
-	up_read(&obd->u.cli.cl_sem);
-	return 0;
+int lprocfs_rd_import(struct seq_file *m, void *data)
+{
+	struct obd_device *obd = (struct obd_device *)data;
+	struct obd_import *imp;
+	int rc;
+
+	LASSERT(obd);
+	with_imp_locked(obd, imp, rc)
+		lprocfs_rd_import_locked(m, obd, imp);
+	return rc;
 }
 EXPORT_SYMBOL(lprocfs_rd_import);
 
@@ -1059,27 +1052,23 @@ int lprocfs_rd_state(struct seq_file *m, void *data)
 	int j, k, rc;
 
 	LASSERT(obd);
-	rc = lprocfs_climp_check(obd);
-	if (rc)
-		return rc;
+	with_imp_locked(obd, imp, rc) {
+		seq_printf(m, "current_state: %s\n",
+			   ptlrpc_import_state_name(imp->imp_state));
+		seq_puts(m, "state_history:\n");
+		k = imp->imp_state_hist_idx;
+		for (j = 0; j < IMP_STATE_HIST_LEN; j++) {
+			struct import_state_hist *ish =
+				&imp->imp_state_hist[(k + j) % IMP_STATE_HIST_LEN];
 
-	imp = obd->u.cli.cl_import;
-
-	seq_printf(m, "current_state: %s\n",
-		   ptlrpc_import_state_name(imp->imp_state));
-	seq_puts(m, "state_history:\n");
-	k = imp->imp_state_hist_idx;
-	for (j = 0; j < IMP_STATE_HIST_LEN; j++) {
-		struct import_state_hist *ish =
-			&imp->imp_state_hist[(k + j) % IMP_STATE_HIST_LEN];
-		if (ish->ish_state == 0)
-			continue;
-		seq_printf(m, " - [ %lld, %s ]\n", (s64)ish->ish_time,
-			   ptlrpc_import_state_name(ish->ish_state));
+			if (ish->ish_state == 0)
+				continue;
+			seq_printf(m, " - [ %lld, %s ]\n", (s64)ish->ish_time,
+				   ptlrpc_import_state_name(ish->ish_state));
+		}
 	}
 
-	up_read(&obd->u.cli.cl_sem);
-	return 0;
+	return rc;
 }
 EXPORT_SYMBOL(lprocfs_rd_state);
 
@@ -1095,20 +1084,15 @@ int lprocfs_at_hist_helper(struct seq_file *m, struct adaptive_timeout *at)
 EXPORT_SYMBOL(lprocfs_at_hist_helper);
 
 /* See also ptlrpc_lprocfs_rd_timeouts */
-int lprocfs_rd_timeouts(struct seq_file *m, void *data)
+static void lprocfs_rd_timeouts_locked(struct seq_file *m,
+				       struct obd_device *obd,
+				       struct obd_import *imp)
 {
-	struct obd_device *obd = data;
-	struct obd_import *imp;
 	unsigned int cur, worst;
 	time64_t now, worstt;
-	int i, rc;
+	int i;
 
 	LASSERT(obd);
-	rc = lprocfs_climp_check(obd);
-	if (rc)
-		return rc;
-
-	imp = obd->u.cli.cl_import;
 
 	now = ktime_get_real_seconds();
 
@@ -1135,30 +1119,37 @@ int lprocfs_rd_timeouts(struct seq_file *m, void *data)
 			   (s64)(now - worstt));
 		lprocfs_at_hist_helper(m, &imp->imp_at.iat_service_estimate[i]);
 	}
+}
 
-	up_read(&obd->u.cli.cl_sem);
-	return 0;
+int lprocfs_rd_timeouts(struct seq_file *m, void *data)
+{
+	struct obd_device *obd = (struct obd_device *)data;
+	struct obd_import *imp;
+	int rc;
+
+	with_imp_locked(obd, imp, rc)
+		lprocfs_rd_timeouts_locked(m, obd, imp);
+	return rc;
 }
 EXPORT_SYMBOL(lprocfs_rd_timeouts);
 
 int lprocfs_rd_connect_flags(struct seq_file *m, void *data)
 {
 	struct obd_device *obd = data;
+	struct obd_import *imp;
 	u64 flags, flags2;
 	int rc;
 
-	rc = lprocfs_climp_check(obd);
-	if (rc)
-		return rc;
+	with_imp_locked(obd, imp, rc) {
+		flags = obd->u.cli.cl_import->imp_connect_data.ocd_connect_flags;
+		flags2 = obd->u.cli.cl_import->imp_connect_data.ocd_connect_flags2;
+		seq_printf(m, "flags=%#llx\n", flags);
+		seq_printf(m, "flags2=%#llx\n", flags2);
+		obd_connect_seq_flags2str(m, flags, flags2, "\n");
+		seq_puts(m, "\n");
+	}
 
-	flags = obd->u.cli.cl_import->imp_connect_data.ocd_connect_flags;
-	flags2 = obd->u.cli.cl_import->imp_connect_data.ocd_connect_flags2;
-	seq_printf(m, "flags=%#llx\n", flags);
-	seq_printf(m, "flags2=%#llx\n", flags2);
-	obd_connect_seq_flags2str(m, flags, flags2, "\n");
-	seq_puts(m, "\n");
-	up_read(&obd->u.cli.cl_sem);
-	return 0;
+	return rc;
 }
 EXPORT_SYMBOL(lprocfs_rd_connect_flags);
 
@@ -1998,6 +1989,7 @@ ssize_t max_pages_per_rpc_store(struct kobject *kobj, struct attribute *attr,
 					      obd_kset.kobj);
 	struct client_obd *cli = &dev->u.cli;
 	struct obd_connect_data *ocd;
+	struct obd_import *imp;
 	unsigned long long val;
 	int chunk_mask;
 	char *endp;
@@ -2011,27 +2003,23 @@ ssize_t max_pages_per_rpc_store(struct kobject *kobj, struct attribute *attr,
 	if (val >= ONE_MB_BRW_SIZE)
 		val >>= PAGE_SHIFT;
 
-	rc = lprocfs_climp_check(dev);
-	if (rc)
-		return rc;
-
-	ocd = &cli->cl_import->imp_connect_data;
-	chunk_mask = ~((1 << (cli->cl_chunkbits - PAGE_SHIFT)) - 1);
-	/* max_pages_per_rpc must be chunk aligned */
-	val = (val + ~chunk_mask) & chunk_mask;
-	if (!val || (ocd->ocd_brw_size &&
-		     val > ocd->ocd_brw_size >> PAGE_SHIFT)) {
-		up_read(&dev->u.cli.cl_sem);
-		return -ERANGE;
+	with_imp_locked(dev, imp, rc) {
+		ocd = &imp->imp_connect_data;
+		chunk_mask = ~((1 << (cli->cl_chunkbits - PAGE_SHIFT)) - 1);
+		/* max_pages_per_rpc must be chunk aligned */
+		val = (val + ~chunk_mask) & chunk_mask;
+		if (!val || (ocd->ocd_brw_size &&
+			     val > ocd->ocd_brw_size >> PAGE_SHIFT)) {
+			rc = -ERANGE;
+		} else {
+			spin_lock(&cli->cl_loi_list_lock);
+			cli->cl_max_pages_per_rpc = val;
+			client_adjust_max_dirty(cli);
+			spin_unlock(&cli->cl_loi_list_lock);
+		}
 	}
 
-	spin_lock(&cli->cl_loi_list_lock);
-	cli->cl_max_pages_per_rpc = val;
-	client_adjust_max_dirty(cli);
-	spin_unlock(&cli->cl_loi_list_lock);
-
-	up_read(&dev->u.cli.cl_sem);
-	return count;
+	return rc ?: count;
 }
 EXPORT_SYMBOL(max_pages_per_rpc_store);
 
@@ -2063,10 +2051,6 @@ ssize_t short_io_bytes_store(struct kobject *kobj, struct attribute *attr,
 	char *endp;
 	int rc;
 
-	rc = lprocfs_climp_check(dev);
-	if (rc)
-		return rc;
-
 	val = memparse(buffer, &endp);
 	if (*endp) {
 		rc = -EINVAL;
@@ -2089,7 +2073,6 @@ ssize_t short_io_bytes_store(struct kobject *kobj, struct attribute *attr,
 	spin_unlock(&cli->cl_loi_list_lock);
 
 out:
-	up_read(&dev->u.cli.cl_sem);
 	return rc;
 }
 EXPORT_SYMBOL(short_io_bytes_store);

@@ -1247,14 +1247,13 @@ ssize_t ping_show(struct kobject *kobj, struct attribute *attr,
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
 	struct ptlrpc_request *req;
+	struct obd_import *imp;
 	int rc;
 
-	rc = lprocfs_climp_check(obd);
+	with_imp_locked(obd, imp, rc)
+		req = ptlrpc_prep_ping(obd->u.cli.cl_import);
 	if (rc)
 		return rc;
-
-	req = ptlrpc_prep_ping(obd->u.cli.cl_import);
-	up_read(&obd->u.cli.cl_sem);
 	if (!req)
 		return -ENOMEM;
 
@@ -1293,6 +1292,7 @@ int lprocfs_wr_import(struct file *file, const char __user *buffer,
 	int do_reconn = 1;
 	const char prefix[] = "connection=";
 	const int prefix_len = sizeof(prefix) - 1;
+	int rc = 0;
 
 	if (count > PAGE_SIZE - 1 || count <= prefix_len)
 		return -EINVAL;
@@ -1314,37 +1314,39 @@ int lprocfs_wr_import(struct file *file, const char __user *buffer,
 		goto out;
 	}
 
-	uuid = kbuf + prefix_len;
-	ptr = strstr(uuid, "::");
-	if (ptr) {
-		u32 inst;
-		int rc;
+	with_imp_locked(obd, imp, rc) {
+		uuid = kbuf + prefix_len;
+		ptr = strstr(uuid, "::");
+		if (ptr) {
+			u32 inst;
 
-		*ptr = 0;
-		do_reconn = 0;
-		ptr += strlen("::");
-		rc = kstrtouint(ptr, 10, &inst);
-		if (rc) {
-			CERROR("config: wrong instance # %s\n", ptr);
-		} else if (inst != imp->imp_connect_data.ocd_instance) {
-			CDEBUG(D_INFO,
-			       "IR: %s is connecting to an obsoleted target(%u/%u), reconnecting...\n",
-			       imp->imp_obd->obd_name,
-			       imp->imp_connect_data.ocd_instance, inst);
-			do_reconn = 1;
-		} else {
-			CDEBUG(D_INFO,
-			       "IR: %s has already been connecting to new target(%u)\n",
-			       imp->imp_obd->obd_name, inst);
+			*ptr = 0;
+			do_reconn = 0;
+			ptr += strlen("::");
+			rc = kstrtouint(ptr, 10, &inst);
+			if (rc) {
+				CERROR("config: wrong instance # %s\n", ptr);
+			} else if (inst != imp->imp_connect_data.ocd_instance) {
+				CDEBUG(D_INFO,
+				       "IR: %s is connecting to an obsoleted target(%u/%u), reconnecting...\n",
+				       imp->imp_obd->obd_name,
+				       imp->imp_connect_data.ocd_instance,
+				       inst);
+				do_reconn = 1;
+			} else {
+				CDEBUG(D_INFO,
+				       "IR: %s has already been connecting to new target(%u)\n",
+				       imp->imp_obd->obd_name, inst);
+			}
 		}
-	}
 
-	if (do_reconn)
-		ptlrpc_recover_import(imp, uuid, 1);
+		if (do_reconn)
+			ptlrpc_recover_import(imp, uuid, 1);
+	}
 
 out:
 	kfree(kbuf);
-	return count;
+	return rc ?: count;
 }
 EXPORT_SYMBOL(lprocfs_wr_import);
 
@@ -1354,14 +1356,10 @@ int lprocfs_rd_pinger_recov(struct seq_file *m, void *n)
 	struct obd_import *imp = obd->u.cli.cl_import;
 	int rc;
 
-	rc = lprocfs_climp_check(obd);
-	if (rc)
-		return rc;
+	with_imp_locked(obd, imp, rc)
+		seq_printf(m, "%d\n", !imp->imp_no_pinger_recover);
 
-	seq_printf(m, "%d\n", !imp->imp_no_pinger_recover);
-	up_read(&obd->u.cli.cl_sem);
-
-	return 0;
+	return rc;
 }
 EXPORT_SYMBOL(lprocfs_rd_pinger_recov);
 
@@ -1370,8 +1368,7 @@ int lprocfs_wr_pinger_recov(struct file *file, const char __user *buffer,
 {
 	struct seq_file *m = file->private_data;
 	struct obd_device *obd = m->private;
-	struct client_obd *cli = &obd->u.cli;
-	struct obd_import *imp = cli->cl_import;
+	struct obd_import *imp;
 	int rc, val;
 
 	rc = lprocfs_write_helper(buffer, count, &val);
@@ -1381,15 +1378,12 @@ int lprocfs_wr_pinger_recov(struct file *file, const char __user *buffer,
 	if (val != 0 && val != 1)
 		return -ERANGE;
 
-	rc = lprocfs_climp_check(obd);
-	if (rc)
-		return rc;
+	with_imp_locked(obd, imp, rc) {
+		spin_lock(&imp->imp_lock);
+		imp->imp_no_pinger_recover = !val;
+		spin_unlock(&imp->imp_lock);
+	}
 
-	spin_lock(&imp->imp_lock);
-	imp->imp_no_pinger_recover = !val;
-	spin_unlock(&imp->imp_lock);
-	up_read(&obd->u.cli.cl_sem);
-
-	return count;
+	return rc ?: count;
 }
 EXPORT_SYMBOL(lprocfs_wr_pinger_recov);

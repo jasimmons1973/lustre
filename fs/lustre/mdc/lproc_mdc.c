@@ -212,8 +212,12 @@ static ssize_t active_show(struct kobject *kobj, struct attribute *attr,
 {
 	struct obd_device *dev = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
+	struct obd_import *imp;
+	ssize_t len;
 
-	return sprintf(buf, "%u\n", !dev->u.cli.cl_import->imp_deactive);
+	with_imp_locked(dev, imp, len)
+		len = sprintf(buf, "%u\n", !imp->imp_deactive);
+	return len;
 }
 
 static ssize_t active_store(struct kobject *kobj, struct attribute *attr,
