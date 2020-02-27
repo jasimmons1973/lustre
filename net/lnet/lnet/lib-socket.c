@@ -307,7 +307,6 @@ lnet_sock_listen(struct socket **sockp, u32 local_ip, int local_port,
 int
 lnet_sock_accept(struct socket **newsockp, struct socket *sock)
 {
-	wait_queue_entry_t wait;
 	struct socket *newsock;
 	int rc;
 
@@ -324,16 +323,6 @@ lnet_sock_accept(struct socket **newsockp, struct socket *sock)
 	newsock->ops = sock->ops;
 
 	rc = sock->ops->accept(sock, newsock, O_NONBLOCK, false);
-	if (rc == -EAGAIN) {
-		/* Nothing ready, so wait for activity */
-		init_waitqueue_entry(&wait, current);
-		add_wait_queue(sk_sleep(sock->sk), &wait);
-		set_current_state(TASK_INTERRUPTIBLE);
-		schedule();
-		remove_wait_queue(sk_sleep(sock->sk), &wait);
-		rc = sock->ops->accept(sock, newsock, O_NONBLOCK, false);
-	}
-
 	if (rc)
 		goto failed;
 
