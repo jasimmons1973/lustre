@@ -1423,10 +1423,7 @@ int ksocknal_scheduler(void *arg)
 		if (!list_empty(&sched->kss_tx_conns)) {
 			LIST_HEAD(zlist);
 
-			if (!list_empty(&sched->kss_zombie_noop_txs)) {
-				list_add(&zlist, &sched->kss_zombie_noop_txs);
-				list_del_init(&sched->kss_zombie_noop_txs);
-			}
+			list_splice_init(&sched->kss_zombie_noop_txs, &zlist);
 
 			conn = list_first_entry(&sched->kss_tx_conns,
 						struct ksock_conn,
@@ -2530,11 +2527,8 @@ ksocknal_reaper(void *arg)
 			continue;
 		}
 
-		if (!list_empty(&ksocknal_data.ksnd_enomem_conns)) {
-			list_add(&enomem_conns,
-				 &ksocknal_data.ksnd_enomem_conns);
-			list_del_init(&ksocknal_data.ksnd_enomem_conns);
-		}
+		list_splice_init(&ksocknal_data.ksnd_enomem_conns,
+				 &enomem_conns);
 
 		spin_unlock_bh(&ksocknal_data.ksnd_reaper_lock);
 
