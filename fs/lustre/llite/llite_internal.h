@@ -416,10 +416,10 @@ static inline struct pcc_inode *ll_i2pcci(struct inode *inode)
 #define RA_REMAIN_WINDOW_MIN			MiB_TO_PAGES(16UL)
 
 /* default to about 64M of readahead on a given system. */
-#define SBI_DEFAULT_READAHEAD_MAX		MiB_TO_PAGES(64UL)
+#define SBI_DEFAULT_READ_AHEAD_MAX		MiB_TO_PAGES(64UL)
 
 /* default to read-ahead full files smaller than 2MB on the second read */
-#define SBI_DEFAULT_READAHEAD_WHOLE_MAX		MiB_TO_PAGES(2UL)
+#define SBI_DEFAULT_READ_AHEAD_WHOLE_MAX	MiB_TO_PAGES(2UL)
 
 enum ra_stat {
 	RA_STAT_HIT = 0,
