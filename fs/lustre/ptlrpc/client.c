@@ -145,25 +145,16 @@ struct ptlrpc_bulk_desc *ptlrpc_new_bulk(unsigned int nfrags,
 	struct ptlrpc_bulk_desc *desc;
 	int i;
 
-	/* ensure that only one of KIOV or IOVEC is set but not both */
-	LASSERT((ptlrpc_is_bulk_desc_kiov(type) && ops->add_kiov_frag) ||
-		(ptlrpc_is_bulk_desc_kvec(type) && ops->add_iov_frag));
+	LASSERT(ops->add_kiov_frag);
 
 	desc = kzalloc(sizeof(*desc), GFP_NOFS);
 	if (!desc)
 		return NULL;
 
-	if (type & PTLRPC_BULK_BUF_KIOV) {
-		GET_KIOV(desc) = kcalloc(nfrags, sizeof(*GET_KIOV(desc)),
-					 GFP_NOFS);
-		if (!GET_KIOV(desc))
-			goto free_desc;
-	} else {
-		GET_KVEC(desc) = kcalloc(nfrags, sizeof(*GET_KVEC(desc)),
-					 GFP_NOFS);
-		if (!GET_KVEC(desc))
-			goto free_desc;
-	}
+	GET_KIOV(desc) = kcalloc(nfrags, sizeof(*GET_KIOV(desc)),
+				 GFP_NOFS);
+	if (!GET_KIOV(desc))
+		goto free_desc;
 
 	spin_lock_init(&desc->bd_lock);
 	desc->bd_max_iov = nfrags;
@@ -234,7 +225,6 @@ void __ptlrpc_prep_bulk_page(struct ptlrpc_bulk_desc *desc,
 	LASSERT(pageoffset >= 0);
 	LASSERT(len > 0);
 	LASSERT(pageoffset + len <= PAGE_SIZE);
-	LASSERT(ptlrpc_is_bulk_desc_kiov(desc->bd_type));
 
 	kiov = &BD_GET_KIOV(desc, desc->bd_iov_count);
 
@@ -251,29 +241,6 @@ void __ptlrpc_prep_bulk_page(struct ptlrpc_bulk_desc *desc,
 }
 EXPORT_SYMBOL(__ptlrpc_prep_bulk_page);
 
-int ptlrpc_prep_bulk_frag(struct ptlrpc_bulk_desc *desc,
-			  void *frag, int len)
-{
-	struct kvec *iovec;
-
-	LASSERT(desc->bd_iov_count < desc->bd_max_iov);
-	LASSERT(frag);
-	LASSERT(len > 0);
-	LASSERT(ptlrpc_is_bulk_desc_kvec(desc->bd_type));
-
-	iovec = &BD_GET_KVEC(desc, desc->bd_iov_count);
-
-	desc->bd_nob += len;
-
-	iovec->iov_base = frag;
-	iovec->iov_len = len;
-
-	desc->bd_iov_count++;
-
-	return desc->bd_nob;
-}
-EXPORT_SYMBOL(ptlrpc_prep_bulk_frag);
-
 void ptlrpc_free_bulk(struct ptlrpc_bulk_desc *desc)
 {
 	LASSERT(desc->bd_iov_count != LI_POISON);	/* not freed already */
@@ -281,8 +248,7 @@ void ptlrpc_free_bulk(struct ptlrpc_bulk_desc *desc)
 	LASSERT((desc->bd_export != NULL) ^ (desc->bd_import != NULL));
 	LASSERT(desc->bd_frag_ops);
 
-	if (ptlrpc_is_bulk_desc_kiov(desc->bd_type))
-		sptlrpc_enc_pool_put_pages(desc);
+	sptlrpc_enc_pool_put_pages(desc);
 
 	if (desc->bd_export)
 		class_export_put(desc->bd_export);
@@ -292,11 +258,7 @@ void ptlrpc_free_bulk(struct ptlrpc_bulk_desc *desc)
 	if (desc->bd_frag_ops->release_frags)
 		desc->bd_frag_ops->release_frags(desc);
 
-	if (ptlrpc_is_bulk_desc_kiov(desc->bd_type))
-		kfree(GET_KIOV(desc));
-	else
-		kfree(GET_KVEC(desc));
-
+	kfree(GET_KIOV(desc));
 	kfree(desc);
 }
 EXPORT_SYMBOL(ptlrpc_free_bulk);

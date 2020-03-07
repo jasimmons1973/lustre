@@ -886,7 +886,6 @@ static inline void unstable_page_accounting(struct ptlrpc_bulk_desc *desc,
 	int i;
 
 	if (desc) {
-		LASSERT(ptlrpc_is_bulk_desc_kiov(desc->bd_type));
 		page_count = desc->bd_iov_count;
 	} else {
 		page_count = aa->aa_page_count;

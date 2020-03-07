@@ -1154,8 +1154,6 @@ enum ptlrpc_bulk_op_type {
 	PTLRPC_BULK_OP_PASSIVE	= 0x00000002,
 	PTLRPC_BULK_OP_PUT	= 0x00000004,
 	PTLRPC_BULK_OP_GET	= 0x00000008,
-	PTLRPC_BULK_BUF_KVEC	= 0x00000010,
-	PTLRPC_BULK_BUF_KIOV	= 0x00000020,
 	PTLRPC_BULK_GET_SOURCE	= PTLRPC_BULK_OP_PASSIVE | PTLRPC_BULK_OP_GET,
 	PTLRPC_BULK_PUT_SINK	= PTLRPC_BULK_OP_PASSIVE | PTLRPC_BULK_OP_PUT,
 	PTLRPC_BULK_GET_SINK	= PTLRPC_BULK_OP_ACTIVE | PTLRPC_BULK_OP_GET,
@@ -1187,18 +1185,6 @@ static inline bool ptlrpc_is_bulk_put_source(enum ptlrpc_bulk_op_type type)
 	return (type & PTLRPC_BULK_PUT_SOURCE) == PTLRPC_BULK_PUT_SOURCE;
 }
 
-static inline bool ptlrpc_is_bulk_desc_kvec(enum ptlrpc_bulk_op_type type)
-{
-	return ((type & PTLRPC_BULK_BUF_KVEC) | (type & PTLRPC_BULK_BUF_KIOV))
-		== PTLRPC_BULK_BUF_KVEC;
-}
-
-static inline bool ptlrpc_is_bulk_desc_kiov(enum ptlrpc_bulk_op_type type)
-{
-	return ((type & PTLRPC_BULK_BUF_KVEC) | (type & PTLRPC_BULK_BUF_KIOV))
-		== PTLRPC_BULK_BUF_KIOV;
-}
-
 static inline bool ptlrpc_is_bulk_op_active(enum ptlrpc_bulk_op_type type)
 {
 	return ((type & PTLRPC_BULK_OP_ACTIVE) |
@@ -1219,13 +1205,6 @@ struct ptlrpc_bulk_frag_ops {
 	 */
 	void (*add_kiov_frag)(struct ptlrpc_bulk_desc *desc,
 			      struct page *page, int pageoffset, int len);
-
-	/*
-	 * Add a @fragment to the bulk descriptor @desc.
-	 * Data to transfer in the fragment is pointed to by @frag
-	 * The size of the fragment is @len
-	 */
-	int (*add_iov_frag)(struct ptlrpc_bulk_desc *desc, void *frag, int len);
 
 	/**
 	 * Uninitialize and free bulk descriptor @desc.
@@ -1254,7 +1233,7 @@ struct ptlrpc_bulk_desc {
 	unsigned long			bd_registered:1;
 	/** For serialization with callback */
 	spinlock_t			bd_lock;
-	/** {put,get}{source,sink}{kvec,kiov} */
+	/** {put,get}{source,sink}{kiov} */
 	enum ptlrpc_bulk_op_type	bd_type;
 	/** LNet portal for this bulk */
 	u32				bd_portal;
@@ -1906,8 +1885,6 @@ struct ptlrpc_bulk_desc *ptlrpc_prep_bulk_imp(struct ptlrpc_request *req,
 					      unsigned int portal,
 					      const struct ptlrpc_bulk_frag_ops *ops);
 
-int ptlrpc_prep_bulk_frag(struct ptlrpc_bulk_desc *desc,
-			  void *frag, int len);
 void __ptlrpc_prep_bulk_page(struct ptlrpc_bulk_desc *desc,
 			     struct page *page, int pageoffset, int len,
 			     int pin);
