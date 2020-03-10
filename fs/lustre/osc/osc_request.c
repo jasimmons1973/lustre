@@ -1090,7 +1090,7 @@ static int check_write_rcs(struct ptlrpc_request *req,
 static inline int can_merge_pages(struct brw_page *p1, struct brw_page *p2)
 {
 	if (p1->flag != p2->flag) {
-		unsigned int mask = ~(OBD_BRW_FROM_GRANT |
+		unsigned int mask = ~(OBD_BRW_FROM_GRANT | OBD_BRW_NOCACHE |
 				      OBD_BRW_SYNC | OBD_BRW_ASYNC |
 				      OBD_BRW_NOQUOTA | OBD_BRW_SOFT_SYNC);
 
