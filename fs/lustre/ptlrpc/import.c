@@ -477,14 +477,15 @@ static int import_select_connection(struct obd_import *imp)
 	struct obd_export *dlmexp;
 	char *target_start;
 	int target_len, tried_all = 1;
+	int rc = 0;
 
 	spin_lock(&imp->imp_lock);
 
 	if (list_empty(&imp->imp_conn_list)) {
-		CERROR("%s: no connections available\n",
-		       imp->imp_obd->obd_name);
-		spin_unlock(&imp->imp_lock);
-		return -EINVAL;
+		rc = -EINVAL;
+		CERROR("%s: no connections available: rc = %d\n",
+		       imp->imp_obd->obd_name, rc);
+		goto out_unlock;
 	}
 
 	list_for_each_entry(conn, &imp->imp_conn_list, oic_item) {
@@ -544,11 +545,17 @@ static int import_select_connection(struct obd_import *imp)
 	imp_conn->oic_last_attempt = ktime_get_seconds();
 
 	/* switch connection, don't mind if it's same as the current one */
-	ptlrpc_connection_put(imp->imp_connection);
+	if (imp->imp_connection)
+		ptlrpc_connection_put(imp->imp_connection);
 	imp->imp_connection = ptlrpc_connection_addref(imp_conn->oic_conn);
 
 	dlmexp = class_conn2export(&imp->imp_dlm_handle);
-	ptlrpc_connection_put(dlmexp->exp_connection);
+	if (!dlmexp) {
+		rc = -EINVAL;
+		goto out_unlock;
+	}
+	if (dlmexp->exp_connection)
+		ptlrpc_connection_put(dlmexp->exp_connection);
 	dlmexp->exp_connection = ptlrpc_connection_addref(imp_conn->oic_conn);
 	class_export_put(dlmexp);
 
@@ -572,9 +579,9 @@ static int import_select_connection(struct obd_import *imp)
 	       imp->imp_obd->obd_name, imp, imp_conn->oic_uuid.uuid,
 	       libcfs_nid2str(imp_conn->oic_conn->c_peer.nid));
 
+out_unlock:
 	spin_unlock(&imp->imp_lock);
-
-	return 0;
+	return rc;
 }
 
 /*
