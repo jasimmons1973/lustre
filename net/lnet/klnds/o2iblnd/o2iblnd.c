@@ -374,7 +374,8 @@ void kiblnd_destroy_peer(struct kib_peer_ni *peer_ni)
 	 * with this peer_ni has been cleaned up when its refcount drops to
 	 * zero.
 	 */
-	atomic_dec(&net->ibn_npeers);
+	if (atomic_dec_and_test(&net->ibn_npeers))
+		wake_up_var(&net->ibn_npeers);
 }
 
 struct kib_peer_ni *kiblnd_find_peer_locked(struct lnet_ni *ni, lnet_nid_t nid)
@@ -2661,16 +2662,10 @@ static void kiblnd_base_shutdown(void)
 		wake_up_all(&kiblnd_data.kib_connd_waitq);
 		wake_up_all(&kiblnd_data.kib_failover_waitq);
 
-		i = 2;
-		while (atomic_read(&kiblnd_data.kib_nthreads)) {
-			i++;
-			/* power of 2 ? */
-			CDEBUG(((i & (-i)) == i) ? D_WARNING : D_NET,
-			       "Waiting for %d threads to terminate\n",
-			       atomic_read(&kiblnd_data.kib_nthreads));
-			schedule_timeout_uninterruptible(HZ);
-		}
-
+		wait_var_event_warning(&kiblnd_data.kib_nthreads,
+				       !atomic_read(&kiblnd_data.kib_nthreads),
+				       "Waiting for %d threads to terminate\n",
+				       atomic_read(&kiblnd_data.kib_nthreads));
 		/* fall through */
 
 	case IBLND_INIT_NOTHING:
@@ -2690,7 +2685,6 @@ static void kiblnd_shutdown(struct lnet_ni *ni)
 {
 	struct kib_net *net = ni->ni_data;
 	rwlock_t *g_lock = &kiblnd_data.kib_global_lock;
-	int i;
 	unsigned long flags;
 
 	LASSERT(kiblnd_data.kib_init == IBLND_INIT_ALL);
@@ -2711,15 +2705,11 @@ static void kiblnd_shutdown(struct lnet_ni *ni)
 		kiblnd_del_peer(ni, LNET_NID_ANY);
 
 		/* Wait for all peer_ni state to clean up */
-		i = 2;
-		while (atomic_read(&net->ibn_npeers)) {
-			i++;
-			CDEBUG(((i & (-i)) == i) ? D_WARNING : D_NET, /* 2**n? */
-			       "%s: waiting for %d peers to disconnect\n",
-			       libcfs_nid2str(ni->ni_nid),
-			       atomic_read(&net->ibn_npeers));
-			schedule_timeout_uninterruptible(HZ);
-		}
+		wait_var_event_warning(&net->ibn_npeers,
+				       atomic_read(&net->ibn_npeers) == 0,
+				       "%s: waiting for %d peers to disconnect\n",
+				       libcfs_nid2str(ni->ni_nid),
+				       atomic_read(&net->ibn_npeers));
 
 		kiblnd_net_fini_pools(net);
 
