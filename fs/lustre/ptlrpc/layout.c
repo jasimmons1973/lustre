@@ -1874,57 +1874,33 @@ swabber_dumper_helper(struct req_capsule *pill,
 		      const struct req_msg_field *field,
 		      enum req_location loc,
 		      int offset,
-		      void *value, int len, int dump, void (*swabber)(void *))
+		      void *value, int len, bool dump, void (*swabber)(void *))
 {
 	void *p;
 	int i;
 	int n;
 	int size;
 	int rc = 0;
-	int do_swab;
-	int inout = loc == RCL_CLIENT;
+	bool do_swab;
+	bool inout = loc == RCL_CLIENT;
+	bool array = field->rmf_flags & RMF_F_STRUCT_ARRAY;
 
 	swabber = swabber ?: field->rmf_swabber;
 
 	if (ptlrpc_buf_need_swab(pill->rc_req, inout, offset) &&
 	    (swabber || field->rmf_swab_len) && value)
-		do_swab = 1;
+		do_swab = true;
 	else
-		do_swab = 0;
+		do_swab = false;
 
 	if (!field->rmf_dumper)
-		dump = 0;
-
-	if (!(field->rmf_flags & RMF_F_STRUCT_ARRAY)) {
-		if (dump) {
-			CDEBUG(D_RPCTRACE, "Dump of %sfield %s follows\n",
-			       do_swab ? "unswabbed " : "", field->rmf_name);
-			field->rmf_dumper(value);
-		}
-		if (!do_swab)
-			return 0;
-		if (!field->rmf_swab_len) {
-			swabber(value);
-		} else {
-			size = field->rmf_swab_len(value, len);
-			if (size < 0)
-				rc = size;
-		}
-		ptlrpc_buf_set_swabbed(pill->rc_req, inout, offset);
-		if (dump && field->rmf_dumper) {
-			CDEBUG(D_RPCTRACE, "Dump of swabbed field %s follows\n",
-			       field->rmf_name);
-			field->rmf_dumper(value);
-		}
-
-		return rc;
-	}
+		dump = false;
 
 	/*
 	 * We're swabbing an array; swabber() swabs a single array element, so
 	 * swab every element.
 	 */
-	if (len % field->rmf_size) {
+	if (array && (len % field->rmf_size)) {
 		static const struct req_msg_field *last_field;
 
 		if (field != last_field) {
@@ -1934,17 +1910,28 @@ swabber_dumper_helper(struct req_capsule *pill,
 		}
 	}
 
+	/* For the non-array cases, the process of swab/dump/swab only
+	 * needs to be done once. (n = 1)
+	 */
+	if (!array)
+		len = field->rmf_size;
 	for (p = value, i = 0, n = len / field->rmf_size;
 	     i < n;
 	     i++, p += field->rmf_size) {
 		if (dump) {
 			CDEBUG(D_RPCTRACE,
-			       "Dump of %sarray field %s, element %d follows\n",
-			       do_swab ? "unswabbed " : "", field->rmf_name, i);
+			       "Dump of %s%sfield %s element %d follows\n",
+			       do_swab ? "unswabbed " : "",
+			       array ? "array " : "",
+			       field->rmf_name, i);
 			field->rmf_dumper(p);
 		}
-		if (!do_swab)
-			continue;
+		if (!do_swab) {
+			if (array)
+				continue;
+			else
+				break;
+		}
 		if (!field->rmf_swab_len) {
 			swabber(p);
 		} else {
@@ -1959,8 +1946,8 @@ swabber_dumper_helper(struct req_capsule *pill,
 
 		if (dump) {
 			CDEBUG(D_RPCTRACE,
-			       "Dump of swabbed array field %s, element %d follows\n",
-			       field->rmf_name, i);
+			       "Dump of swabbed %sfield %s, element %d follows\n",
+			       array ? "array " : "", field->rmf_name, i);
 			field->rmf_dumper(value);
 		}
 	}
@@ -1984,7 +1971,7 @@ static void *__req_capsule_get(struct req_capsule *pill,
 			       const struct req_msg_field *field,
 			       enum req_location loc,
 			       void (*swabber)(void *),
-			       int dump)
+			       bool dump)
 {
 	const struct req_format *fmt;
 	struct lustre_msg *msg;
@@ -2050,7 +2037,7 @@ static void *__req_capsule_get(struct req_capsule *pill,
 void *req_capsule_client_get(struct req_capsule *pill,
 			     const struct req_msg_field *field)
 {
-	return __req_capsule_get(pill, field, RCL_CLIENT, NULL, 0);
+	return __req_capsule_get(pill, field, RCL_CLIENT, NULL, false);
 }
 EXPORT_SYMBOL(req_capsule_client_get);
 
@@ -2064,7 +2051,7 @@ void *req_capsule_client_swab_get(struct req_capsule *pill,
 				  const struct req_msg_field *field,
 				  void *swabber)
 {
-	return __req_capsule_get(pill, field, RCL_CLIENT, swabber, 0);
+	return __req_capsule_get(pill, field, RCL_CLIENT, swabber, false);
 }
 EXPORT_SYMBOL(req_capsule_client_swab_get);
 
@@ -2080,7 +2067,7 @@ void *req_capsule_client_sized_get(struct req_capsule *pill,
 				   u32 len)
 {
 	req_capsule_set_size(pill, field, RCL_CLIENT, len);
-	return __req_capsule_get(pill, field, RCL_CLIENT, NULL, 0);
+	return __req_capsule_get(pill, field, RCL_CLIENT, NULL, false);
 }
 EXPORT_SYMBOL(req_capsule_client_sized_get);
 
@@ -2091,7 +2078,7 @@ EXPORT_SYMBOL(req_capsule_client_sized_get);
 void *req_capsule_server_get(struct req_capsule *pill,
 			     const struct req_msg_field *field)
 {
-	return __req_capsule_get(pill, field, RCL_SERVER, NULL, 0);
+	return __req_capsule_get(pill, field, RCL_SERVER, NULL, false);
 }
 EXPORT_SYMBOL(req_capsule_server_get);
 
@@ -2105,7 +2092,7 @@ void *req_capsule_server_swab_get(struct req_capsule *pill,
 				  const struct req_msg_field *field,
 				  void *swabber)
 {
-	return __req_capsule_get(pill, field, RCL_SERVER, swabber, 0);
+	return __req_capsule_get(pill, field, RCL_SERVER, swabber, false);
 }
 EXPORT_SYMBOL(req_capsule_server_swab_get);
 
@@ -2121,7 +2108,7 @@ void *req_capsule_server_sized_get(struct req_capsule *pill,
 				   u32 len)
 {
 	req_capsule_set_size(pill, field, RCL_SERVER, len);
-	return __req_capsule_get(pill, field, RCL_SERVER, NULL, 0);
+	return __req_capsule_get(pill, field, RCL_SERVER, NULL, false);
 }
 EXPORT_SYMBOL(req_capsule_server_sized_get);
 
@@ -2130,7 +2117,7 @@ void *req_capsule_server_sized_swab_get(struct req_capsule *pill,
 					u32 len, void *swabber)
 {
 	req_capsule_set_size(pill, field, RCL_SERVER, len);
-	return __req_capsule_get(pill, field, RCL_SERVER, swabber, 0);
+	return __req_capsule_get(pill, field, RCL_SERVER, swabber, false);
 }
 EXPORT_SYMBOL(req_capsule_server_sized_swab_get);
 
