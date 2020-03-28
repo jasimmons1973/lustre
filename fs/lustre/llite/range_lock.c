@@ -34,6 +34,7 @@
  * Author: Prakash Surya <surya1@llnl.gov>
  * Author: Bobi Jam <bobijam.xu@intel.com>
  */
+#include <linux/sched/signal.h>
 #include "range_lock.h"
 #include <uapi/linux/lustre/lustre_idl.h>
 #include <linux/libcfs/libcfs.h>

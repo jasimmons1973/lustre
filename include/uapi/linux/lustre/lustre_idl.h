@@ -68,12 +68,16 @@
 #define _LUSTRE_IDL_H_
 
 #include <asm/byteorder.h>
+#include <linux/errno.h>
+#include <linux/fiemap.h>
 #include <linux/types.h>
+#include <linux/lnet/lnet-types.h>
+#include <linux/lustre/lustre_user.h>
+#include <linux/lustre/lustre_ver.h>
 
-#include <uapi/linux/lnet/lnet-types.h>
-/* Defn's shared with user-space. */
-#include <uapi/linux/lustre/lustre_user.h>
-#include <uapi/linux/lustre/lustre_ver.h>
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /*
  *  GENERAL STUFF
@@ -112,7 +116,6 @@
 #define MDS_SETATTR_PORTAL	22
 #define MDS_READPAGE_PORTAL	23
 #define OUT_PORTAL		24
-
 #define MGC_REPLY_PORTAL	25
 #define MGS_REQUEST_PORTAL	26
 #define MGS_REPLY_PORTAL	27
@@ -122,7 +125,6 @@
 #define SEQ_DATA_PORTAL		31
 #define SEQ_CONTROLLER_PORTAL	32
 #define MGS_BULK_PORTAL		33
-
 /* #define DVS_PORTAL		63 */
 /* reserved for Cray DVS - spitzcor@cray.com, roe@cray.com, n8851@cray.com */
 
@@ -473,12 +475,12 @@ static inline struct lu_dirent *lu_dirent_next(struct lu_dirent *ent)
 	return next;
 }
 
-static inline size_t lu_dirent_calc_size(size_t namelen, __u16 attr)
+static inline __kernel_size_t lu_dirent_calc_size(size_t namelen, __u16 attr)
 {
-	size_t size;
+	__kernel_size_t size;
 
 	if (attr & LUDA_TYPE) {
-		const size_t align = sizeof(struct luda_type) - 1;
+		const __kernel_size_t align = sizeof(struct luda_type) - 1;
 
 		size = (sizeof(struct lu_dirent) + namelen + 1 + align) &
 		       ~align;
@@ -1120,7 +1122,7 @@ static inline __u32 lov_mds_md_size(__u16 stripes, __u32 lmm_magic)
 }
 
 static inline __u32
-lov_mds_md_max_stripe_count(size_t buf_size, __u32 lmm_magic)
+lov_mds_md_max_stripe_count(__kernel_size_t buf_size, __u32 lmm_magic)
 {
 	switch (lmm_magic) {
 	case LOV_MAGIC_V1: {
@@ -2023,11 +2025,11 @@ struct lmv_foreign_md {
  **/
 #define LUSTRE_FNV_1A_64_PRIME		0x100000001b3ULL
 #define LUSTRE_FNV_1A_64_OFFSET_BIAS	0xcbf29ce484222325ULL
-static inline __u64 lustre_hash_fnv_1a_64(const void *buf, size_t size)
+static inline __u64 lustre_hash_fnv_1a_64(const void *buf, __kernel_size_t size)
 {
 	__u64 hash = LUSTRE_FNV_1A_64_OFFSET_BIAS;
 	const unsigned char *p = buf;
-	size_t i;
+	__kernel_size_t i;
 
 	for (i = 0; i < size; i++) {
 		hash ^= p[i];
@@ -2044,9 +2046,10 @@ union lmv_mds_md {
 	struct lmv_foreign_md	lmv_foreign_md;
 };
 
-static inline ssize_t lmv_mds_md_size(int stripe_count, unsigned int lmm_magic)
+static inline __kernel_ssize_t lmv_mds_md_size(int stripe_count,
+					       unsigned int lmm_magic)
 {
-	ssize_t len = -EINVAL;
+	__kernel_ssize_t len = -EINVAL;
 
 	switch (lmm_magic) {
 	case LMV_MAGIC_V1: {
@@ -3012,6 +3015,10 @@ struct ladvise_hdr {
 	__u64			lah_value3;	/* unused */
 	struct lu_ladvise	lah_advise[0];	/* advices in this header */
 };
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
 /** @} lustreidl */

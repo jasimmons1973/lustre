@@ -38,7 +38,7 @@
 #define _UAPI_LUSTRE_FID_H_
 
 #include <linux/types.h>
-#include <uapi/linux/lustre/lustre_idl.h>
+#include <linux/lustre/lustre_idl.h>
 
 /** returns fid object sequence */
 static inline __u64 fid_seq(const struct lu_fid *fid)
@@ -218,7 +218,7 @@ static inline __u32 fid_idif_ost_idx(const struct lu_fid *fid)
  * @fid		an igif to get inode number from.
  * Return:	inode number for the igif.
  */
-static inline ino_t lu_igif_ino(const struct lu_fid *fid)
+static inline __kernel_ino_t lu_igif_ino(const struct lu_fid *fid)
 {
 	return fid_seq(fid);
 }

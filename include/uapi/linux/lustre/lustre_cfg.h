@@ -36,7 +36,7 @@
 #include <linux/errno.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
-#include <uapi/linux/lustre/lustre_user.h>
+#include <linux/lustre/lustre_user.h>
 
 /** \defgroup cfg cfg
  *
@@ -170,7 +170,7 @@ static inline void lustre_cfg_bufs_reset(struct lustre_cfg_bufs *bufs,
 static inline void *lustre_cfg_buf(struct lustre_cfg *lcfg, __u32 index)
 {
 	__u32 i;
-	size_t offset;
+	__kernel_size_t offset;
 	__u32 bufcount;
 
 	if (!lcfg)
@@ -230,7 +230,7 @@ static inline void lustre_cfg_init(struct lustre_cfg *lcfg, int cmd,
 	}
 }
 
-static inline int lustre_cfg_sanity_check(void *buf, size_t len)
+static inline int lustre_cfg_sanity_check(void *buf, __kernel_size_t len)
 {
 	struct lustre_cfg *lcfg = (struct lustre_cfg *)buf;
 
