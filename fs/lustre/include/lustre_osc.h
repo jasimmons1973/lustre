@@ -771,9 +771,9 @@ static inline struct cl_object *osc2cl(const struct osc_object *obj)
 	return (struct cl_object *)&obj->oo_cl;
 }
 
-static inline struct osc_device *obd2osc_dev(const struct obd_device *d)
+static inline struct osc_device *obd2osc_dev(const struct obd_device *obd)
 {
-	return container_of_safe(d->obd_lu_dev, struct osc_device,
+	return container_of_safe(obd->obd_lu_dev, struct osc_device,
 				 od_cl.cd_lu_dev);
 }
 

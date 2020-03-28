@@ -1974,9 +1974,9 @@ EXPORT_SYMBOL_GPL(lustre_sysfs_ops);
 ssize_t max_pages_per_rpc_show(struct kobject *kobj, struct attribute *attr,
 			       char *buf)
 {
-	struct obd_device *dev = container_of(kobj, struct obd_device,
+	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct client_obd *cli = &dev->u.cli;
+	struct client_obd *cli = &obd->u.cli;
 
 	return sprintf(buf, "%d\n", cli->cl_max_pages_per_rpc);
 }
@@ -1985,9 +1985,9 @@ EXPORT_SYMBOL(max_pages_per_rpc_show);
 ssize_t max_pages_per_rpc_store(struct kobject *kobj, struct attribute *attr,
 				const char *buffer, size_t count)
 {
-	struct obd_device *dev = container_of(kobj, struct obd_device,
+	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct client_obd *cli = &dev->u.cli;
+	struct client_obd *cli = &obd->u.cli;
 	struct obd_connect_data *ocd;
 	struct obd_import *imp;
 	int chunk_mask, rc;
@@ -2001,7 +2001,7 @@ ssize_t max_pages_per_rpc_store(struct kobject *kobj, struct attribute *attr,
 	if (val >= ONE_MB_BRW_SIZE)
 		val >>= PAGE_SHIFT;
 
-	with_imp_locked(dev, imp, rc) {
+	with_imp_locked(obd, imp, rc) {
 		ocd = &imp->imp_connect_data;
 		chunk_mask = ~((1 << (cli->cl_chunkbits - PAGE_SHIFT)) - 1);
 		/* max_pages_per_rpc must be chunk aligned */
@@ -2024,9 +2024,9 @@ EXPORT_SYMBOL(max_pages_per_rpc_store);
 ssize_t short_io_bytes_show(struct kobject *kobj, struct attribute *attr,
 			    char *buf)
 {
-	struct obd_device *dev = container_of(kobj, struct obd_device,
+	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct client_obd *cli = &dev->u.cli;
+	struct client_obd *cli = &obd->u.cli;
 	int rc;
 
 	spin_lock(&cli->cl_loi_list_lock);
@@ -2042,9 +2042,9 @@ EXPORT_SYMBOL(short_io_bytes_show);
 ssize_t short_io_bytes_store(struct kobject *kobj, struct attribute *attr,
 			     const char *buffer, size_t count)
 {
-	struct obd_device *dev = container_of(kobj, struct obd_device,
+	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
-	struct client_obd *cli = &dev->u.cli;
+	struct client_obd *cli = &obd->u.cli;
 	u64 val;
 	int rc;
 
