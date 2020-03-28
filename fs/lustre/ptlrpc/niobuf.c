@@ -84,6 +84,8 @@ static int ptl_send_buf(struct lnet_handle_md *mdh, void *base, int len,
 	CDEBUG(D_NET, "Sending %d bytes to portal %d, xid %lld, offset %u\n",
 	       len, portal, xid, offset);
 
+	percpu_ref_get(&ptlrpc_pending);
+
 	rc = LNetPut(self, *mdh, ack,
 		     peer_id, portal, xid, offset, 0);
 	if (unlikely(rc != 0)) {
@@ -192,6 +194,7 @@ static int ptlrpc_register_bulk(struct ptlrpc_request *req)
 			       posted_md, rc);
 			break;
 		}
+		percpu_ref_get(&ptlrpc_pending);
 
 		/* About to let the network at it... */
 		rc = LNetMDAttach(me, md, LNET_UNLINK,
@@ -661,6 +664,7 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 			rc = -ENOMEM;
 			goto cleanup_me;
 		}
+		percpu_ref_get(&ptlrpc_pending);
 
 		CDEBUG(D_NET,
 		       "Setup reply buffer: %u bytes, xid %llu, portal %u\n",
@@ -779,10 +783,12 @@ int ptlrpc_register_rqbd(struct ptlrpc_request_buffer_desc *rqbd)
 	md.eq_handle = ptlrpc_eq;
 
 	rc = LNetMDAttach(me, md, LNET_UNLINK, &rqbd->rqbd_md_h);
-	if (rc == 0)
+	if (rc == 0) {
+		percpu_ref_get(&ptlrpc_pending);
 		return 0;
+	}
 
-	CERROR("LNetMDAttach failed: %d;\n", rc);
+	CERROR("ptlrpc: LNetMDAttach failed: rc = %d\n", rc);
 	LASSERT(rc == -ENOMEM);
 	LNetMEUnlink(me);
 	rqbd->rqbd_refcount = 0;
