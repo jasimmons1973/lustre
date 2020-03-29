@@ -49,7 +49,6 @@
 #include <lustre_dlm.h>
 #include <lustre_fid.h>
 #include <lustre_lib.h>
-#include <lustre_mds.h>
 #include <lustre_net.h>
 #include <uapi/linux/lustre/lustre_param.h>
 #include <lustre_swab.h>
