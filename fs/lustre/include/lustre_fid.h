@@ -228,20 +228,6 @@ enum local_oid {
 	SLAVE_LLOG_CATALOGS_OID	= 4124UL,
 };
 
-static inline void lu_local_obj_fid(struct lu_fid *fid, u32 oid)
-{
-	fid->f_seq = FID_SEQ_LOCAL_FILE;
-	fid->f_oid = oid;
-	fid->f_ver = 0;
-}
-
-static inline void lu_local_name_obj_fid(struct lu_fid *fid, u32 oid)
-{
-	fid->f_seq = FID_SEQ_LOCAL_NAME;
-	fid->f_oid = oid;
-	fid->f_ver = 0;
-}
-
 /* For new FS (>= 2.4), the root FID will be changed to
  * [FID_SEQ_ROOT:1:0], for existing FS, (upgraded to 2.4),
  * the root FID will still be IGIF
