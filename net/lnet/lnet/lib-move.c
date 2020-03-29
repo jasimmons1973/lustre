@@ -1863,6 +1863,18 @@ lnet_handle_find_routed_path(struct lnet_send_data *sd,
 			return -EHOSTUNREACH;
 		}
 
+		/* We're attempting to round robin over the remote peer
+		 * NI's so update the final destination we selected
+		 */
+		sd->sd_final_dst_lpni = sd->sd_best_lpni;
+
+		/* find the best route. Restrict the selection on the net of the
+		 * local NI if we've already picked the local NI to send from.
+		 * Otherwise, let's pick any route we can find and then find
+		 * a local NI we can reach the route's gateway on. Any route we
+		 * select will be reachable by virtue of the restriction we
+		 * have when adding a route.
+		 */
 		best_route = lnet_find_route_locked(best_rnet,
 						    LNET_NIDNET(src_nid),
 						    &last_route, &gwni);
@@ -1884,6 +1896,11 @@ lnet_handle_find_routed_path(struct lnet_send_data *sd,
 		LASSERT(gw == gwni->lpni_peer_net->lpn_peer);
 		local_lnet = best_route->lr_lnet;
 
+		/* Increment the sequence number of the remote lpni so we
+		 * can round robin over the different interfaces of the
+		 * remote lpni
+		 */
+		sd->sd_best_lpni->lpni_seq++;
 	}
 
 	/* Discover this gateway if it hasn't already been discovered.
