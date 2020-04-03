@@ -3351,7 +3351,7 @@ fail_error:
 
 static void
 lnet_handle_recovery_reply(struct lnet_mt_event_info *ev_info,
-			   int status, bool unlink_event)
+			   int status, bool send, bool unlink_event)
 {
 	lnet_nid_t nid = ev_info->mt_nid;
 
@@ -3365,7 +3365,8 @@ lnet_handle_recovery_reply(struct lnet_mt_event_info *ev_info,
 			return;
 		}
 		lnet_ni_lock(ni);
-		ni->ni_recovery_state &= ~LNET_NI_RECOVERY_PENDING;
+		if (!send || (send && status != 0))
+			ni->ni_recovery_state &= ~LNET_NI_RECOVERY_PENDING;
 		if (status)
 			ni->ni_recovery_state |= LNET_NI_RECOVERY_FAILED;
 		lnet_ni_unlock(ni);
@@ -3397,7 +3398,7 @@ lnet_handle_recovery_reply(struct lnet_mt_event_info *ev_info,
 		}
 		spin_lock(&lpni->lpni_lock);
 		lpni->lpni_state &= ~LNET_PEER_NI_RECOVERY_PENDING;
-		if (status)
+		if (!send || (send && status != 0))
 			lpni->lpni_state |= LNET_PEER_NI_RECOVERY_FAILED;
 		spin_unlock(&lpni->lpni_lock);
 		lnet_peer_ni_decref_locked(lpni);
@@ -3429,7 +3430,7 @@ lnet_mt_event_handler(struct lnet_event *event)
 		       libcfs_nid2str(ev_info->mt_nid));
 		/* fall-through */
 	case LNET_EVENT_REPLY:
-		lnet_handle_recovery_reply(ev_info, event->status,
+		lnet_handle_recovery_reply(ev_info, event->status, false,
 					   event->type == LNET_EVENT_UNLINK);
 		break;
 	case LNET_EVENT_SEND:
@@ -3437,6 +3438,7 @@ lnet_mt_event_handler(struct lnet_event *event)
 		       libcfs_nid2str(ev_info->mt_nid),
 		       (event->status) ? "unsuccessfully" :
 		       "successfully", event->status);
+		lnet_handle_recovery_reply(ev_info, event->status, true, false);
 		break;
 	default:
 		CERROR("Unexpected event: %d\n", event->type);
