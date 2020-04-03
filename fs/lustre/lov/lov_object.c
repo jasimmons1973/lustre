@@ -1392,6 +1392,7 @@ static void lov_object_free(const struct lu_env *env, struct lu_object *obj)
 
 	LOV_2DISPATCH_VOID(lov, llo_fini, env, lov, &lov->u);
 	lu_object_fini(obj);
+	/* lov doen't contain an lu_object_header, so we don't need call_rcu */
 	kmem_cache_free(lov_object_kmem, lov);
 }
 
