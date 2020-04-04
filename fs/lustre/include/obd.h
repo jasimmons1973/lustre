@@ -543,7 +543,6 @@ struct obd_device {
 		      obd_set_up:1,	   /* finished setup */
 		      obd_version_recov:1, /* obd uses version checking */
 		      obd_replayable:1,	   /* recovery is enabled; inform clients */
-		      obd_no_transno:1,	   /* no committed-transno notification */
 		      obd_no_recov:1,      /* fail instead of retry messages */
 		      obd_stopping:1,      /* started cleanup */
 		      obd_starting:1,      /* started setup */
