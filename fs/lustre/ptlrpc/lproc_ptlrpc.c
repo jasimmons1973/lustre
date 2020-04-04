@@ -287,15 +287,15 @@ ptlrpc_lprocfs_req_history_max_seq_write(struct file *file,
 {
 	struct seq_file *m = file->private_data;
 	struct ptlrpc_service *svc = m->private;
+	unsigned long long val;
 	int bufpages;
-	int val;
 	int rc;
 
-	rc = lprocfs_write_helper(buffer, count, &val);
+	rc = kstrtoull_from_user(buffer, count, 0, &val);
 	if (rc < 0)
 		return rc;
 
-	if (val < 0)
+	if (val < 0 || val > INT_MAX)
 		return -ERANGE;
 
 	/* This sanity check is more of an insanity check; we can still
@@ -317,7 +317,8 @@ ptlrpc_lprocfs_req_history_max_seq_write(struct file *file,
 	if (val == 0)
 		svc->srv_hist_nrqbds_cpt_max = 0;
 	else
-		svc->srv_hist_nrqbds_cpt_max = max(1, (val / svc->srv_ncpts));
+		svc->srv_hist_nrqbds_cpt_max =
+			max(1, ((int)val / svc->srv_ncpts));
 
 	spin_unlock(&svc->srv_lock);
 
@@ -1369,14 +1370,12 @@ int lprocfs_wr_pinger_recov(struct file *file, const char __user *buffer,
 	struct seq_file *m = file->private_data;
 	struct obd_device *obd = m->private;
 	struct obd_import *imp;
-	int rc, val;
+	bool val;
+	int rc;
 
-	rc = lprocfs_write_helper(buffer, count, &val);
+	rc = kstrtobool_from_user(buffer, count, &val);
 	if (rc < 0)
 		return rc;
-
-	if (val != 0 && val != 1)
-		return -ERANGE;
 
 	with_imp_locked(obd, imp, rc) {
 		spin_lock(&imp->imp_lock);

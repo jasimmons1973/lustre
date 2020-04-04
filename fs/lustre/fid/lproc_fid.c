@@ -139,17 +139,17 @@ ldebugfs_fid_space_seq_show(struct seq_file *m, void *unused)
 	return rc;
 }
 
-static ssize_t
-ldebugfs_fid_width_seq_write(struct file *file,
-			     const char __user *buffer,
-			     size_t count, loff_t *off)
+static ssize_t ldebugfs_fid_width_seq_write(struct file *file,
+					    const char __user *buffer,
+					    size_t count, loff_t *off)
 {
 	struct seq_file *m = file->private_data;
 	struct lu_client_seq *seq = m->private;
+	u64 val;
 	u64 max;
-	int rc, val;
+	int rc;
 
-	rc = lprocfs_write_helper(buffer, count, &val);
+	rc = kstrtoull_from_user(buffer, count, 0, &val);
 	if (rc)
 		return rc;
 

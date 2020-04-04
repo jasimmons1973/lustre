@@ -366,9 +366,6 @@ struct obd_histogram;
 /* obd_config.c */
 void lustre_register_client_process_config(int (*cpc)(struct lustre_cfg *lcfg));
 
-int lprocfs_write_frac_helper(const char __user *buffer,
-			      unsigned long count, int *val, int mult);
-
 int lprocfs_stats_alloc_one(struct lprocfs_stats *stats,
 			    unsigned int cpuid);
 int lprocfs_stats_lock(struct lprocfs_stats *stats,
@@ -476,15 +473,6 @@ int lprocfs_rd_pinger_recov(struct seq_file *m, void *n);
 int lprocfs_wr_pinger_recov(struct file *file, const char __user *buffer,
 			    size_t count, loff_t *off);
 
-/* Statfs helpers */
-
-int lprocfs_write_helper(const char __user *buffer, unsigned long count,
-			 int *val);
-int lprocfs_write_u64_helper(const char __user *buffer,
-			     unsigned long count, u64 *val);
-int lprocfs_write_frac_u64_helper(const char __user *buffer,
-				  unsigned long count,
-				  u64 *val, int mult);
 int string_to_size(u64 *size, const char *buffer, size_t count);
 int sysfs_memparse(const char *buffer, size_t count, u64 *val,
 		    const char *defunit);
