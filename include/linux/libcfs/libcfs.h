@@ -44,6 +44,8 @@
 
 #define LIBCFS_VERSION "0.7.0"
 
+typedef s32 timeout_t;
+
 extern struct blocking_notifier_head libcfs_ioctl_list;
 static inline int notifier_from_ioctl_errno(int err)
 {
