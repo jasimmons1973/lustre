@@ -331,7 +331,7 @@ struct lnet_counters {
 #define LNET_WIRE_HANDLE_COOKIE_NONE   (-1)
 
 struct lnet_handle_md {
-	u64	cookie;
+	__u64	cookie;
 };
 
 /**
