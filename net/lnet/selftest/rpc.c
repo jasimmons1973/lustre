@@ -1680,8 +1680,7 @@ srpc_shutdown(void)
 		rc = LNetClearLazyPortal(SRPC_FRAMEWORK_REQUEST_PORTAL);
 		rc = LNetClearLazyPortal(SRPC_REQUEST_PORTAL);
 		LASSERT(!rc);
-		rc = LNetEQFree(srpc_data.rpc_lnet_eq);
-		LASSERT(!rc); /* the EQ should have no user by now */
+		LNetEQFree(srpc_data.rpc_lnet_eq);
 		/* fall through */
 	case SRPC_STATE_NI_INIT:
 		LNetNIFini();
