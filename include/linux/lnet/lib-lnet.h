@@ -85,6 +85,8 @@ extern unsigned int lnet_current_net_count;
 #define DEFAULT_PEER_TIMEOUT    180
 #define LNET_LND_DEFAULT_TIMEOUT 5
 
+int choose_ipv4_src(u32 *ret, int interface, u32 dst_ipaddr, struct net *ns);
+
 bool lnet_is_route_alive(struct lnet_route *route);
 
 #define LNET_SMALL_MD_SIZE	offsetof(struct lnet_libmd, md_iov.iov[1])
@@ -682,7 +684,7 @@ unsigned int lnet_get_lnd_timeout(void);
 void lnet_register_lnd(struct lnet_lnd *lnd);
 void lnet_unregister_lnd(struct lnet_lnd *lnd);
 
-struct socket *lnet_connect(lnet_nid_t peer_nid, u32 local_ip, u32 peer_ip,
+struct socket *lnet_connect(lnet_nid_t peer_nid, int interface, u32 peer_ip,
 			    int peer_port, struct net *ns);
 void lnet_connect_console_error(int rc, lnet_nid_t peer_nid,
 				u32 peer_ip, int port);
@@ -711,11 +713,10 @@ int lnet_sock_getaddr(struct socket *socket, bool remote, u32 *ip, int *port);
 int lnet_sock_write(struct socket *sock, void *buffer, int nob, int timeout);
 int lnet_sock_read(struct socket *sock, void *buffer, int nob, int timeout);
 
-struct socket *lnet_sock_listen(u32 ip, int port, int backlog,
+struct socket *lnet_sock_listen(int port, int backlog,
 				struct net *ns);
-struct socket *lnet_sock_connect(u32 local_ip, int local_port,
+struct socket *lnet_sock_connect(int interface, int local_port,
 				 u32 peer_ip, int peer_port, struct net *ns);
-void libcfs_sock_release(struct socket *sock);
 
 int lnet_peers_start_down(void);
 int lnet_peer_buffer_credits(struct lnet_net *net);

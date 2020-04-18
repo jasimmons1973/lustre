@@ -39,8 +39,8 @@
  */
 
 #include <linux/pci.h>
-#include "socklnd.h"
 #include <linux/inetdevice.h>
+#include "socklnd.h"
 
 static struct lnet_lnd the_ksocklnd;
 struct ksock_nal_data ksocknal_data;
@@ -63,6 +63,57 @@ ksocknal_ip2iface(struct lnet_ni *ni, u32 ip)
 	return NULL;
 }
 
+static struct ksock_interface *
+ksocknal_index2iface(struct lnet_ni *ni, int index)
+{
+	struct ksock_net *net = ni->ni_data;
+	int i;
+	struct ksock_interface *iface;
+
+	for (i = 0; i < net->ksnn_ninterfaces; i++) {
+		LASSERT(i < LNET_INTERFACES_NUM);
+		iface = &net->ksnn_interfaces[i];
+
+		if (iface->ksni_index == index)
+			return iface;
+	}
+
+	return NULL;
+}
+
+static int ksocknal_ip2index(__u32 ipaddress, struct lnet_ni *ni)
+{
+	struct net_device *dev;
+	int ret = -1;
+	const struct in_ifaddr *ifa;
+
+	rcu_read_lock();
+	for_each_netdev(ni->ni_net_ns, dev) {
+		int flags = dev_get_flags(dev);
+		struct in_device *in_dev;
+
+		if (flags & IFF_LOOPBACK) /* skip the loopback IF */
+			continue;
+
+		if (!(flags & IFF_UP))
+			continue;
+
+		in_dev = __in_dev_get_rcu(dev);
+		if (!in_dev)
+			continue;
+
+		in_dev_for_each_ifa_rcu(ifa, in_dev) {
+			if (ntohl(ifa->ifa_local) == ipaddress)
+				ret = dev->ifindex;
+		}
+		if (ret >= 0)
+			break;
+	}
+	rcu_read_unlock();
+
+	return ret;
+}
+
 static struct ksock_route *
 ksocknal_create_route(u32 ipaddr, int port)
 {
@@ -76,6 +127,7 @@ ksocknal_create_route(u32 ipaddr, int port)
 	route->ksnr_peer = NULL;
 	route->ksnr_retry_interval = 0;		/* OK to connect at any time */
 	route->ksnr_ipaddr = ipaddr;
+	route->ksnr_myiface = -1;
 	route->ksnr_port = port;
 	route->ksnr_scheduled = 0;
 	route->ksnr_connecting = 0;
@@ -287,12 +339,13 @@ ksocknal_get_peer_info(struct lnet_ni *ni, int index,
 				continue;
 
 			*id = peer_ni->ksnp_id;
-			*myip = route->ksnr_myipaddr;
+			rc = choose_ipv4_src(myip, route->ksnr_myiface,
+					     route->ksnr_ipaddr,
+					     ni->ni_net_ns);
 			*peer_ip = route->ksnr_ipaddr;
 			*port = route->ksnr_port;
 			*conn_count = route->ksnr_conn_count;
 			*share_count = route->ksnr_share_count;
-			rc = 0;
 			goto out;
 		}
 	}
@@ -308,32 +361,35 @@ ksocknal_associate_route_conn_locked(struct ksock_route *route,
 	struct ksock_peer_ni *peer_ni = route->ksnr_peer;
 	int type = conn->ksnc_type;
 	struct ksock_interface *iface;
+	int conn_iface = ksocknal_ip2index(conn->ksnc_myipaddr,
+					   route->ksnr_peer->ksnp_ni);
 
 	conn->ksnc_route = route;
 	ksocknal_route_addref(route);
 
-	if (route->ksnr_myipaddr != conn->ksnc_myipaddr) {
-		if (!route->ksnr_myipaddr) {
+	if (route->ksnr_myiface != conn_iface) {
+		if (route->ksnr_myiface < 0) {
 			/* route wasn't bound locally yet (the initial route) */
-			CDEBUG(D_NET, "Binding %s %pI4h to %pI4h\n",
+			CDEBUG(D_NET, "Binding %s %pI4h to interface %d\n",
 			       libcfs_id2str(peer_ni->ksnp_id),
 			       &route->ksnr_ipaddr,
-			       &conn->ksnc_myipaddr);
+			       conn_iface);
 		} else {
-			CDEBUG(D_NET, "Rebinding %s %pI4h from %pI4h to %pI4h\n",
+			CDEBUG(D_NET,
+			       "Rebinding %s %pI4h from interface %d to %d\n",
 			       libcfs_id2str(peer_ni->ksnp_id),
 			       &route->ksnr_ipaddr,
-			       &route->ksnr_myipaddr,
-			       &conn->ksnc_myipaddr);
+			       route->ksnr_myiface,
+			       conn_iface);
 
-			iface = ksocknal_ip2iface(route->ksnr_peer->ksnp_ni,
-						  route->ksnr_myipaddr);
+			iface = ksocknal_index2iface(route->ksnr_peer->ksnp_ni,
+						     route->ksnr_myiface);
 			if (iface)
 				iface->ksni_nroutes--;
 		}
-		route->ksnr_myipaddr = conn->ksnc_myipaddr;
-		iface = ksocknal_ip2iface(route->ksnr_peer->ksnp_ni,
-					  route->ksnr_myipaddr);
+		route->ksnr_myiface = conn_iface;
+		iface = ksocknal_index2iface(route->ksnr_peer->ksnp_ni,
+					     route->ksnr_myiface);
 		if (iface)
 			iface->ksni_nroutes++;
 	}
@@ -405,9 +461,9 @@ ksocknal_del_route_locked(struct ksock_route *route)
 		ksocknal_close_conn_locked(conn, 0);
 	}
 
-	if (route->ksnr_myipaddr) {
-		iface = ksocknal_ip2iface(route->ksnr_peer->ksnp_ni,
-					  route->ksnr_myipaddr);
+	if (route->ksnr_myiface >= 0) {
+		iface = ksocknal_index2iface(route->ksnr_peer->ksnp_ni,
+					     route->ksnr_myiface);
 		if (iface)
 			iface->ksni_nroutes--;
 	}
@@ -897,7 +953,7 @@ ksocknal_create_routes(struct ksock_peer_ni *peer_ni, int port,
 			/* Using this interface already? */
 			list_for_each_entry(route, &peer_ni->ksnp_routes,
 					    ksnr_list)
-				if (route->ksnr_myipaddr == iface->ksni_ipaddr)
+				if (route->ksnr_myiface == iface->ksni_index)
 					goto next_iface;
 
 			this_netmatch = (!((iface->ksni_ipaddr ^
@@ -920,7 +976,7 @@ next_iface:
 		if (!best_iface)
 			continue;
 
-		newroute->ksnr_myipaddr = best_iface->ksni_ipaddr;
+		newroute->ksnr_myiface = best_iface->ksni_index;
 		best_iface->ksni_nroutes++;
 
 		ksocknal_add_route_locked(peer_ni, newroute);
@@ -1894,6 +1950,7 @@ ksocknal_add_interface(struct lnet_ni *ni, u32 ipaddress, u32 netmask)
 	} else {
 		iface = &net->ksnn_interfaces[net->ksnn_ninterfaces++];
 
+		iface->ksni_index = ksocknal_ip2index(ipaddress, ni);
 		iface->ksni_ipaddr = ipaddress;
 		iface->ksni_netmask = netmask;
 		iface->ksni_nroutes = 0;
@@ -1906,7 +1963,8 @@ ksocknal_add_interface(struct lnet_ni *ni, u32 ipaddress, u32 netmask)
 
 			list_for_each_entry(route, &peer_ni->ksnp_routes,
 					    ksnr_list) {
-				if (route->ksnr_myipaddr == ipaddress)
+				if (route->ksnr_myiface ==
+				    iface->ksni_index)
 					iface->ksni_nroutes++;
 			}
 		}
@@ -1924,7 +1982,8 @@ ksocknal_add_interface(struct lnet_ni *ni, u32 ipaddress, u32 netmask)
 }
 
 static void
-ksocknal_peer_del_interface_locked(struct ksock_peer_ni *peer_ni, u32 ipaddr)
+ksocknal_peer_del_interface_locked(struct ksock_peer_ni *peer_ni,
+				   u32 ipaddr, int index)
 {
 	struct list_head *tmp;
 	struct list_head *nxt;
@@ -1945,12 +2004,12 @@ ksocknal_peer_del_interface_locked(struct ksock_peer_ni *peer_ni, u32 ipaddr)
 	list_for_each_safe(tmp, nxt, &peer_ni->ksnp_routes) {
 		route = list_entry(tmp, struct ksock_route, ksnr_list);
 
-		if (route->ksnr_myipaddr != ipaddr)
+		if (route->ksnr_myiface != index)
 			continue;
 
 		if (route->ksnr_share_count) {
 			/* Manually created; keep, but unbind */
-			route->ksnr_myipaddr = 0;
+			route->ksnr_myiface = -1;
 		} else {
 			ksocknal_del_route_locked(route);
 		}
@@ -1972,8 +2031,11 @@ ksocknal_del_interface(struct lnet_ni *ni, u32 ipaddress)
 	struct hlist_node *nxt;
 	struct ksock_peer_ni *peer_ni;
 	u32 this_ip;
+	int index;
 	int i;
 	int j;
+
+	index = ksocknal_ip2index(ipaddress, ni);
 
 	write_lock_bh(&ksocknal_data.ksnd_global_lock);
 
@@ -1996,7 +2058,8 @@ ksocknal_del_interface(struct lnet_ni *ni, u32 ipaddress)
 			if (peer_ni->ksnp_ni != ni)
 				continue;
 
-			ksocknal_peer_del_interface_locked(peer_ni, this_ip);
+			ksocknal_peer_del_interface_locked(peer_ni,
+							   this_ip, index);
 		}
 	}
 
