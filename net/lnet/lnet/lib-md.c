@@ -222,7 +222,7 @@ lnet_md_build(struct lnet_libmd *lmd, struct lnet_md *umd, int unlink)
 
 /* must be called with resource lock held */
 static int
-lnet_md_link(struct lnet_libmd *md, struct lnet_eq *eq, int cpt)
+lnet_md_link(struct lnet_libmd *md, lnet_eq_handler_t eq, int cpt)
 {
 	struct lnet_res_container *container = the_lnet.ln_md_containers[cpt];
 
@@ -242,8 +242,7 @@ lnet_md_link(struct lnet_libmd *md, struct lnet_eq *eq, int cpt)
 	 * maybe there we shouldn't even allow LNET_EQ_NONE!)
 	 * LASSERT(!eq);
 	 */
-	if (eq)
-		md->md_eq = eq;
+	md->md_eq = eq;
 
 	lnet_res_lh_initialize(container, &md->md_lh);
 
@@ -504,7 +503,7 @@ LNetMDUnlink(struct lnet_handle_md mdh)
 	 */
 	if (md->md_eq && !md->md_refcount) {
 		lnet_build_unlink_event(md, &ev);
-		lnet_eq_enqueue_event(md->md_eq, &ev);
+		md->md_eq(&ev);
 	}
 
 	if (md->md_rspt_ptr)
