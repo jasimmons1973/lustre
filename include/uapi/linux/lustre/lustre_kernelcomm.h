@@ -52,7 +52,7 @@ struct kuc_hdr {
 	__u16 kuc_msgtype;
 	/* Including header */
 	__u16 kuc_msglen;
-} __aligned(sizeof(__u64));
+} __attribute__((aligned(sizeof(__u64))));
 
 #define KUC_MAGIC		0x191C /*Lustre9etLinC */
 

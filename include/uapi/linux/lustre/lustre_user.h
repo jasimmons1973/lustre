@@ -53,6 +53,7 @@
 #include <linux/lustre/lustre_fiemap.h>
 
 #ifndef __KERNEL__
+# define __USE_ISOC99  1
 # include <stdbool.h>
 # include <stdio.h> /* snprintf() */
 # include <sys/stat.h>
