@@ -164,7 +164,11 @@ static ssize_t version_show(struct kobject *kobj, struct attribute *attr,
 static ssize_t pinger_show(struct kobject *kobj, struct attribute *attr,
 			   char *buf)
 {
+#ifdef CONFIG_LUSTRE_FS_PINGER
 	return sprintf(buf, "%s\n", "on");
+#else
+	return sprintf(buf, "%s\n", "off");
+#endif
 }
 
 static ssize_t

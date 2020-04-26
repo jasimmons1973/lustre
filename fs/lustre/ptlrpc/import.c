@@ -449,6 +449,7 @@ void ptlrpc_fail_import(struct obd_import *imp, u32 conn_cnt)
 
 int ptlrpc_reconnect_import(struct obd_import *imp)
 {
+#ifdef CONFIG_LUSTRE_FS_PINGER
 	long timeout_jiffies = obd_timeout * HZ;
 	int rc;
 
@@ -463,6 +464,31 @@ int ptlrpc_reconnect_import(struct obd_import *imp)
 	CDEBUG(D_HA, "%s: recovery finished s:%s\n", obd2cli_tgt(imp->imp_obd),
 	       ptlrpc_import_state_name(imp->imp_state));
 	return rc == 0 ? -ETIMEDOUT : 0;
+#else
+	ptlrpc_set_import_discon(imp, 0, false);
+	/* Force a new connect attempt */
+	ptlrpc_invalidate_import(imp);
+	/* Do a fresh connect next time by zeroing the handle */
+	ptlrpc_disconnect_import(imp, 1);
+	/* Wait for all invalidate calls to finish */
+	if (atomic_read(&imp->imp_inval_count) > 0) {
+		int rc;
+
+		rc = l_wait_event_abortable(imp->imp_recovery_waitq,
+					    (atomic_read(&imp->imp_inval_count) == 0));
+		if (rc)
+			CERROR("Interrupted, inval=%d\n",
+			       atomic_read(&imp->imp_inval_count));
+	}
+
+	/* Allow reconnect attempts */
+	imp->imp_obd->obd_no_recov = 0;
+	/* Remove 'invalid' flag */
+	ptlrpc_activate_import(imp, false);
+	/* Attempt a new connect */
+	ptlrpc_recover_import(imp, NULL, 0);
+	return 0;
+#endif
 }
 EXPORT_SYMBOL(ptlrpc_reconnect_import);
 
