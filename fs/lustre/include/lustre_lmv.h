@@ -68,7 +68,7 @@ static inline bool lmv_dir_foreign(const struct lmv_stripe_md *lsm)
 static inline bool lmv_dir_layout_changing(const struct lmv_stripe_md *lsm)
 {
 	return lmv_dir_striped(lsm) &&
-	       (lsm->lsm_md_hash_type & LMV_HASH_FLAG_MIGRATION);
+	       (lsm->lsm_md_hash_type & LMV_HASH_FLAG_LAYOUT_CHANGE);
 }
 
 static inline bool lmv_dir_bad_hash(const struct lmv_stripe_md *lsm)
