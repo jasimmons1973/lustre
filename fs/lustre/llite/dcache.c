@@ -58,7 +58,6 @@ static void ll_release(struct dentry *de)
 
 	LASSERT(de);
 	lld = ll_d2d(de);
-
 	call_rcu(&lld->lld_rcu_head, free_dentry_data);
 }
 
@@ -118,7 +117,7 @@ void ll_intent_drop_lock(struct lookup_intent *it)
 			handle.cookie = it->it_remote_lock_handle;
 
 			CDEBUG(D_DLMTRACE,
-			       "releasing remote lock with cookie%#llx from it %p\n",
+			       "releasing remote lock with cookie %#llx from it %p\n",
 			       handle.cookie, it);
 			ldlm_lock_decref(&handle,
 					 it->it_remote_lock_mode);

@@ -299,8 +299,8 @@ __lmv_name_to_stripe_index(u32 hash_type, u32 stripe_count,
 	if (stripe_count > 1) {
 		switch (hash_type & LMV_HASH_TYPE_MASK) {
 		case LMV_HASH_TYPE_ALL_CHARS:
-			stripe_index  = lmv_hash_all_chars(stripe_count, name,
-							   namelen);
+			stripe_index = lmv_hash_all_chars(stripe_count, name,
+							  namelen);
 			break;
 		case LMV_HASH_TYPE_FNV_1A_64:
 			stripe_index = lmv_hash_fnv1a(stripe_count, name,

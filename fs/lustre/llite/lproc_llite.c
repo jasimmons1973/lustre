@@ -354,7 +354,7 @@ static ssize_t max_read_ahead_mb_store(struct kobject *kobj,
 	pages_number = round_up(ra_max_mb, 1024 * 1024) >> PAGE_SHIFT;
 	if (pages_number > totalram_pages() / 2) {
 		/* 1/2 of RAM */
-		CERROR("%s: cannot set max_readahead_mb=%llu > %luMB\n",
+		CERROR("%s: cannot set max_read_ahead_mb=%llu > totalram/2=%luMB\n",
 		       sbi->ll_fsname, PAGES_TO_MiB(pages_number),
 		       PAGES_TO_MiB(totalram_pages() / 2));
 		return -ERANGE;
@@ -399,7 +399,7 @@ static ssize_t max_read_ahead_per_file_mb_store(struct kobject *kobj,
 
 	pages_number = round_up(ra_max_file_mb, 1024 * 1024) >> PAGE_SHIFT;
 	if (pages_number > sbi->ll_ra_info.ra_max_pages) {
-		CERROR("%s: cannot set max_readahead_per_file_mb=%llu > max_read_ahead_mb=%lu\n",
+		CERROR("%s: cannot set max_read_ahead_per_file_mb=%llu > max_read_ahead_mb=%lu\n",
 		       sbi->ll_fsname, PAGES_TO_MiB(pages_number),
 		       PAGES_TO_MiB(sbi->ll_ra_info.ra_max_pages));
 		return -ERANGE;
