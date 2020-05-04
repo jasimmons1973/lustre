@@ -1568,7 +1568,7 @@ static int start_statahead_thread(struct inode *dir, struct dentry *dentry)
 	 * statahead thread won't be notified to quit.
 	 */
 	spin_lock(&lli->lli_sa_lock);
-	if (unlikely(lli->lli_sai || lli->lli_opendir_key ||
+	if (unlikely(lli->lli_sai || !lli->lli_opendir_key ||
 		     lli->lli_opendir_pid != current->pid)) {
 		spin_unlock(&lli->lli_sa_lock);
 		rc = -EPERM;

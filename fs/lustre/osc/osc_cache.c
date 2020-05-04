@@ -1655,7 +1655,7 @@ static int osc_enter_cache(const struct lu_env *env, struct client_obd *cli,
 	 * run out of grants. In both cases we should write dirty pages out.
 	 * Adding a cache waiter will trigger urgent write-out no matter what
 	 * RPC size will be.
-	 * The exiting condition (other then success) is no avail grants
+	 * The exiting condition (other than success) is no avail grants
 	 * and no dirty pages caching, that really means there is no space
 	 * on the OST.
 	 */

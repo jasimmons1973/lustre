@@ -200,7 +200,6 @@ struct cl_page *cl_page_alloc(const struct lu_env *env,
 	struct cl_page *page;
 	struct cl_object *o2;
 
-	page = kzalloc(cl_object_header(o)->coh_page_bufsize, GFP_NOFS);
 	page = __cl_page_alloc(o);
 	if (page) {
 		int result = 0;

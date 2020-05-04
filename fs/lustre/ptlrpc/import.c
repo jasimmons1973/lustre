@@ -1879,7 +1879,7 @@ timeout_t at_measured(struct adaptive_timeout *at, timeout_t timeout)
 				       at_min);
 	if (at->at_current_timeout != old_timeout)
 		CDEBUG(D_OTHER,
-		       "AT %p change: old=%u new=%u delta=%d (val=%u) hist %u %u %u %u\n",
+		       "AT %p change: old=%u new=%u delta=%d (val=%d) hist %u %u %u %u\n",
 		       at, old_timeout, at->at_current_timeout,
 		       at->at_current_timeout - old_timeout, timeout,
 		       at->at_hist[0], at->at_hist[1], at->at_hist[2],

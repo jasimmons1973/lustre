@@ -512,7 +512,7 @@ static struct miscdevice obd_psdev = {
 	u64 __size;							       \
 	int __ret;							       \
 									       \
-	BUILD_BUG_ON(strlen(value) >= 23);				       \
+	BUILD_BUG_ON(sizeof(value) >= 23);				       \
 	__ret = sysfs_memparse(value, sizeof(value) - 1, &__size, def_unit);   \
 	if (__ret != __rc)						       \
 		CERROR("string_helper: parsing '%s' expect rc %d != got %d\n", \
@@ -531,9 +531,6 @@ static int __init obd_init_checks(void)
 	char buf[64];
 	int len, ret = 0;
 
-	CDEBUG(D_INFO, "LPU64=%s, LPD64=%s, LPX64=%s\n", "%llu", "%lld",
-	       "%#llx");
-
 	CDEBUG(D_INFO, "OBD_OBJECT_EOF = %#llx\n", (u64)OBD_OBJECT_EOF);
 
 	u64val = OBD_OBJECT_EOF;
@@ -545,7 +542,7 @@ static int __init obd_init_checks(void)
 	}
 	len = snprintf(buf, sizeof(buf), "%#llx", u64val);
 	if (len != 18) {
-		CWARN("LPX64 wrong length! strlen(%s)=%d != 18\n", buf, len);
+		CERROR("LPX64 wrong length! strlen(%s)=%d != 18\n", buf, len);
 		ret = -EINVAL;
 	}
 
@@ -559,37 +556,39 @@ static int __init obd_init_checks(void)
 	if (u64val >> 8 != OBD_OBJECT_EOF >> 8) {
 		CERROR("u64 %#llx(%d) != 0xffffffffffffffff\n",
 		       u64val, (int)sizeof(u64val));
-		return -EOVERFLOW;
+		ret = -EOVERFLOW;
 	}
 	if (do_div(div64val, 256) != (u64val & 255)) {
 		CERROR("do_div(%#llx,256) != %llu\n", u64val, u64val & 255);
-		return -EOVERFLOW;
+		ret = -EOVERFLOW;
 	}
 	if (u64val >> 8 != div64val) {
 		CERROR("do_div(%#llx,256) %llu != %llu\n",
 		       u64val, div64val, u64val >> 8);
-		return -EOVERFLOW;
+		ret = -EOVERFLOW;
 	}
 	len = snprintf(buf, sizeof(buf), "%#llx", u64val);
 	if (len != 18) {
-		CWARN("LPX64 wrong length! strlen(%s)=%d != 18\n", buf, len);
+		CERROR("LPX64 wrong length! strlen(%s)=%d != 18\n", buf, len);
 		ret = -EINVAL;
 	}
 	len = snprintf(buf, sizeof(buf), "%llu", u64val);
 	if (len != 20) {
-		CWARN("LPU64 wrong length! strlen(%s)=%d != 20\n", buf, len);
+		CERROR("LPU64 wrong length! strlen(%s)=%d != 20\n", buf, len);
 		ret = -EINVAL;
 	}
 	len = snprintf(buf, sizeof(buf), "%lld", u64val);
 	if (len != 2) {
-		CWARN("LPD64 wrong length! strlen(%s)=%d != 2\n", buf, len);
+		CERROR("LPD64 wrong length! strlen(%s)=%d != 2\n", buf, len);
 		ret = -EINVAL;
 	}
 	if ((u64val & ~PAGE_MASK) >= PAGE_SIZE) {
-		CWARN("mask failed: u64val %llu >= %llu\n", u64val,
+		CERROR("mask failed: u64val %llu >= %llu\n", u64val,
 		      (u64)PAGE_SIZE);
 		ret = -EINVAL;
 	}
+	if (ret)
+		return ret;
 
 	/* invalid string */
 	if (!test_string_to_size_err("256B34", 256, "B", -EINVAL)) {

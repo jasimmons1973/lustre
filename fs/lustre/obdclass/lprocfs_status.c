@@ -236,7 +236,7 @@ static void obd_connect_data_seqprint(struct seq_file *m,
  *
  *  - ``-EINVAL``: @buffer is not a proper numerical string
  *  - ``-EOVERFLOW``: results does not fit into 64 bits.
- *  - ``-E2BIG ``: @buffer is not large (not a valid number)
+ *  - ``-E2BIG ``: @buffer is too large (not a valid number)
  */
 int string_to_size(u64 *size, const char *buffer, size_t count)
 {
@@ -1057,8 +1057,8 @@ int lprocfs_rd_connect_flags(struct seq_file *m, void *data)
 	int rc;
 
 	with_imp_locked(obd, imp, rc) {
-		flags = obd->u.cli.cl_import->imp_connect_data.ocd_connect_flags;
-		flags2 = obd->u.cli.cl_import->imp_connect_data.ocd_connect_flags2;
+		flags = imp->imp_connect_data.ocd_connect_flags;
+		flags2 = imp->imp_connect_data.ocd_connect_flags2;
 		seq_printf(m, "flags=%#llx\n", flags);
 		seq_printf(m, "flags2=%#llx\n", flags2);
 		obd_connect_seq_flags2str(m, flags, flags2, "\n");

@@ -840,6 +840,7 @@ int mdc_changelog_cdev_init(struct obd_device *obd)
 	entry->ced_device = device;
 
 	entry = NULL;	/* prevent it from being freed below */
+	rc = 0;
 	goto out_unlock;
 
 out_cdev:

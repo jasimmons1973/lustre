@@ -349,9 +349,9 @@ static ssize_t max_read_ahead_mb_store(struct kobject *kobj,
 	if (rc)
 		return rc;
 
+	pages_number = round_up(ra_max_mb, 1024 * 1024) >> PAGE_SHIFT;
 	CDEBUG(D_INFO, "%s: set max_read_ahead_mb=%llu (%llu pages)\n",
 	       sbi->ll_fsname, PAGES_TO_MiB(pages_number), pages_number);
-	pages_number = round_up(ra_max_mb, 1024 * 1024) >> PAGE_SHIFT;
 	if (pages_number > totalram_pages() / 2) {
 		/* 1/2 of RAM */
 		CERROR("%s: cannot set max_read_ahead_mb=%llu > totalram/2=%luMB\n",
@@ -571,7 +571,7 @@ static ssize_t ll_max_cached_mb_seq_write(struct file *file,
 			break;
 
 		if (!sbi->ll_dt_exp) { /* being initialized */
-			rc = 0;
+			rc = -ENODEV;
 			goto out;
 		}
 
@@ -1111,9 +1111,9 @@ static ssize_t max_read_ahead_async_active_show(struct kobject *kobj,
 }
 
 static ssize_t max_read_ahead_async_active_store(struct kobject *kobj,
-						struct attribute *attr,
-						const char *buffer,
-						size_t count)
+						 struct attribute *attr,
+						 const char *buffer,
+						 size_t count)
 {
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);

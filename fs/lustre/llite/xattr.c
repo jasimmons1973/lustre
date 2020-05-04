@@ -264,6 +264,7 @@ static int ll_setstripe_ea(struct dentry *dentry, struct lov_user_md *lump,
 		 */
 		return -ERANGE;
 	}
+
 	rc = ll_adjust_lum(inode, lump);
 	if (rc)
 		return rc;
