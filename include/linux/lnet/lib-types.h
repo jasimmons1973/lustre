@@ -239,11 +239,7 @@ struct lnet_lnd {
 
 	/*
 	 * In data movement APIs below, payload buffers are described as a set
-	 * of 'niov' fragments which are...
-	 * EITHER
-	 *    in virtual memory (struct iovec *iov != NULL)
-	 * OR
-	 *    in pages (kernel only: plt_kiov_t *kiov != NULL).
+	 * of 'niov' fragments which are in pages.
 	 * The LND may NOT overwrite these fragment descriptors.
 	 * An 'offset' and may specify a byte offset within the set of
 	 * fragments to start from
