@@ -109,6 +109,9 @@ static inline __u32 LNET_MKNET(__u32 type, __u32 num)
 	return (type << 16) | num;
 }
 
+/** The lolnd NID (i.e. myself) */
+#define LNET_NID_LO_0 LNET_MKNID(LNET_MKNET(LOLND, 0), 0)
+
 /* Packed version of lnet_process_id to transfer via network */
 struct lnet_process_id_packed {
 	/* node id / process id */
