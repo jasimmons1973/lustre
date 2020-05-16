@@ -399,6 +399,8 @@ struct lu_attr {
 	s64	  la_atime;
 	/** change time in seconds since Epoch */
 	s64	  la_ctime;
+	/** create time in seconds since Epoch */
+	s64	la_btime;
 	/** 512-byte blocks allocated to object */
 	u64	  la_blocks;
 	/** permission bits and file type */
