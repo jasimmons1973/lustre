@@ -102,6 +102,8 @@ int cl_setattr_ost(struct cl_object *obj, const struct iattr *attr,
 	io->u.ci_setattr.sa_xvalid = xvalid;
 	io->u.ci_setattr.sa_parent_fid = lu_object_fid(&obj->co_lu);
 
+	if (attr->ia_valid & ATTR_SIZE)
+		io->u.ci_setattr.sa_subtype = CL_SETATTR_TRUNC;
 again:
 	if (attr->ia_valid & ATTR_FILE)
 		ll_io_set_mirror(io, attr->ia_file);
