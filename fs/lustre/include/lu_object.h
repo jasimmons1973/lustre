@@ -38,6 +38,7 @@
 #include <linux/percpu_counter.h>
 #include <linux/libcfs/libcfs.h>
 #include <linux/ctype.h>
+#include <obd_target.h>
 #include <uapi/linux/lustre/lustre_idl.h>
 #include <lu_ref.h>
 
@@ -1398,16 +1399,6 @@ void lu_kmem_fini(struct lu_kmem_descr *caches);
 
 extern u32 lu_context_tags_default;
 extern u32 lu_session_tags_default;
-
-/* Generic subset of tgts */
-struct lu_tgt_pool {
-	u32		   *op_array;	/* array of index of
-					 * lov_obd->lov_tgts
-					 */
-	unsigned int	    op_count;	/* number of tgts in the array */
-	unsigned int	    op_size;	/* allocated size of op_array */
-	struct rw_semaphore op_rw_sem;	/* to protect lu_tgt_pool use */
-};
 
 /* round-robin QoS data for LOD/LMV */
 struct lu_qos_rr {
