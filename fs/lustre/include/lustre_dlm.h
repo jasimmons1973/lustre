@@ -1320,6 +1320,8 @@ int ldlm_cli_cancel_list(struct list_head *head, int count,
 			 enum ldlm_cancel_flags flags);
 /** @} ldlm_cli_api */
 
+extern unsigned int ldlm_enqueue_min;
+
 int ldlm_inodebits_drop(struct ldlm_lock *lock, u64 to_drop);
 int ldlm_cli_inodebits_convert(struct ldlm_lock *lock,
 			       enum ldlm_cancel_flags cancel_flags);
