@@ -35,7 +35,6 @@
 #include <linux/sched.h>
 #include <linux/module.h>
 #include <linux/slab.h>
-#include <linux/cache.h>
 
 #include <linux/libcfs/libcfs_cpu.h>
 #include <linux/libcfs/libcfs_string.h>
@@ -1162,13 +1161,13 @@ int cfs_cpu_init(void)
 
 #ifdef CONFIG_HOTPLUG_CPU
 	ret = cpuhp_setup_state_nocalls(CPUHP_LUSTRE_CFS_DEAD,
-					"staging/lustre/cfe:dead", NULL,
+					"fs/lustre/cfe:dead", NULL,
 					cfs_cpu_dead);
 	if (ret < 0)
 		goto failed_cpu_dead;
 
 	ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
-					"staging/lustre/cfe:online",
+					"fs/lustre/cfe:online",
 					cfs_cpu_online, NULL);
 	if (ret < 0)
 		goto failed_cpu_online;

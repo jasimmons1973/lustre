@@ -85,9 +85,13 @@ struct cfs_cpt_table;
 extern struct cfs_cpt_table	*cfs_cpt_tab;
 
 /**
- * return cpumask of CPU partition @cpt
+ * destroy a CPU partition table
  */
-cpumask_var_t *cfs_cpt_cpumask(struct cfs_cpt_table *cptab, int cpt);
+void cfs_cpt_table_free(struct cfs_cpt_table *cptab);
+/**
+ * create a cfs_cpt_table with @ncpt number of partitions
+ */
+struct cfs_cpt_table *cfs_cpt_table_alloc(unsigned int ncpt);
 /**
  * print string information of cpt-table
  */
@@ -108,6 +112,10 @@ int cfs_cpt_weight(struct cfs_cpt_table *cptab, int cpt);
  * is there any online CPU in CPU partition @cpt
  */
 int cfs_cpt_online(struct cfs_cpt_table *cptab, int cpt);
+/**
+ * return cpumask of CPU partition @cpt
+ */
+cpumask_var_t *cfs_cpt_cpumask(struct cfs_cpt_table *cptab, int cpt);
 /**
  * return nodemask of CPU partition @cpt
  */
@@ -185,6 +193,15 @@ void cfs_cpu_fini(void);
 
 #define cfs_cpt_tab ((struct cfs_cpt_table *)NULL)
 
+static inline void cfs_cpt_table_free(struct cfs_cpt_table *cptab)
+{
+}
+
+static inline struct cfs_cpt_table *cfs_cpt_table_alloc(int ncpt)
+{
+	return NULL;
+}
+
 static inline int cfs_cpt_table_print(struct cfs_cpt_table *cptab,
 				      char *buf, int len)
 {
@@ -214,7 +231,7 @@ static inline int cfs_cpt_distance_print(struct cfs_cpt_table *cptab,
 static inline cpumask_var_t *cfs_cpt_cpumask(struct cfs_cpt_table *cptab,
 					     int cpt)
 {
-	return NULL;
+	return (cpumask_var_t *) cpu_online_mask;
 }
 
 static inline int cfs_cpt_number(struct cfs_cpt_table *cptab)
@@ -227,15 +244,10 @@ static inline int cfs_cpt_weight(struct cfs_cpt_table *cptab, int cpt)
 	return 1;
 }
 
-static inline int cfs_cpt_online(struct cfs_cpt_table *cptab, int cpt)
-{
-	return 1;
-}
-
 static inline nodemask_t *cfs_cpt_nodemask(struct cfs_cpt_table *cptab,
 					   int cpt)
 {
-	return NULL;
+	return &node_online_map;
 }
 
 static inline unsigned int cfs_cpt_distance(struct cfs_cpt_table *cptab,
@@ -244,48 +256,10 @@ static inline unsigned int cfs_cpt_distance(struct cfs_cpt_table *cptab,
 	return 1;
 }
 
-static inline int cfs_cpt_set_cpu(struct cfs_cpt_table *cptab, int cpt,
-				  int cpu)
-{
-	return 1;
-}
-
-static inline void cfs_cpt_unset_cpu(struct cfs_cpt_table *cptab, int cpt,
-				     int cpu)
-{
-}
-
-static inline int cfs_cpt_set_cpumask(struct cfs_cpt_table *cptab, int cpt,
-				      const cpumask_t *mask)
-{
-	return 1;
-}
-
-static inline void cfs_cpt_unset_cpumask(struct cfs_cpt_table *cptab, int cpt,
-					 const cpumask_t *mask)
-{
-}
-
 static inline int cfs_cpt_set_node(struct cfs_cpt_table *cptab, int cpt,
 				   int node)
 {
 	return 1;
-}
-
-static inline void cfs_cpt_unset_node(struct cfs_cpt_table *cptab, int cpt,
-				      int node)
-{
-}
-
-static inline int cfs_cpt_set_nodemask(struct cfs_cpt_table *cptab, int cpt,
-				       const nodemask_t *mask)
-{
-	return 1;
-}
-
-static inline void cfs_cpt_unset_nodemask(struct cfs_cpt_table *cptab,
-					  int cpt, const nodemask_t *mask)
-{
 }
 
 static inline int cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt)
@@ -294,11 +268,6 @@ static inline int cfs_cpt_spread_node(struct cfs_cpt_table *cptab, int cpt)
 }
 
 static inline int cfs_cpt_current(struct cfs_cpt_table *cptab, int remap)
-{
-	return 0;
-}
-
-static inline int cfs_cpt_of_cpu(struct cfs_cpt_table *cptab, int cpu)
 {
 	return 0;
 }
@@ -323,15 +292,6 @@ static inline void cfs_cpu_fini(void)
 }
 
 #endif /* CONFIG_SMP */
-
-/**
- * destroy a CPU partition table
- */
-void cfs_cpt_table_free(struct cfs_cpt_table *cptab);
-/**
- * create a cfs_cpt_table with @ncpt number of partitions
- */
-struct cfs_cpt_table *cfs_cpt_table_alloc(unsigned int ncpt);
 
 /*
  * allocate per-cpu-partition data, returned value is an array of pointers,
