@@ -91,8 +91,8 @@ enum ldlm_error {
  * first speaking to a server.
  */
 enum ldlm_side {
-	LDLM_NAMESPACE_SERVER = 1 << 0,
-	LDLM_NAMESPACE_CLIENT = 1 << 1
+	LDLM_NAMESPACE_SERVER = 0x01,
+	LDLM_NAMESPACE_CLIENT = 0x02
 };
 
 /**
@@ -293,8 +293,8 @@ struct ldlm_valblock_ops {
  * Greedy means release cached locks aggressively
  */
 enum ldlm_appetite {
-	LDLM_NAMESPACE_GREEDY = 1 << 0,
-	LDLM_NAMESPACE_MODEST = 1 << 1
+	LDLM_NAMESPACE_GREEDY = BIT(0),
+	LDLM_NAMESPACE_MODEST = BIT(1),
 };
 
 struct ldlm_ns_bucket {
