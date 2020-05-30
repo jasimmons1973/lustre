@@ -124,7 +124,7 @@ out:
 }
 
 static struct lnet_libmd *
-lnet_md_build(struct lnet_md *umd, int unlink)
+lnet_md_build(const struct lnet_md *umd, int unlink)
 {
 	int i;
 	unsigned int niov;
@@ -269,7 +269,7 @@ lnet_md_deconstruct(struct lnet_libmd *lmd, struct lnet_event *ev)
 }
 
 static int
-lnet_md_validate(struct lnet_md *umd)
+lnet_md_validate(const struct lnet_md *umd)
 {
 	if (!umd->start && umd->length) {
 		CERROR("MD start pointer can not be NULL with length %u\n",
@@ -314,7 +314,7 @@ lnet_md_validate(struct lnet_md *umd)
  *		a MD.
  */
 int
-LNetMDAttach(struct lnet_me *me, struct lnet_md umd,
+LNetMDAttach(struct lnet_me *me, const struct lnet_md *umd,
 	     enum lnet_unlink unlink, struct lnet_handle_md *handle)
 {
 	LIST_HEAD(matches);
@@ -325,15 +325,15 @@ LNetMDAttach(struct lnet_me *me, struct lnet_md umd,
 
 	LASSERT(the_lnet.ln_refcount > 0);
 
-	if (lnet_md_validate(&umd))
+	if (lnet_md_validate(umd))
 		return -EINVAL;
 
-	if (!(umd.options & (LNET_MD_OP_GET | LNET_MD_OP_PUT))) {
+	if (!(umd->options & (LNET_MD_OP_GET | LNET_MD_OP_PUT))) {
 		CERROR("Invalid option: no MD_OP set\n");
 		return -EINVAL;
 	}
 
-	md = lnet_md_build(&umd, unlink);
+	md = lnet_md_build(umd, unlink);
 	if (IS_ERR(md))
 		return PTR_ERR(md);
 
@@ -344,7 +344,7 @@ LNetMDAttach(struct lnet_me *me, struct lnet_md umd,
 	if (me->me_md)
 		rc = -EBUSY;
 	else
-		rc = lnet_md_link(md, umd.handler, cpt);
+		rc = lnet_md_link(md, umd->handler, cpt);
 
 	if (rc)
 		goto out_unlock;
@@ -388,7 +388,7 @@ EXPORT_SYMBOL(LNetMDAttach);
  *			calling LNetInvalidateHandle() on it.
  */
 int
-LNetMDBind(struct lnet_md umd, enum lnet_unlink unlink,
+LNetMDBind(const struct lnet_md *umd, enum lnet_unlink unlink,
 	   struct lnet_handle_md *handle)
 {
 	struct lnet_libmd *md;
@@ -397,15 +397,15 @@ LNetMDBind(struct lnet_md umd, enum lnet_unlink unlink,
 
 	LASSERT(the_lnet.ln_refcount > 0);
 
-	if (lnet_md_validate(&umd))
+	if (lnet_md_validate(umd))
 		return -EINVAL;
 
-	if ((umd.options & (LNET_MD_OP_GET | LNET_MD_OP_PUT))) {
+	if ((umd->options & (LNET_MD_OP_GET | LNET_MD_OP_PUT))) {
 		CERROR("Invalid option: GET|PUT illegal on active MDs\n");
 		return -EINVAL;
 	}
 
-	md = lnet_md_build(&umd, unlink);
+	md = lnet_md_build(umd, unlink);
 	if (IS_ERR(md))
 		return PTR_ERR(md);
 
@@ -418,7 +418,7 @@ LNetMDBind(struct lnet_md umd, enum lnet_unlink unlink,
 
 	cpt = lnet_res_lock_current();
 
-	rc = lnet_md_link(md, umd.handler, cpt);
+	rc = lnet_md_link(md, umd->handler, cpt);
 	if (rc)
 		goto out_unlock;
 
