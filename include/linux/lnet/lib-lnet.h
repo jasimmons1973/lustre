@@ -83,7 +83,6 @@ extern unsigned int lnet_current_net_count;
 
 /* default timeout */
 #define DEFAULT_PEER_TIMEOUT    180
-#define LNET_LND_DEFAULT_TIMEOUT 5
 
 int choose_ipv4_src(u32 *ret, int interface, u32 dst_ipaddr, struct net *ns);
 

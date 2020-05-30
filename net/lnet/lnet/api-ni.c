@@ -170,7 +170,15 @@ module_param(lnet_retry_count, retry_count, 0644);
 MODULE_PARM_DESC(lnet_retry_count,
 		 "Maximum number of times to retry transmitting a message");
 
-unsigned int lnet_lnd_timeout = LNET_LND_DEFAULT_TIMEOUT;
+#define LNET_LND_TIMEOUT_DEFAULT ((LNET_TRANSACTION_TIMEOUT_HEALTH_DEFAULT - 1) / \
+				  (LNET_RETRY_COUNT_HEALTH_DEFAULT + 1))
+unsigned int lnet_lnd_timeout = LNET_LND_TIMEOUT_DEFAULT;
+static void lnet_set_lnd_timeout(void)
+{
+	lnet_lnd_timeout = (lnet_transaction_timeout - 1) /
+			   (lnet_retry_count + 1);
+}
+
 unsigned int lnet_current_net_count;
 
 /*
@@ -220,6 +228,7 @@ sensitivity_set(const char *val, const struct kernel_param *kp)
 		lnet_transaction_timeout =
 			LNET_TRANSACTION_TIMEOUT_HEALTH_DEFAULT;
 		lnet_retry_count = LNET_RETRY_COUNT_HEALTH_DEFAULT;
+		lnet_set_lnd_timeout();
 	/* if we're turning off health then use the no health timeout
 	 * default.
 	 */
@@ -227,6 +236,7 @@ sensitivity_set(const char *val, const struct kernel_param *kp)
 		lnet_transaction_timeout =
 			LNET_TRANSACTION_TIMEOUT_NO_HEALTH_DEFAULT;
 		lnet_retry_count = 0;
+		lnet_set_lnd_timeout();
 	}
 
 	*sensitivity = value;
@@ -385,10 +395,10 @@ transaction_to_set(const char *val, const struct kernel_param *kp)
 	}
 
 	*transaction_to = value;
-	if (lnet_retry_count == 0)
-		lnet_lnd_timeout = value;
-	else
-		lnet_lnd_timeout = value / lnet_retry_count;
+	/* Update the lnet_lnd_timeout now that we've modified the
+	 * transaction timeout
+	 */
+	lnet_set_lnd_timeout();
 
 	mutex_unlock(&the_lnet.ln_api_mutex);
 
@@ -428,10 +438,10 @@ retry_count_set(const char *val, const struct kernel_param *kp)
 
 	*retry_count = value;
 
-	if (value == 0)
-		lnet_lnd_timeout = lnet_transaction_timeout;
-	else
-		lnet_lnd_timeout = lnet_transaction_timeout / value;
+	/* Update the lnet_lnd_timeout now that we've modified the
+	 * transaction timeout
+	 */
+	lnet_set_lnd_timeout();
 
 	mutex_unlock(&the_lnet.ln_api_mutex);
 
