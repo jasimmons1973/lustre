@@ -36,9 +36,9 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 
-#include <linux/libcfs/libcfs_cpu.h>
 #include <linux/libcfs/libcfs_string.h>
 #include <linux/libcfs/libcfs.h>
+#include <linux/libcfs/libcfs_cpu.h>
 
 /** virtual processing unit */
 struct cfs_cpu_partition {
