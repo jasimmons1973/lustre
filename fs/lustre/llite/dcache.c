@@ -270,7 +270,9 @@ static int ll_revalidate_dentry(struct dentry *dentry,
 	if (lookup_flags & LOOKUP_RCU)
 		return -ECHILD;
 
-	ll_statahead(dir, &dentry, !d_inode(dentry));
+	if (dentry_may_statahead(dir, dentry))
+		ll_revalidate_statahead(dir, &dentry, !d_inode(dentry));
+
 	return 1;
 }
 
