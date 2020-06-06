@@ -309,7 +309,7 @@ discovery_set(const char *val, const struct kernel_param *kp)
 	 * changing the value dynamically, we want to set it after
 	 * updating the peers
 	 */
-	if (the_lnet.ln_state == LNET_STATE_SHUTDOWN) {
+	if (the_lnet.ln_state != LNET_STATE_RUNNING) {
 		*discovery_off = value;
 		mutex_unlock(&the_lnet.ln_api_mutex);
 		return 0;
