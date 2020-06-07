@@ -548,17 +548,17 @@ enum lov_comp_md_entry_flags {
 	LCME_FL_OFFLINE		= 0x00000008,	/* Not used */
 	LCME_FL_INIT		= 0x00000010,	/* instantiated */
 	LCME_FL_NOSYNC		= 0x00000020,	/* FLR: no sync for the mirror */
+	LCME_FL_EXTENSION	= 0x00000040,	/* extension comp, never init */
 	LCME_FL_NEG		= 0x80000000,	/* used to indicate a negative
 						 * flag, won't be stored on disk
 						 */
 };
 
 #define LCME_KNOWN_FLAGS	(LCME_FL_NEG | LCME_FL_INIT | LCME_FL_STALE | \
-				 LCME_FL_PREF_RW | LCME_FL_NOSYNC)
-/* The flags can be set by users at mirror creation time. */
-#define LCME_USER_FLAGS		(LCME_FL_PREF_RW)
+				 LCME_FL_PREF_RW | LCME_FL_NOSYNC | \
+				 LCME_FL_EXTENSION)
 
-/* The flags are for mirrors */
+/* The mirror flags sent by client */
 #define LCME_MIRROR_FLAGS	(LCME_FL_NOSYNC)
 
 /* the highest bit in obdo::o_layout_version is used to mark if the file is
