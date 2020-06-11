@@ -155,6 +155,7 @@ static struct ll_sb_info *ll_init_sbi(void)
 	sbi->ll_flags |= LL_SBI_AGL_ENABLED;
 	sbi->ll_flags |= LL_SBI_FAST_READ;
 	sbi->ll_flags |= LL_SBI_TINY_WRITE;
+	ll_sbi_set_encrypt(sbi, true);
 
 	/* root squash */
 	sbi->ll_squash.rsi_uid = 0;
@@ -551,6 +552,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 #if THREAD_SIZE >= 8192 /*b=17630*/
 	sb->s_export_op = &lustre_export_operations;
 #endif
+	llcrypt_set_ops(sb, &lustre_cryptops);
 
 	/* make root inode
 	 * XXX: move this to after cbd setup?
@@ -921,6 +923,25 @@ static int ll_options(char *options, struct ll_sb_info *sbi)
 		tmp = ll_set_opt("always_ping", s1, LL_SBI_ALWAYS_PING);
 		if (tmp) {
 			*flags |= tmp;
+			goto next;
+		}
+		tmp = ll_set_opt("test_dummy_encryption", s1,
+				 LL_SBI_TEST_DUMMY_ENCRYPTION);
+		if (tmp) {
+#ifdef CONFIG_FS_ENCRYPTION
+			*flags |= tmp;
+#else
+			LCONSOLE_WARN("Test dummy encryption mount option ignored: encryption not supported\n");
+#endif
+			goto next;
+		}
+		tmp = ll_set_opt("noencrypt", s1, LL_SBI_ENCRYPT);
+		if (tmp) {
+#ifdef CONFIG_FS_ENCRYPTION
+			*flags &= ~tmp;
+#else
+			LCONSOLE_WARN("noencrypt mount option ignored: encryption not supported\n");
+#endif
 			goto next;
 		}
 		LCONSOLE_ERROR_MSG(0x152, "Unknown option '%s', won't mount.\n",
@@ -1558,6 +1579,8 @@ void ll_clear_inode(struct inode *inode)
 	 * cl_object still uses inode lsm.
 	 */
 	cl_inode_fini(inode);
+
+	llcrypt_put_encryption_info(inode);
 }
 
 static int ll_md_setattr(struct dentry *dentry, struct md_op_data *op_data)
@@ -1978,6 +2001,8 @@ void ll_update_inode_flags(struct inode *inode, int ext_flags)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
 
+	/* do not clear encryption flag */
+	ext_flags |= ll_inode_to_ext_flags(inode->i_flags) & LUSTRE_ENCRYPT_FL;
 	inode->i_flags = ll_ext_to_inode_flags(ext_flags);
 	if (ext_flags & LUSTRE_PROJINHERIT_FL)
 		set_bit(LLIF_PROJECT_INHERIT, &lli->lli_flags);
@@ -2701,6 +2726,14 @@ int ll_show_options(struct seq_file *seq, struct dentry *dentry)
 
 	if (sbi->ll_flags & LL_SBI_ALWAYS_PING)
 		seq_puts(seq, ",always_ping");
+
+	if (ll_sbi_has_test_dummy_encryption(sbi))
+		seq_puts(seq, ",test_dummy_encryption");
+
+	if (ll_sbi_has_encrypt(sbi))
+		seq_puts(seq, ",encrypt");
+	else
+		seq_puts(seq, ",noencrypt");
 
 	return 0;
 }

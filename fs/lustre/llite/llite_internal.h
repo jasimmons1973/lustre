@@ -44,9 +44,11 @@
 #include <lustre_mdc.h>
 #include <lustre_intent.h>
 #include <linux/compat.h>
+#include <lustre_crypto.h>
 #include <linux/namei.h>
 #include <linux/xattr.h>
 #include <linux/posix_acl_xattr.h>
+
 #include "vvp_internal.h"
 #include "range_lock.h"
 #include "pcc.h"
@@ -551,6 +553,8 @@ enum stats_track_type {
 					  */
 #define LL_SBI_TINY_WRITE	0x2000000 /* tiny write support */
 #define LL_SBI_FILE_HEAT    0x4000000 /* file heat support */
+#define LL_SBI_TEST_DUMMY_ENCRYPTION	0x8000000 /* test dummy encryption */
+#define LL_SBI_ENCRYPT	   0x10000000 /* client side encryption */
 #define LL_SBI_FLAGS {	\
 	"nolck",	\
 	"checksum",	\
@@ -579,6 +583,8 @@ enum stats_track_type {
 	"pio",		\
 	"tiny_write",	\
 	"file_heat",	\
+	"test_dummy_encryption", \
+	"noencrypt",	\
 }
 
 /*
@@ -1577,5 +1583,25 @@ static inline struct pcc_super *ll_info2pccs(struct ll_inode_info *lli)
 {
 	return ll_i2pccs(ll_info2i(lli));
 }
+
+#ifdef CONFIG_FS_ENCRYPTION
+/* crypto.c */
+extern const struct llcrypt_operations lustre_cryptops;
+
+#else /* !CONFIG_FS_ENCRYPTION */
+inline bool ll_sbi_has_test_dummy_encryption(struct ll_sb_info *sbi)
+{
+	return false;
+}
+
+inline bool ll_sbi_has_encrypt(struct ll_sb_info *sbi)
+{
+	return false;
+}
+
+inline void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set)
+{
+}
+#endif /* !CONFIG_FS_ENCRYPTION */
 
 #endif /* LLITE_INTERNAL_H */

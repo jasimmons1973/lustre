@@ -1108,6 +1108,8 @@ struct lov_mds_md_v1 {		/* LOV EA mds/wire data (little-endian) */
 #define XATTR_NAME_HSM		"trusted.hsm"
 #define XATTR_NAME_LFSCK_NAMESPACE "trusted.lfsck_namespace"
 
+#define LL_XATTR_NAME_ENCRYPTION_CONTEXT XATTR_SECURITY_PREFIX"c"
+
 struct lov_mds_md_v3 {		/* LOV EA mds/wire data (little-endian) */
 	__u32 lmm_magic;	/* magic number = LOV_MAGIC_V3 */
 	__u32 lmm_pattern;	/* LOV_PATTERN_RAID0, LOV_PATTERN_RAID1 */
@@ -1571,6 +1573,16 @@ enum {
 	LUSTRE_TOPDIR_FL	= 0x00020000, /* Top of directory hierarchies*/
 	LUSTRE_INLINE_DATA_FL	= 0x10000000, /* Inode has inline data. */
 	LUSTRE_PROJINHERIT_FL	= 0x20000000, /* Create with parents projid */
+
+	/* These flags will not be identical to any EXT4_*_FL counterparts,
+	 * and only reserved for lustre purpose. Note: these flags might
+	 * be conflict with some of EXT4 flags, so
+	 * 1. these conflict flags needs to be removed when the flag is
+	 * wired by la_flags see osd_attr_get().
+	 * 2. If these flags needs to be stored into inode, they will be
+	 * stored in LMA. see LMAI_XXXX
+	 */
+	LUSTRE_ENCRYPT_FL       = 0x00800000, /* encrypted file */
 };
 
 /* 64 possible states */

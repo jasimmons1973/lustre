@@ -10,3 +10,4 @@ lustre-y := dcache.o dir.o file.o llite_lib.o llite_nfs.o \
 	    lproc_llite.o pcc.o
 
 lustre-$(CONFIG_LUSTRE_FS_POSIX_ACL) += acl.o
+lustre-$(CONFIG_FS_ENCRYPTION)	     += crypto.o
