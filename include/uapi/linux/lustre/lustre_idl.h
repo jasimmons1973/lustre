@@ -1537,19 +1537,23 @@ enum {
 #define MDS_STATUS_CONN 1
 #define MDS_STATUS_LOV 2
 
-/* these should be identical to their EXT4_*_FL counterparts, they are
- * redefined here only to avoid dragging in fs/ext4/ext4.h
- */
-#define LUSTRE_SYNC_FL		0x00000008 /* Synchronous updates */
-#define LUSTRE_IMMUTABLE_FL	0x00000010 /* Immutable file */
-#define LUSTRE_APPEND_FL	0x00000020 /* writes to file may only append */
-#define LUSTRE_NODUMP_FL	0x00000040 /* do not dump file */
-#define LUSTRE_NOATIME_FL	0x00000080 /* do not update atime */
-#define LUSTRE_INDEX_FL		0x00001000 /* hash-indexed directory */
-#define LUSTRE_DIRSYNC_FL	0x00010000 /* dirsync behaviour (dir only) */
-#define LUSTRE_TOPDIR_FL	0x00020000 /* Top of directory hierarchies*/
-#define LUSTRE_INLINE_DATA_FL	0x10000000 /* Inode has inline data. */
-#define LUSTRE_PROJINHERIT_FL	0x20000000 /* Create with parents projid */
+enum {
+	/* these should be identical to their EXT4_*_FL counterparts, they are
+	 * redefined here only to avoid dragging in fs/ext4/ext4.h
+	 */
+	LUSTRE_SYNC_FL		= 0x00000008, /* Synchronous updates */
+	LUSTRE_IMMUTABLE_FL	= 0x00000010, /* Immutable file */
+	LUSTRE_APPEND_FL	= 0x00000020, /* writes to file may only
+					       * append
+					       */
+	LUSTRE_NODUMP_FL	= 0x00000040, /* do not dump file */
+	LUSTRE_NOATIME_FL	= 0x00000080, /* do not update atime */
+	LUSTRE_INDEX_FL		= 0x00001000, /* hash-indexed directory */
+	LUSTRE_DIRSYNC_FL	= 0x00010000, /* dirsync behaviour (dir only) */
+	LUSTRE_TOPDIR_FL	= 0x00020000, /* Top of directory hierarchies*/
+	LUSTRE_INLINE_DATA_FL	= 0x10000000, /* Inode has inline data. */
+	LUSTRE_PROJINHERIT_FL	= 0x20000000, /* Create with parents projid */
+};
 
 /* 64 possible states */
 enum md_transient_state {
