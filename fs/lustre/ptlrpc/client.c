@@ -147,6 +147,12 @@ struct ptlrpc_bulk_desc *ptlrpc_new_bulk(unsigned int nfrags,
 
 	LASSERT(ops->add_kiov_frag);
 
+	if (max_brw > PTLRPC_BULK_OPS_COUNT)
+		return NULL;
+
+	if (nfrags > LNET_MAX_IOV * max_brw)
+		return NULL;
+
 	desc = kzalloc(sizeof(*desc), GFP_NOFS);
 	if (!desc)
 		return NULL;
@@ -162,6 +168,7 @@ struct ptlrpc_bulk_desc *ptlrpc_new_bulk(unsigned int nfrags,
 	desc->bd_portal = portal;
 	desc->bd_type = type;
 	desc->bd_md_count = 0;
+	desc->bd_nob_last = LNET_MTU;
 	desc->bd_frag_ops = ops;
 	LASSERT(max_brw > 0);
 	desc->bd_md_max_brw = min(max_brw, PTLRPC_BULK_OPS_COUNT);
@@ -228,6 +235,15 @@ void __ptlrpc_prep_bulk_page(struct ptlrpc_bulk_desc *desc,
 
 	kiov = &desc->bd_vec[desc->bd_iov_count];
 
+	if (((desc->bd_iov_count % LNET_MAX_IOV) == 0) ||
+	    ((desc->bd_nob_last + len) > LNET_MTU)) {
+		desc->bd_mds_off[desc->bd_md_count] = desc->bd_iov_count;
+		desc->bd_md_count++;
+		desc->bd_nob_last = 0;
+		LASSERT(desc->bd_md_count <= PTLRPC_BULK_OPS_COUNT);
+	}
+
+	desc->bd_nob_last += len;
 	desc->bd_nob += len;
 
 	if (pin)
@@ -3177,9 +3193,7 @@ void ptlrpc_set_bulk_mbits(struct ptlrpc_request *req)
 		    || req->rq_mbits == 0) {
 			req->rq_mbits = req->rq_xid;
 		} else {
-			int total_md = (bd->bd_iov_count + LNET_MAX_IOV - 1) /
-					LNET_MAX_IOV;
-			req->rq_mbits -= total_md - 1;
+			req->rq_mbits -= bd->bd_md_count - 1;
 		}
 	} else {
 		/*
@@ -3194,7 +3208,7 @@ void ptlrpc_set_bulk_mbits(struct ptlrpc_request *req)
 	 * that server can infer the number of bulks that were prepared,
 	 * see LU-1431
 	 */
-	req->rq_mbits += DIV_ROUND_UP(bd->bd_iov_count, LNET_MAX_IOV) - 1;
+	req->rq_mbits += bd->bd_md_count - 1;
 
 	/* Set rq_xid as rq_mbits to indicate the final bulk for the old
 	 * server which does not support OBD_CONNECT_BULK_MBITS. LU-6808
