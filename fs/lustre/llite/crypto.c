@@ -32,6 +32,7 @@
 static int ll_get_context(struct inode *inode, void *ctx, size_t len)
 {
 	struct dentry *dentry;
+	int rc;
 
 	if (hlist_empty(&inode->i_dentry))
 		return -ENODATA;
@@ -39,8 +40,13 @@ static int ll_get_context(struct inode *inode, void *ctx, size_t len)
 	hlist_for_each_entry(dentry, &inode->i_dentry, d_u.d_alias)
 		break;
 
-	return __vfs_getxattr(dentry, inode, LL_XATTR_NAME_ENCRYPTION_CONTEXT,
-			      ctx, len);
+	rc = __vfs_getxattr(dentry, inode, LL_XATTR_NAME_ENCRYPTION_CONTEXT,
+			    ctx, len);
+
+	/* used as encryption unit size */
+	if (S_ISREG(inode->i_mode))
+		inode->i_blkbits = LUSTRE_ENCRYPTION_BLOCKBITS;
+	return rc;
 }
 
 static int ll_set_context(struct inode *inode, const void *ctx, size_t len,
