@@ -443,6 +443,14 @@ static inline bool lov_pattern_supported_normal_comp(__u32 pattern)
 #define LOV_OFFSET_DEFAULT      ((__u16)-1)
 #define LMV_OFFSET_DEFAULT      ((__u32)-1)
 
+static inline bool lov_pattern_supported(__u32 pattern)
+{
+	return (pattern & ~LOV_PATTERN_F_RELEASED) == LOV_PATTERN_RAID0 ||
+	       (pattern & ~LOV_PATTERN_F_RELEASED) ==
+			(LOV_PATTERN_RAID0 | LOV_PATTERN_OVERSTRIPING) ||
+	       (pattern & ~LOV_PATTERN_F_RELEASED) == LOV_PATTERN_MDT;
+}
+
 #define LOV_MIN_STRIPE_BITS	16	/* maximum PAGE_SIZE (ia64), power of 2 */
 #define LOV_MIN_STRIPE_SIZE	(1 << LOV_MIN_STRIPE_BITS)
 #define LOV_MAX_STRIPE_COUNT_OLD 160
