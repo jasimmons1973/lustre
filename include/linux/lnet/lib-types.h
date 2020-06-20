@@ -51,7 +51,7 @@
 /* Max payload size */
 #define LNET_MAX_PAYLOAD	LNET_MTU
 
-#define LNET_MAX_IOV		(LNET_MAX_PAYLOAD >> PAGE_SHIFT)
+#define LNET_MAX_IOV		256
 
 /*
  * This is the maximum health value.
