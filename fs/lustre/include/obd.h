@@ -1004,7 +1004,7 @@ struct md_ops {
 
 	int (*free_lustre_md)(struct obd_export *, struct lustre_md *);
 
-	int (*merge_attr)(struct obd_export *,
+	int (*merge_attr)(struct obd_export *, const struct lu_fid *fid,
 			  const struct lmv_stripe_md *lsm,
 			  struct cl_attr *attr, ldlm_blocking_callback);
 
