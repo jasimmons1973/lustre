@@ -143,6 +143,13 @@ enum {
 	LPROCFS_TYPE_BYTES		= 0x0200,
 	LPROCFS_TYPE_PAGES		= 0x0400,
 	LPROCFS_TYPE_USEC		= 0x0800,
+
+	LPROCFS_TYPE_LATENCY		= LPROCFS_TYPE_USEC |
+					  LPROCFS_CNTR_AVGMINMAX |
+					  LPROCFS_CNTR_STDDEV,
+	LPROCFS_TYPE_BYTES_FULL		= LPROCFS_TYPE_BYTES |
+					  LPROCFS_CNTR_AVGMINMAX |
+					  LPROCFS_CNTR_STDDEV,
 };
 
 #define LC_MIN_INIT ((~(u64)0) >> 1)
@@ -364,8 +371,6 @@ struct obd_histogram;
 #define JOBSTATS_SESSION		"session"
 
 /* obd_config.c */
-void lustre_register_client_process_config(int (*cpc)(struct lustre_cfg *lcfg));
-
 int lprocfs_stats_alloc_one(struct lprocfs_stats *stats,
 			    unsigned int cpuid);
 int lprocfs_stats_lock(struct lprocfs_stats *stats,
