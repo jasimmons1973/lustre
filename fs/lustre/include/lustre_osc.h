@@ -52,6 +52,7 @@
 #include <obd.h>
 #include <cl_object.h>
 #include <linux/libcfs/libcfs_hash.h>
+#include <lustre_crypto.h>
 
 struct osc_quota_info {
 	/* linkage for quota hash table */

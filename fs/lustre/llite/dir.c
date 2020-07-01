@@ -388,6 +388,7 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 					       strlen(dirname)),
 		},
 	};
+	bool encrypt = false;
 	int err;
 
 	if (unlikely(!lmv_user_magic_supported(lump->lum_magic)))
@@ -446,6 +447,18 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 	if (IS_ERR(op_data))
 		return PTR_ERR(op_data);
 
+	if (IS_ENCRYPTED(parent) ||
+	    unlikely(llcrypt_dummy_context_enabled(parent))) {
+		err = llcrypt_get_encryption_info(parent);
+		if (err)
+			goto out_op_data;
+		if (!llcrypt_has_encryption_key(parent)) {
+			err = -ENOKEY;
+			goto out_op_data;
+		}
+		encrypt = true;
+	}
+
 	if (sbi->ll_flags & LL_SBI_FILE_SECCTX) {
 		/*
 		 * selinux_dentry_init_security() uses dentry->d_parent and name
@@ -483,6 +496,9 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 	} else {
 		err = ll_inode_init_security(&dentry, inode, parent);
 	}
+
+	if (encrypt)
+		err = llcrypt_inherit_context(parent, inode, NULL, false);
 
 out_inode:
 	iput(inode);
