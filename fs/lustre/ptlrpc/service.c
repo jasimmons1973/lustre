@@ -2175,7 +2175,6 @@ static int ptlrpc_main(void *arg)
 
 	thread->t_task = current;
 	thread->t_pid = current->pid;
-	unshare_fs_struct();
 
 	if (svc->srv_cpt_bind) {
 		rc = cfs_cpt_bind(svc->srv_cptable, svcpt->scp_cpt);
@@ -2390,8 +2389,6 @@ static int ptlrpc_hr_main(void *arg)
 	env = kzalloc(sizeof(*env), GFP_NOFS);
 	if (!env)
 		return -ENOMEM;
-
-	unshare_fs_struct();
 
 	rc = cfs_cpt_bind(ptlrpc_hr.hr_cpt_table, hrp->hrp_cpt);
 	if (rc != 0) {
