@@ -203,7 +203,6 @@ static int ptlrpc_register_bulk(struct ptlrpc_request *req)
 			CERROR("%s: LNetMDAttach failed x%llu/%d: rc = %d\n",
 			       desc->bd_import->imp_obd->obd_name, mbits,
 			       posted_md, rc);
-			LNetMEUnlink(me);
 			break;
 		}
 	}
@@ -676,7 +675,7 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 			request->rq_receiving_reply = 0;
 			spin_unlock(&request->rq_lock);
 			rc = -ENOMEM;
-			goto cleanup_me;
+			goto cleanup_bulk;
 		}
 		percpu_ref_get(&ptlrpc_pending);
 
@@ -720,12 +719,8 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 	if (noreply)
 		goto out;
 
-cleanup_me:
-	/* MEUnlink is safe; the PUT didn't even get off the ground, and
-	 * nobody apart from the PUT's target has the right nid+XID to
-	 * access the reply buffer.
-	 */
-	LNetMEUnlink(reply_me);
+	LNetMDUnlink(request->rq_reply_md_h);
+
 	/* UNLINKED callback called synchronously */
 	LASSERT(!request->rq_receiving_reply);
 
@@ -802,7 +797,6 @@ int ptlrpc_register_rqbd(struct ptlrpc_request_buffer_desc *rqbd)
 
 	CERROR("ptlrpc: LNetMDAttach failed: rc = %d\n", rc);
 	LASSERT(rc == -ENOMEM);
-	LNetMEUnlink(me);
 	rqbd->rqbd_refcount = 0;
 
 	return -ENOMEM;
