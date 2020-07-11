@@ -36,6 +36,7 @@
 
 #include <stdarg.h>
 #include <linux/percpu_counter.h>
+#include <linux/rhashtable.h>
 #include <linux/libcfs/libcfs.h>
 #include <linux/ctype.h>
 #include <obd_target.h>
@@ -469,11 +470,6 @@ enum lu_object_header_flags {
 	 * initialized yet, the object allocator will initialize it.
 	 */
 	LU_OBJECT_INITED	= 2,
-	/**
-	 * Object is being purged, so mustn't be returned by
-	 * htable_lookup()
-	 */
-	LU_OBJECT_PURGING	= 3,
 };
 
 enum lu_object_header_attr {
@@ -496,6 +492,8 @@ enum lu_object_header_attr {
  * it is created for things like not-yet-existing child created by mkdir or
  * create calls. lu_object_operations::loo_exists() can be used to check
  * whether object is backed by persistent storage entity.
+ * Any object containing this structre which might be placed in an
+ * rhashtable via loh_hash MUST be freed using call_rcu() or rcu_kfree().
  */
 struct lu_object_header {
 	/**
@@ -517,9 +515,9 @@ struct lu_object_header {
 	 */
 	u32			loh_attr;
 	/**
-	 * Linkage into per-site hash table. Protected by lu_site::ls_guard.
+	 * Linkage into per-site hash table.
 	 */
-	struct hlist_node	loh_hash;
+	struct rhash_head	loh_hash;
 	/**
 	 * Linkage into per-site LRU list. Protected by lu_site::ls_guard.
 	 */
@@ -566,7 +564,7 @@ struct lu_site {
 	/**
 	 * objects hash table
 	 */
-	struct cfs_hash	       *ls_obj_hash;
+	struct rhashtable	ls_obj_hash;
 	/*
 	 * buckets for summary data
 	 */
@@ -643,6 +641,8 @@ int lu_object_init(struct lu_object *o,
 void lu_object_fini(struct lu_object *o);
 void lu_object_add_top(struct lu_object_header *h, struct lu_object *o);
 void lu_object_add(struct lu_object *before, struct lu_object *o);
+struct lu_object *lu_object_get_first(struct lu_object_header *h,
+				      struct lu_device *dev);
 
 /**
  * Helpers to initialize and finalize device types.
@@ -697,8 +697,8 @@ static inline int lu_site_purge(const struct lu_env *env, struct lu_site *s,
 	return lu_site_purge_objects(env, s, nr, true);
 }
 
-void lu_site_print(const struct lu_env *env, struct lu_site *s, void *cookie,
-		   lu_printer_t printer);
+void lu_site_print(const struct lu_env *env, struct lu_site *s, atomic_t *ref,
+		   int msg_flags, lu_printer_t printer);
 struct lu_object *lu_object_find_at(const struct lu_env *env,
 				    struct lu_device *dev,
 				    const struct lu_fid *f,
