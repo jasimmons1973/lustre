@@ -3473,6 +3473,7 @@ static int lnet_peer_discovery(void *arg)
 	}
 	lnet_net_unlock(LNET_LOCK_EX);
 
+	lnet_assert_handler_unused(the_lnet.ln_dc_handler);
 	the_lnet.ln_dc_handler = NULL;
 
 	the_lnet.ln_dc_state = LNET_DC_STATE_SHUTDOWN;
