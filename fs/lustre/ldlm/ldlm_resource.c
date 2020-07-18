@@ -71,15 +71,15 @@ struct dentry *ldlm_svc_debugfs_dir;
 static unsigned int ldlm_dump_granted_max = 256;
 
 static ssize_t
-lprocfs_wr_dump_ns(struct file *file, const char __user *buffer,
-		   size_t count, loff_t *off)
+ldebugfs_dump_ns_seq_write(struct file *file, const char __user *buffer,
+			   size_t count, loff_t *off)
 {
 	ldlm_dump_all_namespaces(LDLM_NAMESPACE_SERVER, D_DLMTRACE);
 	ldlm_dump_all_namespaces(LDLM_NAMESPACE_CLIENT, D_DLMTRACE);
 	return count;
 }
 
-LPROC_SEQ_FOPS_WR_ONLY(ldlm, dump_ns);
+LDEBUGFS_SEQ_FOPS_WR_ONLY(ldlm, dump_ns);
 
 static int ldlm_rw_uint_seq_show(struct seq_file *m, void *v)
 {
@@ -99,9 +99,9 @@ ldlm_rw_uint_seq_write(struct file *file, const char __user *buffer,
 				    (unsigned int *)seq->private);
 }
 
-LPROC_SEQ_FOPS(ldlm_rw_uint);
+LDEBUGFS_SEQ_FOPS(ldlm_rw_uint);
 
-static struct lprocfs_vars ldlm_debugfs_list[] = {
+static struct ldebugfs_vars ldlm_debugfs_list[] = {
 	{ "dump_namespaces", &ldlm_dump_ns_fops, NULL, 0222 },
 	{ "dump_granted_max", &ldlm_rw_uint_fops, &ldlm_dump_granted_max },
 	{ NULL }

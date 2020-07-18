@@ -104,7 +104,7 @@ out:
 	return 0;
 }
 
-LPROC_SEQ_FOPS_RO(sptlrpc_info_lprocfs);
+LDEBUGFS_SEQ_FOPS_RO(sptlrpc_info_lprocfs);
 
 static int sptlrpc_ctxs_lprocfs_seq_show(struct seq_file *seq, void *v)
 {
@@ -129,7 +129,7 @@ out:
 	return 0;
 }
 
-LPROC_SEQ_FOPS_RO(sptlrpc_ctxs_lprocfs);
+LDEBUGFS_SEQ_FOPS_RO(sptlrpc_ctxs_lprocfs);
 
 #if LUSTRE_VERSION_CODE < OBD_OCD_VERSION(2, 16, 53, 0)
 static ssize_t sepol_seq_write_old(struct obd_device *obd,
@@ -212,8 +212,8 @@ out:
 #endif
 
 static ssize_t
-lprocfs_wr_sptlrpc_sepol(struct file *file, const char __user *buffer,
-			 size_t count, void *data)
+ldebugfs_sptlrpc_sepol_seq_write(struct file *file, const char __user *buffer,
+				 size_t count, void *data)
 {
 	struct seq_file	*seq = file->private_data;
 	struct obd_device *obd = seq->private;
@@ -309,7 +309,7 @@ out:
 
 	return rc ? rc : count;
 }
-LPROC_SEQ_FOPS_WR_ONLY(srpc, sptlrpc_sepol);
+LDEBUGFS_SEQ_FOPS_WR_ONLY(srpc, sptlrpc_sepol);
 
 int sptlrpc_lprocfs_cliobd_attach(struct obd_device *obd)
 {
@@ -332,8 +332,9 @@ int sptlrpc_lprocfs_cliobd_attach(struct obd_device *obd)
 }
 EXPORT_SYMBOL(sptlrpc_lprocfs_cliobd_attach);
 
-LPROC_SEQ_FOPS_RO(sptlrpc_proc_enc_pool);
-static struct lprocfs_vars sptlrpc_lprocfs_vars[] = {
+LDEBUGFS_SEQ_FOPS_RO(sptlrpc_proc_enc_pool);
+
+static struct ldebugfs_vars sptlrpc_lprocfs_vars[] = {
 	{ "encrypt_page_pools", &sptlrpc_proc_enc_pool_fops },
 	{ NULL }
 };

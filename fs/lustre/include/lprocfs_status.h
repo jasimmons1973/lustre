@@ -49,13 +49,12 @@
 #include <uapi/linux/lustre/lustre_cfg.h>
 #include <uapi/linux/lustre/lustre_idl.h>
 
-struct lprocfs_vars {
+/** debugfs file mode. */
+struct ldebugfs_vars {
 	const char			*name;
 	const struct file_operations	*fops;
 	void				*data;
-	/**
-	 * sysfs file mode.
-	 */
+	/** debugfs file mode. */
 	umode_t				proc_mode;
 };
 
@@ -66,11 +65,6 @@ static inline unsigned int pct(unsigned long a, unsigned long b)
 
 #define PAGES_TO_MiB(pages)	((pages) >> (20 - PAGE_SHIFT))
 #define MiB_TO_PAGES(mb)	((mb) << (20 - PAGE_SHIFT))
-
-struct lprocfs_static_vars {
-	struct lprocfs_vars		*obd_vars;
-	const struct attribute_group	*sysfs_vars;
-};
 
 /* if we find more consumers this could be generalized */
 #define OBD_HIST_MAX 32
@@ -446,7 +440,7 @@ void lprocfs_counter_init(struct lprocfs_stats *stats, int index,
 extern const struct file_operations lprocfs_stats_seq_fops;
 
 /* lprocfs_status.c */
-void ldebugfs_add_vars(struct dentry *parent, struct lprocfs_vars *var,
+void ldebugfs_add_vars(struct dentry *parent, struct ldebugfs_vars *var,
 		       void *data);
 
 int lprocfs_obd_setup(struct obd_device *obd, bool uuid_only);
@@ -454,29 +448,30 @@ int lprocfs_obd_cleanup(struct obd_device *obd);
 
 /* Generic callbacks */
 
-int lprocfs_rd_uint(struct seq_file *m, void *data);
+int ldebugfs_uint(struct seq_file *m, void *data);
 int lprocfs_wr_uint(struct file *file, const char __user *buffer,
 		    unsigned long count, void *data);
-int lprocfs_rd_server_uuid(struct seq_file *m, void *data);
-int lprocfs_rd_conn_uuid(struct seq_file *m, void *data);
+int ldebugfs_server_uuid_seq_show(struct seq_file *m, void *data);
+int ldebugfs_conn_uuid_seq_show(struct seq_file *m, void *data);
 ssize_t conn_uuid_show(struct kobject *kobj, struct attribute *attr, char *buf);
-int lprocfs_rd_import(struct seq_file *m, void *data);
-int lprocfs_rd_state(struct seq_file *m, void *data);
-int lprocfs_rd_connect_flags(struct seq_file *m, void *data);
+int ldebugfs_import_seq_show(struct seq_file *m, void *data);
+int ldebugfs_state_seq_show(struct seq_file *m, void *data);
+int ldebugfs_connect_flags_seq_show(struct seq_file *m, void *data);
 
 struct adaptive_timeout;
 int lprocfs_at_hist_helper(struct seq_file *m, struct adaptive_timeout *at);
-int lprocfs_rd_timeouts(struct seq_file *m, void *data);
+int ldebugfs_timeouts_seq_show(struct seq_file *m, void *data);
 ssize_t ping_store(struct kobject *kobj, struct attribute *attr,
 		   const char *buffer, size_t count);
 ssize_t ping_show(struct kobject *kobj, struct attribute *attr,
 		  char *buffer);
 
-int lprocfs_wr_import(struct file *file, const char __user *buffer,
-		      size_t count, loff_t *off);
-int lprocfs_rd_pinger_recov(struct seq_file *m, void *n);
-int lprocfs_wr_pinger_recov(struct file *file, const char __user *buffer,
-			    size_t count, loff_t *off);
+ssize_t ldebugfs_import_seq_write(struct file *file, const char __user *buffer,
+				  size_t count, loff_t *off);
+int ldebugfs_pinger_recov_seq_show(struct seq_file *m, void *n);
+ssize_t ldebugfs_pinger_recov_seq_write(struct file *file,
+					const char __user *buffer,
+					size_t count, loff_t *off);
 
 int string_to_size(u64 *size, const char *buffer, size_t count);
 int sysfs_memparse(const char *buffer, size_t count, u64 *val,
@@ -501,12 +496,12 @@ void lprocfs_stats_collect(struct lprocfs_stats *stats, int idx,
 	     __imp ? 1 : (up_read(&(__obd)->u.cli.cl_sem), 0);		\
 	     __imp = NULL)
 
-/* write the name##_seq_show function, call LPROC_SEQ_FOPS_RO for read-only
- * proc entries; otherwise, you will define name##_seq_write function also for
- * a read-write proc entry, and then call LPROC_SEQ_SEQ instead. Finally,
- * call ldebugfs_obd_seq_create(obd, filename, 0444, &name#_fops, data);
+/* write the name##_seq_show function, call LDEBUGFS_SEQ_FOPS_RO for read-only
+ * debugfs entries; otherwise, you will define name##_seq_write function also
+ * for a read-write debugfs entry, and then call LDEBUGFS_SEQ_SEQ instead.
+ * Finally, call debugfs_create_file(filename, 0444, obd, data, &name#_fops);
  */
-#define __LPROC_SEQ_FOPS(name, custom_seq_write)			\
+#define __LDEBUGFS_SEQ_FOPS(name, custom_seq_write)			\
 static int name##_single_open(struct inode *inode, struct file *file)	\
 {									\
 	return single_open(file, name##_seq_show, inode->i_private);	\
@@ -520,44 +515,46 @@ static const struct file_operations name##_fops = {			\
 	.release = single_release,					\
 }
 
-#define LPROC_SEQ_FOPS_RO(name)	 __LPROC_SEQ_FOPS(name, NULL)
-#define LPROC_SEQ_FOPS(name)	    __LPROC_SEQ_FOPS(name, name##_seq_write)
+#define LDEBUGFS_SEQ_FOPS_RO(name)	__LDEBUGFS_SEQ_FOPS(name, NULL)
+#define LDEBUGFS_SEQ_FOPS(name)		__LDEBUGFS_SEQ_FOPS(name, \
+							    name##_seq_write)
 
-#define LPROC_SEQ_FOPS_RO_TYPE(name, type)				\
+#define LDEBUGFS_SEQ_FOPS_RO_TYPE(name, type)				\
 	static int name##_##type##_seq_show(struct seq_file *m, void *v)\
 	{								\
 		if (!m->private)					\
 			return -ENODEV;					\
-		return lprocfs_rd_##type(m, m->private);		\
+		return ldebugfs_##type##_seq_show(m, m->private);	\
 	}								\
-	LPROC_SEQ_FOPS_RO(name##_##type)
+	LDEBUGFS_SEQ_FOPS_RO(name##_##type)
 
-#define LPROC_SEQ_FOPS_RW_TYPE(name, type)				\
+#define LDEBUGFS_SEQ_FOPS_RW_TYPE(name, type)				\
 	static int name##_##type##_seq_show(struct seq_file *m, void *v)\
 	{								\
 		if (!m->private)					\
 			return -ENODEV;					\
-		return lprocfs_rd_##type(m, m->private);		\
+		return ldebugfs_##type##_seq_show(m, m->private);	\
 	}								\
 	static ssize_t name##_##type##_seq_write(struct file *file,	\
 			const char __user *buffer, size_t count,	\
-						loff_t *off)		\
+			loff_t *off)					\
 	{								\
 		struct seq_file *seq = file->private_data;		\
 									\
 		if (!seq->private)					\
 			return -ENODEV;					\
-		return lprocfs_wr_##type(file, buffer,			\
-					 count, seq->private);		\
+		return ldebugfs_##type##_seq_write(file, buffer, count,	\
+						   seq->private);	\
 	}								\
-	LPROC_SEQ_FOPS(name##_##type)
+	LDEBUGFS_SEQ_FOPS(name##_##type)
 
-#define LPROC_SEQ_FOPS_WR_ONLY(name, type)				\
+#define LDEBUGFS_SEQ_FOPS_WR_ONLY(name, type)				\
 	static ssize_t name##_##type##_write(struct file *file,		\
-			const char __user *buffer, size_t count,	\
-						loff_t *off)		\
+					     const char __user *buffer,	\
+					     size_t count, loff_t *off)	\
 	{								\
-		return lprocfs_wr_##type(file, buffer, count, off);	\
+		return ldebugfs_##type##_seq_write(file, buffer, count, \
+						   off);		\
 	}								\
 	static int name##_##type##_open(struct inode *inode,		\
 					struct file *file)		\
@@ -565,8 +562,8 @@ static const struct file_operations name##_fops = {			\
 		return single_open(file, NULL, inode->i_private);	\
 	}								\
 	static const struct file_operations name##_##type##_fops = {	\
-		.open	= name##_##type##_open,				\
-		.write	= name##_##type##_write,			\
+		.open	 = name##_##type##_open,			\
+		.write	 = name##_##type##_write,			\
 		.release = single_release,				\
 	}
 
@@ -602,68 +599,13 @@ ssize_t short_io_bytes_store(struct kobject *kobj, struct attribute *attr,
 			     const char *buffer, size_t count);
 
 struct root_squash_info;
-int lprocfs_wr_root_squash(const char __user *buffer, unsigned long count,
-			   struct root_squash_info *squash, char *name);
-int lprocfs_wr_nosquash_nids(const char __user *buffer, unsigned long count,
-			     struct root_squash_info *squash, char *name);
+ssize_t ldebugfs_root_squash_seq_write(const char __user *buffer,
+				       unsigned long count,
+				       struct root_squash_info *squash,
+				       char *name);
+ssize_t ldebugfs_nosquash_nids_seq_write(const char __user *buffer,
+					 unsigned long count,
+					 struct root_squash_info *squash,
+					 char *name);
 
-/* all quota proc functions */
-int lprocfs_quota_rd_bunit(char *page, char **start,
-			   loff_t off, int count,
-			   int *eof, void *data);
-int lprocfs_quota_wr_bunit(struct file *file, const char *buffer,
-			   unsigned long count, void *data);
-int lprocfs_quota_rd_btune(char *page, char **start,
-			   loff_t off, int count,
-			   int *eof, void *data);
-int lprocfs_quota_wr_btune(struct file *file, const char *buffer,
-			   unsigned long count, void *data);
-int lprocfs_quota_rd_iunit(char *page, char **start,
-			   loff_t off, int count,
-			   int *eof, void *data);
-int lprocfs_quota_wr_iunit(struct file *file, const char *buffer,
-			   unsigned long count, void *data);
-int lprocfs_quota_rd_itune(char *page, char **start,
-			   loff_t off, int count,
-			   int *eof, void *data);
-int lprocfs_quota_wr_itune(struct file *file, const char *buffer,
-			   unsigned long count, void *data);
-int lprocfs_quota_rd_type(char *page, char **start, loff_t off, int count,
-			  int *eof, void *data);
-int lprocfs_quota_wr_type(struct file *file, const char *buffer,
-			  unsigned long count, void *data);
-int lprocfs_quota_rd_switch_seconds(char *page, char **start, loff_t off,
-				    int count, int *eof, void *data);
-int lprocfs_quota_wr_switch_seconds(struct file *file,
-				    const char *buffer,
-				    unsigned long count, void *data);
-int lprocfs_quota_rd_sync_blk(char *page, char **start, loff_t off,
-			      int count, int *eof, void *data);
-int lprocfs_quota_wr_sync_blk(struct file *file, const char *buffer,
-			      unsigned long count, void *data);
-int lprocfs_quota_rd_switch_qs(char *page, char **start, loff_t off,
-			       int count, int *eof, void *data);
-int lprocfs_quota_wr_switch_qs(struct file *file,
-			       const char *buffer, unsigned long count,
-			       void *data);
-int lprocfs_quota_rd_boundary_factor(char *page, char **start, loff_t off,
-				     int count, int *eof, void *data);
-int lprocfs_quota_wr_boundary_factor(struct file *file,
-				     const char *buffer, unsigned long count,
-				     void *data);
-int lprocfs_quota_rd_least_bunit(char *page, char **start, loff_t off,
-				 int count, int *eof, void *data);
-int lprocfs_quota_wr_least_bunit(struct file *file,
-				 const char *buffer, unsigned long count,
-				 void *data);
-int lprocfs_quota_rd_least_iunit(char *page, char **start, loff_t off,
-				 int count, int *eof, void *data);
-int lprocfs_quota_wr_least_iunit(struct file *file,
-				 const char *buffer, unsigned long count,
-				 void *data);
-int lprocfs_quota_rd_qs_factor(char *page, char **start, loff_t off,
-			       int count, int *eof, void *data);
-int lprocfs_quota_wr_qs_factor(struct file *file,
-			       const char *buffer, unsigned long count,
-			       void *data);
 #endif /* LPROCFS_SNMP_H */

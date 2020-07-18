@@ -209,12 +209,12 @@ ldebugfs_fid_server_seq_show(struct seq_file *m, void *unused)
 	return 0;
 }
 
-LPROC_SEQ_FOPS(ldebugfs_fid_space);
-LPROC_SEQ_FOPS(ldebugfs_fid_width);
-LPROC_SEQ_FOPS_RO(ldebugfs_fid_server);
-LPROC_SEQ_FOPS_RO(ldebugfs_fid_fid);
+LDEBUGFS_SEQ_FOPS(ldebugfs_fid_space);
+LDEBUGFS_SEQ_FOPS(ldebugfs_fid_width);
+LDEBUGFS_SEQ_FOPS_RO(ldebugfs_fid_server);
+LDEBUGFS_SEQ_FOPS_RO(ldebugfs_fid_fid);
 
-struct lprocfs_vars seq_client_debugfs_list[] = {
+struct ldebugfs_vars seq_client_debugfs_list[] = {
 	{ .name =	"space",
 	  .fops =	&ldebugfs_fid_space_fops },
 	{ .name	=	"width",

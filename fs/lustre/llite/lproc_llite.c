@@ -319,7 +319,7 @@ static int ll_site_stats_seq_show(struct seq_file *m, void *v)
 	return cl_site_stats_print(lu2cl_site(ll_s2sbi(sb)->ll_site), m);
 }
 
-LPROC_SEQ_FOPS_RO(ll_site_stats);
+LDEBUGFS_SEQ_FOPS_RO(ll_site_stats);
 
 static ssize_t max_read_ahead_mb_show(struct kobject *kobj,
 				      struct attribute *attr, char *buf)
@@ -601,7 +601,7 @@ out_unlock:
 	return rc;
 }
 
-LPROC_SEQ_FOPS(ll_max_cached_mb);
+LDEBUGFS_SEQ_FOPS(ll_max_cached_mb);
 
 static ssize_t checksums_show(struct kobject *kobj, struct attribute *attr,
 			      char *buf)
@@ -851,7 +851,7 @@ static int ll_statahead_stats_seq_show(struct seq_file *m, void *v)
 	return 0;
 }
 
-LPROC_SEQ_FOPS_RO(ll_statahead_stats);
+LDEBUGFS_SEQ_FOPS_RO(ll_statahead_stats);
 
 static ssize_t lazystatfs_show(struct kobject *kobj,
 			       struct attribute *attr,
@@ -1028,7 +1028,7 @@ static int ll_sbi_flags_seq_show(struct seq_file *m, void *v)
 	return 0;
 }
 
-LPROC_SEQ_FOPS_RO(ll_sbi_flags);
+LDEBUGFS_SEQ_FOPS_RO(ll_sbi_flags);
 
 static ssize_t xattr_cache_show(struct kobject *kobj,
 				struct attribute *attr,
@@ -1376,7 +1376,7 @@ static ssize_t ll_unstable_stats_seq_write(struct file *file,
 
 	return count;
 }
-LPROC_SEQ_FOPS(ll_unstable_stats);
+LDEBUGFS_SEQ_FOPS(ll_unstable_stats);
 
 static int ll_root_squash_seq_show(struct seq_file *m, void *v)
 {
@@ -1397,9 +1397,10 @@ static ssize_t ll_root_squash_seq_write(struct file *file,
 	struct ll_sb_info *sbi = ll_s2sbi(sb);
 	struct root_squash_info *squash = &sbi->ll_squash;
 
-	return lprocfs_wr_root_squash(buffer, count, squash, sbi->ll_fsname);
+	return ldebugfs_root_squash_seq_write(buffer, count, squash,
+					      sbi->ll_fsname);
 }
-LPROC_SEQ_FOPS(ll_root_squash);
+LDEBUGFS_SEQ_FOPS(ll_root_squash);
 
 static int ll_nosquash_nids_seq_show(struct seq_file *m, void *v)
 {
@@ -1432,7 +1433,8 @@ static ssize_t ll_nosquash_nids_seq_write(struct file *file,
 	struct root_squash_info *squash = &sbi->ll_squash;
 	int rc;
 
-	rc = lprocfs_wr_nosquash_nids(buffer, count, squash, sbi->ll_fsname);
+	rc = ldebugfs_nosquash_nids_seq_write(buffer, count, squash,
+					      sbi->ll_fsname);
 	if (rc < 0)
 		return rc;
 
@@ -1441,7 +1443,7 @@ static ssize_t ll_nosquash_nids_seq_write(struct file *file,
 	return rc;
 }
 
-LPROC_SEQ_FOPS(ll_nosquash_nids);
+LDEBUGFS_SEQ_FOPS(ll_nosquash_nids);
 
 static int ll_pcc_seq_show(struct seq_file *m, void *v)
 {
@@ -1480,9 +1482,9 @@ out_free_kernbuff:
 	kfree(kernbuf);
 	return rc ? rc : count;
 }
-LPROC_SEQ_FOPS(ll_pcc);
+LDEBUGFS_SEQ_FOPS(ll_pcc);
 
-struct lprocfs_vars lprocfs_llite_obd_vars[] = {
+struct ldebugfs_vars lprocfs_llite_obd_vars[] = {
 	{ .name	=	"site",
 	  .fops	=	&ll_site_stats_fops			},
 	{ .name	=	"max_cached_mb",
@@ -1858,7 +1860,7 @@ static ssize_t ll_rw_extents_stats_pp_seq_write(struct file *file,
 	return len;
 }
 
-LPROC_SEQ_FOPS(ll_rw_extents_stats_pp);
+LDEBUGFS_SEQ_FOPS(ll_rw_extents_stats_pp);
 
 static int ll_rw_extents_stats_seq_show(struct seq_file *seq, void *v)
 {
@@ -1918,7 +1920,7 @@ static ssize_t ll_rw_extents_stats_seq_write(struct file *file,
 	return len;
 }
 
-LPROC_SEQ_FOPS(ll_rw_extents_stats);
+LDEBUGFS_SEQ_FOPS(ll_rw_extents_stats);
 
 void ll_rw_stats_tally(struct ll_sb_info *sbi, pid_t pid,
 		       struct ll_file_data *file, loff_t pos,
@@ -2109,4 +2111,4 @@ static ssize_t ll_rw_offset_stats_seq_write(struct file *file,
 	return len;
 }
 
-LPROC_SEQ_FOPS(ll_rw_offset_stats);
+LDEBUGFS_SEQ_FOPS(ll_rw_offset_stats);

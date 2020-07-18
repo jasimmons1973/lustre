@@ -459,7 +459,7 @@ static int lprocfs_pool_state_seq_show(struct seq_file *m, void *unused)
 	return 0;
 }
 
-LPROC_SEQ_FOPS_RO(lprocfs_pool_state);
+LDEBUGFS_SEQ_FOPS_RO(lprocfs_pool_state);
 
 static ssize_t grant_speed_show(struct kobject *kobj, struct attribute *attr,
 				char *buf)
@@ -549,7 +549,7 @@ static int ldlm_pool_debugfs_init(struct ldlm_pool *pl)
 	struct ldlm_namespace *ns = container_of(pl, struct ldlm_namespace,
 						 ns_pool);
 	struct dentry *debugfs_ns_parent;
-	struct lprocfs_vars pool_vars[2];
+	struct ldebugfs_vars pool_vars[2];
 	int rc = 0;
 
 	debugfs_ns_parent = ns->ns_debugfs_entry;

@@ -263,7 +263,7 @@ ptlrpc_lprocfs_req_history_len_seq_show(struct seq_file *m, void *v)
 	return 0;
 }
 
-LPROC_SEQ_FOPS_RO(ptlrpc_lprocfs_req_history_len);
+LDEBUGFS_SEQ_FOPS_RO(ptlrpc_lprocfs_req_history_len);
 
 static int
 ptlrpc_lprocfs_req_history_max_seq_show(struct seq_file *m, void *n)
@@ -325,7 +325,7 @@ ptlrpc_lprocfs_req_history_max_seq_write(struct file *file,
 	return count;
 }
 
-LPROC_SEQ_FOPS(ptlrpc_lprocfs_req_history_max);
+LDEBUGFS_SEQ_FOPS(ptlrpc_lprocfs_req_history_max);
 
 static int
 ptlrpc_lprocfs_req_buffers_max_seq_show(struct seq_file *m, void *n)
@@ -362,7 +362,7 @@ ptlrpc_lprocfs_req_buffers_max_seq_write(struct file *file,
 	return count;
 }
 
-LPROC_SEQ_FOPS(ptlrpc_lprocfs_req_buffers_max);
+LDEBUGFS_SEQ_FOPS(ptlrpc_lprocfs_req_buffers_max);
 
 static ssize_t threads_min_show(struct kobject *kobj, struct attribute *attr,
 				char *buf)
@@ -753,7 +753,7 @@ out:
 	return rc < 0 ? rc : count;
 }
 
-LPROC_SEQ_FOPS(ptlrpc_lprocfs_nrs);
+LDEBUGFS_SEQ_FOPS(ptlrpc_lprocfs_nrs);
 
 /** @} nrs */
 
@@ -1050,7 +1050,7 @@ static int ptlrpc_lprocfs_timeouts_seq_show(struct seq_file *m, void *n)
 	return 0;
 }
 
-LPROC_SEQ_FOPS_RO(ptlrpc_lprocfs_timeouts);
+LDEBUGFS_SEQ_FOPS_RO(ptlrpc_lprocfs_timeouts);
 
 static ssize_t high_priority_ratio_show(struct kobject *kobj,
 					struct attribute *attr,
@@ -1133,7 +1133,7 @@ int ptlrpc_sysfs_register_service(struct kset *parent,
 void ptlrpc_ldebugfs_register_service(struct dentry *entry,
 				      struct ptlrpc_service *svc)
 {
-	struct lprocfs_vars lproc_vars[] = {
+	struct ldebugfs_vars lproc_vars[] = {
 		{ .name		= "req_buffer_history_len",
 		  .fops		= &ptlrpc_lprocfs_req_history_len_fops,
 		  .data		= svc },
@@ -1284,8 +1284,9 @@ EXPORT_SYMBOL(ping_store);
  * The connection UUID is a node's primary NID. For example,
  * "echo connection=192.168.0.1@tcp0::instance > .../import".
  */
-int lprocfs_wr_import(struct file *file, const char __user *buffer,
-		      size_t count, loff_t *off)
+ssize_t
+ldebugfs_import_seq_write(struct file *file, const char __user *buffer,
+			  size_t count, loff_t *off)
 {
 	struct seq_file *m = file->private_data;
 	struct obd_device *obd = m->private;
@@ -1352,9 +1353,9 @@ out:
 	kfree(kbuf);
 	return rc ?: count;
 }
-EXPORT_SYMBOL(lprocfs_wr_import);
+EXPORT_SYMBOL(ldebugfs_import_seq_write);
 
-int lprocfs_rd_pinger_recov(struct seq_file *m, void *n)
+int ldebugfs_pinger_recov_seq_show(struct seq_file *m, void *n)
 {
 	struct obd_device *obd = m->private;
 	struct obd_import *imp = obd->u.cli.cl_import;
@@ -1365,10 +1366,11 @@ int lprocfs_rd_pinger_recov(struct seq_file *m, void *n)
 
 	return rc;
 }
-EXPORT_SYMBOL(lprocfs_rd_pinger_recov);
+EXPORT_SYMBOL(ldebugfs_pinger_recov_seq_show);
 
-int lprocfs_wr_pinger_recov(struct file *file, const char __user *buffer,
-			    size_t count, loff_t *off)
+ssize_t
+ldebugfs_pinger_recov_seq_write(struct file *file, const char __user *buffer,
+				size_t count, loff_t *off)
 {
 	struct seq_file *m = file->private_data;
 	struct obd_device *obd = m->private;
@@ -1388,4 +1390,4 @@ int lprocfs_wr_pinger_recov(struct file *file, const char __user *buffer,
 
 	return rc ?: count;
 }
-EXPORT_SYMBOL(lprocfs_wr_pinger_recov);
+EXPORT_SYMBOL(ldebugfs_pinger_recov_seq_write);
