@@ -448,8 +448,9 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 	if (IS_ERR(op_data))
 		return PTR_ERR(op_data);
 
-	if (IS_ENCRYPTED(parent) ||
-	    unlikely(llcrypt_dummy_context_enabled(parent))) {
+	if (ll_sbi_has_encrypt(sbi) &&
+	    (IS_ENCRYPTED(parent) ||
+	     unlikely(llcrypt_dummy_context_enabled(parent)))) {
 		err = llcrypt_get_encryption_info(parent);
 		if (err)
 			goto out_op_data;
@@ -473,6 +474,13 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 		if (err < 0)
 			goto out_op_data;
 	}
+
+	if (encrypt) {
+		err = llcrypt_inherit_context(parent, NULL, op_data, false);
+		if (err)
+			goto out_op_data;
+	}
+
 
 	op_data->op_cli_flags |= CLI_SET_MEA;
 	err = md_create(sbi->ll_md_exp, op_data, lump, len, mode,
@@ -501,8 +509,8 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 	}
 
 	if (encrypt)
-		err = llcrypt_inherit_context(parent, inode, NULL, false);
-
+		err = ll_set_encflags(inode, op_data->op_file_encctx,
+				      op_data->op_file_encctx_size, false);
 out_inode:
 	iput(inode);
 out_request:

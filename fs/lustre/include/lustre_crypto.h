@@ -31,6 +31,8 @@
 #define _LUSTRE_CRYPTO_H_
 
 struct ll_sb_info;
+int ll_set_encflags(struct inode *inode, void *encctx, u32 encctxlen,
+		    bool preload);
 bool ll_sbi_has_test_dummy_encryption(struct ll_sb_info *sbi);
 bool ll_sbi_has_encrypt(struct ll_sb_info *sbi);
 void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set);
