@@ -98,6 +98,35 @@ extern struct kmem_cache *lnet_small_mds_cachep; /* <= LNET_SMALL_MD_SIZE bytes
 extern struct kmem_cache *lnet_rspt_cachep;
 extern struct kmem_cache *lnet_msg_cachep;
 
+static inline bool
+lnet_ni_set_status_locked(struct lnet_ni *ni, u32 status)
+__must_hold(&ni->ni_lock)
+{
+	bool update = false;
+
+	if (ni->ni_status && ni->ni_status->ns_status != status) {
+		CDEBUG(D_NET, "ni %s status changed from %#x to %#x\n",
+		       libcfs_nid2str(ni->ni_nid),
+		       ni->ni_status->ns_status, status);
+		ni->ni_status->ns_status = status;
+		update = true;
+	}
+
+	return update;
+}
+
+static inline bool
+lnet_ni_set_status(struct lnet_ni *ni, u32 status)
+{
+	bool update;
+
+	spin_lock(&ni->ni_lock);
+	update = lnet_ni_set_status_locked(ni, status);
+	spin_unlock(&ni->ni_lock);
+
+	return update;
+}
+
 bool lnet_is_route_alive(struct lnet_route *route);
 bool lnet_is_gateway_alive(struct lnet_peer *gw);
 
