@@ -36,9 +36,9 @@
 #include <uapi/linux/lustre/lustre_idl.h>
 
 int obd_t10_cksum_speed(const char *obd_name,
-			enum cksum_type cksum_type);
+			enum cksum_types cksum_type);
 
-static inline unsigned char cksum_obd2cfs(enum cksum_type cksum_type)
+static inline unsigned char cksum_obd2cfs(enum cksum_types cksum_type)
 {
 	switch (cksum_type) {
 	case OBD_CKSUM_CRC32:
@@ -54,9 +54,9 @@ static inline unsigned char cksum_obd2cfs(enum cksum_type cksum_type)
 	return 0;
 }
 
-u32 obd_cksum_type_pack(const char *obd_name, enum cksum_type cksum_type);
+u32 obd_cksum_type_pack(const char *obd_name, enum cksum_types cksum_type);
 
-static inline enum cksum_type obd_cksum_type_unpack(u32 o_flags)
+static inline enum cksum_types obd_cksum_type_unpack(u32 o_flags)
 {
 	switch (o_flags & OBD_FL_CKSUM_ALL) {
 	case OBD_FL_CKSUM_CRC32C:
@@ -82,9 +82,9 @@ static inline enum cksum_type obd_cksum_type_unpack(u32 o_flags)
  * 1.8 supported ADLER it is base and not depend on hw
  * Client uses all available local algos
  */
-static inline enum cksum_type obd_cksum_types_supported_client(void)
+static inline enum cksum_types obd_cksum_types_supported_client(void)
 {
-	enum cksum_type ret = OBD_CKSUM_ADLER;
+	enum cksum_types ret = OBD_CKSUM_ADLER;
 
 	CDEBUG(D_INFO, "Crypto hash speed: crc %d, crc32c %d, adler %d\n",
 	       cfs_crypto_hash_speed(cksum_obd2cfs(OBD_CKSUM_CRC32)),
@@ -110,9 +110,9 @@ static inline enum cksum_type obd_cksum_types_supported_client(void)
  * not be the fastest or most efficient algorithm on the server.
  */
 static inline
-enum cksum_type obd_cksum_type_select(const char *obd_name,
-				       enum cksum_type cksum_types,
-				       enum cksum_type preferred)
+enum cksum_types obd_cksum_type_select(const char *obd_name,
+				       enum cksum_types cksum_types,
+				       enum cksum_types preferred)
 {
 	u32 flag;
 
@@ -143,7 +143,7 @@ int obd_page_dif_generate_buffer(const char *obd_name, struct page *page,
  * If checksum type is one T10 checksum types, init the csum_fn and sector
  * size. Otherwise, init them to NULL/zero.
  */
-static inline void obd_t10_cksum2dif(enum cksum_type cksum_type,
+static inline void obd_t10_cksum2dif(enum cksum_types cksum_type,
 				     obd_dif_csum_fn **fn, int *sector_size)
 {
 	*fn = NULL;

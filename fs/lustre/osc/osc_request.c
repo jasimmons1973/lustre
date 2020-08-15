@@ -1275,7 +1275,7 @@ out:
 
 static int osc_checksum_bulk(int nob, u32 pg_count,
 			     struct brw_page **pga, int opc,
-			     enum cksum_type cksum_type,
+			     enum cksum_types cksum_type,
 			     u32 *cksum)
 {
 	int i = 0;
@@ -1334,7 +1334,7 @@ static int osc_checksum_bulk(int nob, u32 pg_count,
 }
 
 static int osc_checksum_bulk_rw(const char *obd_name,
-				enum cksum_type cksum_type,
+				enum cksum_types cksum_type,
 				int nob, size_t pg_count,
 				struct brw_page **pga, int opc,
 				u32 *check_sum)
@@ -1641,7 +1641,7 @@ no_bulk:
 			/* store cl_cksum_type in a local variable since
 			 * it can be changed via lprocfs
 			 */
-			enum cksum_type cksum_type = cli->cl_cksum_type;
+			enum cksum_types cksum_type = cli->cl_cksum_type;
 
 			if ((body->oa.o_valid & OBD_MD_FLFLAGS) == 0)
 				body->oa.o_flags = 0;
@@ -1790,7 +1790,7 @@ static int check_write_checksum(struct obdo *oa,
 	int sector_size = 0;
 	u32 new_cksum;
 	char *msg;
-	enum cksum_type cksum_type;
+	enum cksum_types cksum_type;
 	int rc;
 
 	if (server_cksum == client_cksum) {
@@ -1996,7 +1996,7 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 		u32 server_cksum = body->oa.o_cksum;
 		char *via = "";
 		char *router = "";
-		enum cksum_type cksum_type;
+		enum cksum_types cksum_type;
 		u32 o_flags = body->oa.o_valid & OBD_MD_FLFLAGS ?
 			body->oa.o_flags : 0;
 

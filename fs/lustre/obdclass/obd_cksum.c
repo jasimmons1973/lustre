@@ -30,9 +30,9 @@
 #include <obd_cksum.h>
 
 /* Server uses algos that perform at 50% or better of the Adler */
-enum cksum_type obd_cksum_types_supported_server(const char *obd_name)
+enum cksum_types obd_cksum_types_supported_server(const char *obd_name)
 {
-	enum cksum_type ret = OBD_CKSUM_ADLER;
+	enum cksum_types ret = OBD_CKSUM_ADLER;
 	int base_speed;
 
 	CDEBUG(D_INFO,
@@ -84,7 +84,7 @@ EXPORT_SYMBOL(obd_cksum_types_supported_server);
  *
  * In case multiple algorithms are supported the best one is used.
  */
-u32 obd_cksum_type_pack(const char *obd_name, enum cksum_type cksum_type)
+u32 obd_cksum_type_pack(const char *obd_name, enum cksum_types cksum_type)
 {
 	unsigned int performance = 0, tmp;
 	u32 flag = OBD_FL_CKSUM_ADLER;

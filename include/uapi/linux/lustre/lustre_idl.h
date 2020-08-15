@@ -918,7 +918,7 @@ struct obd_connect_data {
  * algorithm and also the OBD_FL_CKSUM* flags, OBD_CKSUM_ALL flag,
  * OBD_FL_CKSUM_ALL flag and potentially OBD_CKSUM_T10_ALL flag.
  */
-enum cksum_type {
+enum cksum_types {
 	OBD_CKSUM_CRC32		= 0x00000001,
 	OBD_CKSUM_ADLER		= 0x00000002,
 	OBD_CKSUM_CRC32C	= 0x00000004,

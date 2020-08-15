@@ -80,7 +80,7 @@ int obd_page_dif_generate_buffer(const char *obd_name, struct page *page,
 EXPORT_SYMBOL(obd_page_dif_generate_buffer);
 
 static int __obd_t10_performance_test(const char *obd_name,
-				      enum cksum_type cksum_type,
+				      enum cksum_types cksum_type,
 				      struct page *data_page,
 				      int repeat_number)
 {
@@ -163,7 +163,7 @@ out:
 static int obd_t10_cksum_speeds[OBD_T10_CKSUM_MAX];
 
 static enum obd_t10_cksum_type
-obd_t10_cksum2type(enum cksum_type cksum_type)
+obd_t10_cksum2type(enum cksum_types cksum_type)
 {
 	switch (cksum_type) {
 	case OBD_CKSUM_T10IP512:
@@ -205,7 +205,7 @@ static const char *obd_t10_cksum_name(enum obd_t10_cksum_type index)
  * \param[in] cksum_type	checksum type (OBD_CKSUM_T10*)
  */
 static void obd_t10_performance_test(const char *obd_name,
-				     enum cksum_type cksum_type)
+				     enum cksum_types cksum_type)
 {
 	enum obd_t10_cksum_type index = obd_t10_cksum2type(cksum_type);
 	const int buf_len = max(PAGE_SIZE, 1048576UL);
@@ -255,7 +255,7 @@ out:
 }
 
 int obd_t10_cksum_speed(const char *obd_name,
-			enum cksum_type cksum_type)
+			enum cksum_types cksum_type)
 {
 	enum obd_t10_cksum_type index = obd_t10_cksum2type(cksum_type);
 
