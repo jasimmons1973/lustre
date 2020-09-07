@@ -41,9 +41,7 @@
 
 #define DEBUG_SUBSYSTEM S_RPC
 
-#ifndef CONFIG_CRYPTO_CRC32
 #include <linux/crc32.h>
-#endif
 
 #include <uapi/linux/lustre/lustre_fiemap.h>
 
@@ -1240,15 +1238,16 @@ u32 lustre_msg_calc_cksum(struct lustre_msg *msg, u32 buf)
 		struct ptlrpc_body *pb = lustre_msg_buf_v2(msg, buf, 0);
 		u32 len = lustre_msg_buflen(msg, buf);
 		u32 crc;
-#ifdef CONFIG_CRYPTO_CRC32
+
+#if IS_ENABLED(CONFIG_CRC32)
+		/* about 10x faster than crypto_hash for small buffers */
+		crc = crc32_le(~(__u32)0, (unsigned char *)pb, len);
+#elif IS_ENABLED(CONFIG_CRYPTO_CRC32)
 		unsigned int hsize = 4;
 
 		cfs_crypto_hash_digest(CFS_HASH_ALG_CRC32, (unsigned char *)pb,
-				       lustre_msg_buflen(msg,
-							 MSG_PTLRPC_BODY_OFF),
-				       NULL, 0, (unsigned char *)&crc, &hsize);
-#else
-		crc = crc32_le(~(__u32)0, (unsigned char *)pb, len);
+				       len, NULL, 0, (unsigned char *)&crc,
+				       &hsize);
 #endif
 		return crc;
 	}
