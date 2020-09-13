@@ -303,7 +303,7 @@ out_lsme:
 	return ERR_PTR(rc);
 }
 
-static inline struct lov_stripe_md *
+static struct lov_stripe_md *
 lsm_unpackmd_v1v3(struct lov_obd *lov,
 		  struct lov_mds_md *lmm, size_t buf_size,
 		  const char *pool_name,
