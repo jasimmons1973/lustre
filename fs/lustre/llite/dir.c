@@ -481,7 +481,6 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 			goto out_op_data;
 	}
 
-
 	op_data->op_cli_flags |= CLI_SET_MEA;
 	err = md_create(sbi->ll_md_exp, op_data, lump, len, mode,
 			from_kuid(&init_user_ns, current_fsuid()),
