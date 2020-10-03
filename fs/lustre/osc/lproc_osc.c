@@ -87,7 +87,7 @@ static ssize_t max_rpcs_in_flight_show(struct kobject *kobj,
 					      obd_kset.kobj);
 	struct client_obd *cli = &obd->u.cli;
 
-	return sprintf(buf, "%u\n", cli->cl_max_rpcs_in_flight);
+	return scnprintf(buf, PAGE_SIZE, "%u\n", cli->cl_max_rpcs_in_flight);
 }
 
 static ssize_t max_rpcs_in_flight_store(struct kobject *kobj,
@@ -139,13 +139,9 @@ static ssize_t max_dirty_mb_show(struct kobject *kobj,
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
 	struct client_obd *cli = &obd->u.cli;
-	unsigned long val;
 
-	spin_lock(&cli->cl_loi_list_lock);
-	val = PAGES_TO_MiB(cli->cl_dirty_max_pages);
-	spin_unlock(&cli->cl_loi_list_lock);
-
-	return scnprintf(buf, PAGE_SIZE, "%lu\n", val);
+	return scnprintf(buf, PAGE_SIZE, "%lu\n",
+			 PAGES_TO_MiB(cli->cl_dirty_max_pages));
 }
 
 static ssize_t max_dirty_mb_store(struct kobject *kobj,
@@ -252,7 +248,8 @@ static ssize_t cur_dirty_bytes_show(struct kobject *kobj,
 					      obd_kset.kobj);
 	struct client_obd *cli = &obd->u.cli;
 
-	return sprintf(buf, "%lu\n", cli->cl_dirty_pages << PAGE_SHIFT);
+	return scnprintf(buf, PAGE_SIZE, "%lu\n",
+			 cli->cl_dirty_pages << PAGE_SHIFT);
 }
 LUSTRE_RO_ATTR(cur_dirty_bytes);
 
@@ -264,7 +261,7 @@ static ssize_t cur_grant_bytes_show(struct kobject *kobj,
 					      obd_kset.kobj);
 	struct client_obd *cli = &obd->u.cli;
 
-	return sprintf(buf, "%lu\n", cli->cl_avail_grant);
+	return scnprintf(buf, PAGE_SIZE, "%lu\n", cli->cl_avail_grant);
 }
 
 static ssize_t cur_grant_bytes_store(struct kobject *kobj,
@@ -284,12 +281,8 @@ static ssize_t cur_grant_bytes_store(struct kobject *kobj,
 		return rc;
 
 	/* this is only for shrinking grant */
-	spin_lock(&cli->cl_loi_list_lock);
-	if (val >= cli->cl_avail_grant) {
-		spin_unlock(&cli->cl_loi_list_lock);
+	if (val >= cli->cl_avail_grant)
 		return -EINVAL;
-	}
-	spin_unlock(&cli->cl_loi_list_lock);
 
 	with_imp_locked(obd, imp, rc)
 		if (imp->imp_state == LUSTRE_IMP_FULL)
@@ -307,7 +300,7 @@ static ssize_t cur_lost_grant_bytes_show(struct kobject *kobj,
 					      obd_kset.kobj);
 	struct client_obd *cli = &obd->u.cli;
 
-	return sprintf(buf, "%lu\n", cli->cl_lost_grant);
+	return scnprintf(buf, PAGE_SIZE, "%lu\n", cli->cl_lost_grant);
 }
 LUSTRE_RO_ATTR(cur_lost_grant_bytes);
 
