@@ -252,13 +252,13 @@ static void ldlm_cli_pool_pop_slv(struct ldlm_pool *pl)
 /**
  * Recalculates client size pool @pl according to current SLV and Limit.
  */
-static int ldlm_cli_pool_recalc(struct ldlm_pool *pl)
+static int ldlm_cli_pool_recalc(struct ldlm_pool *pl, bool force)
 {
 	timeout_t recalc_interval_sec;
 	int ret;
 
 	recalc_interval_sec = ktime_get_seconds() - pl->pl_recalc_time;
-	if (recalc_interval_sec < pl->pl_recalc_period)
+	if (!force && recalc_interval_sec < pl->pl_recalc_period)
 		return 0;
 
 	spin_lock(&pl->pl_lock);
@@ -266,7 +266,7 @@ static int ldlm_cli_pool_recalc(struct ldlm_pool *pl)
 	 * Check if we need to recalc lists now.
 	 */
 	recalc_interval_sec = ktime_get_seconds() - pl->pl_recalc_time;
-	if (recalc_interval_sec < pl->pl_recalc_period) {
+	if (!force && recalc_interval_sec < pl->pl_recalc_period) {
 		spin_unlock(&pl->pl_lock);
 		return 0;
 	}
@@ -346,7 +346,7 @@ static const struct ldlm_pool_ops ldlm_cli_pool_ops = {
  *
  * Returns	time in seconds for the next recalc of this pool
  */
-static timeout_t ldlm_pool_recalc(struct ldlm_pool *pl)
+timeout_t ldlm_pool_recalc(struct ldlm_pool *pl, bool force)
 {
 	timeout_t recalc_interval_sec;
 	int count;
@@ -373,7 +373,7 @@ static timeout_t ldlm_pool_recalc(struct ldlm_pool *pl)
 	}
 
 	if (pl->pl_ops->po_recalc) {
-		count = pl->pl_ops->po_recalc(pl);
+		count = pl->pl_ops->po_recalc(pl, force);
 		lprocfs_counter_add(pl->pl_stats, LDLM_POOL_RECALC_STAT,
 				    count);
 	}
@@ -976,7 +976,7 @@ static void ldlm_pools_recalc(struct work_struct *ws)
 		 */
 		if (!skip) {
 			delay = min(delay,
-				    ldlm_pool_recalc(&ns->ns_pool));
+				    ldlm_pool_recalc(&ns->ns_pool, false));
 			ldlm_namespace_put(ns);
 		}
 	}

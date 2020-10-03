@@ -66,6 +66,7 @@ struct obd_device;
 #define LDLM_DIRTY_AGE_LIMIT (10)
 #define LDLM_DEFAULT_PARALLEL_AST_LIMIT 1024
 #define LDLM_DEFAULT_LRU_SHRINK_BATCH (16)
+#define LDLM_DEFAULT_SLV_RECALC_PCT (10)
 
 /**
  * LDLM non-error return states
@@ -193,6 +194,19 @@ static inline int lockmode_compat(enum ldlm_mode exist_mode,
  *
  */
 
+/* Cancel lru flag, it indicates we cancel aged locks. */
+enum ldlm_lru_flags {
+	LDLM_LRU_FLAG_NO_WAIT	= 0x1,	/* Cancel locks w/o blocking (neither
+					 * sending nor waiting for any RPCs)
+					 */
+	LDLM_LRU_FLAG_CLEANUP   = 0x2,	/* Used when clearing lru, tells
+					 * prepare_lru_list to set discard flag
+					 * on PR extent locks so we don't waste
+					 * time saving pages that will be
+					 * discarded momentarily
+					 */
+};
+
 struct ldlm_pool;
 struct ldlm_lock;
 struct ldlm_resource;
@@ -208,7 +222,7 @@ struct ldlm_namespace;
  */
 struct ldlm_pool_ops {
 	/** Recalculate pool @pl usage */
-	int (*po_recalc)(struct ldlm_pool *pl);
+	int (*po_recalc)(struct ldlm_pool *pl, bool force);
 	/** Cancel at least @nr locks from pool @pl */
 	int (*po_shrink)(struct ldlm_pool *pl, int nr,
 			 gfp_t gfp_mask);
@@ -430,6 +444,12 @@ struct ldlm_namespace {
 	 */
 	unsigned int		ns_cancel_batch;
 
+	/**
+	 * How much the SLV should decrease in %% to trigger LRU cancel
+	 * urgently.
+	 */
+	unsigned int		ns_recalc_pct;
+
 	/** Maximum allowed age (last used time) for locks in the LRU. Set in
 	 * seconds from userspace, but stored in ns to avoid repeat conversions.
 	 */
@@ -487,7 +507,13 @@ struct ldlm_namespace {
 	 * Flag to indicate namespace is being freed. Used to determine if
 	 * recalculation of LDLM pool statistics should be skipped.
 	 */
-	unsigned		ns_stopping:1;
+	unsigned int		ns_stopping:1,
+
+	/**
+	 * Flag to indicate the LRU recalc on RPC reply is in progress.
+	 * Used to limit the process by 1 thread only.
+	 */
+				ns_rpc_recalc:1;
 
 	struct kobject		ns_kobj; /* sysfs object */
 	struct completion	ns_kobj_unregister;
@@ -1404,6 +1430,7 @@ void ldlm_pools_fini(void);
 int ldlm_pool_init(struct ldlm_pool *pl, struct ldlm_namespace *ns,
 		   int idx, enum ldlm_side client);
 void ldlm_pool_fini(struct ldlm_pool *pl);
+timeout_t ldlm_pool_recalc(struct ldlm_pool *pl, bool force);
 void ldlm_pool_add(struct ldlm_pool *pl, struct ldlm_lock *lock);
 void ldlm_pool_del(struct ldlm_pool *pl, struct ldlm_lock *lock);
 /** @} */
