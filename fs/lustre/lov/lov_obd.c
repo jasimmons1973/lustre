@@ -269,8 +269,8 @@ static int lov_disconnect_obd(struct obd_device *obd, struct lov_tgt_desc *tgt)
 	int rc;
 
 	osc_obd = class_exp2obd(tgt->ltd_exp);
-	CDEBUG(D_CONFIG, "%s: disconnecting target %s\n",
-	       obd->obd_name, osc_obd ? osc_obd->obd_name : "NULL");
+	CDEBUG(D_CONFIG, "%s: disconnecting target %s\n", obd->obd_name,
+	       osc_obd ? osc_obd->obd_name : "<no obd>");
 
 	if (tgt->ltd_active) {
 		tgt->ltd_active = 0;
@@ -1122,7 +1122,8 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 
 			/* ll_umount_begin() sets force on lov, pass to osc */
 			osc_obd = class_exp2obd(lov->lov_tgts[i]->ltd_exp);
-			osc_obd->obd_force = obd->obd_force;
+			if (osc_obd)
+				osc_obd->obd_force = obd->obd_force;
 			err = obd_iocontrol(cmd, lov->lov_tgts[i]->ltd_exp,
 					    len, karg, uarg);
 			if (err) {
