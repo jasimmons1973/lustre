@@ -564,7 +564,8 @@ struct obd_device {
 					    */
 		      obd_no_ir:1,	   /* no imperative recovery. */
 		      obd_process_conf:1,  /* device is processing mgs config */
-		      obd_checksum_dump:1; /* dump pages upon cksum error */
+		      obd_checksum_dump:1, /* dump pages upon cksum error */
+		      obd_dynamic_nids:1;  /* Allow dynamic NIDs on device */
 	/* use separate field as it is set in interrupt to don't mess with
 	 * protection of other bits using _bh lock
 	 */
