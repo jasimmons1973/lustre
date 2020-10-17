@@ -184,8 +184,6 @@ enum pcc_io_type {
 	PIT_FAULT,
 	/* fsync system call handling */
 	PIT_FSYNC,
-	/* splice_read system call */
-	PIT_SPLICE_READ,
 	/* open system call */
 	PIT_OPEN,
 };
@@ -241,9 +239,6 @@ ssize_t pcc_file_write_iter(struct kiocb *iocb, struct iov_iter *iter,
 int pcc_inode_getattr(struct inode *inode, u32 request_mask,
 		      unsigned int flags, bool *cached);
 int pcc_inode_setattr(struct inode *inode, struct iattr *attr, bool *cached);
-ssize_t pcc_file_splice_read(struct file *in_file, loff_t *ppos,
-			     struct pipe_inode_info *pipe, size_t count,
-			     unsigned int flags, bool *cached);
 int pcc_fsync(struct file *file, loff_t start, loff_t end,
 	      int datasync, bool *cached);
 int pcc_file_mmap(struct file *file, struct vm_area_struct *vma, bool *cached);
