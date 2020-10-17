@@ -932,6 +932,7 @@ ptlrpc_lprocfs_svc_req_history_next(struct seq_file *s,
 	}
 
 	kfree(srhi);
+	++*pos;
 	return NULL;
 }
 
