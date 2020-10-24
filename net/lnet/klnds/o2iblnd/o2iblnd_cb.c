@@ -2181,6 +2181,9 @@ kiblnd_connreq_done(struct kib_conn *conn, int status)
 	/* connection established */
 	write_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
 
+	/* reset retry count */
+	peer_ni->ibp_retries = 0;
+
 	conn->ibc_last_send = ktime_get();
 	kiblnd_set_conn_state(conn, IBLND_CONN_ESTABLISHED);
 	kiblnd_peer_alive(peer_ni);
@@ -2631,6 +2634,11 @@ kiblnd_check_reconnect(struct kib_conn *conn, int version,
 		goto out;
 	}
 
+	if (peer_ni->ibp_retries > *kiblnd_tunables.kib_retry_count) {
+		reason = "retry count exceeded due to no listener";
+		goto out;
+	}
+
 	switch (why) {
 	default:
 		reason = "Unknown";
@@ -2688,6 +2696,7 @@ kiblnd_check_reconnect(struct kib_conn *conn, int version,
 		break;
 
 	case IBLND_REJECT_INVALID_SRV_ID:
+		peer_ni->ibp_retries++;
 		reason = "invalid service id";
 		break;
 	}
