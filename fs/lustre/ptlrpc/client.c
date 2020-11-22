@@ -2249,6 +2249,11 @@ void ptlrpc_expired_set(struct ptlrpc_request_set *set)
 		 * ptlrpcd thread.
 		 */
 		ptlrpc_expire_one_request(req, 1);
+		/*
+		 * Loops require that we resched once in a while to avoid
+		 * RCU stalls and a few other problems.
+		 */
+		cond_resched();
 	}
 }
 
