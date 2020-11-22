@@ -1093,8 +1093,9 @@ static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 
 	switch (lock->l_resource->lr_type) {
 	case LDLM_EXTENT:
-		if (lpol->l_extent.start > data->lmd_policy->l_extent.start ||
-		    lpol->l_extent.end < data->lmd_policy->l_extent.end)
+		if (!(data->lmd_match & LDLM_MATCH_RIGHT) &&
+		    (lpol->l_extent.start > data->lmd_policy->l_extent.start ||
+		     lpol->l_extent.end < data->lmd_policy->l_extent.end))
 			return false;
 
 		if (unlikely(match == LCK_GROUP) &&
@@ -1160,9 +1161,16 @@ matched:
 struct ldlm_lock *search_itree(struct ldlm_resource *res,
 			       struct ldlm_match_data *data)
 {
+	struct ldlm_extent ext = {
+		.start	= data->lmd_policy->l_extent.start,
+		.end	= data->lmd_policy->l_extent.end
+	};
 	int idx;
 
 	data->lmd_lock = NULL;
+
+	if (data->lmd_match & LDLM_MATCH_RIGHT)
+		ext.end = OBD_OBJECT_EOF;
 
 	for (idx = 0; idx < LCK_MODE_NUM; idx++) {
 		struct ldlm_interval_tree *tree = &res->lr_itree[idx];
@@ -1173,9 +1181,7 @@ struct ldlm_lock *search_itree(struct ldlm_resource *res,
 		if (!(tree->lit_mode & *data->lmd_mode))
 			continue;
 
-		ldlm_extent_search(&tree->lit_root,
-				   data->lmd_policy->l_extent.start,
-				   data->lmd_policy->l_extent.end,
+		ldlm_extent_search(&tree->lit_root, ext.start, ext.end,
 				   lock_matches, data);
 		if (data->lmd_lock)
 			return data->lmd_lock;
