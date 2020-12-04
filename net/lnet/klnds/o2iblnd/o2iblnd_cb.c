@@ -3308,7 +3308,7 @@ kiblnd_check_conns(int idx)
 
 	if (!list_empty(&timedout_txs))
 		kiblnd_txlist_done(&timedout_txs, -ETIMEDOUT,
-				   LNET_MSG_STATUS_LOCAL_TIMEOUT);
+				   LNET_MSG_STATUS_REMOTE_TIMEOUT);
 
 	/*
 	 * Handle timeout by closing the whole
