@@ -181,6 +181,35 @@ static ssize_t ll_get_user_pages(int rw, struct iov_iter *iter,
 	return result;
 }
 
+/*
+ * Lustre could relax a bit for alignment, io count is not
+ * necessary page alignment.
+ */
+static unsigned long ll_iov_iter_alignment(struct iov_iter *i)
+{
+	size_t orig_size = i->count;
+	size_t count = orig_size & ~PAGE_MASK;
+	unsigned long res;
+
+	if (!count)
+		return iov_iter_alignment(i);
+
+	if (orig_size > PAGE_SIZE) {
+		iov_iter_truncate(i, orig_size - count);
+		res = iov_iter_alignment(i);
+		iov_iter_reexpand(i, orig_size);
+
+		return res;
+	}
+
+	res = iov_iter_alignment(i);
+	/* start address is page aligned */
+	if ((res & ~PAGE_MASK) == orig_size)
+		return PAGE_SIZE;
+
+	return res;
+}
+
 /* direct IO pages */
 struct ll_dio_pages {
 	struct cl_dio_aio	*ldp_aio;
@@ -325,7 +354,7 @@ static ssize_t ll_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 		return 0;
 
 	/* FIXME: io smaller than PAGE_SIZE is broken on ia64 ??? */
-	if ((file_offset & ~PAGE_MASK) || (count & ~PAGE_MASK))
+	if (file_offset & ~PAGE_MASK)
 		return -EINVAL;
 
 	CDEBUG(D_VFSTRACE,
@@ -335,7 +364,7 @@ static ssize_t ll_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	       MAX_DIO_SIZE >> PAGE_SHIFT);
 
 	/* Check that all user buffers are aligned as well */
-	if (iov_iter_alignment(iter) & ~PAGE_MASK)
+	if (ll_iov_iter_alignment(iter) & ~PAGE_MASK)
 		return -EINVAL;
 
 	lcc = ll_cl_find(file);
