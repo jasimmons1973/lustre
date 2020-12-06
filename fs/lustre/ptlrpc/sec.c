@@ -42,6 +42,7 @@
 #include <linux/cred.h>
 #include <linux/key.h>
 #include <linux/sched/task.h>
+#include <linux/vmalloc.h>
 
 #include <obd.h>
 #include <obd_class.h>
@@ -474,7 +475,10 @@ int sptlrpc_req_ctx_switch(struct ptlrpc_request *req,
 			req->rq_flvr = old_flvr;
 		}
 
-		kvfree(reqmsg);
+		if (is_vmalloc_addr(reqmsg))
+			vfree_atomic(reqmsg);
+		else
+			kfree(reqmsg);
 	}
 	return rc;
 }
@@ -836,7 +840,10 @@ void sptlrpc_request_out_callback(struct ptlrpc_request *req)
 	if (req->rq_pool || !req->rq_reqbuf)
 		return;
 
-	kvfree(req->rq_reqbuf);
+	if (is_vmalloc_addr(req->rq_reqbuf))
+		vfree_atomic(req->rq_reqbuf);
+	else
+		kfree(req->rq_reqbuf);
 	req->rq_reqbuf = NULL;
 	req->rq_reqbuf_len = 0;
 }
@@ -1133,7 +1140,10 @@ int sptlrpc_cli_unwrap_early_reply(struct ptlrpc_request *req,
 err_ctx:
 	sptlrpc_cli_ctx_put(early_req->rq_cli_ctx, 1);
 err_buf:
-	kvfree(early_buf);
+	if (is_vmalloc_addr(early_buf))
+		vfree_atomic(early_buf);
+	else
+		kfree(early_buf);
 err_req:
 	ptlrpc_request_cache_free(early_req);
 	return rc;
@@ -1151,7 +1161,10 @@ void sptlrpc_cli_finish_early_reply(struct ptlrpc_request *early_req)
 	LASSERT(early_req->rq_repmsg);
 
 	sptlrpc_cli_ctx_put(early_req->rq_cli_ctx, 1);
-	kvfree(early_req->rq_repbuf);
+	if (is_vmalloc_addr(early_req->rq_repbuf))
+		vfree_atomic(early_req->rq_repbuf);
+	else
+		kfree(early_req->rq_repbuf);
 	ptlrpc_request_cache_free(early_req);
 }
 

@@ -2355,6 +2355,7 @@ void vfree_atomic(const void *addr)
 		return;
 	__vfree_deferred(addr);
 }
+EXPORT_SYMBOL(vfree_atomic);
 
 static void __vfree(const void *addr)
 {

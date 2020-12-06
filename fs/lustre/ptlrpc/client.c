@@ -38,6 +38,7 @@
 #include <linux/libcfs/libcfs_cpu.h>
 #include <linux/delay.h>
 #include <linux/random.h>
+#include <linux/vmalloc.h>
 
 #include <obd_support.h>
 #include <obd_class.h>
@@ -529,7 +530,10 @@ void ptlrpc_free_rq_pool(struct ptlrpc_request_pool *pool)
 		list_del(&req->rq_list);
 		LASSERT(req->rq_reqbuf);
 		LASSERT(req->rq_reqbuf_len == pool->prp_rq_size);
-		kvfree(req->rq_reqbuf);
+		if (is_vmalloc_addr(req->rq_reqbuf))
+			vfree_atomic(req->rq_reqbuf);
+		else
+			kfree(req->rq_reqbuf);
 		ptlrpc_request_cache_free(req);
 	}
 	kfree(pool);

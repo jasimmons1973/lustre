@@ -37,6 +37,7 @@
 
 #define DEBUG_SUBSYSTEM S_SEC
 
+#include <linux/vmalloc.h>
 #include <linux/libcfs/libcfs.h>
 
 #include <obd.h>
@@ -380,7 +381,10 @@ static inline void enc_pools_free(void)
 	LASSERT(page_pools.epp_max_pools);
 	LASSERT(page_pools.epp_pools);
 
-	kvfree(page_pools.epp_pools);
+	if (is_vmalloc_addr(page_pools.epp_pools))
+		vfree_atomic(page_pools.epp_pools);
+	else
+		kfree(page_pools.epp_pools);
 }
 
 static struct shrinker pools_shrinker = {

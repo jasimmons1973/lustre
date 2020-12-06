@@ -37,6 +37,7 @@
 
 #define DEBUG_SUBSYSTEM S_SEC
 
+#include <linux/vmalloc.h>
 #include <obd_support.h>
 #include <obd_cksum.h>
 #include <obd_class.h>
@@ -180,7 +181,10 @@ void null_free_reqbuf(struct ptlrpc_sec *sec,
 			 "req %p: reqlen %d should smaller than buflen %d\n",
 			 req, req->rq_reqlen, req->rq_reqbuf_len);
 
-		kvfree(req->rq_reqbuf);
+		if (is_vmalloc_addr(req->rq_reqbuf))
+			vfree_atomic(req->rq_reqbuf);
+		else
+			kfree(req->rq_reqbuf);
 		req->rq_reqbuf = NULL;
 		req->rq_reqbuf_len = 0;
 	}
@@ -210,7 +214,10 @@ void null_free_repbuf(struct ptlrpc_sec *sec,
 {
 	LASSERT(req->rq_repbuf);
 
-	kvfree(req->rq_repbuf);
+	if (is_vmalloc_addr(req->rq_repbuf))
+		vfree_atomic(req->rq_repbuf);
+	else
+		kfree(req->rq_repbuf);
 	req->rq_repbuf = NULL;
 	req->rq_repbuf_len = 0;
 }
@@ -257,7 +264,10 @@ int null_enlarge_reqbuf(struct ptlrpc_sec *sec,
 			spin_lock(&req->rq_import->imp_lock);
 		memcpy(newbuf, req->rq_reqbuf, req->rq_reqlen);
 
-		kvfree(req->rq_reqbuf);
+		if (is_vmalloc_addr(req->rq_reqbuf))
+			vfree_atomic(req->rq_reqbuf);
+		else
+			kfree(req->rq_reqbuf);
 		req->rq_reqbuf = newbuf;
 		req->rq_reqmsg = newbuf;
 		req->rq_reqbuf_len = alloc_size;
@@ -337,8 +347,12 @@ void null_free_rs(struct ptlrpc_reply_state *rs)
 	LASSERT_ATOMIC_GT(&rs->rs_svc_ctx->sc_refcount, 1);
 	atomic_dec(&rs->rs_svc_ctx->sc_refcount);
 
-	if (!rs->rs_prealloc)
-		kvfree(rs);
+	if (!rs->rs_prealloc) {
+		if (is_vmalloc_addr(rs))
+			vfree_atomic(rs);
+		else
+			kfree(rs);
+	}
 }
 
 static

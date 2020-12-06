@@ -36,6 +36,7 @@
 #include <linux/kthread.h>
 #include <linux/ratelimit.h>
 #include <linux/fs_struct.h>
+#include <linux/vmalloc.h>
 
 #include <obd_support.h>
 #include <obd_class.h>
@@ -118,7 +119,10 @@ static void ptlrpc_free_rqbd(struct ptlrpc_request_buffer_desc *rqbd)
 	svcpt->scp_nrqbds_total--;
 	spin_unlock(&svcpt->scp_lock);
 
-	kvfree(rqbd->rqbd_buffer);
+	if (is_vmalloc_addr(rqbd->rqbd_buffer))
+		vfree_atomic(rqbd->rqbd_buffer);
+	else
+		kfree(rqbd->rqbd_buffer);
 	kfree(rqbd);
 }
 
@@ -838,7 +842,10 @@ static void ptlrpc_server_drop_request(struct ptlrpc_request *req)
 			    test_req_buffer_pressure) {
 				/* like in ptlrpc_free_rqbd() */
 				svcpt->scp_nrqbds_total--;
-				kvfree(rqbd->rqbd_buffer);
+				if (is_vmalloc_addr(rqbd->rqbd_buffer))
+					vfree_atomic(rqbd->rqbd_buffer);
+				else
+					kfree(rqbd->rqbd_buffer);
 				kfree(rqbd);
 			} else {
 				list_add_tail(&rqbd->rqbd_list,
@@ -1197,7 +1204,10 @@ out_put:
 	class_export_put(reqcopy->rq_export);
 out:
 	sptlrpc_svc_ctx_decref(reqcopy);
-	kvfree(reqmsg);
+	if (is_vmalloc_addr(reqmsg))
+		vfree_atomic(reqmsg);
+	else
+		kfree(reqmsg);
 out_free:
 	ptlrpc_request_cache_free(reqcopy);
 	return rc;
@@ -2938,7 +2948,10 @@ ptlrpc_service_purge_all(struct ptlrpc_service *svc)
 						      struct ptlrpc_reply_state,
 						      rs_list)) != NULL) {
 			list_del(&rs->rs_list);
-			kvfree(rs);
+			if (is_vmalloc_addr(rs))
+				vfree_atomic(rs);
+			else
+				kfree(rs);
 		}
 	}
 }
