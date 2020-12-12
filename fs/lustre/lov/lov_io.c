@@ -465,8 +465,6 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 	io->ci_result = 0;
 	lio->lis_object = obj;
 
-	LASSERT(obj->lo_lsm);
-
 	switch (io->ci_type) {
 	case CIT_READ:
 	case CIT_WRITE:
@@ -555,6 +553,18 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 	default:
 		LBUG();
 	}
+
+	/*
+	 * CIT_MISC + ci_ignore_layout can identify the I/O from the OSC layer,
+	 * it won't care/access lov layout related info.
+	 */
+	if (io->ci_ignore_layout && io->ci_type == CIT_MISC) {
+		result = 0;
+		goto out;
+	}
+
+	LASSERT(obj->lo_lsm);
+
 	result = lov_io_mirror_init(lio, obj, io);
 	if (result)
 		goto out;
