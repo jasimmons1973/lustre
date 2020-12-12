@@ -86,8 +86,6 @@ typedef struct stat	lstat_t;
 #define fstatat_f	fstatat
 #endif
 
-#define HAVE_LOV_USER_MDS_DATA
-
 #define LUSTRE_EOF 0xffffffffffffffffULL
 
 /* for statfs() */
@@ -384,10 +382,12 @@ struct ll_ioc_lease_id {
 #define IOC_MDC_TYPE		'i'
 #define IOC_MDC_LOOKUP		_IOWR(IOC_MDC_TYPE, 20, struct obd_device *)
 #define IOC_MDC_GETFILESTRIPE	_IOWR(IOC_MDC_TYPE, 21, struct lov_user_md *)
-#define IOC_MDC_GETFILEINFO_OLD	_IOWR(IOC_MDC_TYPE, 22, struct lov_user_mds_data_v1 *)
-#define IOC_MDC_GETFILEINFO	_IOWR(IOC_MDC_TYPE, 22, struct lov_user_mds_data)
-#define LL_IOC_MDC_GETINFO_OLD	_IOWR(IOC_MDC_TYPE, 23, struct lov_user_mds_data_v1 *)
-#define LL_IOC_MDC_GETINFO	_IOWR(IOC_MDC_TYPE, 23, struct lov_user_mds_data)
+#define IOC_MDC_GETFILEINFO_V1	_IOWR(IOC_MDC_TYPE, 22, struct lov_user_mds_data_v1 *)
+#define IOC_MDC_GETFILEINFO_V2	_IOWR(IOC_MDC_TYPE, 22, struct lov_user_mds_data)
+#define LL_IOC_MDC_GETINFO_V1	_IOWR(IOC_MDC_TYPE, 23, struct lov_user_mds_data_v1 *)
+#define LL_IOC_MDC_GETINFO_V2	_IOWR(IOC_MDC_TYPE, 23, struct lov_user_mds_data)
+#define IOC_MDC_GETFILEINFO	IOC_MDC_GETFILEINFO_V1
+#define LL_IOC_MDC_GETINFO	LL_IOC_MDC_GETINFO_V1
 
 #define MAX_OBD_NAME 128 /* If this changes, a NEW ioctl must be added */
 
@@ -658,7 +658,6 @@ static inline __u32 lov_user_md_size(__u16 stripes, __u32 lmm_magic)
  * use this.  It is unsafe to #define those values in this header as it
  * is possible the application has already #included <sys/stat.h>.
  */
-#ifdef HAVE_LOV_USER_MDS_DATA
 #define lov_user_mds_data lov_user_mds_data_v2
 struct lov_user_mds_data_v1 {
 	lstat_t lmd_st;			/* MDS stat struct */
@@ -678,7 +677,6 @@ struct lov_user_mds_data_v3 {
 	lstat_t lmd_st;			/* MDS stat struct */
 	struct lov_user_md_v3 lmd_lmm;	/* LOV EA V3 user data */
 } __attribute__((packed));
-#endif
 
 struct lmv_user_mds_data {
 	struct lu_fid	lum_fid;
