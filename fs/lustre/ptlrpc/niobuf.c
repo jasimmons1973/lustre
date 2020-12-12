@@ -103,12 +103,15 @@ static int ptl_send_buf(struct lnet_handle_md *mdh, void *base, int len,
 	return 0;
 }
 
-static void mdunlink_iterate_helper(struct lnet_handle_md *bd_mds, int count)
+#define mdunlink_iterate_helper(mds, count) \
+		__mdunlink_iterate_helper(mds, count, false)
+static void __mdunlink_iterate_helper(struct lnet_handle_md *bd_mds,
+				      int count, bool discard)
 {
 	int i;
 
 	for (i = 0; i < count; i++)
-		LNetMDUnlink(bd_mds[i]);
+		__LNetMDUnlink(bd_mds[i], discard);
 }
 
 /**
