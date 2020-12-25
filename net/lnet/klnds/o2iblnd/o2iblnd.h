@@ -638,6 +638,8 @@ struct kib_peer_ni {
 	u16			ibp_max_frags;
 	/* max_peer_credits */
 	u16			ibp_queue_depth;
+	/* reduced value which allows conn to be created if max fails */
+	u16			ibp_queue_depth_mod;
 };
 
 extern struct kib_data kiblnd_data;
