@@ -287,7 +287,7 @@ static int chlg_load(void *args)
 	struct llog_handle *llh = NULL;
 	int rc;
 
-	crs->crs_last_catidx = -1;
+	crs->crs_last_catidx = 0;
 	crs->crs_last_idx = 0;
 
 again:
