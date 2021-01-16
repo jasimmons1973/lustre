@@ -60,7 +60,6 @@
 #include <rdma/rdma_cm.h>
 #include <rdma/ib_cm.h>
 #include <rdma/ib_verbs.h>
-#include <rdma/ib_fmr_pool.h>
 
 #define DEBUG_SUBSYSTEM S_LND
 
@@ -146,7 +145,6 @@ struct kib_hca_dev;
 enum kib_dev_caps {
 	IBLND_DEV_CAPS_FASTREG_ENABLED		= BIT(0),
 	IBLND_DEV_CAPS_FASTREG_GAPS_SUPPORT	= BIT(1),
-	IBLND_DEV_CAPS_FMR_ENABLED		= BIT(2),
 };
 
 struct kib_dev {
@@ -281,9 +279,6 @@ struct kib_fmr_pool {
 	struct kib_hca_dev	*fpo_hdev;	/* device for this pool */
 	struct kib_fmr_poolset	*fpo_owner;	/* owner of this pool */
 	union {
-		struct {
-			struct ib_fmr_pool	*fpo_fmr_pool; /* IB FMR pool */
-		} fmr;
 		struct { /* For fast registration */
 			struct list_head	fpo_pool_list;
 			int			fpo_pool_size;
@@ -296,7 +291,6 @@ struct kib_fmr_pool {
 
 struct kib_fmr {
 	struct kib_fmr_pool		*fmr_pool;	/* pool of FMR */
-	struct ib_pool_fmr		*fmr_pfmr;	/* IB pool fmr */
 	struct kib_fast_reg_descriptor	*fmr_frd;
 	u32				 fmr_key;
 };

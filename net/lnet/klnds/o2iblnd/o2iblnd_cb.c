@@ -575,23 +575,6 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 		return -EPROTONOSUPPORT;
 	}
 
-	/*
-	 * FMR does not support gaps but the tx has gaps then
-	 * we should make sure that the number of fragments we'll be sending
-	 * over fits within the number of fragments negotiated on the
-	 * connection, otherwise, we won't be able to RDMA the data.
-	 * We need to maintain the number of fragments negotiation on the
-	 * connection for backwards compatibility.
-	 */
-	if (tx->tx_gaps && (dev->ibd_dev_caps & IBLND_DEV_CAPS_FMR_ENABLED)) {
-		if (tx->tx_conn &&
-		    tx->tx_conn->ibc_max_frags <= rd->rd_nfrags) {
-			CERROR("TX number of frags (%d) is <= than connection number of frags (%d). Consider setting peer's map_on_demand to 256\n",
-			       tx->tx_nfrags, tx->tx_conn->ibc_max_frags);
-			return -EFBIG;
-		}
-	}
-
 	fps = net->ibn_fmr_ps[cpt];
 	rc = kiblnd_fmr_pool_map(fps, tx, rd, nob, 0, &tx->tx_fmr);
 	if (rc) {
@@ -606,14 +589,10 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 	 */
 	rd->rd_key = tx->tx_fmr.fmr_key;
 	/*
-	 * for FastReg or FMR with no gaps we can accumulate all
+	 * for FastReg with no gaps we can accumulate all
 	 * the fragments in one FastReg or FMR fragment.
 	 */
-	if (((dev->ibd_dev_caps & IBLND_DEV_CAPS_FMR_ENABLED) && !tx->tx_gaps) ||
-	    (dev->ibd_dev_caps & IBLND_DEV_CAPS_FASTREG_ENABLED)) {
-		/* FMR requires zero based address */
-		if (dev->ibd_dev_caps & IBLND_DEV_CAPS_FMR_ENABLED)
-			rd->rd_frags[0].rf_addr &= ~hdev->ibh_page_mask;
+	if (dev->ibd_dev_caps & IBLND_DEV_CAPS_FASTREG_ENABLED) {
 		rd->rd_frags[0].rf_nob = nob;
 		rd->rd_nfrags = 1;
 	} else {
@@ -633,7 +612,7 @@ kiblnd_fmr_map_tx(struct kib_net *net, struct kib_tx *tx, struct kib_rdma_desc *
 
 static void kiblnd_unmap_tx(struct kib_tx *tx)
 {
-	if (tx->tx_fmr.fmr_pfmr || tx->tx_fmr.fmr_frd)
+	if (tx->tx_fmr.fmr_frd)
 		kiblnd_fmr_pool_unmap(&tx->tx_fmr, tx->tx_status);
 
 	if (tx->tx_nfrags) {

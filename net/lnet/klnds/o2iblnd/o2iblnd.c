@@ -1313,27 +1313,23 @@ static void kiblnd_map_tx_pool(struct kib_tx_pool *tpo)
 
 static void kiblnd_destroy_fmr_pool(struct kib_fmr_pool *fpo)
 {
+	struct kib_fast_reg_descriptor *frd;
+	int i = 0;
+
 	LASSERT(!fpo->fpo_map_count);
 
-	if (!IS_ERR_OR_NULL(fpo->fmr.fpo_fmr_pool)) {
-		ib_destroy_fmr_pool(fpo->fmr.fpo_fmr_pool);
-	} else {
-		struct kib_fast_reg_descriptor *frd;
-		int i = 0;
-
-		while (!list_empty(&fpo->fast_reg.fpo_pool_list)) {
-			frd = list_first_entry(&fpo->fast_reg.fpo_pool_list,
-					       struct kib_fast_reg_descriptor,
-					       frd_list);
-			list_del(&frd->frd_list);
-			ib_dereg_mr(frd->frd_mr);
-			kfree(frd);
-			i++;
-		}
-		if (i < fpo->fast_reg.fpo_pool_size)
-			CERROR("FastReg pool still has %d regions registered\n",
-			       fpo->fast_reg.fpo_pool_size - i);
+	while (!list_empty(&fpo->fast_reg.fpo_pool_list)) {
+		frd = list_first_entry(&fpo->fast_reg.fpo_pool_list,
+				       struct kib_fast_reg_descriptor,
+				       frd_list);
+		list_del(&frd->frd_list);
+		ib_dereg_mr(frd->frd_mr);
+		kfree(frd);
+		i++;
 	}
+	if (i < fpo->fast_reg.fpo_pool_size)
+		CERROR("FastReg pool still has %d regions registered\n",
+		       fpo->fast_reg.fpo_pool_size - i);
 
 	if (fpo->fpo_hdev)
 		kiblnd_hdev_decref(fpo->fpo_hdev);
@@ -1368,34 +1364,6 @@ kiblnd_fmr_flush_trigger(struct lnet_ioctl_config_o2iblnd_tunables *tunables,
 	int size = tunables->lnd_fmr_flush_trigger / ncpts;
 
 	return max(IBLND_FMR_POOL_FLUSH, size);
-}
-
-static int kiblnd_alloc_fmr_pool(struct kib_fmr_poolset *fps, struct kib_fmr_pool *fpo)
-{
-	struct ib_fmr_pool_param param = {
-		.max_pages_per_fmr	= LNET_MAX_IOV,
-		.page_shift		= PAGE_SHIFT,
-		.access			= (IB_ACCESS_LOCAL_WRITE |
-					   IB_ACCESS_REMOTE_WRITE),
-		.pool_size		= fps->fps_pool_size,
-		.dirty_watermark	= fps->fps_flush_trigger,
-		.flush_function		= NULL,
-		.flush_arg		= NULL,
-		.cache			= !!fps->fps_cache
-	};
-	int rc = 0;
-
-	fpo->fmr.fpo_fmr_pool = ib_create_fmr_pool(fpo->fpo_hdev->ibh_pd,
-						   &param);
-	if (IS_ERR(fpo->fmr.fpo_fmr_pool)) {
-		rc = PTR_ERR(fpo->fmr.fpo_fmr_pool);
-		if (rc != -ENOSYS)
-			CERROR("Failed to create FMR pool: %d\n", rc);
-		else
-			CERROR("FMRs are not supported\n");
-	}
-
-	return rc;
 }
 
 static int kiblnd_alloc_freg_pool(struct kib_fmr_poolset *fps,
@@ -1481,10 +1449,7 @@ static int kiblnd_create_fmr_pool(struct kib_fmr_poolset *fps,
 	fpo->fpo_hdev = kiblnd_current_hdev(dev);
 	dev_attr = &fpo->fpo_hdev->ibh_ibdev->attrs;
 
-	if (dev->ibd_dev_caps & IBLND_DEV_CAPS_FMR_ENABLED)
-		rc = kiblnd_alloc_fmr_pool(fps, fpo);
-	else
-		rc = kiblnd_alloc_freg_pool(fps, fpo, dev->ibd_dev_caps);
+	rc = kiblnd_alloc_freg_pool(fps, fpo, dev->ibd_dev_caps);
 	if (rc)
 		goto out_fpo;
 
@@ -1568,61 +1533,25 @@ static int kiblnd_fmr_pool_is_idle(struct kib_fmr_pool *fpo, time64_t now)
 	return now >= fpo->fpo_deadline;
 }
 
-static int
-kiblnd_map_tx_pages(struct kib_tx *tx, struct kib_rdma_desc *rd)
-{
-	u64 *pages = tx->tx_pages;
-	struct kib_hca_dev *hdev;
-	int npages;
-	int size;
-	int i;
-
-	hdev = tx->tx_pool->tpo_hdev;
-
-	for (i = 0, npages = 0; i < rd->rd_nfrags; i++) {
-		for (size = 0; size <  rd->rd_frags[i].rf_nob;
-		     size += hdev->ibh_page_size) {
-			pages[npages++] = (rd->rd_frags[i].rf_addr &
-					   hdev->ibh_page_mask) + size;
-		}
-	}
-
-	return npages;
-}
-
 void kiblnd_fmr_pool_unmap(struct kib_fmr *fmr, int status)
 {
+	struct kib_fast_reg_descriptor *frd = fmr->fmr_frd;
 	LIST_HEAD(zombies);
 	struct kib_fmr_pool *fpo = fmr->fmr_pool;
 	struct kib_fmr_poolset *fps;
 	time64_t now = ktime_get_seconds();
 	struct kib_fmr_pool *tmp;
-	int rc;
 
 	if (!fpo)
 		return;
 
 	fps = fpo->fpo_owner;
-	if (!IS_ERR_OR_NULL(fpo->fmr.fpo_fmr_pool)) {
-		if (fmr->fmr_pfmr) {
-			ib_fmr_pool_unmap(fmr->fmr_pfmr);
-			fmr->fmr_pfmr = NULL;
-		}
-
-		if (status) {
-			rc = ib_flush_fmr_pool(fpo->fmr.fpo_fmr_pool);
-			LASSERT(!rc);
-		}
-	} else {
-		struct kib_fast_reg_descriptor *frd = fmr->fmr_frd;
-
-		if (frd) {
-			frd->frd_valid = false;
-			spin_lock(&fps->fps_lock);
-			list_add_tail(&frd->frd_list, &fpo->fast_reg.fpo_pool_list);
-			spin_unlock(&fps->fps_lock);
-			fmr->fmr_frd = NULL;
-		}
+	if (frd) {
+		frd->frd_valid = false;
+		spin_lock(&fps->fps_lock);
+		list_add_tail(&frd->frd_list, &fpo->fast_reg.fpo_pool_list);
+		spin_unlock(&fps->fps_lock);
+		fmr->fmr_frd = NULL;
 	}
 	fmr->fmr_pool = NULL;
 
@@ -1649,11 +1578,8 @@ int kiblnd_fmr_pool_map(struct kib_fmr_poolset *fps, struct kib_tx *tx,
 			struct kib_rdma_desc *rd, u32 nob, u64 iov,
 			struct kib_fmr *fmr)
 {
-	u64 *pages = tx->tx_pages;
 	bool is_rx = (rd != tx->tx_rd);
-	bool tx_pages_mapped = false;
 	struct kib_fmr_pool *fpo;
-	int npages = 0;
 	u64 version;
 	int rc;
 
@@ -1664,96 +1590,65 @@ again:
 		fpo->fpo_deadline = ktime_get_seconds() + IBLND_POOL_DEADLINE;
 		fpo->fpo_map_count++;
 
-		if (!IS_ERR_OR_NULL(fpo->fmr.fpo_fmr_pool)) {
-			struct ib_pool_fmr *pfmr;
+		if (!list_empty(&fpo->fast_reg.fpo_pool_list)) {
+			struct kib_fast_reg_descriptor *frd;
+			struct ib_reg_wr *wr;
+			struct ib_mr *mr;
+			int n;
 
+			frd = list_first_entry(&fpo->fast_reg.fpo_pool_list,
+					       struct kib_fast_reg_descriptor,
+					       frd_list);
+			list_del(&frd->frd_list);
 			spin_unlock(&fps->fps_lock);
 
-			if (!tx_pages_mapped) {
-				npages = kiblnd_map_tx_pages(tx, rd);
-				tx_pages_mapped = 1;
+			mr = frd->frd_mr;
+
+			if (!frd->frd_valid) {
+				u32 key = is_rx ? mr->rkey : mr->lkey;
+				struct ib_send_wr *inv_wr;
+
+				inv_wr = &frd->frd_inv_wr;
+				memset(inv_wr, 0, sizeof(*inv_wr));
+				inv_wr->opcode = IB_WR_LOCAL_INV;
+				inv_wr->wr_id = IBLND_WID_MR;
+				inv_wr->ex.invalidate_rkey = key;
+
+				/* Bump the key */
+				key = ib_inc_rkey(key);
+				ib_update_fast_reg_key(mr, key);
 			}
 
-			pfmr = ib_fmr_pool_map_phys(fpo->fmr.fpo_fmr_pool,
-						    pages, npages, iov);
-			if (likely(!IS_ERR(pfmr))) {
-				fmr->fmr_key = is_rx ? pfmr->fmr->rkey :
-						       pfmr->fmr->lkey;
-				fmr->fmr_frd = NULL;
-				fmr->fmr_pfmr = pfmr;
-				fmr->fmr_pool = fpo;
-				return 0;
+			n = ib_map_mr_sg(mr, tx->tx_frags,
+					 rd->rd_nfrags, NULL,
+					 PAGE_SIZE);
+			if (unlikely(n != rd->rd_nfrags)) {
+				CERROR("Failed to map mr %d/%d elements\n",
+				       n, rd->rd_nfrags);
+				return n < 0 ? n : -EINVAL;
 			}
-			rc = PTR_ERR(pfmr);
-		} else {
-			if (!list_empty(&fpo->fast_reg.fpo_pool_list)) {
-				struct kib_fast_reg_descriptor *frd;
-				struct ib_reg_wr *wr;
-				struct ib_mr *mr;
-				int n;
 
-				frd = list_first_entry(&fpo->fast_reg.fpo_pool_list,
-						       struct kib_fast_reg_descriptor,
-						       frd_list);
-				list_del(&frd->frd_list);
-				spin_unlock(&fps->fps_lock);
+			/* Prepare FastReg WR */
+			wr = &frd->frd_fastreg_wr;
+			memset(wr, 0, sizeof(*wr));
+			wr->wr.opcode = IB_WR_REG_MR;
+			wr->wr.wr_id = IBLND_WID_MR;
+			wr->wr.num_sge = 0;
+			wr->wr.send_flags = 0;
+			wr->mr = mr;
+			wr->key = is_rx ? mr->rkey : mr->lkey;
+			wr->access = (IB_ACCESS_LOCAL_WRITE |
+				      IB_ACCESS_REMOTE_WRITE);
 
-				mr = frd->frd_mr;
-
-				if (!frd->frd_valid) {
-					u32 key = is_rx ? mr->rkey : mr->lkey;
-					struct ib_send_wr *inv_wr;
-
-					inv_wr = &frd->frd_inv_wr;
-					memset(inv_wr, 0, sizeof(*inv_wr));
-					inv_wr->opcode = IB_WR_LOCAL_INV;
-					inv_wr->wr_id = IBLND_WID_MR;
-					inv_wr->ex.invalidate_rkey = key;
-
-					/* Bump the key */
-					key = ib_inc_rkey(key);
-					ib_update_fast_reg_key(mr, key);
-				}
-
-				n = ib_map_mr_sg(mr, tx->tx_frags,
-						 rd->rd_nfrags, NULL,
-						 PAGE_SIZE);
-				if (unlikely(n != rd->rd_nfrags)) {
-					CERROR("Failed to map mr %d/%d elements\n",
-					       n, rd->rd_nfrags);
-					return n < 0 ? n : -EINVAL;
-				}
-
-				/* Prepare FastReg WR */
-				wr = &frd->frd_fastreg_wr;
-				memset(wr, 0, sizeof(*wr));
-				wr->wr.opcode = IB_WR_REG_MR;
-				wr->wr.wr_id = IBLND_WID_MR;
-				wr->wr.num_sge = 0;
-				wr->wr.send_flags = 0;
-				wr->mr = mr;
-				wr->key = is_rx ? mr->rkey : mr->lkey;
-				wr->access = (IB_ACCESS_LOCAL_WRITE |
-					      IB_ACCESS_REMOTE_WRITE);
-
-				fmr->fmr_key = is_rx ? mr->rkey : mr->lkey;
-				fmr->fmr_frd = frd;
-				fmr->fmr_pfmr = NULL;
-				fmr->fmr_pool = fpo;
-				return 0;
-			}
-			spin_unlock(&fps->fps_lock);
-			rc = -EAGAIN;
-		}
-
-		spin_lock(&fps->fps_lock);
-		fpo->fpo_map_count--;
-		if (rc != -EAGAIN) {
-			spin_unlock(&fps->fps_lock);
-			return rc;
+			fmr->fmr_key = is_rx ? mr->rkey : mr->lkey;
+			fmr->fmr_frd = frd;
+			fmr->fmr_pool = fpo;
+			return 0;
 		}
 
 		/* EAGAIN and ... */
+		rc = -EAGAIN;
+		fpo->fpo_map_count--;
 		if (version != fps->fps_version) {
 			spin_unlock(&fps->fps_lock);
 			goto again;
@@ -2353,32 +2248,25 @@ static int kiblnd_hdev_get_attr(struct kib_hca_dev *hdev)
 	hdev->ibh_page_size = 1 << PAGE_SHIFT;
 	hdev->ibh_page_mask = ~((u64)hdev->ibh_page_size - 1);
 
-	if (hdev->ibh_ibdev->ops.alloc_fmr &&
-	    hdev->ibh_ibdev->ops.dealloc_fmr &&
-	    hdev->ibh_ibdev->ops.map_phys_fmr &&
-	    hdev->ibh_ibdev->ops.unmap_fmr) {
-		LCONSOLE_INFO("Using FMR for registration\n");
-		hdev->ibh_dev->ibd_dev_caps |= IBLND_DEV_CAPS_FMR_ENABLED;
-	} else if (dev_attr->device_cap_flags & IB_DEVICE_MEM_MGT_EXTENSIONS) {
+	hdev->ibh_mr_size = dev_attr->max_mr_size;
+	hdev->ibh_max_qp_wr = dev_attr->max_qp_wr;
+
+	if (dev_attr->device_cap_flags & IB_DEVICE_MEM_MGT_EXTENSIONS) {
 		LCONSOLE_INFO("Using FastReg for registration\n");
 		hdev->ibh_dev->ibd_dev_caps |= IBLND_DEV_CAPS_FASTREG_ENABLED;
 		if (dev_attr->device_cap_flags & IB_DEVICE_SG_GAPS_REG)
 			hdev->ibh_dev->ibd_dev_caps |= IBLND_DEV_CAPS_FASTREG_GAPS_SUPPORT;
 	} else {
-		CERROR("IB device does not support FMRs nor FastRegs, can't register memory: %d\n",
+		CERROR("IB device does not support FastRegs, can't register memory: %d\n",
 		       -ENXIO);
 		return -ENXIO;
 	}
 
-	hdev->ibh_mr_size = dev_attr->max_mr_size;
-	hdev->ibh_max_qp_wr = dev_attr->max_qp_wr;
-
 	rc2 = kiblnd_port_get_attr(hdev);
 	if (rc2 != 0)
-		return rc2;
+		CERROR("Invalid mr size: %#llx\n", hdev->ibh_mr_size);
 
-	CERROR("Invalid mr size: %#llx\n", hdev->ibh_mr_size);
-	return -EINVAL;
+	return rc2;
 }
 
 void kiblnd_hdev_destroy(struct kib_hca_dev *hdev)
