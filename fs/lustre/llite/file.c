@@ -4934,6 +4934,7 @@ out:
 long ll_fallocate(struct file *filp, int mode, loff_t offset, loff_t len)
 {
 	struct inode *inode = filp->f_path.dentry->d_inode;
+	int rc;
 
 	/*
 	 * Encrypted inodes can't handle collapse range or zero range or insert
@@ -4955,7 +4956,17 @@ long ll_fallocate(struct file *filp, int mode, loff_t offset, loff_t len)
 
 	ll_stats_ops_tally(ll_i2sbi(inode), LPROC_LL_FALLOCATE, 1);
 
-	return cl_falloc(inode, mode, offset, len);
+	rc = cl_falloc(inode, mode, offset, len);
+	/*
+	 * ENOTSUPP (524) is an NFSv3 specific error code erroneously
+	 * used by Lustre in several places. Retuning it here would
+	 * confuse applications that explicity test for EOPNOTSUPP
+	 * (95) and fall back to ftruncate().
+	 */
+	if (rc == -ENOTSUPP)
+		rc = -EOPNOTSUPP;
+
+	return rc;
 }
 
 static int ll_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
