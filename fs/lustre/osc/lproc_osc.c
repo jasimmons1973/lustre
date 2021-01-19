@@ -358,7 +358,7 @@ static ssize_t checksums_show(struct kobject *kobj,
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
 
-	return sprintf(buf, "%d\n", obd->u.cli.cl_checksum ? 1 : 0);
+	return scnprintf(buf, PAGE_SIZE, "%d\n", !!obd->u.cli.cl_checksum);
 }
 
 static ssize_t checksums_store(struct kobject *kobj,
@@ -381,10 +381,11 @@ static ssize_t checksums_store(struct kobject *kobj,
 }
 LUSTRE_RW_ATTR(checksums);
 
+DECLARE_CKSUM_NAME;
+
 static int osc_checksum_type_seq_show(struct seq_file *m, void *v)
 {
 	struct obd_device *obd = m->private;
-	DECLARE_CKSUM_NAME;
 	int i;
 
 	if (!obd)
@@ -408,10 +409,9 @@ static ssize_t osc_checksum_type_seq_write(struct file *file,
 {
 	struct seq_file *m = file->private_data;
 	struct obd_device *obd = m->private;
-	DECLARE_CKSUM_NAME;
 	char kernbuf[10];
-	int i;
 	int rc = -EINVAL;
+	int i;
 
 	if (!obd)
 		return 0;
@@ -479,7 +479,7 @@ static ssize_t checksum_dump_show(struct kobject *kobj,
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
 
-	return sprintf(buf, "%d\n", obd->u.cli.cl_checksum_dump ? 1 : 0);
+	return scnprintf(buf, PAGE_SIZE, "%d\n", !!obd->u.cli.cl_checksum_dump);
 }
 
 static ssize_t checksum_dump_store(struct kobject *kobj,
