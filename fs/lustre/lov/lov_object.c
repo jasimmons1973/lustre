@@ -681,6 +681,9 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 			}
 			lle->lle_comp_ops = &dom_ops;
 			break;
+		case LOV_PATTERN_FOREIGN:
+			lle->lle_comp_ops = NULL;
+			break;
 		default:
 			CERROR("%s: unknown composite layout entry type %i\n",
 			       lov2obd(dev->ld_lov)->obd_name,
@@ -700,6 +703,8 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 			if (mirror_id == lre->lre_mirror_id) {
 				lre->lre_valid |= lle->lle_valid;
 				lre->lre_stale |= !lle->lle_valid;
+				lre->lre_foreign |=
+					lsme_is_foreign(lle->lle_lsme);
 				lre->lre_end = i;
 				continue;
 			}
@@ -722,6 +727,7 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 					LCME_FL_PREF_RD);
 		lre->lre_valid = lle->lle_valid;
 		lre->lre_stale = !lle->lle_valid;
+		lre->lre_foreign = lsme_is_foreign(lle->lle_lsme);
 	}
 
 	/* sanity check for FLR */
@@ -744,6 +750,9 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 		 * will be dynamically init-ed later on file write/trunc ops.
 		 */
 		if (!lsme_inited(lle->lle_lsme))
+			continue;
+
+		if (lsme_is_foreign(lle->lle_lsme))
 			continue;
 
 		result = lle->lle_comp_ops->lco_init(env, dev, lov, index,
@@ -769,6 +778,9 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 
 		lre = lov_mirror_entry(lov, idx);
 		if (lre->lre_stale)
+			continue;
+
+		if (lre->lre_foreign)
 			continue;
 
 		mirror_count++; /* valid mirror */
@@ -847,8 +859,12 @@ static int lov_delete_composite(const struct lu_env *env,
 
 	lov_layout_wait(env, lov);
 	if (comp->lo_entries)
-		lov_foreach_layout_entry(lov, entry)
+		lov_foreach_layout_entry(lov, entry) {
+			if (lsme_is_foreign(entry->lle_lsme))
+				continue;
+
 			lov_delete_raid0(env, lov, entry);
+		}
 
 	return 0;
 }
@@ -921,7 +937,9 @@ static int lov_print_composite(const struct lu_env *env, void *cookie,
 		     lse->lsme_id, lse->lsme_pattern, lse->lsme_layout_gen,
 		     lse->lsme_flags, lse->lsme_stripe_count,
 		     lse->lsme_stripe_size);
-		lov_print_raid0(env, cookie, p, lle);
+
+		if (!lsme_is_foreign(lse))
+			lov_print_raid0(env, cookie, p, lle);
 	}
 
 	return 0;
