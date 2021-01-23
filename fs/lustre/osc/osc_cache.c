@@ -1159,7 +1159,8 @@ static int osc_extent_make_ready(const struct lu_env *env,
 		int last_oap_count = osc_refresh_count(env, last,
 						       OBD_BRW_WRITE);
 
-		LASSERT(last_oap_count > 0);
+		LASSERTF(last_oap_count > 0,
+			 "last_oap_count %d\n", last_oap_count);
 		LASSERT(last->oap_page_off + last_oap_count <= PAGE_SIZE);
 		last->oap_count = last_oap_count;
 		spin_lock(&last->oap_lock);
