@@ -206,6 +206,11 @@ struct client_obd {
 	 */
 	u32			 cl_dom_min_inline_repsize;
 
+	/* checksumming for data sent over the network */
+	unsigned int		 cl_checksum:1,	/* 0 = disabled, 1 = enabled */
+				 cl_checksum_dump:1, /* same */
+				 cl_ocd_grant_param:1;
+	/* supported checksum types that are worked out at connect time */
 	enum lustre_sec_part     cl_sp_me;
 	enum lustre_sec_part     cl_sp_to;
 	struct sptlrpc_flavor    cl_flvr_mgc;   /* fixed flavor of mgc->mgs */
@@ -334,9 +339,6 @@ struct client_obd {
 	struct list_head	 cl_flight_waiters;
 	u32			 cl_rpcs_in_flight;
 
-	/* checksumming for data sent over the network */
-	unsigned int		cl_checksum:1,	/* 0 = disabled, 1 = enabled */
-				cl_checksum_dump:1; /* same */
 	/* supported checksum types that are worked out at connect time */
 	u32			cl_supp_cksum_types;
 	/* checksum algorithm to be used */
