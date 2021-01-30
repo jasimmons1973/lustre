@@ -231,6 +231,7 @@ struct cl_page *cl_page_alloc(const struct lu_env *env, struct cl_object *o,
 		cl_page->cp_vmpage = vmpage;
 		cl_page->cp_state = CPS_CACHED;
 		cl_page->cp_type = type;
+		cl_page->cp_inode = NULL;
 		INIT_LIST_HEAD(&cl_page->cp_batch);
 		lu_ref_init(&cl_page->cp_reference);
 		cl_object_for_each(o2, o) {
