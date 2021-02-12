@@ -35,8 +35,8 @@
  * Author: Bobi Jam <bobijam.xu@intel.com>
  */
 #include <linux/sched/signal.h>
-#include "range_lock.h"
 #include <uapi/linux/lustre/lustre_idl.h>
+#include <range_lock.h>
 #include <linux/libcfs/libcfs.h>
 #include <linux/interval_tree_generic.h>
 
@@ -59,6 +59,7 @@ void range_lock_tree_init(struct range_lock_tree *tree)
 	tree->rlt_sequence = 0;
 	spin_lock_init(&tree->rlt_lock);
 }
+EXPORT_SYMBOL(range_lock_tree_init);
 
 /**
  * Initialize a range lock node
@@ -86,6 +87,7 @@ int range_lock_init(struct range_lock *lock, u64 start, u64 end)
 	lock->rl_sequence = 0;
 	return 0;
 }
+EXPORT_SYMBOL(range_lock_init);
 
 /**
  * Unlock a range lock, wake up locks blocked by this lock.
@@ -117,6 +119,7 @@ void range_unlock(struct range_lock_tree *tree, struct range_lock *lock)
 
 	spin_unlock(&tree->rlt_lock);
 }
+EXPORT_SYMBOL(range_unlock);
 
 /**
  * Lock a region
@@ -167,3 +170,4 @@ int range_lock(struct range_lock_tree *tree, struct range_lock *lock)
 out:
 	return rc;
 }
+EXPORT_SYMBOL(range_lock);

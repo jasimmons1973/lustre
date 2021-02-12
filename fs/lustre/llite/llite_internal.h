@@ -45,12 +45,12 @@
 #include <lustre_intent.h>
 #include <linux/compat.h>
 #include <lustre_crypto.h>
+#include <range_lock.h>
 #include <linux/namei.h>
 #include <linux/xattr.h>
 #include <linux/posix_acl_xattr.h>
 
 #include "vvp_internal.h"
-#include "range_lock.h"
 #include "pcc.h"
 
 /** Only used on client-side for indicating the tail of dir hash/offset. */
