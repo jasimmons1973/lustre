@@ -359,6 +359,9 @@ struct lnet_net {
 	 * lnet/include/lnet/nidstr.h */
 	u32			net_id;
 
+	/* round robin selection */
+	u32			net_seq;
+
 	/* total number of CPTs in the array */
 	u32			net_ncpts;
 

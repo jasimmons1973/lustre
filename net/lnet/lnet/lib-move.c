@@ -1602,10 +1602,25 @@ lnet_handle_send(struct lnet_send_data *sd)
 	u32 routing = send_case & REMOTE_DST;
 	struct lnet_rsp_tracker *rspt;
 
-	/* Increment sequence number of the selected peer so that we
-	 * pick the next one in Round Robin.
+	/* Increment sequence number of the selected peer, peer net,
+	 * local ni and local net so that we pick the next ones
+	 * in Round Robin.
 	 */
 	best_lpni->lpni_seq++;
+	best_lpni->lpni_peer_net->lpn_seq++;
+	best_ni->ni_seq++;
+	best_ni->ni_net->net_seq++;
+
+	CDEBUG(D_NET,
+	       "%s NI seq info: [%d:%d:%d:%u] %s LPNI seq info [%d:%d:%d:%u]\n",
+	       libcfs_nid2str(best_ni->ni_nid),
+	       best_ni->ni_seq, best_ni->ni_net->net_seq,
+	       atomic_read(&best_ni->ni_tx_credits),
+	       best_ni->ni_sel_priority,
+	       libcfs_nid2str(best_lpni->lpni_nid),
+	       best_lpni->lpni_seq, best_lpni->lpni_peer_net->lpn_seq,
+	       best_lpni->lpni_txcredits,
+	       best_lpni->lpni_sel_priority);
 
 	/* grab a reference on the peer_ni so it sticks around even if
 	 * we need to drop and relock the lnet_net_lock below.
@@ -1787,8 +1802,7 @@ struct lnet_ni *
 lnet_find_best_ni_on_spec_net(struct lnet_ni *cur_best_ni,
 			      struct lnet_peer *peer,
 			      struct lnet_peer_net *peer_net,
-			      int cpt,
-			      bool incr_seq)
+			      int cpt)
 {
 	struct lnet_net *local_net;
 	struct lnet_ni *best_ni;
@@ -1806,9 +1820,6 @@ lnet_find_best_ni_on_spec_net(struct lnet_ni *cur_best_ni,
 	 */
 	best_ni = lnet_get_best_ni(local_net, cur_best_ni,
 				   peer, peer_net, cpt);
-
-	if (incr_seq && best_ni)
-		best_ni->ni_seq++;
 
 	return best_ni;
 }
@@ -2032,8 +2043,7 @@ use_lpn:
 
 		lpeer = lnet_peer_get_net_locked(gw, local_lnet);
 		sd->sd_best_ni = lnet_find_best_ni_on_spec_net(NULL, gw, lpeer,
-							       sd->sd_md_cpt,
-							       true);
+							       sd->sd_md_cpt);
 	}
 
 	if (!sd->sd_best_ni) {
@@ -2115,9 +2125,19 @@ struct lnet_ni *
 lnet_find_best_ni_on_local_net(struct lnet_peer *peer, int md_cpt,
 			       bool discovery)
 {
-	struct lnet_peer_net *peer_net = NULL;
+	struct lnet_peer_net *lpn = NULL;
+	struct lnet_peer_net *best_lpn = NULL;
+	struct lnet_net *net = NULL;
+	struct lnet_net *best_net = NULL;
 	struct lnet_ni *best_ni = NULL;
-	int lpn_healthv = 0;
+	int best_lpn_healthv = 0;
+	int best_net_healthv = 0;
+	int net_healthv;
+	u32 best_lpn_sel_prio = LNET_MAX_SELECTION_PRIORITY;
+	u32 lpn_sel_prio;
+	u32 best_net_sel_prio = LNET_MAX_SELECTION_PRIORITY;
+	u32 net_sel_prio;
+	bool exit = false;
 
 	/* The peer can have multiple interfaces, some of them can be on
 	 * the local network and others on a routed network. We should
@@ -2126,32 +2146,80 @@ lnet_find_best_ni_on_local_net(struct lnet_peer *peer, int md_cpt,
 	 */
 
 	/* go through all the peer nets and find the best_ni */
-	list_for_each_entry(peer_net, &peer->lp_peer_nets, lpn_peer_nets) {
+	list_for_each_entry(lpn, &peer->lp_peer_nets, lpn_peer_nets) {
 		/* The peer's list of nets can contain non-local nets. We
 		 * want to only examine the local ones.
 		 */
-		if (!lnet_get_net_locked(peer_net->lpn_net_id))
+		net = lnet_get_net_locked(lpn->lpn_net_id);
+		if (!net)
 			continue;
 
-		/* always select the lpn with the best health */
-		if (lpn_healthv <= peer_net->lpn_healthv)
-			lpn_healthv = peer_net->lpn_healthv;
-		else
-			continue;
+		lpn_sel_prio = lpn->lpn_sel_priority;
+		net_healthv = lnet_get_net_healthv_locked(net);
+		net_sel_prio = net->net_sel_priority;
 
-		best_ni = lnet_find_best_ni_on_spec_net(best_ni, peer, peer_net,
-							md_cpt, false);
 		/* if this is a discovery message and lp_disc_net_id is
 		 * specified then use that net to send the discovery on.
 		 */
-		if (peer->lp_disc_net_id == peer_net->lpn_net_id &&
-		    discovery)
+		if (peer->lp_disc_net_id == lpn->lpn_net_id &&
+		    discovery) {
+			exit = true;
+			goto select_lpn;
+		}
+
+		if (!best_lpn)
+			goto select_lpn;
+
+		/* always select the lpn with the best health */
+		if (best_lpn_healthv > lpn->lpn_healthv)
+			continue;
+		else if (best_lpn_healthv < lpn->lpn_healthv)
+			goto select_lpn;
+
+		/* select the preferred peer and local nets */
+		if (best_lpn_sel_prio < lpn_sel_prio)
+			continue;
+		else if (best_lpn_sel_prio > lpn_sel_prio)
+			goto select_lpn;
+
+		if (best_net_healthv > net_healthv)
+			continue;
+		else if (best_net_healthv < net_healthv)
+			goto select_lpn;
+
+		if (best_net_sel_prio < net_sel_prio)
+			continue;
+		else if (best_net_sel_prio > net_sel_prio)
+			goto select_lpn;
+
+		if (best_lpn->lpn_seq < lpn->lpn_seq)
+			continue;
+		else if (best_lpn->lpn_seq > lpn->lpn_seq)
+			goto select_lpn;
+
+		/* round robin over the local networks */
+		if (best_net->net_seq <= net->net_seq)
+			continue;
+
+select_lpn:
+		best_net_healthv = net_healthv;
+		best_net_sel_prio = net_sel_prio;
+		best_lpn_healthv = lpn->lpn_healthv;
+		best_lpn_sel_prio = lpn_sel_prio;
+		best_lpn = lpn;
+		best_net = net;
+
+		if (exit)
 			break;
 	}
 
-	if (best_ni)
-		/* increment sequence number so we can round robin */
-		best_ni->ni_seq++;
+	if (best_lpn) {
+		/* Select the best NI on the same net as best_lpn chosen
+		 * above
+		 */
+		best_ni = lnet_find_best_ni_on_spec_net(NULL, peer,
+							best_lpn, md_cpt);
+	}
 
 	return best_ni;
 }
@@ -2210,7 +2278,7 @@ lnet_select_preferred_best_ni(struct lnet_send_data *sd)
 		best_ni =
 			lnet_find_best_ni_on_spec_net(NULL, sd->sd_peer,
 						      sd->sd_best_lpni->lpni_peer_net,
-						      sd->sd_md_cpt, true);
+						      sd->sd_md_cpt);
 		/* If there is no best_ni we don't have a route */
 		if (!best_ni) {
 			CERROR("no path to %s from net %s\n",
@@ -2262,8 +2330,7 @@ lnet_handle_any_local_nmr_dst(struct lnet_send_data *sd)
 		sd->sd_best_ni = lnet_find_best_ni_on_spec_net(NULL,
 							       sd->sd_peer,
 							       sd->sd_best_lpni->lpni_peer_net,
-							       sd->sd_md_cpt,
-							       true);
+							       sd->sd_md_cpt);
 		if (!sd->sd_best_ni) {
 			CERROR("Unable to forward message to %s. No local NI available\n",
 			       libcfs_nid2str(sd->sd_dst_nid));
@@ -2295,7 +2362,7 @@ lnet_handle_any_mr_dsta(struct lnet_send_data *sd)
 		sd->sd_best_ni =
 		  lnet_find_best_ni_on_spec_net(NULL, sd->sd_peer,
 						sd->sd_best_lpni->lpni_peer_net,
-						sd->sd_md_cpt, true);
+						sd->sd_md_cpt);
 
 		if (!sd->sd_best_ni) {
 			/* We're not going to deal with not able to send
