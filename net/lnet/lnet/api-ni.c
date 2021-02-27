@@ -36,6 +36,7 @@
 #include <linux/ktime.h>
 #include <linux/moduleparam.h>
 
+#include <linux/lnet/udsp.h>
 #include <linux/lnet/lib-lnet.h>
 #include <uapi/linux/lnet/lnet-dlc.h>
 
@@ -538,6 +539,7 @@ struct kmem_cache *lnet_mes_cachep;	   /* MEs kmem_cache */
 struct kmem_cache *lnet_small_mds_cachep;  /* <= LNET_SMALL_MD_SIZE bytes
 					    *  MDs kmem_cache
 					    */
+struct kmem_cache *lnet_udsp_cachep;	   /* udsp cache */
 struct kmem_cache *lnet_rspt_cachep;	   /* response tracker cache */
 struct kmem_cache *lnet_msg_cachep;
 
@@ -556,6 +558,12 @@ lnet_slab_setup(void)
 						  LNET_SMALL_MD_SIZE, 0, 0,
 						  NULL);
 	if (!lnet_small_mds_cachep)
+		return -ENOMEM;
+
+	lnet_udsp_cachep = kmem_cache_create("lnet_udsp",
+					     sizeof(struct lnet_udsp),
+					     0, 0, NULL);
+	if (!lnet_udsp_cachep)
 		return -ENOMEM;
 
 	lnet_rspt_cachep = kmem_cache_create("lnet_rspt",
@@ -581,6 +589,9 @@ lnet_slab_cleanup(void)
 
 	kmem_cache_destroy(lnet_rspt_cachep);
 	lnet_rspt_cachep = NULL;
+
+	kmem_cache_destroy(lnet_udsp_cachep);
+	lnet_udsp_cachep = NULL;
 
 	kmem_cache_destroy(lnet_small_mds_cachep);
 	lnet_small_mds_cachep = NULL;
@@ -1261,6 +1272,7 @@ lnet_unprepare(void)
 		the_lnet.ln_counters = NULL;
 	}
 	lnet_destroy_remote_nets_table();
+	lnet_udsp_destroy(true);
 	lnet_slab_cleanup();
 
 	return 0;
@@ -1311,6 +1323,81 @@ lnet_get_net_locked(u32 net_id)
 	}
 
 	return NULL;
+}
+
+void
+lnet_net_clr_pref_rtrs(struct lnet_net *net)
+{
+	struct list_head zombies;
+	struct lnet_nid_list *ne;
+	struct lnet_nid_list *tmp;
+
+	INIT_LIST_HEAD(&zombies);
+
+	lnet_net_lock(LNET_LOCK_EX);
+	list_splice_init(&net->net_rtr_pref_nids, &zombies);
+	lnet_net_unlock(LNET_LOCK_EX);
+
+	list_for_each_entry_safe(ne, tmp, &zombies, nl_list) {
+		list_del_init(&ne->nl_list);
+		kfree(ne);
+	}
+}
+
+int
+lnet_net_add_pref_rtr(struct lnet_net *net,
+		      lnet_nid_t gw_nid)
+__must_hold(&the_lnet.ln_api_mutex)
+{
+	struct lnet_nid_list *ne;
+
+	/* This function is called with api_mutex held. When the api_mutex
+	 * is held the list can not be modified, as it is only modified as
+	 * a result of applying a UDSP and that happens under api_mutex
+	 * lock.
+	 */
+	list_for_each_entry(ne, &net->net_rtr_pref_nids, nl_list) {
+		if (ne->nl_nid == gw_nid)
+			return -EEXIST;
+	}
+
+	ne = kzalloc(sizeof(*ne), GFP_KERNEL);
+	if (!ne)
+		return -ENOMEM;
+
+	ne->nl_nid = gw_nid;
+
+	/* Lock the cpt to protect against addition and checks in the
+	 * selection algorithm
+	 */
+	lnet_net_lock(LNET_LOCK_EX);
+	list_add(&ne->nl_list, &net->net_rtr_pref_nids);
+	lnet_net_unlock(LNET_LOCK_EX);
+
+	return 0;
+}
+
+bool
+lnet_net_is_pref_rtr_locked(struct lnet_net *net, lnet_nid_t rtr_nid)
+{
+	struct lnet_nid_list *ne;
+
+	CDEBUG(D_NET, "%s: rtr pref emtpy: %d\n",
+	       libcfs_net2str(net->net_id),
+	       list_empty(&net->net_rtr_pref_nids));
+
+	if (list_empty(&net->net_rtr_pref_nids))
+		return false;
+
+	list_for_each_entry(ne, &net->net_rtr_pref_nids, nl_list) {
+		CDEBUG(D_NET, "Comparing pref %s with gw %s\n",
+		       libcfs_nid2str(ne->nl_nid),
+		       libcfs_nid2str(rtr_nid));
+		if (rtr_nid == ne->nl_nid)
+			return true;
+	}
+
+	return false;
 }
 
 unsigned int
