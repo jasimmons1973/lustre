@@ -431,10 +431,6 @@ int sptlrpc_req_ctx_switch(struct ptlrpc_request *req,
 	int reqmsg_size;
 	int rc = 0;
 
-	LASSERT(req->rq_reqmsg);
-	LASSERT(req->rq_reqlen);
-	LASSERT(req->rq_replen);
-
 	CDEBUG(D_SEC,
 	       "req %p: switch ctx %p(%u->%s) -> %p(%u->%s), switch sec %p(%s) -> %p(%s)\n",
 	       req,
@@ -449,6 +445,7 @@ int sptlrpc_req_ctx_switch(struct ptlrpc_request *req,
 	/* save request message */
 	reqmsg_size = req->rq_reqlen;
 	if (reqmsg_size != 0) {
+		LASSERT(req->rq_reqmsg);
 		reqmsg = kvzalloc(reqmsg_size, GFP_NOFS);
 		if (!reqmsg)
 			return -ENOMEM;
