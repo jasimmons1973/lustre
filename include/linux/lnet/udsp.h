@@ -134,4 +134,11 @@ int lnet_udsp_marshal(struct lnet_udsp *udsp,
  */
 int lnet_udsp_demarshal_add(void *bulk, u32 bulk_size);
 
+/**
+ * lnet_udsp_get_construct_info
+ *	get information of how the UDSP policies impacted the given
+ *	construct.
+ */
+void lnet_udsp_get_construct_info(struct lnet_ioctl_construct_udsp_info *info);
+
 #endif /* UDSP_H */
