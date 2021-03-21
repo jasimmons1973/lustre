@@ -1637,7 +1637,7 @@ struct cl_io_operations {
 enum cl_enq_flags {
 	/**
 	 * instruct server to not block, if conflicting lock is found. Instead
-	 * -EWOULDBLOCK is returned immediately.
+	 * -EAGAIN is returned immediately.
 	 */
 	CEF_NONBLOCK		= 0x00000001,
 	/**
