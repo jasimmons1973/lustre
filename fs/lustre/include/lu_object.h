@@ -1405,6 +1405,15 @@ void lu_kmem_fini(struct lu_kmem_descr *caches);
 extern u32 lu_context_tags_default;
 extern u32 lu_session_tags_default;
 
+/* bitflags used in rr / qos allocation */
+enum lq_flag {
+	LQ_DIRTY	= 0,	/* recalc qos data */
+	LQ_SAME_SPACE,		/* the OSTs all have approx.
+				 * the same space avail
+				 */
+	LQ_RESET,		/* zero current penalties */
+};
+
 /* round-robin QoS data for LOD/LMV */
 struct lu_qos_rr {
 	spinlock_t		 lqr_alloc;	/* protect allocation index */
@@ -1412,7 +1421,7 @@ struct lu_qos_rr {
 	u32			 lqr_offset_idx;/* aliasing for start_idx */
 	int			 lqr_start_count;/* reseed counter */
 	struct lu_tgt_pool	 lqr_pool;	/* round-robin optimized list */
-	unsigned long		 lqr_dirty:1;	/* recalc round-robin list */
+	unsigned long		 lqr_flags;
 };
 
 /* QoS data per MDS/OSS */
@@ -1482,11 +1491,7 @@ struct lu_qos {
 	unsigned int		 lq_prio_free;	 /* priority for free space */
 	unsigned int		 lq_threshold_rr;/* priority for rr */
 	struct lu_qos_rr	 lq_rr;		 /* round robin qos data */
-	unsigned long		 lq_dirty:1,	 /* recalc qos data */
-				 lq_same_space:1,/* the servers all have approx.
-						  * the same space avail
-						  */
-				 lq_reset:1;	 /* zero current penalties */
+	unsigned long		lq_flags;
 };
 
 struct lu_tgt_descs {
