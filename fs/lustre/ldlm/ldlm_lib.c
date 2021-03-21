@@ -524,10 +524,11 @@ int client_obd_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 						LDLM_NAMESPACE_CLIENT,
 						LDLM_NAMESPACE_GREEDY,
 						ns_type);
-	if (!obd->obd_namespace) {
-		CERROR("Unable to create client namespace - %s\n",
-		       obd->obd_name);
-		rc = -ENOMEM;
+	if (IS_ERR(obd->obd_namespace)) {
+		rc = PTR_ERR(obd->obd_namespace);
+		CERROR("%s: unable to create client namespace: rc = %d\n",
+		       obd->obd_name, rc);
+		obd->obd_namespace = NULL;
 		goto err_import;
 	}
 
@@ -540,6 +541,7 @@ err_ldlm:
 err:
 	kfree(cli->cl_mod_tag_bitmap);
 	cli->cl_mod_tag_bitmap = NULL;
+
 	return rc;
 }
 EXPORT_SYMBOL(client_obd_setup);
