@@ -1374,6 +1374,7 @@ static int lov_conf_set(const struct lu_env *env, struct cl_object *obj,
 	if ((!lsm && !lov->lo_lsm) ||
 	    ((lsm && lov->lo_lsm) &&
 	     (lov->lo_lsm->lsm_layout_gen == lsm->lsm_layout_gen) &&
+	     (lov->lo_lsm->lsm_flags == lsm->lsm_flags) &&
 	     (lov->lo_lsm->lsm_entries[0]->lsme_pattern ==
 	      lsm->lsm_entries[0]->lsme_pattern))) {
 		/* same version of layout */
