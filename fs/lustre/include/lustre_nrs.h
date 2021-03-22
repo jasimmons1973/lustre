@@ -671,6 +671,16 @@ enum {
 };
 
 #include <lustre_nrs_fifo.h>
+/**
+ * Binary heap node.
+ *
+ * Objects of this type are embedded into objects of the ordered set that is to
+ * be maintained by a \e struct cfs_binheap instance.
+ */
+struct cfs_binheap_node {
+	/** Index into the binary tree */
+	unsigned int	chn_index;
+};
 
 /**
  * NRS request
