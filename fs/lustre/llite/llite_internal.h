@@ -1265,7 +1265,6 @@ void ll_io_init(struct cl_io *io, const struct file *file, int write,
 
 /* llite/llite_mmap.c */
 
-int ll_teardown_mmaps(struct address_space *mapping, u64 first, u64 last);
 int ll_file_mmap(struct file *file, struct vm_area_struct *vma);
 void policy_from_vma(union ldlm_policy_data *policy, struct vm_area_struct *vma,
 		     unsigned long addr, size_t count);
