@@ -675,9 +675,9 @@ enum {
  * Binary heap node.
  *
  * Objects of this type are embedded into objects of the ordered set that is to
- * be maintained by a \e struct cfs_binheap instance.
+ * be maintained by a \e struct binheap instance.
  */
-struct cfs_binheap_node {
+struct binheap_node {
 	/** Index into the binary tree */
 	unsigned int	chn_index;
 };
@@ -707,7 +707,7 @@ struct ptlrpc_nrs_request {
 	unsigned int			nr_enqueued:1;
 	unsigned int			nr_started:1;
 	unsigned int			nr_finalized:1;
-	struct cfs_binheap_node		nr_node;
+	struct binheap_node		nr_node;
 
 	/**
 	 * Policy-specific fields, used for determining a request's scheduling
