@@ -35,6 +35,8 @@
 #include <linux/if.h>
 #include <linux/in.h>
 #include <linux/net.h>
+#include <net/addrconf.h>
+#include <net/ipv6.h>
 #include <linux/file.h>
 #include <linux/pagemap.h>
 /* For sys_open & sys_close */
@@ -141,7 +143,7 @@ lnet_sock_read(struct socket *sock, void *buffer, int nob, int timeout)
 }
 EXPORT_SYMBOL(lnet_sock_read);
 
-int choose_ipv4_src(__u32 *ret, int interface, __u32 dst_ipaddr, struct net *ns)
+int choose_ipv4_src(u32 *ret, int interface, u32 dst_ipaddr, struct net *ns)
 {
 	struct net_device *dev;
 	struct in_device *in_dev;
@@ -181,8 +183,12 @@ lnet_sock_create(int interface, struct sockaddr *remaddr,
 	struct socket *sock;
 	int rc;
 	int option;
+	int family;
 
-	rc = sock_create_kern(ns, PF_INET, SOCK_STREAM, 0, &sock);
+	family = AF_INET6;
+	if (remaddr)
+		family = remaddr->sa_family;
+	rc = sock_create_kern(ns, family, SOCK_STREAM, 0, &sock);
 	if (rc) {
 		CERROR("Can't create socket: %d\n", rc);
 		return ERR_PTR(rc);
@@ -197,24 +203,43 @@ lnet_sock_create(int interface, struct sockaddr *remaddr,
 	}
 
 	if (interface >= 0 || local_port) {
-		struct sockaddr_in locaddr = {};
+		struct sockaddr_storage locaddr = {};
+		struct sockaddr_in *sin = (void *)&locaddr;
+		struct sockaddr_in6 *sin6 = (void *)&locaddr;
 
-		locaddr.sin_family = AF_INET;
-		locaddr.sin_addr.s_addr = INADDR_ANY;
-		if (interface >= 0) {
-			struct sockaddr_in *sin = (void *)remaddr;
-			u32 ip;
+		switch (family) {
+		case AF_INET:
+			sin->sin_family = AF_INET;
+			sin->sin_addr.s_addr = INADDR_ANY;
+			if (interface >= 0 && remaddr) {
+				struct sockaddr_in *rem = (void *)remaddr;
+				u32 ip;
 
-			rc = choose_ipv4_src(&ip,
-					     interface,
-					     ntohl(sin->sin_addr.s_addr),
-					     ns);
-			if (rc)
-				goto failed;
-			locaddr.sin_addr.s_addr = htonl(ip);
+				rc = choose_ipv4_src(&ip,
+						     interface,
+						     ntohl(rem->sin_addr.s_addr),
+						     ns);
+				if (rc)
+					goto failed;
+				sin->sin_addr.s_addr = htonl(ip);
+			}
+			sin->sin_port = htons(local_port);
+			break;
+		case AF_INET6:
+			sin6->sin6_family = AF_INET6;
+			sin6->sin6_addr = in6addr_any;
+			if (interface >= 0 && remaddr) {
+				struct sockaddr_in6 *rem = (void *)remaddr;
+
+				ipv6_dev_get_saddr(ns,
+						   dev_get_by_index(ns,
+								    interface),
+						   &rem->sin6_addr, 0,
+						   &sin6->sin6_addr);
+			}
+			sin6->sin6_port = htons(local_port);
+			break;
 		}
-
-		locaddr.sin_port = htons(local_port);
 
 		rc = kernel_bind(sock, (struct sockaddr *)&locaddr,
 				 sizeof(locaddr));
@@ -281,7 +306,19 @@ lnet_sock_getaddr(struct socket *sock, bool remote,
 		       rc, remote ? "peer" : "local");
 		return rc;
 	}
+	if (peer->ss_family == AF_INET6) {
+		struct sockaddr_in6 *in6 = (void *)peer;
+		struct sockaddr_in *in = (void *)peer;
+		short port = in6->sin6_port;
 
+		if (ipv6_addr_v4mapped(&in6->sin6_addr)) {
+			/* Pretend it is a v4 socket */
+			memset(in, 0, sizeof(*in));
+			in->sin_family = AF_INET;
+			in->sin_port = port;
+			memcpy(&in->sin_addr, &in6->sin6_addr.s6_addr32[3], 4);
+		}
+	}
 	return 0;
 }
 EXPORT_SYMBOL(lnet_sock_getaddr);
@@ -303,6 +340,7 @@ struct socket *
 lnet_sock_listen(int local_port, int backlog, struct net *ns)
 {
 	struct socket *sock;
+	int val = 0;
 	int rc;
 
 	sock = lnet_sock_create(-1, NULL, local_port, ns);
@@ -313,6 +351,13 @@ lnet_sock_listen(int local_port, int backlog, struct net *ns)
 			       local_port);
 		return ERR_PTR(rc);
 	}
+
+	/* Make sure we get both IPv4 and IPv6 connections.
+	 * This is the default, but it can be overridden so
+	 * we force it back.
+	 */
+	kernel_setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,
+			  (char *)&val, sizeof(val));
 
 	rc = kernel_listen(sock, backlog);
 	if (!rc)
