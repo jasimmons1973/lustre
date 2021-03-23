@@ -83,7 +83,7 @@ void lov_pool_putref(struct pool_desc *pool)
 	CDEBUG(D_INFO, "pool %p\n", pool);
 	if (atomic_dec_and_test(&pool->pool_refcount)) {
 		LASSERT(list_empty(&pool->pool_list));
-		lov_ost_pool_free(&pool->pool_obds);
+		tgt_pool_free(&pool->pool_obds);
 		kfree_rcu(pool, rcu);
 	}
 }
@@ -230,110 +230,6 @@ static const struct file_operations pool_proc_operations = {
 	.release	= seq_release,
 };
 
-#define LOV_POOL_INIT_COUNT 2
-int lov_ost_pool_init(struct lu_tgt_pool *op, unsigned int count)
-{
-	if (count == 0)
-		count = LOV_POOL_INIT_COUNT;
-	op->op_array = NULL;
-	op->op_count = 0;
-	init_rwsem(&op->op_rw_sem);
-	op->op_size = count * sizeof(op->op_array[0]);
-	op->op_array = kcalloc(count, sizeof(op->op_array[0]),
-			       GFP_KERNEL);
-	if (!op->op_array) {
-		op->op_size = 0;
-		return -ENOMEM;
-	}
-	return 0;
-}
-
-/* Caller must hold write op_rwlock */
-int lov_ost_pool_extend(struct lu_tgt_pool *op, unsigned int min_count)
-{
-	int new_count;
-	u32 *new;
-
-	LASSERT(min_count != 0);
-
-	if (op->op_count * sizeof(op->op_array[0]) < op->op_size)
-		return 0;
-
-	new_count = max_t(u32, min_count,
-			  2 * op->op_size / sizeof(op->op_array[0]));
-	new = kcalloc(new_count, sizeof(op->op_array[0]), GFP_KERNEL);
-	if (!new)
-		return -ENOMEM;
-
-	/* copy old array to new one */
-	memcpy(new, op->op_array, op->op_size);
-	kfree(op->op_array);
-	op->op_array = new;
-	op->op_size = new_count * sizeof(op->op_array[0]);
-	return 0;
-}
-
-int lov_ost_pool_add(struct lu_tgt_pool *op, u32 idx, unsigned int min_count)
-{
-	int rc = 0, i;
-
-	down_write(&op->op_rw_sem);
-
-	rc = lov_ost_pool_extend(op, min_count);
-	if (rc)
-		goto out;
-
-	/* search ost in pool array */
-	for (i = 0; i < op->op_count; i++) {
-		if (op->op_array[i] == idx) {
-			rc = -EEXIST;
-			goto out;
-		}
-	}
-	/* ost not found we add it */
-	op->op_array[op->op_count] = idx;
-	op->op_count++;
-out:
-	up_write(&op->op_rw_sem);
-	return rc;
-}
-
-int lov_ost_pool_remove(struct lu_tgt_pool *op, u32 idx)
-{
-	int i;
-
-	down_write(&op->op_rw_sem);
-
-	for (i = 0; i < op->op_count; i++) {
-		if (op->op_array[i] == idx) {
-			memmove(&op->op_array[i], &op->op_array[i + 1],
-				(op->op_count - i - 1) * sizeof(op->op_array[0]));
-			op->op_count--;
-			up_write(&op->op_rw_sem);
-			return 0;
-		}
-	}
-
-	up_write(&op->op_rw_sem);
-	return -EINVAL;
-}
-
-int lov_ost_pool_free(struct lu_tgt_pool *op)
-{
-	if (op->op_size == 0)
-		return 0;
-
-	down_write(&op->op_rw_sem);
-
-	kfree(op->op_array);
-	op->op_array = NULL;
-	op->op_count = 0;
-	op->op_size = 0;
-
-	up_write(&op->op_rw_sem);
-	return 0;
-}
-
 static void
 pools_hash_exit(void *vpool, void *data)
 {
@@ -373,7 +269,7 @@ int lov_pool_new(struct obd_device *obd, char *poolname)
 	 * up to deletion
 	 */
 	atomic_set(&new_pool->pool_refcount, 1);
-	rc = lov_ost_pool_init(&new_pool->pool_obds, 0);
+	rc = tgt_pool_init(&new_pool->pool_obds, 0);
 	if (rc)
 		goto out_err;
 
@@ -415,7 +311,7 @@ out_err:
 	lov->lov_pool_count--;
 	spin_unlock(&obd->obd_dev_lock);
 	debugfs_remove_recursive(new_pool->pool_debugfs_entry);
-	lov_ost_pool_free(&new_pool->pool_obds);
+	tgt_pool_free(&new_pool->pool_obds);
 	kfree(new_pool);
 
 	return rc;
@@ -490,7 +386,7 @@ int lov_pool_add(struct obd_device *obd, char *poolname, char *ostname)
 		goto out;
 	}
 
-	rc = lov_ost_pool_add(&pool->pool_obds, lov_idx, lov->lov_tgt_size);
+	rc = tgt_pool_add(&pool->pool_obds, lov_idx, lov->lov_tgt_size);
 	if (rc)
 		goto out;
 
@@ -542,7 +438,7 @@ int lov_pool_remove(struct obd_device *obd, char *poolname, char *ostname)
 		goto out;
 	}
 
-	lov_ost_pool_remove(&pool->pool_obds, lov_idx);
+	tgt_pool_remove(&pool->pool_obds, lov_idx);
 
 	CDEBUG(D_CONFIG, "%s removed from " LOV_POOLNAMEF "\n", ostname,
 	       poolname);

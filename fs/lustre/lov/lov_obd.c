@@ -96,7 +96,7 @@ void lov_tgts_putref(struct obd_device *obd)
 			 * being the maximum tgt index for computing the
 			 * mds_max_easize. So we can't shrink it.
 			 */
-			lov_ost_pool_remove(&lov->lov_packed, i);
+			tgt_pool_remove(&lov->lov_packed, i);
 			lov->lov_tgts[i] = NULL;
 			lov->lov_death_row--;
 		}
@@ -545,7 +545,7 @@ static int lov_add_target(struct obd_device *obd, struct obd_uuid *uuidp,
 		return -ENOMEM;
 	}
 
-	rc = lov_ost_pool_add(&lov->lov_packed, index, lov->lov_tgt_size);
+	rc = tgt_pool_add(&lov->lov_packed, index, lov->lov_tgt_size);
 	if (rc) {
 		mutex_unlock(&lov->lov_lock);
 		kfree(tgt);
@@ -764,7 +764,7 @@ int lov_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	if (rc)
 		goto out_hash;
 
-	rc = lov_ost_pool_init(&lov->lov_packed, 0);
+	rc = tgt_pool_init(&lov->lov_packed, 0);
 	if (rc)
 		goto out_pool;
 
@@ -778,7 +778,7 @@ int lov_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	return 0;
 
 out_tunables:
-	lov_ost_pool_free(&lov->lov_packed);
+	tgt_pool_free(&lov->lov_packed);
 out_pool:
 	lov_pool_hash_destroy(&lov->lov_pools_hash_body);
 out_hash:
@@ -805,7 +805,7 @@ static int lov_cleanup(struct obd_device *obd)
 		lov_pool_del(obd, pool->pool_name);
 	}
 	lov_pool_hash_destroy(&lov->lov_pools_hash_body);
-	lov_ost_pool_free(&lov->lov_packed);
+	tgt_pool_free(&lov->lov_packed);
 
 	lprocfs_obd_cleanup(obd);
 	if (lov->lov_tgts) {
