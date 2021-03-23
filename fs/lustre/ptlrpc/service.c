@@ -67,6 +67,8 @@ MODULE_PARM_DESC(at_extra, "How much extra time to give with each early reply");
 static int ptlrpc_server_post_idle_rqbds(struct ptlrpc_service_part *svcpt);
 static void ptlrpc_server_hpreq_fini(struct ptlrpc_request *req);
 static void ptlrpc_at_remove_timed(struct ptlrpc_request *req);
+static int ptlrpc_start_threads(struct ptlrpc_service *svc);
+static int ptlrpc_start_thread(struct ptlrpc_service_part *svcpt, int wait);
 
 /** Holds a list of all PTLRPC services */
 LIST_HEAD(ptlrpc_all_services);
@@ -2566,7 +2568,7 @@ static void ptlrpc_stop_all_threads(struct ptlrpc_service *svc)
 	}
 }
 
-int ptlrpc_start_threads(struct ptlrpc_service *svc)
+static int ptlrpc_start_threads(struct ptlrpc_service *svc)
 {
 	int rc = 0;
 	int i;
@@ -2596,7 +2598,7 @@ failed:
 	return rc;
 }
 
-int ptlrpc_start_thread(struct ptlrpc_service_part *svcpt, int wait)
+static int ptlrpc_start_thread(struct ptlrpc_service_part *svcpt, int wait)
 {
 	struct ptlrpc_thread *thread;
 	struct ptlrpc_service *svc;

@@ -2009,7 +2009,6 @@ struct ptlrpc_service *ptlrpc_register_service(struct ptlrpc_service_conf *conf,
 					       struct kset *parent,
 					       struct dentry *debugfs_entry);
 
-int ptlrpc_start_threads(struct ptlrpc_service *svc);
 int ptlrpc_unregister_service(struct ptlrpc_service *service);
 
 int ptlrpc_hr_init(void);
