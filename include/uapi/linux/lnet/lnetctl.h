@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
 /*
  *   This file is part of Portals, http://www.sf.net/projects/lustre/
  *

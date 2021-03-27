@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
 /*
  * GPL HEADER START
  *
@@ -556,6 +557,7 @@ struct lst_test_ping_param {
 	int	png_flags;	/* reserved flags */
 };
 
+/* Both struct srpc_counters and struct sfw_counters are sent over the wire */
 struct srpc_counters {
 	__u32 errors;
 	__u32 rpcs_sent;
