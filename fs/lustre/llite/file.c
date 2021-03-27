@@ -421,7 +421,7 @@ int ll_file_release(struct inode *inode, struct file *file)
 		libcfs_debug_dumplog();
 
 out:
-	if (!rc && inode->i_sb->s_root != file_dentry(file))
+	if (!rc && !is_root_inode(inode))
 		ll_stats_ops_tally(sbi, LPROC_LL_RELEASE,
 				   ktime_us_delta(ktime_get(), kstart));
 	return rc;
@@ -4455,7 +4455,7 @@ int ll_migrate(struct inode *parent, struct file *file, struct lmv_user_md *lum,
 	 * by checking the migrate FID against the FID of the
 	 * filesystem root.
 	 */
-	if (child_inode == parent->i_sb->s_root->d_inode) {
+	if (is_root_inode(child_inode)) {
 		rc = -EINVAL;
 		goto out_iput;
 	}
