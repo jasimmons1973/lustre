@@ -1131,7 +1131,7 @@ int ll_revalidate_it_finish(struct ptlrpc_request *request,
 			    struct lookup_intent *it, struct inode *inode);
 
 /* llite/llite_lib.c */
-extern struct super_operations lustre_super_operations;
+extern const struct super_operations lustre_super_operations;
 
 void ll_common_put_super(struct super_block *sb);
 void ll_lli_init(struct ll_inode_info *lli);

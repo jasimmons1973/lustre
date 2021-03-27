@@ -134,7 +134,7 @@ int llog_cat_process(const struct lu_env *env, struct llog_handle *cat_llh,
 /* llog_obd.c */
 int llog_setup(const struct lu_env *env, struct obd_device *obd,
 	       struct obd_llog_group *olg, int index,
-	       struct obd_device *disk_obd, struct llog_operations *op);
+	       struct obd_device *disk_obd, const struct llog_operations *op);
 int __llog_ctxt_put(const struct lu_env *env, struct llog_ctxt *ctxt);
 int llog_cleanup(const struct lu_env *env, struct llog_ctxt *);
 
@@ -225,7 +225,7 @@ struct llog_handle {
 	} u;
 	char			*lgh_name;
 	void			*private_data;
-	struct llog_operations	*lgh_logops;
+	const struct llog_operations	*lgh_logops;
 	refcount_t		 lgh_refcount;
 	bool			 lgh_destroyed;
 };
@@ -241,7 +241,7 @@ struct llog_ctxt {
 	struct obd_import	*loc_imp; /* to use in RPC's: can be backward
 					   * pointing import
 					   */
-	struct llog_operations  *loc_logops;
+	const struct llog_operations  *loc_logops;
 	struct llog_handle      *loc_handle;
 	struct mutex		 loc_mutex; /* protect loc_imp */
 	refcount_t		 loc_refcount;
@@ -257,7 +257,7 @@ struct llog_ctxt {
 #define LLOG_DEL_RECORD 0x0002
 
 static inline int llog_handle2ops(struct llog_handle *loghandle,
-				  struct llog_operations **lop)
+				  const struct llog_operations **lop)
 {
 	if (!loghandle || !loghandle->lgh_logops)
 		return -EINVAL;
@@ -351,7 +351,7 @@ static inline int llog_next_block(const struct lu_env *env,
 				  int next_idx, u64 *cur_offset, void *buf,
 				  int len)
 {
-	struct llog_operations *lop;
+	const struct llog_operations *lop;
 	int rc;
 
 	rc = llog_handle2ops(loghandle, &lop);

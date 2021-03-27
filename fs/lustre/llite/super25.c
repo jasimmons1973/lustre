@@ -83,7 +83,7 @@ static int ll_drop_inode(struct inode *inode)
 }
 
 /* exported operations */
-struct super_operations lustre_super_operations = {
+const struct super_operations lustre_super_operations = {
 	.alloc_inode		= ll_alloc_inode,
 	.destroy_inode		= ll_destroy_inode,
 	.drop_inode		= ll_drop_inode,

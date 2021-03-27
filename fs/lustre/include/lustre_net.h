@@ -2409,7 +2409,7 @@ void ptlrpc_lprocfs_brw(struct ptlrpc_request *req, int bytes);
 /** @} */
 
 /* ptlrpc/llog_client.c */
-extern struct llog_operations llog_client_ops;
+extern const struct llog_operations llog_client_ops;
 /** @} net */
 
 #endif

@@ -100,7 +100,7 @@ int llog_handle_put(const struct lu_env *env, struct llog_handle *loghandle)
 	int rc = 0;
 
 	if (refcount_dec_and_test(&loghandle->lgh_refcount)) {
-		struct llog_operations *lop;
+		const struct llog_operations *lop;
 
 		rc = llog_handle2ops(loghandle, &lop);
 		if (!rc) {
@@ -118,7 +118,7 @@ static int llog_read_header(const struct lu_env *env,
 			    struct llog_handle *handle,
 			    struct obd_uuid *uuid)
 {
-	struct llog_operations *lop;
+	const struct llog_operations *lop;
 	int rc;
 
 	rc = llog_handle2ops(handle, &lop);
