@@ -218,7 +218,7 @@ health_check_show(struct kobject *kobj, struct attribute *attr, char *buf)
 static ssize_t jobid_var_show(struct kobject *kobj, struct attribute *attr,
 			      char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%s\n", obd_jobid_var);
+	return scnprintf(buf, PAGE_SIZE, "%s\n", obd_jobid_var);
 }
 
 static ssize_t jobid_var_store(struct kobject *kobj, struct attribute *attr,
@@ -252,7 +252,7 @@ static ssize_t jobid_var_store(struct kobject *kobj, struct attribute *attr,
 static ssize_t jobid_name_show(struct kobject *kobj, struct attribute *attr,
 			       char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%s\n", obd_jobid_name);
+	return scnprintf(buf, PAGE_SIZE, "%s\n", obd_jobid_name);
 }
 
 static ssize_t jobid_name_store(struct kobject *kobj, struct attribute *attr,
@@ -283,7 +283,7 @@ static ssize_t jobid_this_session_show(struct kobject *kobj,
 	rcu_read_lock();
 	jid = jobid_current();
 	if (jid)
-		ret = snprintf(buf, PAGE_SIZE, "%s\n", jid);
+		ret = scnprintf(buf, PAGE_SIZE, "%s\n", jid);
 	rcu_read_unlock();
 	return ret;
 }
