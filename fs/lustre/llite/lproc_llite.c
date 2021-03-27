@@ -995,7 +995,7 @@ LUSTRE_RW_ATTR(default_easize);
 
 static int ll_sbi_flags_seq_show(struct seq_file *m, void *v)
 {
-	const char *str[] = LL_SBI_FLAGS;
+	const char *const str[] = LL_SBI_FLAGS;
 	struct super_block *sb = m->private;
 	int flags = ll_s2sbi(sb)->ll_flags;
 	int i = 0;
