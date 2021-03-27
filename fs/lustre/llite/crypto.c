@@ -114,7 +114,7 @@ static int ll_set_context(struct inode *inode, const void *ctx, size_t len,
 
 #define llcrypto_free_ctx	kfree
 
-inline bool ll_sbi_has_test_dummy_encryption(struct ll_sb_info *sbi)
+bool ll_sbi_has_test_dummy_encryption(struct ll_sb_info *sbi)
 {
 	return unlikely(sbi->ll_flags & LL_SBI_TEST_DUMMY_ENCRYPTION);
 }
@@ -126,12 +126,12 @@ static bool ll_dummy_context(struct inode *inode)
 	return sbi ? ll_sbi_has_test_dummy_encryption(sbi) : false;
 }
 
-inline bool ll_sbi_has_encrypt(struct ll_sb_info *sbi)
+bool ll_sbi_has_encrypt(struct ll_sb_info *sbi)
 {
 	return sbi->ll_flags & LL_SBI_ENCRYPT;
 }
 
-inline void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set)
+void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set)
 {
 	if (set)
 		sbi->ll_flags |= LL_SBI_ENCRYPT;
