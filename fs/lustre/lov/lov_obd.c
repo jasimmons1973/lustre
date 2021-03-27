@@ -114,8 +114,6 @@ void lov_tgts_putref(struct obd_device *obd)
 	}
 }
 
-static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
-			      enum obd_notify_event ev);
 static int lov_notify(struct obd_device *obd, struct obd_device *watched,
 		      enum obd_notify_event ev);
 
@@ -354,7 +352,8 @@ static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 {
 	struct lov_obd *lov = &obd->u.lov;
 	struct lov_tgt_desc *tgt;
-	int index, activate, active;
+	int index;
+	bool activate, active;
 
 	CDEBUG(D_INFO, "Searching in lov %p for uuid %s event(%d)\n",
 	       lov, uuid->uuid, ev);
@@ -362,9 +361,7 @@ static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 	lov_tgts_getref(obd);
 	for (index = 0; index < lov->desc.ld_tgt_count; index++) {
 		tgt = lov->lov_tgts[index];
-		if (!tgt)
-			continue;
-		if (obd_uuid_equals(uuid, &tgt->ltd_uuid))
+		if (tgt && obd_uuid_equals(uuid, &tgt->ltd_uuid))
 			break;
 	}
 
@@ -374,7 +371,7 @@ static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 	}
 
 	if (ev == OBD_NOTIFY_DEACTIVATE || ev == OBD_NOTIFY_ACTIVATE) {
-		activate = (ev == OBD_NOTIFY_ACTIVATE) ? 1 : 0;
+		activate = (ev == OBD_NOTIFY_ACTIVATE);
 
 		/*
 		 * LU-642, initially inactive OSC could miss the obd_connect,
@@ -401,9 +398,8 @@ static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 			CDEBUG(D_CONFIG, "%sactivate OSC %s\n",
 			       activate ? "" : "de", obd_uuid2str(uuid));
 		}
-
 	} else if (ev == OBD_NOTIFY_INACTIVE || ev == OBD_NOTIFY_ACTIVE) {
-		active = (ev == OBD_NOTIFY_ACTIVE) ? 1 : 0;
+		active = (ev == OBD_NOTIFY_ACTIVE);
 
 		if (lov->lov_tgts[index]->ltd_active == active) {
 			CDEBUG(D_INFO, "OSC %s already %sactive!\n",
@@ -422,7 +418,8 @@ static int lov_set_osc_active(struct obd_device *obd, struct obd_uuid *uuid,
 			lov->lov_tgts[index]->ltd_exp->exp_obd->obd_inactive = 1;
 		}
 	} else {
-		CERROR("Unknown event(%d) for uuid %s", ev, uuid->uuid);
+		CERROR("%s: unknown event %d for uuid %s\n", obd->obd_name,
+		       ev, uuid->uuid);
 	}
 
 	if (tgt->ltd_exp)
