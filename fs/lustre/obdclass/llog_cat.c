@@ -80,7 +80,7 @@ static int llog_cat_id2handle(const struct lu_env *env,
 		    ostid_seq(&cgl->lgl_oi) == ostid_seq(&logid->lgl_oi)) {
 			if (cgl->lgl_ogen != logid->lgl_ogen) {
 				CWARN("%s: log " DFID " generation %x != %x\n",
-				      loghandle->lgh_ctxt->loc_obd->obd_name,
+				      loghandle2name(loghandle),
 				      PFID(&logid->lgl_oi.oi_fid),
 				      cgl->lgl_ogen, logid->lgl_ogen);
 				continue;
@@ -88,7 +88,7 @@ static int llog_cat_id2handle(const struct lu_env *env,
 			*res = llog_handle_get(loghandle);
 			if (!*res) {
 				CERROR("%s: log "DFID" refcount is zero!\n",
-				       loghandle->lgh_ctxt->loc_obd->obd_name,
+				       loghandle2name(loghandle),
 				       PFID(&logid->lgl_oi.oi_fid));
 				continue;
 			}
@@ -103,8 +103,8 @@ static int llog_cat_id2handle(const struct lu_env *env,
 		       LLOG_OPEN_EXISTS);
 	if (rc < 0) {
 		CERROR("%s: error opening log id " DFID ":%x: rc = %d\n",
-		       cathandle->lgh_ctxt->loc_obd->obd_name,
-		       PFID(&logid->lgl_oi.oi_fid), logid->lgl_ogen, rc);
+		       loghandle2name(cathandle), PFID(&logid->lgl_oi.oi_fid),
+		       logid->lgl_ogen, rc);
 		return rc;
 	}
 
@@ -155,7 +155,7 @@ static int llog_cat_process_common(const struct lu_env *env,
 	if (rec->lrh_type != le32_to_cpu(LLOG_LOGID_MAGIC)) {
 		rc = -EINVAL;
 		CWARN("%s: invalid record in catalog " DFID ":%x: rc = %d\n",
-		      cat_llh->lgh_ctxt->loc_obd->obd_name,
+		      loghandle2name(cat_llh),
 		      PFID(&cat_llh->lgh_id.lgl_oi.oi_fid),
 		      cat_llh->lgh_id.lgl_ogen, rc);
 
@@ -170,7 +170,7 @@ static int llog_cat_process_common(const struct lu_env *env,
 	rc = llog_cat_id2handle(env, cat_llh, llhp, &lir->lid_id);
 	if (rc) {
 		CWARN("%s: can't find llog handle " DFID ":%x: rc = %d\n",
-		      cat_llh->lgh_ctxt->loc_obd->obd_name,
+		      loghandle2name(cat_llh),
 		      PFID(&lir->lid_id.lgl_oi.oi_fid),
 		      lir->lid_id.lgl_ogen, rc);
 
@@ -235,7 +235,7 @@ static int llog_cat_process_or_fork(const struct lu_env *env,
 		struct llog_process_cat_data cd;
 
 		CWARN("%s: catlog " DFID " crosses index zero\n",
-		      cat_llh->lgh_ctxt->loc_obd->obd_name,
+		      loghandle2name(cat_llh),
 		      PFID(&cat_llh->lgh_id.lgl_oi.oi_fid));
 		/*startcat = 0 is default value for general processing */
 		if ((startcat != LLOG_CAT_FIRST &&
