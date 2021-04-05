@@ -451,32 +451,40 @@ void __noreturn lbug_with_loc(struct libcfs_debug_msg_data *msgdata)
 EXPORT_SYMBOL(lbug_with_loc);
 
 #ifdef CONFIG_STACKTRACE
+
 #define MAX_ST_ENTRIES 100
 static DEFINE_SPINLOCK(st_lock);
 
 static void libcfs_call_trace(struct task_struct *tsk)
 {
 	static unsigned long entries[MAX_ST_ENTRIES];
+#ifdef CONFIG_ARCH_STACKWALK
 	unsigned int nr_entries;
 
+	spin_lock(&st_lock);
 	pr_info("Pid: %d, comm: %.20s %s %s\n", tsk->pid, tsk->comm,
 		init_utsname()->release, init_utsname()->version);
 	pr_info("Call Trace:\n");
-
-	spin_lock(&st_lock);
 	nr_entries = stack_trace_save_tsk(tsk, entries,
 					  MAX_ST_ENTRIES, 0);
-
 	stack_trace_print(entries, nr_entries, 0);
 	spin_unlock(&st_lock);
-}
 #else /* !CONFIG_STACKTRACE */
-static void libcfs_call_trace(struct task_struct *tsk)
-{
-	if (tsk == current)
-		dump_stack();
-	else
-		CWARN("can't show stack: kernel doesn't export show_task\n");
+	struct stack_trace trace;
+
+	trace.nr_entries = 0;
+	trace.max_entries = MAX_ST_ENTRIES;
+	trace.entries = entries;
+	trace.skip = 0;
+
+	spin_lock(&st_lock);
+	pr_info("Pid: %d, comm: %.20s %s %s\n", tsk->pid, tsk->comm,
+		init_utsname()->release, init_utsname()->version);
+	pr_info("Call Trace:\n");
+	save_stack_trace_tsk(tsk, &trace);
+	stack_trace_print(entries, nr_entries, 0);
+	spin_unlock(&st_lock);
+#endif
 }
 #endif /* !CONFIG_STACKTRACE */
 
