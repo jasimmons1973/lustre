@@ -3182,9 +3182,8 @@ int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
 	struct md_op_data *op_data;
 	struct fsxattr fsxattr;
 	struct cl_object *obj;
-	struct iattr *attr;
+	unsigned int inode_flags;
 	int rc = 0;
-	int flags;
 
 	if (copy_from_user(&fsxattr,
 			   (const struct fsxattr __user *)arg,
@@ -3200,8 +3199,8 @@ int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
 	if (IS_ERR(op_data))
 		return PTR_ERR(op_data);
 
-	flags = ll_xflags_to_inode_flags(fsxattr.fsx_xflags);
-	op_data->op_attr_flags = ll_inode_to_ext_flags(flags);
+	inode_flags = ll_xflags_to_inode_flags(fsxattr.fsx_xflags);
+	op_data->op_attr_flags = ll_inode_to_ext_flags(inode_flags);
 	if (fsxattr.fsx_xflags & FS_XFLAG_PROJINHERIT)
 		op_data->op_attr_flags |= LUSTRE_PROJINHERIT_FL;
 	op_data->op_projid = fsxattr.fsx_projid;
@@ -3213,24 +3212,20 @@ int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
 		goto out_fsxattr;
 
 	ll_update_inode_flags(inode, op_data->op_attr_flags);
-	obj = ll_i2info(inode)->lli_clob;
-	if (!obj)
-		goto out_fsxattr;
 
-	/* Avoiding OST RPC if this is only project ioctl */
+	/* Avoid OST RPC if this is only ioctl setting project inherit flag */
 	if (fsxattr.fsx_xflags == 0 ||
 	    fsxattr.fsx_xflags == FS_XFLAG_PROJINHERIT)
 		goto out_fsxattr;
 
-	attr = kzalloc(sizeof(*attr), GFP_KERNEL);
-	if (!attr) {
-		rc = -ENOMEM;
-		goto out_fsxattr;
+	obj = ll_i2info(inode)->lli_clob;
+	if (obj) {
+		struct iattr attr = { 0 };
+
+		rc = cl_setattr_ost(obj, &attr, OP_XVALID_FLAGS,
+				    fsxattr.fsx_xflags);
 	}
 
-	rc = cl_setattr_ost(obj, attr, OP_XVALID_FLAGS,
-			    fsxattr.fsx_xflags);
-	kfree(attr);
 out_fsxattr:
 	ll_finish_md_op_data(op_data);
 

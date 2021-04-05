@@ -2250,7 +2250,7 @@ void ll_inode_size_unlock(struct inode *inode)
 	mutex_unlock(&lli->lli_size_mutex);
 }
 
-void ll_update_inode_flags(struct inode *inode, int ext_flags)
+void ll_update_inode_flags(struct inode *inode, unsigned int ext_flags)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
 
