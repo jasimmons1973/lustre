@@ -568,7 +568,8 @@ static int osc_extent_merge(const struct lu_env *env, struct osc_extent *cur,
 	if (!victim)
 		return -EINVAL;
 
-	if (victim->oe_state != OES_CACHE || victim->oe_fsync_wait)
+	if (victim->oe_state != OES_INV &&
+	    (victim->oe_state != OES_CACHE || victim->oe_fsync_wait))
 		return -EBUSY;
 
 	if (cur->oe_max_end != victim->oe_max_end)
@@ -809,7 +810,6 @@ restart:
 		if (osc_extent_merge(env, ext, cur) == 0) {
 			LASSERT(*grants >= chunksize);
 			*grants -= chunksize;
-			found = osc_extent_hold(ext);
 
 			/*
 			 * Try to merge with the next one too because we
@@ -819,6 +819,7 @@ restart:
 				/* we can save extent tax from next extent */
 				*grants += cli->cl_grant_extent_tax;
 
+			found = osc_extent_hold(ext);
 			break;
 		}
 	}
