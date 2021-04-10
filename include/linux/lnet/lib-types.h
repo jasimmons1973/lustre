@@ -750,7 +750,9 @@ struct lnet_peer {
 #define LNET_PEER_RTR_DISCOVERED BIT(17)
 
 /* peer is marked for deletion */
-#define LNET_PEER_MARK_DELETION BIT(18)
+#define LNET_PEER_MARK_DELETION		BIT(18)
+/* lnet_peer_del()/lnet_peer_del_locked() has been called on the peer */
+#define LNET_PEER_MARK_DELETED		BIT(19)
 
 struct lnet_peer_net {
 	/* chain on lp_peer_nets */
