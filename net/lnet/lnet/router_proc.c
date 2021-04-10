@@ -880,7 +880,7 @@ static struct ctl_table lnet_table[] = {
 		.data		= &lnet_lnd_timeout,
 		.maxlen		= sizeof(lnet_lnd_timeout),
 		.mode		= 0444,
-		.proc_handler	= &proc_dointvec,
+		.proc_handler	= &debugfs_doint,
 	},
 	{
 	}

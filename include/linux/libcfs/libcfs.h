@@ -61,6 +61,9 @@ extern struct workqueue_struct *cfs_rehash_wq;
 void lnet_insert_debugfs(struct ctl_table *table);
 void lnet_remove_debugfs(struct ctl_table *table);
 
+int debugfs_doint(struct ctl_table *table, int write,
+		  void __user *buffer, size_t *lenp, loff_t *ppos);
+
 /*
  * Memory
  */
