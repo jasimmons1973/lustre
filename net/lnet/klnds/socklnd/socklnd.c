@@ -1533,7 +1533,7 @@ conn2_found:
 void
 ksocknal_peer_failed(struct ksock_peer_ni *peer_ni)
 {
-	int notify = 0;
+	bool notify = false;
 	time64_t last_alive = 0;
 
 	/*
@@ -1547,7 +1547,7 @@ ksocknal_peer_failed(struct ksock_peer_ni *peer_ni)
 	    list_empty(&peer_ni->ksnp_conns) &&
 	    !peer_ni->ksnp_accepting &&
 	    !ksocknal_find_connecting_route_locked(peer_ni)) {
-		notify = 1;
+		notify = true;
 		last_alive = peer_ni->ksnp_last_alive;
 	}
 
@@ -1598,15 +1598,14 @@ ksocknal_finalize_zcreq(struct ksock_conn *conn)
 void
 ksocknal_terminate_conn(struct ksock_conn *conn)
 {
-	/*
-	 * This gets called by the reaper (guaranteed thread context) to
+	/* This gets called by the reaper (guaranteed thread context) to
 	 * disengage the socket from its callbacks and close it.
 	 * ksnc_refcount will eventually hit zero, and then the reaper will
 	 * destroy it.
 	 */
 	struct ksock_peer_ni *peer_ni = conn->ksnc_peer;
 	struct ksock_sched *sched = conn->ksnc_scheduler;
-	int failed = 0;
+	bool failed = false;
 
 	LASSERT(conn->ksnc_closing);
 
@@ -1643,7 +1642,7 @@ ksocknal_terminate_conn(struct ksock_conn *conn)
 	if (peer_ni->ksnp_error) {
 		/* peer_ni's last conn closed in error */
 		LASSERT(list_empty(&peer_ni->ksnp_conns));
-		failed = 1;
+		failed = true;
 		peer_ni->ksnp_error = 0;     /* avoid multiple notifications */
 	}
 
@@ -2493,7 +2492,7 @@ ksocknal_search_new_ipif(struct ksock_net *net)
 	for (i = 0; i < net->ksnn_ninterfaces; i++) {
 		char *ifnam = &net->ksnn_interfaces[i].ksni_name[0];
 		char *colon = strchr(ifnam, ':');
-		int found  = 0;
+		bool found  = false;
 		struct ksock_net *tmp;
 		int j;
 
