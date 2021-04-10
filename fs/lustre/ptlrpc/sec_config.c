@@ -836,24 +836,20 @@ out:
 void sptlrpc_conf_client_adapt(struct obd_device *obd)
 {
 	struct obd_import *imp;
+	int rc;
 
 	LASSERT(strcmp(obd->obd_type->typ_name, LUSTRE_MDC_NAME) == 0 ||
 		strcmp(obd->obd_type->typ_name, LUSTRE_OSC_NAME) == 0);
 	CDEBUG(D_SEC, "obd %s\n", obd->u.cli.cl_target_uuid.uuid);
 
 	/* serialize with connect/disconnect import */
-	down_read_nested(&obd->u.cli.cl_sem, OBD_CLI_SEM_MDCOSC);
-
-	imp = obd->u.cli.cl_import;
-	if (imp) {
+	with_imp_locked_nested(obd, imp, rc, OBD_CLI_SEM_MDCOSC) {
 		write_lock(&imp->imp_sec_lock);
 		if (imp->imp_sec)
 			imp->imp_sec_expire = ktime_get_real_seconds() +
 				SEC_ADAPT_DELAY;
 		write_unlock(&imp->imp_sec_lock);
 	}
-
-	up_read(&obd->u.cli.cl_sem);
 }
 EXPORT_SYMBOL(sptlrpc_conf_client_adapt);
 

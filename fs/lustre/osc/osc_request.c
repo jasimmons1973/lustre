@@ -3069,18 +3069,16 @@ static int osc_statfs(const struct lu_env *env, struct obd_export *exp,
 	struct obd_device *obd = class_exp2obd(exp);
 	struct obd_statfs *msfs;
 	struct ptlrpc_request *req;
-	struct obd_import *imp = NULL;
+	struct obd_import *imp, *imp0;
 	int rc;
 
 	/* Since the request might also come from lprocfs, so we need
 	 * sync this with client_disconnect_export Bug15684
 	 */
-	down_read(&obd->u.cli.cl_sem);
-	if (obd->u.cli.cl_import)
-		imp = class_import_get(obd->u.cli.cl_import);
-	up_read(&obd->u.cli.cl_sem);
-	if (!imp)
-		return -ENODEV;
+	with_imp_locked(obd, imp0, rc)
+		imp = class_import_get(imp0);
+	if (rc)
+		return rc;
 
 	/* We could possibly pass max_age in the request (as an absolute
 	 * timestamp or a "seconds.usec ago") so the target can avoid doing

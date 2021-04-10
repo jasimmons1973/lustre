@@ -342,6 +342,7 @@ static ssize_t active_store(struct kobject *kobj, struct attribute *attr,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
+	struct obd_import *imp, *imp0;
 	bool val;
 	int rc;
 
@@ -349,15 +350,16 @@ static ssize_t active_store(struct kobject *kobj, struct attribute *attr,
 	if (rc)
 		return rc;
 
+	with_imp_locked(obd, imp0, rc)
+		imp = class_import_get(imp0);
 	/* opposite senses */
-	if (obd->u.cli.cl_import->imp_deactive == val) {
+	if (imp->imp_deactive == val)
 		rc = ptlrpc_set_import_active(obd->u.cli.cl_import, val);
-		if (rc)
-			count = rc;
-	} else {
+	else
 		CDEBUG(D_CONFIG, "activate %u: ignoring repeat request\n", val);
-	}
-	return count;
+
+	class_import_put(imp);
+	return rc ?: count;
 }
 LUSTRE_RW_ATTR(active);
 

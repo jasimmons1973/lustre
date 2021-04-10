@@ -520,9 +520,8 @@ static inline int obd_cleanup(struct obd_device *obd)
 
 static inline void obd_cleanup_client_import(struct obd_device *obd)
 {
-	/*
-	 * If we set up but never connected, the
-	 * client import will not have been cleaned.
+	/* If we set up but never connected, the client import will not
+	 * have been cleaned.
 	 */
 	down_write(&obd->u.cli.cl_sem);
 	if (obd->u.cli.cl_import) {

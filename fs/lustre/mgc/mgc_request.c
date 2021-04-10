@@ -1133,6 +1133,7 @@ static int mgc_apply_recover_logs(struct obd_device *mgc,
 		int entry_len = sizeof(*entry);
 		int is_ost;
 		struct obd_device *obd;
+		struct obd_import *imp;
 		char *obdname;
 		char *cname;
 		char *params;
@@ -1210,8 +1211,8 @@ static int mgc_apply_recover_logs(struct obd_device *mgc,
 		pos += sprintf(obdname + pos, "-%s%04x",
 				  is_ost ? "OST" : "MDT", entry->mne_index);
 
-		cname = is_ost ? "osc" : "mdc";
-		pos += sprintf(obdname + pos, "-%s-%s", cname, inst);
+		cname = is_ost ? "osc" : "mdc",
+			pos += sprintf(obdname + pos, "-%s-%s", cname, inst);
 		lustre_cfg_bufs_reset(&bufs, obdname);
 
 		/* find the obd by obdname */
@@ -1230,54 +1231,56 @@ static int mgc_apply_recover_logs(struct obd_device *mgc,
 		pos += sprintf(params, "%s.import=%s", cname, "connection=");
 		uuid = buf + pos;
 
-		down_read(&obd->u.cli.cl_sem);
-		if (!obd->u.cli.cl_import) {
+		with_imp_locked(obd, imp, rc) {
+			/* iterate all nids to find one */
+			/* find uuid by nid */
+			/* create import entries if they don't exist */
+			rc = client_import_add_nids_to_conn(imp,
+							    entry->u.nids,
+							    entry->mne_nid_count,
+							    (struct obd_uuid *)uuid);
+			if (rc == -ENOENT && dynamic_nids) {
+				/* create a new connection for this import */
+				char *primary_nid =
+					libcfs_nid2str(entry->u.nids[0]);
+				int prim_nid_len = strlen(primary_nid) + 1;
+				struct obd_uuid server_uuid;
+
+				if (prim_nid_len > UUID_MAX)
+					goto fail;
+				strncpy(server_uuid.uuid, primary_nid,
+					prim_nid_len);
+
+				CDEBUG(D_INFO, "Adding a connection for %s\n",
+				       primary_nid);
+
+				rc = client_import_dyn_add_conn(imp,
+								&server_uuid,
+								entry->u.nids[0],
+								1);
+				if (rc < 0) {
+					CERROR("%s: Failed to add new connection with NID '%s' to import: rc = %d\n",
+					       obd->obd_name, primary_nid, rc);
+					goto fail;
+				}
+				rc = client_import_add_nids_to_conn(imp,
+								    entry->u.nids,
+								    entry->mne_nid_count,
+								    (struct obd_uuid *)uuid);
+				if (rc < 0) {
+					CERROR("%s: failed to lookup UUID: rc = %d\n",
+					       obd->obd_name, rc);
+					goto fail;
+				}
+			}
+fail:;
+		}
+		if (rc == -ENODEV) {
 			/* client does not connect to the OST yet */
-			up_read(&obd->u.cli.cl_sem);
 			rc = 0;
 			continue;
 		}
 
-		/* iterate all nids to find one */
-		/* find uuid by nid */
-		/* create import entries if they don't exist */
-		rc = client_import_add_nids_to_conn(obd->u.cli.cl_import,
-						    entry->u.nids,
-						    entry->mne_nid_count,
-						    (struct obd_uuid *)uuid);
-		if (rc == -ENOENT && dynamic_nids) {
-			/* create a new connection for this import */
-			char *primary_nid = libcfs_nid2str(entry->u.nids[0]);
-			int prim_nid_len = strlen(primary_nid) + 1;
-			struct obd_uuid server_uuid;
-
-			if (prim_nid_len > UUID_MAX)
-				goto fail;
-			strncpy(server_uuid.uuid, primary_nid, prim_nid_len);
-
-			CDEBUG(D_INFO, "Adding a connection for %s\n",
-			       primary_nid);
-
-			rc = client_import_dyn_add_conn(obd->u.cli.cl_import,
-							&server_uuid,
-							entry->u.nids[0], 1);
-			if (rc < 0) {
-				CERROR("%s: Failed to add new connection with NID '%s' to import: rc = %d\n",
-				       obd->obd_name, primary_nid, rc);
-				goto fail;
-			}
-			rc = client_import_add_nids_to_conn(obd->u.cli.cl_import,
-							    entry->u.nids,
-							    entry->mne_nid_count,
-							    (struct obd_uuid *)uuid);
-			if (rc < 0) {
-				CERROR("%s: failed to lookup UUID: rc = %d\n",
-				       obd->obd_name, rc);
-				goto fail;
-			}
-		}
-fail:
-		up_read(&obd->u.cli.cl_sem);
 		if (rc < 0 && rc != -ENOSPC) {
 			CERROR("mgc: cannot find UUID by nid '%s': rc = %d\n",
 			       libcfs_nid2str(entry->u.nids[0]), rc);
@@ -1293,7 +1296,6 @@ fail:
 
 		lustre_cfg_bufs_set_string(&bufs, 1, params);
 
-		rc = -ENOMEM;
 		len = lustre_cfg_len(bufs.lcfg_bufcount, bufs.lcfg_buflen);
 		lcfg = kzalloc(len, GFP_NOFS);
 		if (!lcfg) {
