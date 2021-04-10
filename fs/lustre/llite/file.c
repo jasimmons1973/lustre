@@ -4455,6 +4455,18 @@ int ll_migrate(struct inode *parent, struct file *file, struct lmv_user_md *lum,
 		goto out_iput;
 	}
 
+	if (IS_ENCRYPTED(child_inode)) {
+		rc = llcrypt_get_encryption_info(child_inode);
+		if (rc)
+			goto out_iput;
+		if (!llcrypt_has_encryption_key(child_inode)) {
+			CDEBUG(D_SEC, "no enc key for "DFID"\n",
+			       PFID(ll_inode2fid(child_inode)));
+			rc = -ENOKEY;
+			goto out_iput;
+		}
+	}
+
 	op_data = ll_prep_md_op_data(NULL, parent, NULL, name, namelen,
 				     child_inode->i_mode, LUSTRE_OPC_ANY, NULL);
 	if (IS_ERR(op_data)) {

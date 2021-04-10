@@ -97,12 +97,14 @@ enum ll_file_flags {
 	LLIF_FILE_RESTORING	= 1,
 	/* Xattr cache is attached to the file */
 	LLIF_XATTR_CACHE	= 2,
+	/* Project inherit */
+	LLIF_PROJECT_INHERIT	= 3,
 	/* update atime from MDS no matter if it's older than
 	 * local inode atime.
 	 */
-	LLIF_UPDATE_ATIME,
-	/* Project inherit */
-	LLIF_PROJECT_INHERIT	= 3,
+	LLIF_UPDATE_ATIME	= 4,
+	/* setting encryption context in progress */
+	LLIF_SET_ENC_CTX	= 6,
 };
 
 /* See comment on trunc_sem_down_read_nowait */

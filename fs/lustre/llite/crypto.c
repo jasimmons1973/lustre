@@ -104,6 +104,7 @@ static int ll_set_context(struct inode *inode, const void *ctx, size_t len,
 		return -EPERM;
 
 	dentry = (struct dentry *)fs_data;
+	set_bit(LLIF_SET_ENC_CTX, &ll_i2info(inode)->lli_flags);
 	rc = __vfs_setxattr(dentry, inode, LL_XATTR_NAME_ENCRYPTION_CONTEXT,
 			    ctx, len, XATTR_CREATE);
 	if (rc)
