@@ -764,6 +764,7 @@ static void put_pages_on_daemon_list(struct page_collection *pc)
 	}
 }
 
+#ifdef CONFIG_LNET_DUMP_ON_PANIC
 void cfs_trace_debug_print(void)
 {
 	struct page_collection pc;
@@ -801,6 +802,7 @@ void cfs_trace_debug_print(void)
 		cfs_tage_free(tage);
 	}
 }
+#endif /* CONFIG_LNET_DUMP_ON_PANIC */
 
 int cfs_tracefile_dump_all_pages(char *filename)
 {

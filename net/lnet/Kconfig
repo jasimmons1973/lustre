@@ -8,6 +8,15 @@ config LNET
 	  case of Lustre routers only the LNet layer is required. Lately other
 	  projects are also looking into using LNet as their networking API as well.
 
+config LNET_DUMP_ON_PANIC
+	bool "LNet dump logs on panic"
+	depends on LNET
+	help
+	  Special funcitonality to enable collecting extra logs when LNet panics.
+	  Normally only used by developers for debugging purposes.
+
+	  If unsure, say N.
+
 config LNET_SELFTEST
 	tristate "Lustre networking self testing"
 	depends on LNET
