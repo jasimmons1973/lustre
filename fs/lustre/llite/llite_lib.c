@@ -1052,8 +1052,6 @@ int ll_fill_super(struct super_block *sb)
 
 	CDEBUG(D_VFSTRACE, "VFS Op: sb %p\n", sb);
 
-	try_module_get(THIS_MODULE);
-
 	cfg = kzalloc(sizeof(*cfg), GFP_NOFS);
 	if (!cfg) {
 		err = -ENOMEM;
@@ -1252,9 +1250,6 @@ out_no_sbi:
 	ll_common_put_super(sb);
 
 	cl_env_cache_purge(~0);
-
-	module_put(THIS_MODULE);
-
 } /* client_put_super */
 
 struct inode *ll_inode_from_resource_lock(struct ldlm_lock *lock)

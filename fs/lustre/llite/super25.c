@@ -32,6 +32,7 @@
  */
 
 #define DEBUG_SUBSYSTEM S_LLITE
+
 #define D_MOUNT (D_SUPER | D_CONFIG/*|D_WARNING */)
 
 #include <linux/module.h>
@@ -95,11 +96,12 @@ const struct super_operations lustre_super_operations = {
 	.show_options		= ll_show_options,
 };
 
-/** This is the entry point for the mount call into Lustre.
+/**
+ * This is the entry point for the mount call into Lustre.
  * This is called when a server or client is mounted,
  * and this is where we start setting things up.
  *
- * @data:	Mount options (e.g. -o flock,abort_recov)
+ * @lmd2data	Mount options (e.g. -o flock,abort_recov)
  */
 static int lustre_fill_super(struct super_block *sb, void *lmd2_data,
 			     int silent)
@@ -132,30 +134,30 @@ static int lustre_fill_super(struct super_block *sb, void *lmd2_data,
 		goto out_put_lsi;
 	}
 
-	if (lmd_is_client(lmd)) {
-		CDEBUG(D_MOUNT, "Mounting client %s\n", lmd->lmd_profile);
-
-		rc = ptlrpc_inc_ref();
-		if (rc)
-			goto out_put_lsi;
-		rc = lustre_start_mgc(sb);
-		if (rc) {
-			/* This will put_lsi and ptlrpc_dec_ref */
-			ll_common_put_super(sb);
-			goto out;
-		}
-		/* Connect and start */
-		rc = ll_fill_super(sb);
-		/*
-		 * c_f_s will call ll_common_put_super on failure, otherwise
-		 * c_f_s will have taken another reference to the module
-		 */
-	} else {
-		CERROR("This is client-side-only module, cannot handle server mount.\n");
-		rc = -EINVAL;
+	if (!lmd_is_client(lmd)) {
+		rc = -ENODEV;
+		CERROR("%s: This is client-side-only module, cannot handle server mount: rc = %d\n",
+		       lmd->lmd_profile, rc);
+		goto out_put_lsi;
 	}
 
-	/* If error happens in fill_super() call, @lsi will be killed there.
+	CDEBUG(D_MOUNT, "Mounting client %s\n", lmd->lmd_profile);
+	rc = ptlrpc_inc_ref();
+	if (rc)
+		goto out_put_lsi;
+
+	rc = lustre_start_mgc(sb);
+	if (rc) {
+		/* This will put_lsi and ptlrpc_dec_ref */
+		ll_common_put_super(sb);
+		goto out;
+	}
+	/* Connect and start */
+	rc = ll_fill_super(sb);
+	/* ll_file_super will call lustre_common_put_super on failure,
+	 * which takes care of the module reference.
+	 *
+	 * If error happens in fill_super() call, @lsi will be killed there.
 	 * This is why we do not put it here.
 	 */
 	goto out;
@@ -163,10 +165,10 @@ out_put_lsi:
 	lustre_put_lsi(sb);
 out:
 	if (rc) {
-		CERROR("Unable to mount %s (%d)\n",
-		       s2lsi(sb) ? lmd->lmd_dev : "", rc);
+		CERROR("llite: Unable to mount %s: rc = %d\n",
+		       s2lsi(sb) ? lmd->lmd_dev : "<unknown>", rc);
 	} else {
-		CDEBUG(D_SUPER, "Mount %s complete\n",
+		CDEBUG(D_SUPER, "%s: Mount complete\n",
 		       lmd->lmd_dev);
 	}
 	lockdep_on();
@@ -268,10 +270,12 @@ static int __init lustre_init(void)
 
 	rc = register_filesystem(&lustre_fs_type);
 	if (rc)
-		goto out_inode_fini_env;
+		goto out_xattr;
 
 	return 0;
 
+out_xattr:
+	ll_xattr_fini();
 out_inode_fini_env:
 	cl_env_put(cl_inode_fini_env, &cl_inode_fini_refcheck);
 out_vvp:

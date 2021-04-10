@@ -150,11 +150,12 @@ int server_name2fsname(const char *svname, char *fsname, const char **endptr);
 int lustre_start_mgc(struct super_block *sb);
 int lustre_common_put_super(struct super_block *sb);
 
-int mgc_fsname2resid(char *fsname, struct ldlm_res_id *res_id, int type);
-
 struct lustre_sb_info *lustre_init_lsi(struct super_block *sb);
 int lustre_put_lsi(struct super_block *sb);
 int lmd_parse(char *options, struct lustre_mount_data *lmd);
+
+/* mgc_request.c */
+int mgc_fsname2resid(char *fsname, struct ldlm_res_id *res_id, int type);
 
 /** @} disk */
 
