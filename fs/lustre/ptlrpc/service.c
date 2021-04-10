@@ -596,7 +596,7 @@ struct ptlrpc_service *ptlrpc_register_service(struct ptlrpc_service_conf *conf,
 						 strlen(cconf->cc_pattern),
 						 0, ncpts - 1, &el);
 			if (rc != 0) {
-				CERROR("%s: invalid CPT pattern string: %s",
+				CERROR("%s: invalid CPT pattern string: %s\n",
 				       conf->psc_name, cconf->cc_pattern);
 				return ERR_PTR(-EINVAL);
 			}
