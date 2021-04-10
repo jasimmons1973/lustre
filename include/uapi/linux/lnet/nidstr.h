@@ -108,19 +108,4 @@ int cfs_ip_addr_match(__u32 addr, struct list_head *list);
 int cfs_nidrange_find_min_max(struct list_head *nidlist, char *min_nid,
 			      char *max_nid, __kernel_size_t nidstr_length);
 
-struct netstrfns {
-	__u32	nf_type;
-	char	*nf_name;
-	char	*nf_modname;
-	void	(*nf_addr2str)(__u32 addr, char *str, __kernel_size_t size);
-	int	(*nf_str2addr)(const char *str, int nob, __u32 *addr);
-	int	(*nf_parse_addrlist)(char *str, int len,
-				     struct list_head *list);
-	int	(*nf_print_addrlist)(char *buffer, int count,
-				     struct list_head *list);
-	int	(*nf_match_addr)(__u32 addr, struct list_head *list);
-	int	(*nf_min_max)(struct list_head *nidlist, __u32 *min_nid,
-			      __u32 *max_nid);
-};
-
 #endif /* _LNET_NIDSTRINGS_H */

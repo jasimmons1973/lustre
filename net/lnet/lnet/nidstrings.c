@@ -42,6 +42,7 @@
 #include <linux/libcfs/libcfs.h>
 #include <linux/libcfs/libcfs_string.h>
 #include <uapi/linux/lnet/nidstr.h>
+#include <linux/lnet/lib-types.h>
 
 /* max value for numeric network address */
 #define MAX_NUMERIC_VALUE 0xffffffff
