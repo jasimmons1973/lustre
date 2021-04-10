@@ -1047,6 +1047,8 @@ int ll_fill_super(struct super_block *sb)
 
 	CDEBUG(D_VFSTRACE, "VFS Op: sb %p\n", sb);
 
+	OBD_RACE(OBD_FAIL_LLITE_RACE_MOUNT);
+
 	cfg = kzalloc(sizeof(*cfg), GFP_NOFS);
 	if (!cfg) {
 		err = -ENOMEM;
