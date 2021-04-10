@@ -2138,10 +2138,8 @@ int lu_global_init(void)
 
 	LU_CONTEXT_KEY_INIT(&lu_global_key);
 	result = lu_context_key_register(&lu_global_key);
-	if (result != 0) {
-		lu_ref_global_fini();
-		return result;
-	}
+	if (result != 0)
+		goto out_lu_ref;
 
 	/*
 	 * At this level, we don't know what tags are needed, so allocate them
@@ -2153,8 +2151,7 @@ int lu_global_init(void)
 	up_write(&lu_sites_guard);
 	if (result != 0) {
 		lu_context_key_degister(&lu_global_key);
-		lu_ref_global_fini();
-		return result;
+		goto out_lu_ref;
 	}
 
 	/*
@@ -2163,23 +2160,25 @@ int lu_global_init(void)
 	 * lu_object/inode cache consuming all the memory.
 	 */
 	result = register_shrinker(&lu_site_shrinker);
-	if (result == 0) {
-		result = rhashtable_init(&lu_env_rhash, &lu_env_rhash_params);
-		if (result != 0)
-			unregister_shrinker(&lu_site_shrinker);
-	}
-	if (result != 0) {
-		/* Order explained in lu_global_fini(). */
-		lu_context_key_degister(&lu_global_key);
+	if (result)
+		goto out_env;
 
-		down_write(&lu_sites_guard);
-		lu_env_fini(&lu_shrink_env);
-		up_write(&lu_sites_guard);
+	result = rhashtable_init(&lu_env_rhash, &lu_env_rhash_params);
+	if (result)
+		goto out_shrinker;
 
-		lu_ref_global_fini();
-		return result;
-	}
+	return result;
 
+out_shrinker:
+	unregister_shrinker(&lu_site_shrinker);
+out_env:
+	/* Order explained in lu_global_fini(). */
+	lu_context_key_degister(&lu_global_key);
+	down_write(&lu_sites_guard);
+	lu_env_fini(&lu_shrink_env);
+	up_write(&lu_sites_guard);
+out_lu_ref:
+	lu_ref_global_fini();
 	return result;
 }
 

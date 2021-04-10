@@ -889,6 +889,12 @@ static unsigned long ldlm_pools_cli_scan(struct shrinker *s,
 			       sc->gfp_mask);
 }
 
+static struct shrinker ldlm_pools_cli_shrinker = {
+	.count_objects	= ldlm_pools_cli_count,
+	.scan_objects	= ldlm_pools_cli_scan,
+	.seeks		= DEFAULT_SEEKS,
+};
+
 static void ldlm_pools_recalc(struct work_struct *ws);
 static DECLARE_DELAYED_WORK(ldlm_recalc_pools, ldlm_pools_recalc);
 
@@ -976,40 +982,29 @@ static void ldlm_pools_recalc(struct work_struct *ws)
 	schedule_delayed_work(&ldlm_recalc_pools, delay * HZ);
 }
 
-static int ldlm_pools_thread_start(void)
-{
-	time64_t delay = LDLM_POOL_CLI_DEF_RECALC_PERIOD;
-
-	schedule_delayed_work(&ldlm_recalc_pools, delay);
-
-	return 0;
-}
-
-static void ldlm_pools_thread_stop(void)
-{
-	cancel_delayed_work_sync(&ldlm_recalc_pools);
-}
-
-static struct shrinker ldlm_pools_cli_shrinker = {
-	.count_objects	= ldlm_pools_cli_count,
-	.scan_objects	= ldlm_pools_cli_scan,
-	.seeks		= DEFAULT_SEEKS,
-};
+static bool ldlm_pools_init_done;
 
 int ldlm_pools_init(void)
 {
+	time64_t delay = LDLM_POOL_CLI_DEF_RECALC_PERIOD;
 	int rc;
 
-	rc = ldlm_pools_thread_start();
-	if (!rc)
-		rc = register_shrinker(&ldlm_pools_cli_shrinker);
+	rc = register_shrinker(&ldlm_pools_cli_shrinker);
+	if (rc)
+		goto out;
 
+	schedule_delayed_work(&ldlm_recalc_pools, delay);
+	ldlm_pools_init_done = true;
+out:
 	return rc;
 }
 
 void ldlm_pools_fini(void)
 {
-	unregister_shrinker(&ldlm_pools_cli_shrinker);
+	if (ldlm_pools_init_done) {
+		unregister_shrinker(&ldlm_pools_cli_shrinker);
 
-	ldlm_pools_thread_stop();
+		cancel_delayed_work_sync(&ldlm_recalc_pools);
+	}
 }
+
