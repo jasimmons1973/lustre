@@ -964,7 +964,6 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	struct obd_device *obd = class_exp2obd(exp);
 	struct lov_obd *lov = &obd->u.lov;
 	int i = 0, rc = 0, count = lov->desc.ld_tgt_count;
-	struct obd_uuid *uuidp;
 
 	switch (cmd) {
 	case IOC_OBD_STATFS: {
@@ -1011,48 +1010,6 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 				 min_t(unsigned long, data->ioc_plen1,
 				       sizeof(stat_buf))))
 			return -EFAULT;
-		break;
-	}
-	case OBD_IOC_LOV_GET_CONFIG: {
-		struct obd_ioctl_data *data;
-		struct lov_desc *desc;
-		u32 *genp;
-
-		len = 0;
-		if (obd_ioctl_getdata(&data, &len, uarg))
-			return -EINVAL;
-
-		if (sizeof(*desc) > data->ioc_inllen1) {
-			kvfree(data);
-			return -EINVAL;
-		}
-
-		if (sizeof(uuidp->uuid) * count > data->ioc_inllen2) {
-			kvfree(data);
-			return -EINVAL;
-		}
-
-		if (sizeof(u32) * count > data->ioc_inllen3) {
-			kvfree(data);
-			return -EINVAL;
-		}
-
-		desc = (struct lov_desc *)data->ioc_inlbuf1;
-		memcpy(desc, &lov->desc, sizeof(*desc));
-
-		uuidp = (struct obd_uuid *)data->ioc_inlbuf2;
-		genp = (u32 *)data->ioc_inlbuf3;
-		/* the uuid will be empty for deleted OSTs */
-		for (i = 0; i < count; i++, uuidp++, genp++) {
-			if (!lov->lov_tgts[i])
-				continue;
-			*uuidp = lov->lov_tgts[i]->ltd_uuid;
-			*genp = lov->lov_tgts[i]->ltd_gen;
-		}
-
-		if (copy_to_user(uarg, data, len))
-			rc = -EFAULT;
-		kvfree(data);
 		break;
 	}
 	case OBD_IOC_QUOTACTL: {
