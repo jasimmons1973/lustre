@@ -475,7 +475,7 @@ again:
 
 		if (peer) {
 			lnet_nid_t nid = peer->lpni_nid;
-			int nrefs = atomic_read(&peer->lpni_refcount);
+			int nrefs = kref_read(&peer->lpni_kref);
 			time64_t lastalive = -1;
 			char *aliveness = "NA";
 			int maxcr = peer->lpni_net ?
