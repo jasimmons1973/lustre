@@ -830,6 +830,7 @@ failed:
 	return -ENOMEM;
 }
 
+#define PORTAL_SIZE (offsetof(struct lnet_portal, ptl_mt_maps[LNET_CPT_NUMBER]))
 void
 lnet_portals_destroy(void)
 {
@@ -839,9 +840,12 @@ lnet_portals_destroy(void)
 		return;
 
 	for (i = 0; i < the_lnet.ln_nportals; i++)
-		lnet_ptl_cleanup(the_lnet.ln_portals[i]);
+		if (the_lnet.ln_portals[i]) {
+			lnet_ptl_cleanup(the_lnet.ln_portals[i]);
+			kfree(the_lnet.ln_portals[i]);
+		}
 
-	cfs_array_free(the_lnet.ln_portals);
+	kvfree(the_lnet.ln_portals);
 	the_lnet.ln_portals = NULL;
 	the_lnet.ln_nportals = 0;
 }
@@ -849,12 +853,11 @@ lnet_portals_destroy(void)
 int
 lnet_portals_create(void)
 {
-	int size;
 	int i;
 
-	size = offsetof(struct lnet_portal, ptl_mt_maps[LNET_CPT_NUMBER]);
-
-	the_lnet.ln_portals = cfs_array_alloc(MAX_PORTALS, size);
+	the_lnet.ln_portals = kvmalloc_array(MAX_PORTALS,
+					     sizeof(*the_lnet.ln_portals),
+					     GFP_KERNEL);
 	if (!the_lnet.ln_portals) {
 		CERROR("Failed to allocate portals table\n");
 		return -ENOMEM;
@@ -862,7 +865,9 @@ lnet_portals_create(void)
 	the_lnet.ln_nportals = MAX_PORTALS;
 
 	for (i = 0; i < the_lnet.ln_nportals; i++) {
-		if (lnet_ptl_setup(the_lnet.ln_portals[i], i)) {
+		the_lnet.ln_portals[i] = kzalloc(PORTAL_SIZE, GFP_KERNEL);
+		if (!the_lnet.ln_portals[i] ||
+		    lnet_ptl_setup(the_lnet.ln_portals[i], i)) {
 			lnet_portals_destroy();
 			return -ENOMEM;
 		}
