@@ -1493,7 +1493,7 @@ static struct lu_tgt_desc *lmv_locate_tgt_rr(struct lmv_obd *lmv, u32 *mdt)
 	int i;
 	int index;
 
-	spin_lock(&lmv->lmv_qos.lq_rr.lqr_alloc);
+	spin_lock(&lmv->lmv_lock);
 	for (i = 0; i < lmv->lmv_mdt_descs.ltd_tgts_size; i++) {
 		index = (i + lmv->lmv_qos_rr_index) %
 			lmv->lmv_mdt_descs.ltd_tgts_size;
@@ -1504,11 +1504,11 @@ static struct lu_tgt_desc *lmv_locate_tgt_rr(struct lmv_obd *lmv, u32 *mdt)
 		*mdt = tgt->ltd_index;
 		lmv->lmv_qos_rr_index = (*mdt + 1) %
 					lmv->lmv_mdt_descs.ltd_tgts_size;
-		spin_unlock(&lmv->lmv_qos.lq_rr.lqr_alloc);
+		spin_unlock(&lmv->lmv_lock);
 
 		return tgt;
 	}
-	spin_unlock(&lmv->lmv_qos.lq_rr.lqr_alloc);
+	spin_unlock(&lmv->lmv_lock);
 
 	return ERR_PTR(-ENODEV);
 }
