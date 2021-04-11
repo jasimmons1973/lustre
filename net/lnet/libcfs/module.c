@@ -295,7 +295,7 @@ static int proc_dobitmasks(struct ctl_table *table, int write,
 			   void __user *buffer, size_t *lenp, loff_t *ppos)
 {
 	const int tmpstrlen = 512;
-	char *tmpstr;
+	char *tmpstr = NULL;
 	int rc;
 	size_t nob = *lenp;
 	loff_t pos = *ppos;
@@ -303,11 +303,10 @@ static int proc_dobitmasks(struct ctl_table *table, int write,
 	int is_subsys = (mask == &libcfs_subsystem_debug) ? 1 : 0;
 	int is_printk = (mask == &libcfs_printk) ? 1 : 0;
 
-	tmpstr = kzalloc(tmpstrlen, GFP_KERNEL);
-	if (!tmpstr)
-		return -ENOMEM;
-
 	if (!write) {
+		tmpstr = kzalloc(tmpstrlen, GFP_KERNEL);
+		if (!tmpstr)
+			return -ENOMEM;
 		libcfs_debug_mask2str(tmpstr, tmpstrlen, *mask, is_subsys);
 		rc = strlen(tmpstr);
 
@@ -318,13 +317,11 @@ static int proc_dobitmasks(struct ctl_table *table, int write,
 						      tmpstr + pos, "\n");
 		}
 	} else {
-		rc = cfs_trace_copyin_string(tmpstr, tmpstrlen, buffer, nob);
-		if (rc < 0) {
-			kfree(tmpstr);
-			return rc;
-		}
+		tmpstr = memdup_user_nul(buffer, nob);
+		if (!tmpstr)
+			return -ENOMEM;
 
-		rc = libcfs_debug_str2mask(mask, tmpstr, is_subsys);
+		rc = libcfs_debug_str2mask(mask, strim(tmpstr), is_subsys);
 		/* Always print LBUG/LASSERT to console, so keep this mask */
 		if (is_printk)
 			*mask |= D_EMERG;

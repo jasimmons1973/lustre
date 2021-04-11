@@ -920,34 +920,6 @@ void cfs_trace_flush_pages(void)
 	}
 }
 
-int cfs_trace_copyin_string(char *knl_buffer, int knl_buffer_nob,
-			    const char __user *usr_buffer, int usr_buffer_nob)
-{
-	int nob;
-
-	if (usr_buffer_nob > knl_buffer_nob)
-		return -EOVERFLOW;
-
-	if (copy_from_user((void *)knl_buffer,
-			   usr_buffer, usr_buffer_nob))
-		return -EFAULT;
-
-	nob = strnlen(knl_buffer, usr_buffer_nob);
-	while (--nob >= 0)		/* strip trailing whitespace */
-		if (!isspace(knl_buffer[nob]))
-			break;
-
-	if (nob < 0)			/* empty string */
-		return -EINVAL;
-
-	if (nob == knl_buffer_nob)	/* no space to terminate */
-		return -EOVERFLOW;
-
-	knl_buffer[nob + 1] = 0;	/* terminate */
-	return 0;
-}
-EXPORT_SYMBOL(cfs_trace_copyin_string);
-
 int cfs_trace_copyout_string(char __user *usr_buffer, int usr_buffer_nob,
 			     const char *knl_buffer, char *append)
 {
@@ -977,26 +949,20 @@ EXPORT_SYMBOL(cfs_trace_copyout_string);
 int cfs_trace_dump_debug_buffer_usrstr(void __user *usr_str, int usr_str_nob)
 {
 	char *str;
+	char *path;
 	int rc;
 
-	if (usr_str_nob >= 2 * PAGE_SIZE)
-		return -EINVAL;
-	str = kzalloc(usr_str_nob + 1, GFP_KERNEL);
+	str = memdup_user_nul(usr_str, usr_str_nob);
 	if (!str)
 		return -ENOMEM;
 
-	rc = cfs_trace_copyin_string(str, usr_str_nob + 1,
-				     usr_str, usr_str_nob);
-	if (rc)
-		goto out;
-
-	if (str[0] != '/') {
+	path = strim(str);
+	if (path[0] != '/')
 		rc = -EINVAL;
-		goto out;
-	}
-	rc = cfs_tracefile_dump_all_pages(str);
-out:
+	else
+		rc = cfs_tracefile_dump_all_pages(str);
 	kfree(str);
+
 	return rc;
 }
 
@@ -1045,18 +1011,13 @@ int cfs_trace_daemon_command_usrstr(void __user *usr_str, int usr_str_nob)
 	char *str;
 	int rc;
 
-	if (usr_str_nob >= 2 * PAGE_SIZE)
-		return -EINVAL;
-	str = kzalloc(usr_str_nob + 1, GFP_KERNEL);
+	str = memdup_user_nul(usr_str, usr_str_nob);
 	if (!str)
 		return -ENOMEM;
 
-	rc = cfs_trace_copyin_string(str, usr_str_nob + 1,
-				     usr_str, usr_str_nob);
-	if (!rc)
-		rc = cfs_trace_daemon_command(str);
-
+	rc = cfs_trace_daemon_command(str);
 	kfree(str);
+
 	return rc;
 }
 

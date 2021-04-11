@@ -59,8 +59,6 @@ void cfs_trace_stop_thread(void);
 int cfs_tracefile_init(int max_pages);
 void cfs_tracefile_exit(void);
 
-int cfs_trace_copyin_string(char *knl_buffer, int knl_buffer_nob,
-			    const char __user *usr_buffer, int usr_buffer_nob);
 int cfs_trace_copyout_string(char __user *usr_buffer, int usr_buffer_nob,
 			     const char *knl_str, char *append);
 int cfs_trace_dump_debug_buffer_usrstr(void __user *usr_str, int usr_str_nob);

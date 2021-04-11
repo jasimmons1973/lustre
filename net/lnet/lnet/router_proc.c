@@ -743,7 +743,7 @@ struct lnet_portal_rotors {
 	const char	*pr_desc;
 };
 
-static struct lnet_portal_rotors	portal_rotors[] = {
+static struct lnet_portal_rotors portal_rotors[] = {
 	{
 		.pr_value = LNET_PTL_ROTOR_OFF,
 		.pr_name  = "OFF",
@@ -783,11 +783,11 @@ static int proc_lnet_portal_rotor(struct ctl_table *table, int write,
 	int rc;
 	int i;
 
-	buf = kmalloc(buf_len, GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
 	if (!write) {
+		buf = kmalloc(buf_len, GFP_KERNEL);
+		if (!buf)
+			return -ENOMEM;
+
 		lnet_res_lock(0);
 
 		for (i = 0; portal_rotors[i].pr_value >= 0; i++) {
@@ -810,12 +810,14 @@ static int proc_lnet_portal_rotor(struct ctl_table *table, int write,
 			rc = cfs_trace_copyout_string(buffer, nob,
 						      buf + pos, "\n");
 		}
-		goto out;
+		kfree(buf);
+
+		return rc;
 	}
 
-	rc = cfs_trace_copyin_string(buf, buf_len, buffer, nob);
-	if (rc < 0)
-		goto out;
+	buf = memdup_user_nul(buffer, nob);
+	if (!buf)
+		return -ENOMEM;
 
 	tmp = strim(buf);
 
@@ -830,8 +832,8 @@ static int proc_lnet_portal_rotor(struct ctl_table *table, int write,
 		}
 	}
 	lnet_res_unlock(0);
-out:
 	kfree(buf);
+
 	return rc;
 }
 
