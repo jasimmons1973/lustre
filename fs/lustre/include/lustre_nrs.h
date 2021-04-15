@@ -681,6 +681,7 @@ struct cfs_binheap_node {
 	/** Index into the binary tree */
 	unsigned int	chn_index;
 };
+#include <lustre_nrs_delay.h>
 
 /**
  * NRS request
@@ -706,6 +707,7 @@ struct ptlrpc_nrs_request {
 	unsigned int			nr_enqueued:1;
 	unsigned int			nr_started:1;
 	unsigned int			nr_finalized:1;
+	struct cfs_binheap_node		nr_node;
 
 	/**
 	 * Policy-specific fields, used for determining a request's scheduling
@@ -716,6 +718,10 @@ struct ptlrpc_nrs_request {
 		 * Fields for the FIFO policy
 		 */
 		struct nrs_fifo_req	fifo;
+		/**
+		 * Fields for the delay policy
+		 */
+		struct nrs_delay_req	delay;
 	} nr_u;
 	/**
 	 * Externally-registering policies may want to use this to allocate

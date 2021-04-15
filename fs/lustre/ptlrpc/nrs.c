@@ -1579,6 +1579,10 @@ int ptlrpc_nrs_init(void)
 	if (rc != 0)
 		goto fail;
 
+	rc = ptlrpc_nrs_policy_register(&nrs_conf_delay);
+	if (rc != 0)
+		goto fail;
+
 	return rc;
 fail:
 	/**

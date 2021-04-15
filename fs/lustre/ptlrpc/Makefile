@@ -16,7 +16,7 @@ ptlrpc_objs += llog_net.o llog_client.o import.o ptlrpcd.o
 ptlrpc_objs += pers.o lproc_ptlrpc.o wiretest.o layout.o
 ptlrpc_objs += sec.o sec_bulk.o sec_gc.o sec_config.o
 ptlrpc_objs += sec_null.o sec_plain.o
-ptlrpc_objs += heap.o nrs.o nrs_fifo.o
+ptlrpc_objs += heap.o nrs.o nrs_fifo.o nrs_delay.o
 
 ptlrpc-y := $(ldlm_objs) $(ptlrpc_objs) sec_lproc.o
 ptlrpc-$(CONFIG_LUSTRE_TRANSLATE_ERRNOS) += errno.o

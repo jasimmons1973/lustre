@@ -46,6 +46,8 @@ struct ptlrpc_request_set;
 extern int test_req_buffer_pressure;
 extern struct mutex ptlrpc_all_services_mutex;
 extern struct list_head ptlrpc_all_services;
+extern struct ptlrpc_nrs_pol_conf nrs_conf_fifo;
+extern struct ptlrpc_nrs_pol_conf nrs_conf_delay;
 
 extern struct mutex ptlrpcd_mutex;
 extern struct mutex pinger_mutex;
@@ -231,9 +233,6 @@ struct ptlrpc_nrs_policy *nrs_request_policy(struct ptlrpc_nrs_request *nrq)
 #define LPROCFS_NRS_WR_QUANTUM_MAX_CMD					       \
 	sizeof(NRS_LPROCFS_QUANTUM_NAME_REG __stringify(LPROCFS_NRS_QUANTUM_MAX) " "  \
 	       NRS_LPROCFS_QUANTUM_NAME_HP __stringify(LPROCFS_NRS_QUANTUM_MAX))
-
-/* ptlrpc/nrs_fifo.c */
-extern struct ptlrpc_nrs_pol_conf nrs_conf_fifo;
 
 /* recovd_thread.c */
 
