@@ -2986,7 +2986,7 @@ int ll_get_obd_name(struct inode *inode, unsigned int cmd, unsigned long arg)
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	struct obd_device *obd;
 
-	if (cmd == OBD_IOC_GETDTNAME)
+	if (cmd == OBD_IOC_GETNAME_OLD || cmd == OBD_IOC_GETDTNAME)
 		obd = class_exp2obd(sbi->ll_dt_exp);
 	else if (cmd == OBD_IOC_GETMDNAME)
 		obd = class_exp2obd(sbi->ll_md_exp);
