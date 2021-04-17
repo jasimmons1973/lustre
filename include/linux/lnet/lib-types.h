@@ -868,7 +868,7 @@ struct lnet_route {
 	/* route priority */
 	unsigned int		lr_priority;
 	/* cached route aliveness */
-	bool			lr_alive;
+	atomic_t		lr_alive;
 	/* this route is single-hop */
 	bool			lr_single_hop;
 };
