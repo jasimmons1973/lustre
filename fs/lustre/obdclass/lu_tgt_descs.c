@@ -298,7 +298,7 @@ void lu_tgt_descs_fini(struct lu_tgt_descs *ltd)
 	int i;
 
 	bitmap_free(ltd->ltd_tgt_bitmap);
-	for (i = 0; i < TGT_PTRS; i++)
+	for (i = 0; i < ARRAY_SIZE(ltd->ltd_tgt_idx); i++)
 		kfree(ltd->ltd_tgt_idx[i]);
 	ltd->ltd_tgts_size = 0;
 }
@@ -367,6 +367,9 @@ int ltd_add_tgt(struct lu_tgt_descs *ltd, struct lu_tgt_desc *tgt)
 
 	if (index >= ltd->ltd_tgts_size) {
 		u32 newsize = 1;
+
+		if (index > TGT_PTRS * TGT_PTRS_PER_BLOCK)
+			return -ENFILE;
 
 		while (newsize < index + 1)
 			newsize = newsize << 1;
