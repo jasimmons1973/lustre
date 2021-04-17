@@ -1127,6 +1127,9 @@ void ptlrpc_set_add_req(struct ptlrpc_request_set *set,
 	LASSERT(req->rq_import->imp_state != LUSTRE_IMP_IDLE);
 	LASSERT(list_empty(&req->rq_set_chain));
 
+	if (req->rq_allow_intr)
+		set->set_allow_intr = 1;
+
 	/* The set takes over the caller's request reference */
 	list_add_tail(&req->rq_set_chain, &set->set_requests);
 	req->rq_set = set;
@@ -1725,6 +1728,7 @@ int ptlrpc_check_set(const struct lu_env *env, struct ptlrpc_request_set *set)
 	list_for_each_entry_safe(req, next, &set->set_requests, rq_set_chain) {
 		struct obd_import *imp = req->rq_import;
 		int unregistered = 0;
+		int async = 1;
 		int rc = 0;
 
 		/*
@@ -1735,6 +1739,24 @@ int ptlrpc_check_set(const struct lu_env *env, struct ptlrpc_request_set *set)
 		 * explicit schedule point to make the thread well-behaved.
 		 */
 		cond_resched();
+
+		/*
+		 * If the caller requires to allow to be interpreted by force
+		 * and it has really been interpreted, then move the request
+		 * to RQ_PHASE_INTERPRET phase in spite of what the current
+		 * phase is.
+		 */
+		if (unlikely(req->rq_allow_intr && req->rq_intr)) {
+			req->rq_status = -EINTR;
+			ptlrpc_rqphase_move(req, RQ_PHASE_INTERPRET);
+
+			/*
+			 * Since it is interpreted and we have to wait for
+			 * the reply to be unlinked, then use sync mode.
+			 */
+			async = 0;
+			goto interpret;
+		}
 
 		if (req->rq_phase == RQ_PHASE_NEW &&
 		    ptlrpc_send_new_req(req)) {
@@ -2067,13 +2089,13 @@ interpret:
 		 * This moves to "unregistering" phase we need to wait for
 		 * reply unlink.
 		 */
-		if (!unregistered && !ptlrpc_unregister_reply(req, 1)) {
+		if (!unregistered && !ptlrpc_unregister_reply(req, async)) {
 			/* start async bulk unlink too */
 			ptlrpc_unregister_bulk(req, 1);
 			continue;
 		}
 
-		if (!ptlrpc_unregister_bulk(req, 1))
+		if (!ptlrpc_unregister_bulk(req, async))
 			continue;
 
 		/* When calling interpret receive should already be finished. */
@@ -2271,8 +2293,12 @@ static void ptlrpc_interrupted_set(struct ptlrpc_request_set *set)
 
 	CDEBUG(D_RPCTRACE, "INTERRUPTED SET %p\n", set);
 	list_for_each_entry(req, &set->set_requests, rq_set_chain) {
+		if (req->rq_intr)
+			continue;
+
 		if (req->rq_phase != RQ_PHASE_RPC &&
-		    req->rq_phase != RQ_PHASE_UNREG_RPC)
+		    req->rq_phase != RQ_PHASE_UNREG_RPC &&
+		    !req->rq_allow_intr)
 			continue;
 
 		spin_lock(&req->rq_lock);
@@ -2368,7 +2394,8 @@ int ptlrpc_set_wait(const struct lu_env *env, struct ptlrpc_request_set *set)
 		CDEBUG(D_RPCTRACE, "set %p going to sleep for %lld seconds\n",
 		       set, timeout);
 
-		if (timeout == 0 && !signal_pending(current)) {
+		if ((timeout == 0 && !signal_pending(current)) ||
+		    set->set_allow_intr) {
 			/*
 			 * No requests are in-flight (ether timed out
 			 * or delayed), so we can allow interrupts.
