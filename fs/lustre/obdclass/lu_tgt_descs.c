@@ -77,13 +77,6 @@ u64 lu_prandom_u64_max(u64 ep_ro)
 }
 EXPORT_SYMBOL(lu_prandom_u64_max);
 
-void lu_qos_rr_init(struct lu_qos_rr *lqr)
-{
-	spin_lock_init(&lqr->lqr_alloc);
-	set_bit(LQ_DIRTY, &lqr->lqr_flags);
-}
-EXPORT_SYMBOL(lu_qos_rr_init);
-
 /**
  * Add a new target to Quality of Service (QoS) target table.
  *
@@ -159,7 +152,6 @@ int lu_qos_add_tgt(struct lu_qos *qos, struct lu_tgt_desc *tgt)
 	list_add_tail(&svr->lsq_svr_list, &tempsvr->lsq_svr_list);
 
 	set_bit(LQ_DIRTY, &qos->lq_flags);
-	set_bit(LQ_DIRTY, &qos->lq_rr.lqr_flags);
 out:
 	up_write(&qos->lq_rw_sem);
 	return rc;
@@ -200,7 +192,6 @@ static int lu_qos_del_tgt(struct lu_qos *qos, struct lu_tgt_desc *ltd)
 	}
 
 	set_bit(LQ_DIRTY, &qos->lq_flags);
-	set_bit(LQ_DIRTY, &qos->lq_rr.lqr_flags);
 out:
 	up_write(&qos->lq_rw_sem);
 	return rc;
@@ -281,8 +272,6 @@ int lu_tgt_descs_init(struct lu_tgt_descs *ltd, bool is_mdt)
 	ltd->ltd_is_mdt = is_mdt;
 	if (is_mdt)
 		ltd->ltd_lmv_desc.ld_pattern = LMV_HASH_TYPE_DEFAULT;
-
-	lu_qos_rr_init(&ltd->ltd_qos.lq_rr);
 
 	return 0;
 }

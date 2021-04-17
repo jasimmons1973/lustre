@@ -1413,16 +1413,6 @@ enum lq_flag {
 	LQ_RESET,		/* zero current penalties */
 };
 
-/* round-robin QoS data for LOD/LMV */
-struct lu_qos_rr {
-	spinlock_t		 lqr_alloc;	/* protect allocation index */
-	u32			 lqr_start_idx;	/* start index of new inode */
-	u32			 lqr_offset_idx;/* aliasing for start_idx */
-	int			 lqr_start_count;/* reseed counter */
-	struct lu_tgt_pool	 lqr_pool;	/* round-robin optimized list */
-	unsigned long		 lqr_flags;
-};
-
 /* QoS data per MDS/OSS */
 struct lu_svr_qos {
 	struct obd_uuid		 lsq_uuid;	/* ptlrpc's c_remote_uuid */
@@ -1484,12 +1474,11 @@ struct lu_tgt_desc_idx {
 
 /* QoS data for LOD/LMV */
 struct lu_qos {
-	struct list_head	 lq_svr_list;	 /* lu_svr_qos list */
-	struct rw_semaphore	 lq_rw_sem;
-	u32			 lq_active_svr_count;
-	unsigned int		 lq_prio_free;	 /* priority for free space */
-	unsigned int		 lq_threshold_rr;/* priority for rr */
-	struct lu_qos_rr	 lq_rr;		 /* round robin qos data */
+	struct list_head	lq_svr_list;	 /* lu_svr_qos list */
+	struct rw_semaphore	lq_rw_sem;
+	u32			lq_active_svr_count;
+	unsigned int		lq_prio_free;	 /* priority for free space */
+	unsigned int		lq_threshold_rr;/* priority for rr */
 	unsigned long		lq_flags;
 };
 
@@ -1525,7 +1514,6 @@ struct lu_tgt_descs {
 		ldi_tgt[(index) % TGT_PTRS_PER_BLOCK]
 
 u64 lu_prandom_u64_max(u64 ep_ro);
-void lu_qos_rr_init(struct lu_qos_rr *lqr);
 int lu_qos_add_tgt(struct lu_qos *qos, struct lu_tgt_desc *ltd);
 void lu_tgt_qos_weight_calc(struct lu_tgt_desc *tgt);
 
