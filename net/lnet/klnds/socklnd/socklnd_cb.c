@@ -23,6 +23,7 @@
  */
 
 #include <linux/sched/mm.h>
+#include <linux/sunrpc/addr.h>
 #include "socklnd.h"
 
 struct ksock_tx *
@@ -532,19 +533,17 @@ simulate_error:
 	if (!conn->ksnc_closing) {
 		switch (rc) {
 		case -ECONNRESET:
-			LCONSOLE_WARN("Host %pI4h reset our connection while we were sending data; it may have rebooted.\n",
-				      &conn->ksnc_ipaddr);
+			LCONSOLE_WARN("Host %pIS reset our connection while we were sending data; it may have rebooted.\n",
+				      &conn->ksnc_peeraddr);
 			break;
 		default:
-			LCONSOLE_WARN("There was an unexpected network error while writing to %pI4h: %d.\n",
-				      &conn->ksnc_ipaddr, rc);
+			LCONSOLE_WARN("There was an unexpected network error while writing to %pIS: %d.\n",
+				      &conn->ksnc_peeraddr, rc);
 			break;
 		}
-		CDEBUG(D_NET, "[%p] Error %d on write to %s ip %pI4h:%d\n",
-		       conn, rc,
-		       libcfs_id2str(conn->ksnc_peer->ksnp_id),
-		       &conn->ksnc_ipaddr,
-		       conn->ksnc_port);
+		CDEBUG(D_NET, "[%p] Error %d on write to %s ip %pISp\n",
+		       conn, rc, libcfs_id2str(conn->ksnc_peer->ksnp_id),
+		       &conn->ksnc_peeraddr);
 	}
 
 	if (tx->tx_zc_checked)
@@ -676,9 +675,9 @@ ksocknal_queue_tx_locked(struct ksock_tx *tx, struct ksock_conn *conn)
 	 */
 	LASSERT(!conn->ksnc_closing);
 
-	CDEBUG(D_NET, "Sending to %s ip %pI4h:%d\n",
+	CDEBUG(D_NET, "Sending to %s ip %pISp\n",
 	       libcfs_id2str(conn->ksnc_peer->ksnp_id),
-	       &conn->ksnc_ipaddr, conn->ksnc_port);
+	       &conn->ksnc_peeraddr);
 
 	ksocknal_tx_prep(conn, tx);
 
@@ -774,8 +773,8 @@ ksocknal_find_connectable_route_locked(struct ksock_peer_ni *peer_ni)
 		if (!(!route->ksnr_retry_interval || /* first attempt */
 		      now >= route->ksnr_timeout)) {
 			CDEBUG(D_NET,
-			       "Too soon to retry route %pI4h (cnted %d, interval %lld, %lld secs later)\n",
-			       &route->ksnr_ipaddr,
+			       "Too soon to retry route %pIS (cnted %d, interval %lld, %lld secs later)\n",
+			       &route->ksnr_addr,
 			       route->ksnr_connected,
 			       route->ksnr_retry_interval,
 			       route->ksnr_timeout - now);
@@ -1081,20 +1080,20 @@ again:
 		rc = ksocknal_receive(conn);
 
 		if (rc <= 0) {
+			struct lnet_process_id ksnp_id;
+
+			ksnp_id = conn->ksnc_peer->ksnp_id;
+
 			LASSERT(rc != -EAGAIN);
 
 			if (!rc)
-				CDEBUG(D_NET, "[%p] EOF from %s ip %pI4h:%d\n",
-				       conn,
-				       libcfs_id2str(conn->ksnc_peer->ksnp_id),
-				       &conn->ksnc_ipaddr,
-				       conn->ksnc_port);
+				CDEBUG(D_NET, "[%p] EOF from %s ip %pISp\n",
+				       conn, libcfs_id2str(ksnp_id),
+				       &conn->ksnc_peeraddr);
 			else if (!conn->ksnc_closing)
-				CERROR("[%p] Error %d on read from %s ip %pI4h:%d\n",
-				       conn, rc,
-				       libcfs_id2str(conn->ksnc_peer->ksnp_id),
-				       &conn->ksnc_ipaddr,
-				       conn->ksnc_port);
+				CERROR("[%p] Error %d on read from %s ip %pISp\n",
+				       conn, rc, libcfs_id2str(ksnp_id),
+				       &conn->ksnc_peeraddr);
 
 			/* it's not an error if conn is being closed */
 			ksocknal_close_conn_and_siblings(conn,
@@ -1647,8 +1646,8 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 	rc = lnet_sock_read(sock, &hello->kshm_magic,
 			    sizeof(hello->kshm_magic), timeout);
 	if (rc) {
-		CERROR("Error %d reading HELLO from %pI4h\n",
-		       rc, &conn->ksnc_ipaddr);
+		CERROR("Error %d reading HELLO from %pIS\n",
+		       rc, &conn->ksnc_peeraddr);
 		LASSERT(rc < 0);
 		return rc;
 	}
@@ -1657,18 +1656,17 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 	    hello->kshm_magic != __swab32(LNET_PROTO_MAGIC) &&
 	    hello->kshm_magic != le32_to_cpu(LNET_PROTO_TCP_MAGIC)) {
 		/* Unexpected magic! */
-		CERROR("Bad magic(1) %#08x (%#08x expected) from %pI4h\n",
+		CERROR("Bad magic(1) %#08x (%#08x expected) from %pIS\n",
 		       __cpu_to_le32(hello->kshm_magic),
-		       LNET_PROTO_TCP_MAGIC,
-		       &conn->ksnc_ipaddr);
+		       LNET_PROTO_TCP_MAGIC, &conn->ksnc_peeraddr);
 		return -EPROTO;
 	}
 
 	rc = lnet_sock_read(sock, &hello->kshm_version,
 			    sizeof(hello->kshm_version), timeout);
 	if (rc) {
-		CERROR("Error %d reading HELLO from %pI4h\n",
-		       rc, &conn->ksnc_ipaddr);
+		CERROR("Error %d reading HELLO from %pIS\n",
+		       rc, &conn->ksnc_peeraddr);
 		LASSERT(rc < 0);
 		return rc;
 	}
@@ -1690,9 +1688,9 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 			ksocknal_send_hello(ni, conn, ni->ni_nid, hello);
 		}
 
-		CERROR("Unknown protocol version (%d.x expected) from %pI4h\n",
+		CERROR("Unknown protocol version (%d.x expected) from %pIS\n",
 		       conn->ksnc_proto->pro_version,
-		       &conn->ksnc_ipaddr);
+		       &conn->ksnc_peeraddr);
 
 		return -EPROTO;
 	}
@@ -1703,8 +1701,8 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 	/* receive the rest of hello message anyway */
 	rc = conn->ksnc_proto->pro_recv_hello(conn, hello, timeout);
 	if (rc) {
-		CERROR("Error %d reading or checking hello from from %pI4h\n",
-		       rc, &conn->ksnc_ipaddr);
+		CERROR("Error %d reading or checking hello from from %pIS\n",
+		       rc, &conn->ksnc_peeraddr);
 		LASSERT(rc < 0);
 		return rc;
 	}
@@ -1712,17 +1710,21 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 	*incarnation = hello->kshm_src_incarnation;
 
 	if (hello->kshm_src_nid == LNET_NID_ANY) {
-		CERROR("Expecting a HELLO hdr with a NID, but got LNET_NID_ANY from %pI4h\n",
-		       &conn->ksnc_ipaddr);
+		CERROR("Expecting a HELLO hdr with a NID, but got LNET_NID_ANY from %pIS\n",
+		       &conn->ksnc_peeraddr);
 		return -EPROTO;
 	}
 
 	if (!active &&
-	    conn->ksnc_port > LNET_ACCEPTOR_MAX_RESERVED_PORT) {
+	    rpc_get_port((struct sockaddr *)&conn->ksnc_peeraddr) >
+	    LNET_ACCEPTOR_MAX_RESERVED_PORT) {
 		/* Userspace NAL assigns peer_ni process ID from socket */
-		recv_id.pid = conn->ksnc_port | LNET_PID_USERFLAG;
+		recv_id.pid = rpc_get_port((struct sockaddr *)
+					   &conn->ksnc_peeraddr) |
+					   LNET_PID_USERFLAG;
 		recv_id.nid = LNET_MKNID(LNET_NIDNET(ni->ni_nid),
-					 conn->ksnc_ipaddr);
+					 ntohl(((struct sockaddr_in *)
+					 &conn->ksnc_peeraddr)->sin_addr.s_addr));
 	} else {
 		recv_id.nid = hello->kshm_src_nid;
 		recv_id.pid = hello->kshm_src_pid;
@@ -1734,9 +1736,9 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 		/* peer_ni determines type */
 		conn->ksnc_type = ksocknal_invert_type(hello->kshm_ctype);
 		if (conn->ksnc_type == SOCKLND_CONN_NONE) {
-			CERROR("Unexpected type %d from %s ip %pI4h\n",
+			CERROR("Unexpected type %d from %s ip %pIS\n",
 			       hello->kshm_ctype, libcfs_id2str(*peerid),
-			       &conn->ksnc_ipaddr);
+			       &conn->ksnc_peeraddr);
 			return -EPROTO;
 		}
 
@@ -1745,9 +1747,10 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 
 	if (peerid->pid != recv_id.pid ||
 	    peerid->nid != recv_id.nid) {
-		LCONSOLE_ERROR_MSG(0x130, "Connected successfully to %s on host %pI4h, but they claimed they were %s; please check your Lustre configuration.\n",
+		LCONSOLE_ERROR_MSG(0x130,
+				   "Connected successfully to %s on host %pIS, but they claimed they were %s; please check your Lustre configuration.\n",
 				   libcfs_id2str(*peerid),
-				   &conn->ksnc_ipaddr,
+				   &conn->ksnc_peeraddr,
 				   libcfs_id2str(recv_id));
 		return -EPROTO;
 	}
@@ -1758,9 +1761,9 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 	}
 
 	if (ksocknal_invert_type(hello->kshm_ctype) != conn->ksnc_type) {
-		CERROR("Mismatched types: me %d, %s ip %pI4h %d\n",
+		CERROR("Mismatched types: me %d, %s ip %pIS %d\n",
 		       conn->ksnc_type, libcfs_id2str(*peerid),
-		       &conn->ksnc_ipaddr, hello->kshm_ctype);
+		       &conn->ksnc_peeraddr, hello->kshm_ctype);
 		return -EPROTO;
 	}
 
@@ -1829,14 +1832,14 @@ ksocknal_connect(struct ksock_route *route)
 		if (ktime_get_seconds() >= deadline) {
 			rc = -ETIMEDOUT;
 			lnet_connect_console_error(rc, peer_ni->ksnp_id.nid,
-						   route->ksnr_ipaddr,
-						   route->ksnr_port);
+						   (struct sockaddr *)
+						   &route->ksnr_addr);
 			goto failed;
 		}
 
 		sock = lnet_connect(peer_ni->ksnp_id.nid,
 				    route->ksnr_myiface,
-				    route->ksnr_ipaddr, route->ksnr_port,
+				    (struct sockaddr *)&route->ksnr_addr,
 				    peer_ni->ksnp_ni->ni_net_ns);
 		if (IS_ERR(sock)) {
 			rc = PTR_ERR(sock);
@@ -1846,8 +1849,8 @@ ksocknal_connect(struct ksock_route *route)
 		rc = ksocknal_create_conn(peer_ni->ksnp_ni, route, sock, type);
 		if (rc < 0) {
 			lnet_connect_console_error(rc, peer_ni->ksnp_id.nid,
-						   route->ksnr_ipaddr,
-						   route->ksnr_port);
+						   (struct sockaddr *)
+						   &route->ksnr_addr);
 			goto failed;
 		}
 
@@ -2135,8 +2138,8 @@ ksocknal_connd(void *arg)
 			if (ksocknal_connect(route)) {
 				/* consecutive retry */
 				if (cons_retry++ > SOCKNAL_INSANITY_RECONN) {
-					CWARN("massive consecutive re-connecting to %pI4h\n",
-					      &route->ksnr_ipaddr);
+					CWARN("massive consecutive re-connecting to %pIS\n",
+					      &route->ksnr_addr);
 					cons_retry = 0;
 				}
 			} else {
@@ -2195,23 +2198,20 @@ ksocknal_find_timed_out_conn(struct ksock_peer_ni *peer_ni)
 
 			switch (error) {
 			case ECONNRESET:
-				CNETERR("A connection with %s (%pI4h:%d) was reset; it may have rebooted.\n",
+				CNETERR("A connection with %s (%pISp) was reset; it may have rebooted.\n",
 					libcfs_id2str(peer_ni->ksnp_id),
-					&conn->ksnc_ipaddr,
-					conn->ksnc_port);
+					&conn->ksnc_peeraddr);
 				break;
 			case ETIMEDOUT:
-				CNETERR("A connection with %s (%pI4h:%d) timed out; the network or node may be down.\n",
+				CNETERR("A connection with %s (%pISp) timed out; the network or node may be down.\n",
 					libcfs_id2str(peer_ni->ksnp_id),
-					&conn->ksnc_ipaddr,
-					conn->ksnc_port);
+					&conn->ksnc_peeraddr);
 				break;
 			default:
-				CNETERR("An unexpected network error %d occurred with %s (%pI4h:%d\n",
+				CNETERR("An unexpected network error %d occurred with %s (%pISp\n",
 					error,
 					libcfs_id2str(peer_ni->ksnp_id),
-					&conn->ksnc_ipaddr,
-					conn->ksnc_port);
+					&conn->ksnc_peeraddr);
 				break;
 			}
 
@@ -2222,10 +2222,9 @@ ksocknal_find_timed_out_conn(struct ksock_peer_ni *peer_ni)
 		    ktime_get_seconds() >= conn->ksnc_rx_deadline) {
 			/* Timed out incomplete incoming message */
 			ksocknal_conn_addref(conn);
-			CNETERR("Timeout receiving from %s (%pI4h:%d), state %d wanted %zd left %d\n",
+			CNETERR("Timeout receiving from %s (%pISp), state %d wanted %zd left %d\n",
 				libcfs_id2str(peer_ni->ksnp_id),
-				&conn->ksnc_ipaddr,
-				conn->ksnc_port,
+				&conn->ksnc_peeraddr,
 				conn->ksnc_rx_state,
 				iov_iter_count(&conn->ksnc_rx_to),
 				conn->ksnc_rx_nob_left);
@@ -2244,10 +2243,9 @@ ksocknal_find_timed_out_conn(struct ksock_peer_ni *peer_ni)
 					    tx_list)
 				tx->tx_hstatus =
 					LNET_MSG_STATUS_LOCAL_TIMEOUT;
-			CNETERR("Timeout sending data to %s (%pI4h:%d) the network or that node may be down.\n",
+			CNETERR("Timeout sending data to %s (%pISp) the network or that node may be down.\n",
 				libcfs_id2str(peer_ni->ksnp_id),
-				&conn->ksnc_ipaddr,
-				conn->ksnc_port);
+				&conn->ksnc_peeraddr);
 			return conn;
 		}
 	}

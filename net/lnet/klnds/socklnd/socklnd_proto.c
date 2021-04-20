@@ -499,8 +499,8 @@ ksocknal_send_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 
 	rc = lnet_sock_write(sock, hdr, sizeof(*hdr), lnet_acceptor_timeout());
 	if (rc) {
-		CNETERR("Error %d sending HELLO hdr to %pI4h/%d\n",
-			rc, &conn->ksnc_ipaddr, conn->ksnc_port);
+		CNETERR("Error %d sending HELLO hdr to %pISp\n",
+			rc, &conn->ksnc_peeraddr);
 		goto out;
 	}
 
@@ -514,9 +514,9 @@ ksocknal_send_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 			     hello->kshm_nips * sizeof(u32),
 			     lnet_acceptor_timeout());
 	if (rc) {
-		CNETERR("Error %d sending HELLO payload (%d) to %pI4h/%d\n",
+		CNETERR("Error %d sending HELLO payload (%d) to %pISp\n",
 			rc, hello->kshm_nips,
-			&conn->ksnc_ipaddr, conn->ksnc_port);
+			&conn->ksnc_peeraddr);
 	}
 out:
 	kfree(hdr);
@@ -542,8 +542,8 @@ ksocknal_send_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 	rc = lnet_sock_write(sock, hello, offsetof(struct ksock_hello_msg, kshm_ips),
 			     lnet_acceptor_timeout());
 	if (rc) {
-		CNETERR("Error %d sending HELLO hdr to %pI4h/%d\n",
-			rc, &conn->ksnc_ipaddr, conn->ksnc_port);
+		CNETERR("Error %d sending HELLO hdr to %pISp\n",
+			rc, &conn->ksnc_peeraddr);
 		return rc;
 	}
 
@@ -554,9 +554,9 @@ ksocknal_send_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 			     hello->kshm_nips * sizeof(u32),
 			     lnet_acceptor_timeout());
 	if (rc) {
-		CNETERR("Error %d sending HELLO payload (%d) to %pI4h/%d\n",
+		CNETERR("Error %d sending HELLO payload (%d) to %pISp\n",
 			rc, hello->kshm_nips,
-			&conn->ksnc_ipaddr, conn->ksnc_port);
+			&conn->ksnc_peeraddr);
 	}
 
 	return rc;
@@ -581,17 +581,17 @@ ksocknal_recv_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 			    sizeof(*hdr) - offsetof(struct lnet_hdr, src_nid),
 			    timeout);
 	if (rc) {
-		CERROR("Error %d reading rest of HELLO hdr from %pI4h\n",
-		       rc, &conn->ksnc_ipaddr);
+		CERROR("Error %d reading rest of HELLO hdr from %pIS\n",
+		       rc, &conn->ksnc_peeraddr);
 		LASSERT(rc < 0 && rc != -EALREADY);
 		goto out;
 	}
 
 	/* ...and check we got what we expected */
 	if (hdr->type != cpu_to_le32(LNET_MSG_HELLO)) {
-		CERROR("Expecting a HELLO hdr, but got type %d from %pI4h\n",
+		CERROR("Expecting a HELLO hdr, but got type %d from %pIS\n",
 		       le32_to_cpu(hdr->type),
-		       &conn->ksnc_ipaddr);
+		       &conn->ksnc_peeraddr);
 		rc = -EPROTO;
 		goto out;
 	}
@@ -603,8 +603,8 @@ ksocknal_recv_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 	hello->kshm_nips = le32_to_cpu(hdr->payload_length) / sizeof(u32);
 
 	if (hello->kshm_nips > LNET_INTERFACES_NUM) {
-		CERROR("Bad nips %d from ip %pI4h\n",
-		       hello->kshm_nips, &conn->ksnc_ipaddr);
+		CERROR("Bad nips %d from ip %pIS\n",
+		       hello->kshm_nips, &conn->ksnc_peeraddr);
 		rc = -EPROTO;
 		goto out;
 	}
@@ -615,8 +615,8 @@ ksocknal_recv_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 	rc = lnet_sock_read(sock, hello->kshm_ips,
 			    hello->kshm_nips * sizeof(u32), timeout);
 	if (rc) {
-		CERROR("Error %d reading IPs from ip %pI4h\n",
-		       rc, &conn->ksnc_ipaddr);
+		CERROR("Error %d reading IPs from ip %pIS\n",
+		       rc, &conn->ksnc_peeraddr);
 		LASSERT(rc < 0 && rc != -EALREADY);
 		goto out;
 	}
@@ -625,8 +625,8 @@ ksocknal_recv_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 		hello->kshm_ips[i] = __le32_to_cpu(hello->kshm_ips[i]);
 
 		if (!hello->kshm_ips[i]) {
-			CERROR("Zero IP[%d] from ip %pI4h\n",
-			       i, &conn->ksnc_ipaddr);
+			CERROR("Zero IP[%d] from ip %pIS\n",
+			       i, &conn->ksnc_peeraddr);
 			rc = -EPROTO;
 			break;
 		}
@@ -655,8 +655,8 @@ ksocknal_recv_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 				     offsetof(struct ksock_hello_msg, kshm_src_nid),
 			    timeout);
 	if (rc) {
-		CERROR("Error %d reading HELLO from %pI4h\n",
-		       rc, &conn->ksnc_ipaddr);
+		CERROR("Error %d reading HELLO from %pIS\n",
+		       rc, &conn->ksnc_peeraddr);
 		LASSERT(rc < 0 && rc != -EALREADY);
 		return rc;
 	}
@@ -673,8 +673,8 @@ ksocknal_recv_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 	}
 
 	if (hello->kshm_nips > LNET_INTERFACES_NUM) {
-		CERROR("Bad nips %d from ip %pI4h\n",
-		       hello->kshm_nips, &conn->ksnc_ipaddr);
+		CERROR("Bad nips %d from ip %pIS\n",
+		       hello->kshm_nips, &conn->ksnc_peeraddr);
 		return -EPROTO;
 	}
 
@@ -684,8 +684,8 @@ ksocknal_recv_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 	rc = lnet_sock_read(sock, hello->kshm_ips,
 			    hello->kshm_nips * sizeof(u32), timeout);
 	if (rc) {
-		CERROR("Error %d reading IPs from ip %pI4h\n",
-		       rc, &conn->ksnc_ipaddr);
+		CERROR("Error %d reading IPs from ip %pIS\n",
+		       rc, &conn->ksnc_peeraddr);
 		LASSERT(rc < 0 && rc != -EALREADY);
 		return rc;
 	}
@@ -695,8 +695,8 @@ ksocknal_recv_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 			__swab32s(&hello->kshm_ips[i]);
 
 		if (!hello->kshm_ips[i]) {
-			CERROR("Zero IP[%d] from ip %pI4h\n",
-			       i, &conn->ksnc_ipaddr);
+			CERROR("Zero IP[%d] from ip %pIS\n",
+			       i, &conn->ksnc_peeraddr);
 			return -EPROTO;
 		}
 	}

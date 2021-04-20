@@ -100,7 +100,7 @@ struct ksock_sched {				/* per scheduler state */
 
 struct ksock_interface {			/* in-use interface */
 	int		ksni_index;		/* Linux interface index */
-	u32		ksni_ipaddr;		/* interface's IP address */
+	struct sockaddr_storage ksni_addr;	/* interface's address */
 	u32		ksni_netmask;		/* interface's network mask */
 	int		ksni_nroutes;		/* # routes using (active) */
 	int		ksni_npeers;		/* # peers using (passive) */
@@ -316,9 +316,8 @@ struct ksock_conn {
 	refcount_t		ksnc_sock_refcount;	/* sock refcount */
 	struct ksock_sched     *ksnc_scheduler;		/* who schedules this connection
 							 */
-	u32			ksnc_myipaddr;		/* my IP */
-	u32			ksnc_ipaddr;		/* peer_ni's IP */
-	int			ksnc_port;		/* peer_ni's port */
+	struct sockaddr_storage	ksnc_myaddr;		/* my address */
+	struct sockaddr_storage ksnc_peeraddr;		/* peer_ni's address */
 	signed int		ksnc_type:3;		/* type of connection, should be
 							 * signed value
 							 */
@@ -381,8 +380,7 @@ struct ksock_route {
 							 */
 	time64_t		ksnr_retry_interval;	/* how long between retries */
 	int			ksnr_myiface;		/* my IP */
-	u32			ksnr_ipaddr;		/* IP address to connect to */
-	int			ksnr_port;		/* port to connect to */
+	struct sockaddr_storage	ksnr_addr;		/* IP address to connect to */
 	unsigned int		ksnr_scheduled:1;	/* scheduled for attention */
 	unsigned int		ksnr_connecting:1;	/* connection establishment in
 							 * progress
@@ -624,7 +622,7 @@ void ksocknal_close_conn_locked(struct ksock_conn *conn, int why);
 void ksocknal_terminate_conn(struct ksock_conn *conn);
 void ksocknal_destroy_conn(struct ksock_conn *conn);
 int ksocknal_close_peer_conns_locked(struct ksock_peer_ni *peer_ni,
-				     u32 ipaddr, int why);
+				     struct sockaddr *peer, int why);
 int ksocknal_close_conn_and_siblings(struct ksock_conn *conn, int why);
 int ksocknal_close_matching_conns(struct lnet_process_id id, u32 ipaddr);
 struct ksock_conn *ksocknal_find_conn_locked(struct ksock_peer_ni *peer_ni,

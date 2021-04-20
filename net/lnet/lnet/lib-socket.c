@@ -267,26 +267,20 @@ lnet_sock_setbuf(struct socket *sock, int txbufsize, int rxbufsize)
 EXPORT_SYMBOL(lnet_sock_setbuf);
 
 int
-lnet_sock_getaddr(struct socket *sock, bool remote, u32 *ip, int *port)
+lnet_sock_getaddr(struct socket *sock, bool remote,
+		  struct sockaddr_storage *peer)
 {
-	struct sockaddr_in sin;
 	int rc;
 
 	if (remote)
-		rc = kernel_getpeername(sock, (struct sockaddr *)&sin);
+		rc = kernel_getpeername(sock, (struct sockaddr *)peer);
 	else
-		rc = kernel_getsockname(sock, (struct sockaddr *)&sin);
+		rc = kernel_getsockname(sock, (struct sockaddr *)peer);
 	if (rc < 0) {
 		CERROR("Error %d getting sock %s IP/port\n",
 		       rc, remote ? "peer" : "local");
 		return rc;
 	}
-
-	if (ip)
-		*ip = ntohl(sin.sin_addr.s_addr);
-
-	if (port)
-		*port = ntohs(sin.sin_port);
 
 	return 0;
 }

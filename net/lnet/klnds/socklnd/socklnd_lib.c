@@ -37,8 +37,8 @@
 int
 ksocknal_lib_get_conn_addrs(struct ksock_conn *conn)
 {
-	int rc = lnet_sock_getaddr(conn->ksnc_sock, 1, &conn->ksnc_ipaddr,
-				   &conn->ksnc_port);
+	int rc = lnet_sock_getaddr(conn->ksnc_sock, true,
+				   &conn->ksnc_peeraddr);
 
 	/* Didn't need the {get,put}connsock dance to deref ksnc_sock... */
 	LASSERT(!conn->ksnc_closing);
@@ -48,7 +48,8 @@ ksocknal_lib_get_conn_addrs(struct ksock_conn *conn)
 		return rc;
 	}
 
-	rc = lnet_sock_getaddr(conn->ksnc_sock, 0, &conn->ksnc_myipaddr, NULL);
+	rc = lnet_sock_getaddr(conn->ksnc_sock, false,
+			       &conn->ksnc_myaddr);
 	if (rc) {
 		CERROR("Error %d getting sock local IP\n", rc);
 		return rc;
