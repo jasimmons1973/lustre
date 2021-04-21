@@ -1350,7 +1350,8 @@ static int mgc_process_recover_log(struct obd_device *obd,
 	if (cfg->cfg_last_idx == 0) /* the first time */
 		nrpages = CONFIG_READ_NRPAGES_INIT;
 
-	pages = kcalloc(nrpages, sizeof(*pages), GFP_KERNEL);
+	pages = kvmalloc_array(nrpages, sizeof(*pages),
+			       GFP_KERNEL | __GFP_ZERO);
 	if (!pages) {
 		rc = -ENOMEM;
 		goto out;
@@ -1474,7 +1475,7 @@ out:
 				break;
 			__free_page(pages[i]);
 		}
-		kfree(pages);
+		kvfree(pages);
 	}
 	return rc;
 }

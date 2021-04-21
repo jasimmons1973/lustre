@@ -1302,7 +1302,8 @@ static int echo_client_kbrw(struct echo_device *ed, int rw, struct obdo *oa,
 	if (!pga)
 		return -ENOMEM;
 
-	pages = kcalloc(npages, sizeof(*pages), GFP_NOFS);
+	pages = kvmalloc_array(npages, sizeof(*pages),
+			       GFP_KERNEL | __GFP_ZERO);
 	if (!pages) {
 		kfree(pga);
 		return -ENOMEM;
@@ -1355,7 +1356,7 @@ out:
 		__free_page(pgp->pg);
 	}
 	kfree(pga);
-	kfree(pages);
+	kvfree(pages);
 	return rc;
 }
 

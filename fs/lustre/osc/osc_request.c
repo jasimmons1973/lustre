@@ -2323,7 +2323,7 @@ static void sort_brw_pages(struct brw_page **array, int num)
 static void osc_release_ppga(struct brw_page **ppga, u32 count)
 {
 	LASSERT(ppga);
-	kfree(ppga);
+	kvfree(ppga);
 }
 
 static int brw_interpret(const struct lu_env *env,
@@ -2523,7 +2523,8 @@ int osc_build_rpc(const struct lu_env *env, struct client_obd *cli,
 	if (mem_tight)
 		mpflag = memalloc_noreclaim_save();
 
-	pga = kcalloc(page_count, sizeof(*pga), GFP_NOFS);
+	pga = kvmalloc_array(page_count, sizeof(*pga),
+			     GFP_KERNEL | __GFP_ZERO);
 	if (!pga) {
 		rc = -ENOMEM;
 		goto out;

@@ -1312,7 +1312,8 @@ static int mdc_read_page_remote(void *data, struct page *page0)
 	fid = &op_data->op_fid1;
 	LASSERT(inode);
 
-	page_pool = kcalloc(max_pages, sizeof(page), GFP_NOFS);
+	page_pool = kvmalloc_array(max_pages, sizeof(page),
+				   GFP_KERNEL | __GFP_ZERO);
 	if (page_pool) {
 		page_pool[0] = page0;
 	} else {
@@ -1381,7 +1382,7 @@ static int mdc_read_page_remote(void *data, struct page *page0)
 	}
 
 	if (page_pool != &page0)
-		kfree(page_pool);
+		kvfree(page_pool);
 
 	return rc;
 }
