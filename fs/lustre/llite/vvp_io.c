@@ -798,6 +798,12 @@ static int vvp_io_read_start(const struct lu_env *env,
 	if (!can_populate_pages(env, io, inode))
 		return 0;
 
+	if (!(file->f_flags & O_DIRECT)) {
+		result = cl_io_lru_reserve(env, io, pos, cnt);
+		if (result)
+			return result;
+	}
+
 	/* Unless this is reading a sparse file, otherwise the lock has already
 	 * been acquired so vvp_prep_size() is an empty op.
 	 */
@@ -1174,6 +1180,12 @@ static int vvp_io_write_start(const struct lu_env *env,
 
 	if (OBD_FAIL_CHECK(OBD_FAIL_LLITE_IMUTEX_NOSEC) && lock_inode)
 		return -EINVAL;
+
+	if (!(file->f_flags & O_DIRECT)) {
+		result = cl_io_lru_reserve(env, io, pos, cnt);
+		if (result)
+			return result;
+	}
 
 	if (!vio->vui_iter) {
 		/* from a temp io in ll_cl_init(). */

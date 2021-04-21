@@ -86,7 +86,14 @@ static unsigned long ll_ra_count_get(struct ll_sb_info *sbi,
 	struct ll_ra_info *ra = &sbi->ll_ra_info;
 	long ret;
 
-	/* If read-ahead pages left are less than 1M, do not do read-ahead,
+	/**
+	 * Don't try readahead agreesively if we are limited
+	 * LRU pages, otherwise, it could cause deadlock.
+	 */
+	pages = min(sbi->ll_cache->ccc_lru_max >> 2, pages);
+
+	/*
+	 * If read-ahead pages left are less than 1M, do not do read-ahead,
 	 * otherwise it will form small read RPC(< 1M), which hurt server
 	 * performance a lot.
 	 */
@@ -701,11 +708,24 @@ static int ll_readahead(const struct lu_env *env, struct cl_io *io,
 	struct inode *inode;
 	struct ra_io_arg *ria = &lti->lti_ria;
 	struct cl_object *clob;
+	struct ll_sb_info *sbi;
+	struct ll_ra_info *ra;
 	int ret = 0;
 	u64 kms;
 
 	clob = io->ci_obj;
 	inode = vvp_object_inode(clob);
+	sbi = ll_i2sbi(inode);
+	ra = &sbi->ll_ra_info;
+
+	/**
+	 * In case we have a limited max_cached_mb, readahead
+	 * should be stopped if it have run out of all LRU slots.
+	 */
+	if (atomic_read(&ra->ra_cur_pages) >= sbi->ll_cache->ccc_lru_max) {
+		ll_ra_stats_inc(inode, RA_STAT_MAX_IN_FLIGHT);
+		return 0;
+	}
 
 	memset(ria, 0, sizeof(*ria));
 	ret = ll_readahead_file_kms(env, io, &kms);
@@ -1705,6 +1725,15 @@ static int kickoff_async_readahead(struct file *file, unsigned long pages)
 	unsigned long throttle;
 	pgoff_t start_idx = ras_align(ras, ras->ras_next_readahead_idx);
 	pgoff_t end_idx = start_idx + pages - 1;
+
+	/**
+	 * In case we have a limited max_cached_mb, readahead
+	 * should be stopped if it have run out of all LRU slots.
+	 */
+	if (atomic_read(&ra->ra_cur_pages) >= sbi->ll_cache->ccc_lru_max) {
+		ll_ra_stats_inc(inode, RA_STAT_MAX_IN_FLIGHT);
+		return 0;
+	}
 
 	throttle = min(ra->ra_async_pages_per_file_threshold,
 		       ra->ra_max_pages_per_file);
