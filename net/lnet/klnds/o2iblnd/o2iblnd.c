@@ -2822,20 +2822,12 @@ static int kiblnd_startup(struct lnet_ni *ni)
 	if (rc)
 		goto net_failed;
 
-	/* ni_interfaces is only to support legacy pre Multi-Rail
-	 * tcp bonding for ksocklnd. Multi-Rail wants each secondary
-	 * IP to be treated as an unique 'struct ni' interfaces instead.
+	/* Multi-Rail wants each secondary
+	 * IP to be treated as an unique 'struct ni' interface.
 	 */
-	if (ni->ni_interfaces[0]) {
+	if (ni->ni_interface) {
 		/* Use the IPoIB interface specified in 'networks=' */
-
-		if (ni->ni_interfaces[1]) {
-			CERROR("ko2iblnd: Multiple interfaces not supported\n");
-			rc = -EINVAL;
-			goto failed;
-		}
-
-		ifname = ni->ni_interfaces[0];
+		ifname = ni->ni_interface;
 	} else {
 		ifname = *kiblnd_tunables.kib_default_ipif;
 	}

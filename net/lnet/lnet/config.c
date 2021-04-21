@@ -112,24 +112,8 @@ lnet_ni_unique_net(struct list_head *nilist, char *iface)
 	list_for_each(tmp, nilist) {
 		ni = list_entry(tmp, struct lnet_ni, ni_netlist);
 
-		if (ni->ni_interfaces[0] &&
-		    strncmp(ni->ni_interfaces[0], iface, strlen(iface)) == 0)
-			return false;
-	}
-
-	return true;
-}
-
-/* check that the NI is unique to the interfaces with in the same NI.
- * This is only a consideration if use_tcp_bonding is set */
-static bool
-lnet_ni_unique_ni(char *iface_list[LNET_INTERFACES_NUM], char *iface)
-{
-	int i;
-
-	for (i = 0; i < LNET_INTERFACES_NUM; i++) {
-		if (iface_list[i] &&
-		    strncmp(iface_list[i], iface, strlen(iface)) == 0)
+		if (ni->ni_interface &&
+		    strncmp(ni->ni_interface, iface, strlen(iface)) == 0)
 			return false;
 	}
 
@@ -293,8 +277,6 @@ lnet_net_remove_cpts(u32 *cpts, u32 ncpts, struct lnet_net *net)
 void
 lnet_ni_free(struct lnet_ni *ni)
 {
-	int i;
-
 	lnet_net_remove_cpts(ni->ni_cpts, ni->ni_ncpts, ni->ni_net);
 
 	if (ni->ni_refs)
@@ -305,8 +287,7 @@ lnet_ni_free(struct lnet_ni *ni)
 
 	kfree(ni->ni_cpts);
 
-	for (i = 0; i < LNET_INTERFACES_NUM && ni->ni_interfaces[i]; i++)
-		kfree(ni->ni_interfaces[i]);
+	kfree(ni->ni_interface);
 
 	/* release reference to net namespace */
 	if (ni->ni_net_ns)
@@ -394,29 +375,25 @@ lnet_ni_add_interface(struct lnet_ni *ni, char *iface)
 	if (!ni)
 		return -ENOMEM;
 
-	if (!lnet_ni_unique_ni(ni->ni_interfaces, iface))
-		return -EINVAL;
-
 	/* Allocate a separate piece of memory and copy
 	 * into it the string, so we don't have
 	 * a depencency on the tokens string.  This way we
 	 * can free the tokens at the end of the function.
-	 * The newly allocated ni_interfaces[] can be
+	 * The newly allocated ni_interface[] can be
 	 * freed when freeing the NI */
-	while (niface < LNET_INTERFACES_NUM &&
-	       ni->ni_interfaces[niface])
+	if (ni->ni_interface)
 		niface++;
 
-	if (niface >= LNET_INTERFACES_NUM) {
+	if (niface >= 1) {
 		LCONSOLE_ERROR_MSG(0x115, "Too many interfaces "
 				   "for net %s\n",
 				   libcfs_net2str(LNET_NIDNET(ni->ni_nid)));
 		return -EINVAL;
 	}
 
-	ni->ni_interfaces[niface] = kstrdup(iface, GFP_KERNEL);
+	ni->ni_interface = kstrdup(iface, GFP_KERNEL);
 
-	if (!ni->ni_interfaces[niface]) {
+	if (!ni->ni_interface) {
 		CERROR("Can't allocate net interface name\n");
 		return -ENOMEM;
 	}
@@ -572,8 +549,7 @@ failed:
  * nilist.
  */
 int
-lnet_parse_networks(struct list_head *netlist, const char *networks,
-		    bool use_tcp_bonding)
+lnet_parse_networks(struct list_head *netlist, const char *networks)
 {
 	struct cfs_expr_list *net_el = NULL;
 	struct cfs_expr_list *ni_el = NULL;
@@ -712,8 +688,7 @@ lnet_parse_networks(struct list_head *netlist, const char *networks,
 		if (IS_ERR_OR_NULL(net))
 			goto failed;
 
-		if (!nistr ||
-		    (use_tcp_bonding && LNET_NETTYP(net_id) == SOCKLND)) {
+		if (!nistr) {
 			/*
 			 * No interface list was specified, allocate a
 			 * ni using the defaults.
@@ -792,16 +767,9 @@ lnet_parse_networks(struct list_head *netlist, const char *networks,
 				goto failed_syntax;
 			}
 
-			if (use_tcp_bonding &&
-			    LNET_NETTYP(net->net_id) == SOCKLND) {
-				rc = lnet_ni_add_interface(ni, name);
-				if (rc != 0)
-					goto failed;
-			} else {
-				ni = lnet_ni_alloc(net, ni_el, name);
-				if (IS_ERR_OR_NULL(ni))
-					goto failed;
-			}
+			ni = lnet_ni_alloc(net, ni_el, name);
+			if (IS_ERR_OR_NULL(ni))
+				goto failed;
 
 			if (ni_el) {
 				if (ni_el != net_el) {
