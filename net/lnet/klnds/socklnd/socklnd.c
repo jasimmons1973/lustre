@@ -1799,12 +1799,12 @@ ksocknal_base_shutdown(void)
 		/* flag threads to terminate; wake and wait for them to die */
 		ksocknal_data.ksnd_shuttingdown = 1;
 		wake_up_all(&ksocknal_data.ksnd_connd_waitq);
-		wake_up_all(&ksocknal_data.ksnd_reaper_waitq);
+		wake_up(&ksocknal_data.ksnd_reaper_waitq);
 
 		if (ksocknal_data.ksnd_schedulers) {
 			cfs_percpt_for_each(sched, i,
 					    ksocknal_data.ksnd_schedulers)
-					wake_up_all(&sched->kss_waitq);
+					    wake_up_all(&sched->kss_waitq);
 		}
 
 		wait_var_event_warning(&ksocknal_data.ksnd_nthreads,

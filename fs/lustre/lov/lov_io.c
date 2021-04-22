@@ -651,7 +651,7 @@ static void lov_io_fini(const struct lu_env *env, const struct cl_io_slice *ios)
 
 	LASSERT(atomic_read(&lov->lo_active_ios) > 0);
 	if (atomic_dec_and_test(&lov->lo_active_ios))
-		wake_up_all(&lov->lo_waitq);
+		wake_up(&lov->lo_waitq);
 }
 
 static void lov_io_sub_inherit(struct lov_io_sub *sub, struct lov_io *lio,
@@ -1674,7 +1674,7 @@ static void lov_empty_io_fini(const struct lu_env *env,
 	struct lov_object *lov = cl2lov(ios->cis_obj);
 
 	if (atomic_dec_and_test(&lov->lo_active_ios))
-		wake_up_all(&lov->lo_waitq);
+		wake_up(&lov->lo_waitq);
 }
 
 static int lov_empty_io_submit(const struct lu_env *env,

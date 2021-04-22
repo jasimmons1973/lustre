@@ -1187,7 +1187,7 @@ void cl_sync_io_note(const struct lu_env *env, struct cl_sync_io *anchor,
 		 * the wakeup ensures cl_sync_io_wait() doesn't complete
 		 * before the wakeup completes.
 		 */
-		wake_up_all_locked(&anchor->csi_waitq);
+		wake_up_locked(&anchor->csi_waitq);
 		if (end_io)
 			end_io(env, anchor);
 		if (anchor->csi_aio)
