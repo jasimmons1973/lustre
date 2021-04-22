@@ -4998,7 +4998,7 @@ int cl_falloc(struct inode *inode, int mode, loff_t offset, loff_t len)
 	struct lu_env *env;
 	struct cl_io *io;
 	u16 refcheck;
-	int rc; loff_t sa_falloc_end;
+	int rc;
 	loff_t size = i_size_read(inode);
 
 	env = cl_env_get(&refcheck);
@@ -5011,34 +5011,32 @@ int cl_falloc(struct inode *inode, int mode, loff_t offset, loff_t len)
 	io->u.ci_setattr.sa_parent_fid = lu_object_fid(&io->ci_obj->co_lu);
 	io->u.ci_setattr.sa_falloc_mode = mode;
 	io->u.ci_setattr.sa_falloc_offset = offset;
-	io->u.ci_setattr.sa_falloc_len = len;
-	io->u.ci_setattr.sa_falloc_end = io->u.ci_setattr.sa_falloc_offset +
-					 io->u.ci_setattr.sa_falloc_len;
+	io->u.ci_setattr.sa_falloc_end = offset + len;
 	io->u.ci_setattr.sa_subtype = CL_SETATTR_FALLOCATE;
-	sa_falloc_end = io->u.ci_setattr.sa_falloc_end;
-	if (sa_falloc_end > size) {
+	if (io->u.ci_setattr.sa_falloc_end > size) {
+		loff_t newsize = io->u.ci_setattr.sa_falloc_end;
+
 		/* Check new size against VFS/VM file size limit and rlimit */
-		rc = inode_newsize_ok(inode, sa_falloc_end);
+		rc = inode_newsize_ok(inode, newsize);
 		if (rc)
 			goto out;
-		if (sa_falloc_end > ll_file_maxbytes(inode)) {
+		if (newsize > ll_file_maxbytes(inode)) {
 			CDEBUG(D_INODE, "file size too large %llu > %llu\n",
-			       (unsigned long long)(sa_falloc_end),
+			       (unsigned long long)newsize,
 			       ll_file_maxbytes(inode));
 			rc = -EFBIG;
 			goto out;
 		}
 	}
 
-again:
-	if (cl_io_init(env, io, CIT_SETATTR, io->ci_obj) == 0)
-		rc = cl_io_loop(env, io);
-	else
-		rc = io->ci_result;
-
-	cl_io_fini(env, io);
-	if (unlikely(io->ci_need_restart))
-		goto again;
+	do {
+		rc = cl_io_init(env, io, CIT_SETATTR, io->ci_obj);
+		if (rc)
+			rc = io->ci_result;
+		else
+			rc = cl_io_loop(env, io);
+		cl_io_fini(env, io);
+	} while (unlikely(io->ci_need_restart));
 
 out:
 	cl_env_put(env, &refcheck);
@@ -5049,6 +5047,9 @@ long ll_fallocate(struct file *filp, int mode, loff_t offset, loff_t len)
 {
 	struct inode *inode = filp->f_path.dentry->d_inode;
 	int rc;
+
+	if (offset < 0 || len <= 0)
+		return -EINVAL;
 
 	/*
 	 * Encrypted inodes can't handle collapse range or zero range or insert
@@ -5062,10 +5063,10 @@ long ll_fallocate(struct file *filp, int mode, loff_t offset, loff_t len)
 		return -EOPNOTSUPP;
 
 	/*
-	 * Only mode == 0 (which is standard prealloc) is supported now.
-	 * Punch is not supported yet.
+	 * mode == 0 (which is standard prealloc) and PUNCH is supported.
+	 * Rest of mode options are not supported yet.
 	 */
-	if (mode & ~FALLOC_FL_KEEP_SIZE)
+	if (mode & ~(FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE))
 		return -EOPNOTSUPP;
 
 	ll_stats_ops_tally(ll_i2sbi(inode), LPROC_LL_FALLOCATE, 1);

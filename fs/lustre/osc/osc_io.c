@@ -530,6 +530,29 @@ static void osc_trunc_check(const struct lu_env *env, struct cl_io *io,
 			     trunc_check_cb, (void *)&size);
 }
 
+/**
+ * Flush affected pages prior punch.
+ * We shouldn't discard them locally first because that could be data loss
+ * if server doesn't support fallocate punch, we also need these data to be
+ * flushed first to prevent re-ordering with the punch
+ */
+static int osc_punch_start(const struct lu_env *env, struct cl_io *io,
+			   struct cl_object *obj)
+{
+	struct osc_object *osc = cl2osc(obj);
+	pgoff_t pg_start = cl_index(obj, io->u.ci_setattr.sa_falloc_offset);
+	pgoff_t pg_end = cl_index(obj, io->u.ci_setattr.sa_falloc_end - 1);
+	int rc;
+
+	rc = osc_cache_writeback_range(env, osc, pg_start, pg_end, 1, 0);
+	if (rc < 0)
+		return rc;
+
+	osc_page_gang_lookup(env, io, osc, pg_start, pg_end, osc_discard_cb,
+			     osc);
+	return 0;
+}
+
 static int osc_io_setattr_start(const struct lu_env *env,
 				const struct cl_io_slice *slice)
 {
@@ -543,19 +566,17 @@ static int osc_io_setattr_start(const struct lu_env *env,
 	unsigned int ia_avalid = io->u.ci_setattr.sa_avalid;
 	enum op_xvalid ia_xvalid = io->u.ci_setattr.sa_xvalid;
 	u64 size = io->u.ci_setattr.sa_attr.lvb_size;
-	u64 end = OBD_OBJECT_EOF;
-	bool io_is_falloc = false;
+	bool io_is_falloc = cl_io_is_fallocate(io);
 	int result = 0;
 
 	/* truncate cache dirty pages first */
-	if (cl_io_is_trunc(io)) {
+	if (cl_io_is_trunc(io))
 		result = osc_cache_truncate_start(env, cl2osc(obj), size,
 						  &oio->oi_trunc);
-	} else if (cl_io_is_fallocate(io)) {
-		io_is_falloc = true;
-		size = io->u.ci_setattr.sa_falloc_offset;
-		end = io->u.ci_setattr.sa_falloc_end;
-	}
+	/* flush local pages prior punching them on server */
+	if (io_is_falloc &&
+	    io->u.ci_setattr.sa_falloc_mode & FALLOC_FL_PUNCH_HOLE)
+		result = osc_punch_start(env, io, obj);
 
 	if (result == 0 && oio->oi_lockless == 0) {
 		cl_object_attr_lock(obj);
@@ -565,14 +586,8 @@ static int osc_io_setattr_start(const struct lu_env *env,
 			unsigned int cl_valid = 0;
 
 			if (ia_avalid & ATTR_SIZE) {
-				if (io_is_falloc) {
-					attr->cat_size =
-						io->u.ci_setattr.sa_attr.lvb_size;
-					attr->cat_kms = attr->cat_size;
-				} else {
-					attr->cat_size = size;
-					attr->cat_kms = size;
-				}
+				attr->cat_size = size;
+				attr->cat_kms = size;
 				cl_valid = CAT_SIZE | CAT_KMS;
 			}
 			if (ia_avalid & ATTR_MTIME_SET) {
@@ -612,17 +627,8 @@ static int osc_io_setattr_start(const struct lu_env *env,
 			oa->o_valid |= OBD_MD_FLMTIME;
 			oa->o_mtime = attr->cat_mtime;
 		}
-		if (ia_avalid & ATTR_SIZE) {
-			if (io_is_falloc) {
-				oa->o_size = size;
-				oa->o_blocks = end;
-				oa->o_valid |= OBD_MD_FLSIZE | OBD_MD_FLBLOCKS;
-			} else {
-				oa->o_size = size;
-				oa->o_blocks = OBD_OBJECT_EOF;
-				oa->o_valid |= OBD_MD_FLSIZE | OBD_MD_FLBLOCKS;
-			}
 
+		if (ia_avalid & ATTR_SIZE || io_is_falloc) {
 			if (oio->oi_lockless) {
 				oa->o_flags = OBD_FL_SRVLOCK;
 				oa->o_valid |= OBD_MD_FLFLAGS;
@@ -646,10 +652,16 @@ static int osc_io_setattr_start(const struct lu_env *env,
 		if (io_is_falloc) {
 			int falloc_mode = io->u.ci_setattr.sa_falloc_mode;
 
+			oa->o_size = io->u.ci_setattr.sa_falloc_offset;
+			oa->o_blocks = io->u.ci_setattr.sa_falloc_end;
+			oa->o_valid |= OBD_MD_FLSIZE | OBD_MD_FLBLOCKS;
 			result = osc_fallocate_base(osc_export(cl2osc(obj)),
 						    oa, osc_async_upcall,
 						    cbargs, falloc_mode);
 		} else if (ia_avalid & ATTR_SIZE) {
+			oa->o_size = size;
+			oa->o_blocks = OBD_OBJECT_EOF;
+			oa->o_valid |= OBD_MD_FLSIZE | OBD_MD_FLBLOCKS;
 			result = osc_punch_send(osc_export(cl2osc(obj)),
 						oa, osc_async_upcall, cbargs);
 		} else {
@@ -682,11 +694,11 @@ void osc_io_setattr_end(const struct lu_env *env,
 	if (result == 0) {
 		if (oio->oi_lockless) {
 			/* lockless truncate */
-			struct osc_device *osd = lu2osc_dev(obj->co_lu.lo_dev);
+			struct osc_device *osc = lu2osc_dev(obj->co_lu.lo_dev);
 
 			LASSERT(cl_io_is_trunc(io) || cl_io_is_fallocate(io));
 			/* XXX: Need a lock. */
-			osd->od_stats.os_lockless_truncates++;
+			osc->od_stats.os_lockless_truncates++;
 		}
 	}
 
