@@ -203,9 +203,9 @@ void client_bulk_callback(struct lnet_event *ev)
 				 CFS_FAIL_ONCE))
 		ev->status = -EIO;
 
-	CDEBUG((ev->status == 0) ? D_NET : D_ERROR,
-	       "event type %d, status %d, desc %p\n",
-	       ev->type, ev->status, desc);
+	CDEBUG_LIMIT((ev->status == 0) ? D_NET : D_ERROR,
+		     "event type %d, status %d, desc %p\n",
+		     ev->type, ev->status, desc);
 
 	spin_lock(&desc->bd_lock);
 	req = desc->bd_req;
@@ -311,9 +311,9 @@ void request_in_callback(struct lnet_event *ev)
 	LASSERT((char *)ev->md_start + ev->offset + ev->mlength <=
 		rqbd->rqbd_buffer + service->srv_buf_size);
 
-	CDEBUG((ev->status == 0) ? D_NET : D_ERROR,
-	       "event type %d, status %d, service %s\n",
-	       ev->type, ev->status, service->srv_name);
+	CDEBUG_LIMIT((ev->status == 0) ? D_NET : D_ERROR,
+		     "event type %d, status %d, service %s\n",
+		     ev->type, ev->status, service->srv_name);
 
 	if (ev->unlinked) {
 		/* If this is the last request message to fit in the
@@ -326,10 +326,8 @@ void request_in_callback(struct lnet_event *ev)
 		memset(req, 0, sizeof(*req));
 	} else {
 		LASSERT(ev->type == LNET_EVENT_PUT);
-		if (ev->status != 0) {
-			/* We moaned above already... */
+		if (ev->status != 0) /* We moaned above already... */
 			return;
-		}
 		req = ptlrpc_request_cache_alloc(GFP_ATOMIC);
 		if (!req) {
 			CERROR("Can't allocate incoming request descriptor: Dropping %s RPC from %s\n",
