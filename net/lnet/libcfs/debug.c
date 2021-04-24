@@ -225,11 +225,9 @@ MODULE_PARM_DESC(libcfs_panic_on_lbug, "Lustre kernel panic on LBUG");
 
 static DECLARE_COMPLETION(debug_complete);
 
-char libcfs_debug_file_path_arr[PATH_MAX] = LIBCFS_DEBUG_FILE_PATH_DEFAULT;
-EXPORT_SYMBOL(libcfs_debug_file_path_arr);
-
 /* We need to pass a pointer here, but elsewhere this must be a const */
-static char *libcfs_debug_file_path = LIBCFS_DEBUG_FILE_PATH_DEFAULT;
+char *libcfs_debug_file_path = LIBCFS_DEBUG_FILE_PATH_DEFAULT;
+EXPORT_SYMBOL(libcfs_debug_file_path);
 module_param(libcfs_debug_file_path, charp, 0644);
 MODULE_PARM_DESC(libcfs_debug_file_path,
 		 "Path for dumping debug logs, set 'NONE' to prevent log dumping");
@@ -379,12 +377,12 @@ static void libcfs_debug_dumplog_internal(void *arg)
 
 	current_time = ktime_get_real_seconds();
 
-	if (strncmp(libcfs_debug_file_path_arr, "NONE", 4) &&
+	if (strncmp(libcfs_debug_file_path, "NONE", 4) != 0 &&
 	    current_time > last_dump_time) {
 		last_dump_time = current_time;
 		snprintf(debug_file_name, sizeof(debug_file_name) - 1,
-			 "%s.%lld.%ld", libcfs_debug_file_path_arr,
-			 (s64)current_time, (long)arg);
+			 "%s.%lld.%ld", libcfs_debug_file_path,
+			 (s64)current_time, (uintptr_t)arg);
 		pr_alert("LustreError: dumping log to %s\n", debug_file_name);
 		cfs_tracefile_dump_all_pages(debug_file_name);
 		libcfs_run_debug_log_upcall(debug_file_name);
@@ -543,12 +541,6 @@ int libcfs_debug_init(unsigned long bufsize)
 	    libcfs_console_min_delay >= libcfs_console_max_delay) {
 		libcfs_console_max_delay = CDEBUG_DEFAULT_MAX_DELAY;
 		libcfs_console_min_delay = CDEBUG_DEFAULT_MIN_DELAY;
-	}
-
-	if (libcfs_debug_file_path) {
-		strlcpy(libcfs_debug_file_path_arr,
-			libcfs_debug_file_path,
-			sizeof(libcfs_debug_file_path_arr));
 	}
 
 	/* If libcfs_debug_mb is uninitialized then just make the
