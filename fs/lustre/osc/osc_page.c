@@ -934,7 +934,7 @@ static inline void unstable_page_accounting(struct ptlrpc_bulk_desc *desc,
 		}
 
 		if (count > 0) {
-			mod_node_page_state(pgdat, NR_UNSTABLE_NFS,
+			mod_node_page_state(pgdat, NR_WRITEBACK,
 					    factor * count);
 			count = 0;
 		}
@@ -942,7 +942,7 @@ static inline void unstable_page_accounting(struct ptlrpc_bulk_desc *desc,
 		++count;
 	}
 	if (count > 0)
-		mod_node_page_state(last, NR_UNSTABLE_NFS, factor * count);
+		mod_node_page_state(last, NR_WRITEBACK, factor * count);
 }
 
 static inline void add_unstable_page_accounting(struct ptlrpc_bulk_desc *desc,
