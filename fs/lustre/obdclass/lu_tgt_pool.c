@@ -42,8 +42,8 @@
 #define DEBUG_SUBSYSTEM S_CLASS
 
 #include <linux/libcfs/libcfs_private.h>
-#include <obd_target.h>
 #include <obd_support.h>
+#include <lu_object.h>
 
 /**
  * Initialize the pool data structures at startup.
