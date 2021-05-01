@@ -1611,6 +1611,7 @@ static int mdc_statfs(const struct lu_env *env,
 		rc = -ENOMEM;
 		goto output;
 	}
+	req->rq_allow_intr = 1;
 
 	if ((flags & OBD_STATFS_SUM) &&
 	    (exp_connect_flags2(exp) & OBD_CONNECT2_SUM_STATFS)) {
