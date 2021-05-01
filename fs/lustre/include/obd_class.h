@@ -1713,6 +1713,8 @@ struct root_squash_info {
 	spinlock_t		rsi_lock;	/* protects rsi_nosquash_nids */
 };
 
+int server_name2index(const char *svname, u32 *idx, const char **endptr);
+
 /* linux-module.c */
 struct obd_ioctl_data;
 int obd_ioctl_getdata(struct obd_ioctl_data **data, int *len, void __user *arg);

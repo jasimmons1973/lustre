@@ -1904,6 +1904,7 @@ int ptlrpc_request_bufs_pack(struct ptlrpc_request *request,
 			     u32 version, int opcode, char **bufs,
 			     struct ptlrpc_cli_ctx *ctx);
 void ptlrpc_req_finished(struct ptlrpc_request *request);
+void ptlrpc_req_finished_with_imp_lock(struct ptlrpc_request *request);
 struct ptlrpc_request *ptlrpc_request_addref(struct ptlrpc_request *req);
 struct ptlrpc_bulk_desc *ptlrpc_prep_bulk_imp(struct ptlrpc_request *req,
 					      unsigned int nfrags,

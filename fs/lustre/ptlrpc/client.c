@@ -2543,6 +2543,17 @@ static void __ptlrpc_free_req(struct ptlrpc_request *request, int locked)
 		ptlrpc_request_cache_free(request);
 }
 
+static int __ptlrpc_req_finished(struct ptlrpc_request *request, int locked);
+/**
+ * Drop one request reference. Must be called with import imp_lock held.
+ * When reference count drops to zero, request is freed.
+ */
+void ptlrpc_req_finished_with_imp_lock(struct ptlrpc_request *request)
+{
+	assert_spin_locked(&request->rq_import->imp_lock);
+	(void)__ptlrpc_req_finished(request, 1);
+}
+
 /**
  * Helper function
  * Drops one reference count for request @request.

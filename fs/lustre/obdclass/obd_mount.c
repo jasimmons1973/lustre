@@ -618,8 +618,7 @@ EXPORT_SYMBOL(server_name2fsname);
  * rc < 0  on error
  * if endptr isn't NULL it is set to end of name
  */
-static int server_name2index(const char *svname, u32 *idx,
-			     const char **endptr)
+int server_name2index(const char *svname, u32 *idx, const char **endptr)
 {
 	unsigned long index;
 	int rc;
@@ -658,6 +657,7 @@ static int server_name2index(const char *svname, u32 *idx,
 
 	return rc;
 }
+EXPORT_SYMBOL(server_name2index);
 
 /*************** mount common between server and client ***************/
 
