@@ -3103,6 +3103,7 @@ lnet_recover_local_nis(void)
 	lnet_nid_t nid;
 	int healthv;
 	int rc;
+	time64_t now;
 
 	/* splice the recovery queue on a local queue. We will iterate
 	 * through the local queue and update it as needed. Once we're
@@ -3114,6 +3115,8 @@ lnet_recover_local_nis(void)
 	list_splice_init(&the_lnet.ln_mt_localNIRecovq,
 			 &local_queue);
 	lnet_net_unlock(0);
+
+	now = ktime_get_seconds();
 
 	list_for_each_entry_safe(ni, tmp, &local_queue, ni_recovery) {
 		/* if an NI is being deleted or it is now healthy, there
@@ -3147,6 +3150,12 @@ lnet_recover_local_nis(void)
 		}
 
 		lnet_ni_unlock(ni);
+
+		if (now < ni->ni_next_ping) {
+			lnet_net_unlock(0);
+			continue;
+		}
+
 		lnet_net_unlock(0);
 
 		CDEBUG(D_NET, "attempting to recover local ni: %s\n",
@@ -3212,31 +3221,21 @@ lnet_recover_local_nis(void)
 				LNetMDUnlink(mdh);
 				continue;
 			}
-			/* Same note as in lnet_recover_peer_nis(). When
-			 * we're sending the ping, the NI is free to be
-			 * deleted or manipulated. By this point it
-			 * could've been added back on the recovery queue,
-			 * and a refcount taken on it.
-			 * So we can't just add it blindly again or we'll
-			 * corrupt the queue. We must check under lock if
-			 * it's not on any list and if not then add it
-			 * to the processed list, which will eventually be
-			 * spliced back on to the recovery queue.
-			 */
-			ni->ni_ping_mdh = mdh;
-			if (list_empty(&ni->ni_recovery)) {
-				list_add_tail(&ni->ni_recovery,
-					      &processed_list);
-				lnet_ni_addref_locked(ni, 0);
-			}
-			lnet_net_unlock(0);
+			ni->ni_ping_count++;
 
-			lnet_ni_lock(ni);
-			if (rc)
+			ni->ni_ping_mdh = mdh;
+			lnet_ni_add_to_recoveryq_locked(ni, &processed_list,
+							now);
+			if (rc) {
+				lnet_ni_lock(ni);
 				ni->ni_recovery_state &=
 					~LNET_NI_RECOVERY_PENDING;
+				lnet_ni_unlock(ni);
+			}
+			lnet_net_unlock(0);
+		} else {
+			lnet_ni_unlock(ni);
 		}
-		lnet_ni_unlock(ni);
 	}
 
 	/* put back the remaining NIs on the ln_mt_localNIRecovq to be
