@@ -253,7 +253,7 @@ static int ll_revalidate_dentry(struct dentry *dentry,
 	 * real symlinks. This will allow to open foreign symlink file/dir
 	 * for get[dir]stripe/unlock ioctl()s.
 	 */
-	if (dentry->d_inode && dentry->d_inode->i_op->get_link) {
+	if (d_is_symlink(dentry)) {
 		if (!S_ISLNK(dentry->d_inode->i_mode) &&
 		    !(lookup_flags & LOOKUP_FOLLOW))
 			return 0;
