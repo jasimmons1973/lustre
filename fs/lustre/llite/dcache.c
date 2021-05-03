@@ -248,8 +248,18 @@ static int ll_revalidate_dentry(struct dentry *dentry,
 		return 1;
 
 	/* Symlink - always valid as long as the dentry was found */
-	if (dentry->d_inode && S_ISLNK(dentry->d_inode->i_mode))
-		return 1;
+	/* only special case is to prevent ELOOP error from VFS during open
+	 * of a foreign symlink file/dir with O_NOFOLLOW, like it happens for
+	 * real symlinks. This will allow to open foreign symlink file/dir
+	 * for get[dir]stripe/unlock ioctl()s.
+	 */
+	if (dentry->d_inode && dentry->d_inode->i_op->get_link) {
+		if (!S_ISLNK(dentry->d_inode->i_mode) &&
+		    !(lookup_flags & LOOKUP_FOLLOW))
+			return 0;
+		else
+			return 1;
+	}
 
 	/*
 	 * VFS warns us that this is the second go around and previous

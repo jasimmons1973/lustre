@@ -1641,6 +1641,17 @@ finish_req:
 		ptlrpc_req_finished(root_request);
 		return rc;
 	}
+
+	case LL_IOC_UNLOCK_FOREIGN:
+		/* if not a foreign symlink do nothing */
+		if (ll_foreign_is_removable(dentry, true)) {
+			CDEBUG(D_INFO,
+			       "prevent rmdir of non-foreign dir ("DFID")\n",
+			       PFID(ll_inode2fid(inode)));
+			return -EOPNOTSUPP;
+		}
+		return 0;
+
 	case LL_IOC_RMFID:
 		return ll_rmfid(file, (void __user *)arg);
 	case LL_IOC_LOV_SWAP_LAYOUTS:

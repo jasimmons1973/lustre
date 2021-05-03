@@ -48,7 +48,7 @@
 static int ll_create_it(struct inode *dir, struct dentry *dentry,
 			struct lookup_intent *it,
 			void *secctx, u32 secctxlen, bool encrypt,
-			void *encctx, __u32 encctxlen);
+			void *encctx, u32 encctxlen);
 
 /* called from iget5_locked->find_inode() under inode_hash_lock spinlock */
 static int ll_test_inode(struct inode *inode, void *opaque)
@@ -596,6 +596,23 @@ struct dentry *ll_splice_alias(struct inode *inode, struct dentry *de)
 		d_add(de, inode);
 	} else {
 		struct dentry *new = d_splice_alias(inode, de);
+
+		/* this needs only to be done for foreign symlink dirs as
+		 * DCACHE_SYMLINK_TYPE is already set by d_flags_for_inode()
+		 * kernel routine for files with symlink ops (ie, real symlink)
+		 */
+		if (inode && ll_sbi_has_foreign_symlink(ll_i2sbi(inode)) &&
+		    inode->i_op->get_link) {
+			CDEBUG(D_INFO,
+			       "%s: inode "DFID": faking foreign dir as a symlink\n",
+			       ll_i2sbi(inode)->ll_fsname,
+			       PFID(ll_inode2fid(inode)));
+			spin_lock(&de->d_lock);
+			/* like d_flags_for_inode() already does for files */
+			de->d_flags = (de->d_flags & ~DCACHE_ENTRY_TYPE) |
+				      DCACHE_SYMLINK_TYPE;
+			spin_unlock(&de->d_lock);
+		}
 
 		if (IS_ERR(new))
 			CDEBUG(D_DENTRY,
@@ -1187,8 +1204,8 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 			}
 		}
 
-		if (d_really_is_positive(dentry) &&
-		    it_disposition(it, DISP_OPEN_OPEN)) {
+		if (dentry->d_inode && it_disposition(it, DISP_OPEN_OPEN) &&
+		    ll_foreign_is_openable(dentry, open_flags)) {
 			/* Open dentry. */
 			if (S_ISFIFO(d_inode(dentry)->i_mode)) {
 				/* We cannot call open here as it might
@@ -1270,7 +1287,7 @@ static struct inode *ll_create_node(struct inode *dir, struct lookup_intent *it)
 static int ll_create_it(struct inode *dir, struct dentry *dentry,
 			struct lookup_intent *it,
 			void *secctx, u32 secctxlen, bool encrypt,
-			void *encctx, __u32 encctxlen)
+			void *encctx, u32 encctxlen)
 {
 	struct inode *inode;
 	u64 bits = 0;
@@ -1581,6 +1598,10 @@ static int ll_unlink(struct inode *dir, struct dentry *dchild)
 	CDEBUG(D_VFSTRACE, "VFS Op:name=%pd,dir=%lu/%u(%p)\n",
 	       dchild, dir->i_ino, dir->i_generation, dir);
 
+	/* some foreign file/dir may not be allowed to be unlinked */
+	if (!ll_foreign_is_removable(dchild, false))
+		return -EPERM;
+
 	op_data = ll_prep_md_op_data(NULL, dir, NULL,
 				     dchild->d_name.name,
 				     dchild->d_name.len,
@@ -1646,6 +1667,10 @@ static int ll_rmdir(struct inode *dir, struct dentry *dchild)
 
 	CDEBUG(D_VFSTRACE, "VFS Op:name=%pd, dir=" DFID "(%p)\n",
 	       dchild, PFID(ll_inode2fid(dir)), dir);
+
+	/* some foreign dir may not be allowed to be removed */
+	if (!ll_foreign_is_removable(dchild, false))
+		return -EPERM;
 
 	op_data = ll_prep_md_op_data(NULL, dir, NULL,
 				     dchild->d_name.name,

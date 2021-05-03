@@ -163,8 +163,14 @@ static ssize_t lov_lsm_pack_foreign(const struct lov_stripe_md *lsm, void *buf,
 	if (buf_size == 0)
 		return lfm_size;
 
-	if (buf_size < lfm_size)
+	/* if buffer too small return ERANGE but copy the size the
+	 * caller has requested anyway. This may be useful to get
+	 * only the header without the need to alloc the full size
+	 */
+	if (buf_size < lfm_size) {
+		memcpy(lfm, lsm_foreign(lsm), buf_size);
 		return -ERANGE;
+	}
 
 	/* full foreign LOV is already avail in its cache
 	 * no need to translate format fields to little-endian
@@ -189,8 +195,10 @@ ssize_t lov_lsm_pack(const struct lov_stripe_md *lsm, void *buf,
 	if (lsm->lsm_magic == LOV_MAGIC_V1 || lsm->lsm_magic == LOV_MAGIC_V3)
 		return lov_lsm_pack_v1v3(lsm, buf, buf_size);
 
-	if (lsm->lsm_magic == LOV_MAGIC_FOREIGN)
+	if (lsm->lsm_magic == LOV_MAGIC_FOREIGN) {
+		pr_info("calling lov_lsm_pack_foreign\n");
 		return lov_lsm_pack_foreign(lsm, buf, buf_size);
+	}
 
 	lmm_size = lov_comp_md_size(lsm);
 	if (buf_size == 0)
@@ -370,6 +378,7 @@ int lov_getstripe(const struct lu_env *env, struct lov_object *obj,
 
 	lmm_size = lov_lsm_pack(lsm, lmmk, lmmk_size);
 	if (lmm_size < 0) {
+		pr_info("lov_lsm_pack return rc = %zd\n", lmm_size);
 		rc = lmm_size;
 		goto out_free;
 	}

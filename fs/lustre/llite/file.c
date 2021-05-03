@@ -2342,12 +2342,12 @@ retry:
 		}
 
 		rc = cl_object_layout_get(env, obj, &cl);
-		if (!rc && cl.cl_is_composite)
+		if (rc >= 0 && cl.cl_is_composite)
 			rc = ll_layout_write_intent(inode, LAYOUT_INTENT_WRITE,
 						    &ext);
 
 		cl_env_put(env, &refcheck);
-		if (rc)
+		if (rc < 0)
 			goto out;
 	}
 
@@ -3001,7 +3001,7 @@ int ll_file_lock_ahead(struct file *file, struct llapi_lu_ladvise *ladvise)
 	CDEBUG(D_VFSTRACE,
 	       "Lock request: file=%pd, inode=%p, mode=%s start=%llu, end=%llu\n",
 	       dentry, dentry->d_inode,
-	       user_lockname[ladvise->lla_lockahead_mode], (__u64) start, end);
+	       user_lockname[ladvise->lla_lockahead_mode], (u64) start, end);
 
 	cl_mode = cl_mode_user_to_kernel(ladvise->lla_lockahead_mode);
 	if (cl_mode < 0) {
@@ -4086,6 +4086,20 @@ out_state:
 			return -EOPNOTSUPP;
 		return llcrypt_ioctl_get_key_status(file, (void __user *)arg);
 #endif
+
+	case LL_IOC_UNLOCK_FOREIGN: {
+		struct dentry *dentry = file_dentry(file);
+
+		/* if not a foreign symlink do nothing */
+		if (ll_foreign_is_removable(dentry, true)) {
+			CDEBUG(D_INFO,
+			       "prevent unlink of non-foreign file ("DFID")\n",
+			       PFID(ll_inode2fid(inode)));
+			return -EOPNOTSUPP;
+		}
+		return 0;
+	}
+
 	default:
 		return obd_iocontrol(cmd, ll_i2dtexp(inode), 0, NULL,
 				     (void __user *)arg);
@@ -4842,10 +4856,9 @@ static int ll_merge_md_attr(struct inode *inode)
 	return 0;
 }
 
-int ll_getattr(const struct path *path, struct kstat *stat,
-	       u32 request_mask, unsigned int flags)
+int ll_getattr_dentry(struct dentry *de, struct kstat *stat, u32 request_mask,
+		      unsigned int flags, bool foreign)
 {
-	struct dentry *de = path->dentry;
 	struct inode *inode = d_inode(de);
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	struct ll_inode_info *lli = ll_i2info(inode);
@@ -4872,7 +4885,10 @@ int ll_getattr(const struct path *path, struct kstat *stat,
 	if (rc < 0)
 		return rc;
 
-	if (S_ISREG(inode->i_mode)) {
+	/* foreign file/dir are always of zero length, so don't
+	 * need to validate size.
+	 */
+	if (S_ISREG(inode->i_mode) && !foreign) {
 		bool cached;
 
 		if (!need_glimpse)
@@ -4919,7 +4935,8 @@ int ll_getattr(const struct path *path, struct kstat *stat,
 		}
 	} else {
 		/* If object isn't regular a file then don't validate size. */
-		if (ll_dir_striped(inode)) {
+		/* foreign dir is not striped dir */
+		if (ll_dir_striped(inode) && !foreign) {
 			rc = ll_merge_md_attr(inode);
 			if (rc < 0)
 				return rc;
@@ -4948,7 +4965,13 @@ fill_attr:
 		stat->rdev = inode->i_rdev;
 		stat->ino = inode->i_ino;
 	}
-	stat->mode = inode->i_mode;
+
+	/* foreign symlink to be exposed as a real symlink */
+	if (!foreign)
+		stat->mode = inode->i_mode;
+	else
+		stat->mode = (inode->i_mode & ~S_IFMT) | S_IFLNK;
+
 	stat->uid = inode->i_uid;
 	stat->gid = inode->i_gid;
 	stat->atime = inode->i_atime;
@@ -4989,6 +5012,13 @@ fill_attr:
 			   ktime_us_delta(ktime_get(), kstart));
 
 	return 0;
+}
+
+int ll_getattr(const struct path *path, struct kstat *stat,
+	       u32 request_mask, unsigned int flags)
+{
+	return ll_getattr_dentry(path->dentry, stat, request_mask, flags,
+				 false);
 }
 
 int cl_falloc(struct inode *inode, int mode, loff_t offset, loff_t len)
@@ -5319,7 +5349,7 @@ int ll_layout_conf(struct inode *inode, const struct cl_object_conf *conf)
 	}
 out:
 	cl_env_put(env, &refcheck);
-	return rc;
+	return rc < 0 ? rc : 0;
 }
 
 /* Fetch layout from MDT with getxattr request, if it's not ready yet */
