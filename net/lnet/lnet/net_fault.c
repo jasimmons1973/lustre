@@ -536,6 +536,7 @@ delay_rule_match(struct lnet_delay_rule *rule, lnet_nid_t src,
 {
 	struct lnet_fault_attr *attr = &rule->dl_attr;
 	bool delay;
+	time64_t now = ktime_get_seconds();
 
 	if (!lnet_fault_attr_match(attr, src, LNET_NID_ANY,
 				   dst, type, portal))
@@ -544,8 +545,6 @@ delay_rule_match(struct lnet_delay_rule *rule, lnet_nid_t src,
 	/* match this rule, check delay rate now */
 	spin_lock(&rule->dl_lock);
 	if (rule->dl_delay_time) { /* time based delay */
-		time64_t now = ktime_get_seconds();
-
 		rule->dl_stat.fs_count++;
 		delay = now >= rule->dl_delay_time;
 		if (delay) {
@@ -587,10 +586,11 @@ delay_rule_match(struct lnet_delay_rule *rule, lnet_nid_t src,
 	rule->dl_stat.u.delay.ls_delayed++;
 
 	list_add_tail(&msg->msg_list, &rule->dl_msg_list);
-	msg->msg_delay_send = ktime_get_seconds() + attr->u.delay.la_latency;
+	msg->msg_delay_send = now + attr->u.delay.la_latency;
 	if (rule->dl_msg_send == -1) {
 		rule->dl_msg_send = msg->msg_delay_send;
-		mod_timer(&rule->dl_timer, jiffies + rule->dl_msg_send * HZ);
+		mod_timer(&rule->dl_timer,
+			  jiffies + attr->u.delay.la_latency * HZ);
 	}
 
 	spin_unlock(&rule->dl_lock);
@@ -662,7 +662,8 @@ delayed_msg_check(struct lnet_delay_rule *rule, bool all,
 		msg = list_first_entry(&rule->dl_msg_list,
 				       struct lnet_msg, msg_list);
 		rule->dl_msg_send = msg->msg_delay_send;
-		mod_timer(&rule->dl_timer, jiffies + rule->dl_msg_send * HZ);
+		mod_timer(&rule->dl_timer,
+			  jiffies + (msg->msg_delay_send - now) * HZ);
 	}
 	spin_unlock(&rule->dl_lock);
 }
@@ -678,6 +679,19 @@ delayed_msg_process(struct list_head *msg_list, bool drop)
 		int cpt;
 		int rc;
 
+		if (msg->msg_sending) {
+			/* Delayed send */
+			list_del_init(&msg->msg_list);
+			ni = msg->msg_txni;
+			CDEBUG(D_NET, "TRACE: msg %p %s -> %s : %s\n", msg,
+			       libcfs_nid2str(ni->ni_nid),
+			       libcfs_nid2str(msg->msg_txpeer->lpni_nid),
+			       lnet_msgtyp2str(msg->msg_type));
+			lnet_ni_send(ni, msg);
+			continue;
+		}
+
+		/* Delayed receive */
 		LASSERT(msg->msg_rxpeer);
 		LASSERT(msg->msg_rxni);
 
