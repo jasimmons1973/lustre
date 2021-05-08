@@ -1818,7 +1818,8 @@ ksocknal_connect(struct ksock_conn_cb *conn_cb)
 			type = SOCKLND_CONN_ANY;
 		} else if (wanted & BIT(SOCKLND_CONN_CONTROL)) {
 			type = SOCKLND_CONN_CONTROL;
-		} else if (wanted & BIT(SOCKLND_CONN_BULK_IN)) {
+		} else if (wanted & BIT(SOCKLND_CONN_BULK_IN) &&
+			   conn_cb->ksnr_blki_conn_count <= conn_cb->ksnr_blko_conn_count) {
 			type = SOCKLND_CONN_BULK_IN;
 		} else {
 			LASSERT(wanted & BIT(SOCKLND_CONN_BULK_OUT));
