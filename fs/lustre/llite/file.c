@@ -443,7 +443,7 @@ static inline int ll_dom_readpage(void *data, struct page *page)
 	kunmap_atomic(kaddr);
 
 	if (inode && IS_ENCRYPTED(inode) && S_ISREG(inode->i_mode)) {
-		if (!llcrypt_has_encryption_key(inode)) {
+		if (!fscrypt_has_encryption_key(inode)) {
 			CDEBUG(D_SEC, "no enc key for " DFID "\n",
 			       PFID(ll_inode2fid(inode)));
 		} else {
@@ -456,7 +456,7 @@ static inline int ll_dom_readpage(void *data, struct page *page)
 					   LUSTRE_ENCRYPTION_UNIT_SIZE) == 0)
 					break;
 
-				rc = llcrypt_decrypt_pagecache_blocks(page,
+				rc = fscrypt_decrypt_pagecache_blocks(page,
 								      LUSTRE_ENCRYPTION_UNIT_SIZE,
 								      0);
 				if (rc)
@@ -776,7 +776,7 @@ int ll_file_open(struct inode *inode, struct file *file)
 	file->private_data = NULL; /* prevent ll_local_open assertion */
 
 	if (S_ISREG(inode->i_mode)) {
-		rc = llcrypt_file_open(inode, file);
+		rc = fscrypt_file_open(inode, file);
 		if (rc)
 			goto out_nofiledata;
 	}
@@ -4063,28 +4063,28 @@ out_state:
 	case FS_IOC_SET_ENCRYPTION_POLICY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_set_policy(file, (const void __user *)arg);
+		return fscrypt_ioctl_set_policy(file, (const void __user *)arg);
 	case FS_IOC_GET_ENCRYPTION_POLICY_EX:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_get_policy_ex(file, (void __user *)arg);
+		return fscrypt_ioctl_get_policy_ex(file, (void __user *)arg);
 	case FS_IOC_ADD_ENCRYPTION_KEY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_add_key(file, (void __user *)arg);
+		return fscrypt_ioctl_add_key(file, (void __user *)arg);
 	case FS_IOC_REMOVE_ENCRYPTION_KEY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_remove_key(file, (void __user *)arg);
+		return fscrypt_ioctl_remove_key(file, (void __user *)arg);
 	case FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_remove_key_all_users(file,
+		return fscrypt_ioctl_remove_key_all_users(file,
 							  (void __user *)arg);
 	case FS_IOC_GET_ENCRYPTION_KEY_STATUS:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_get_key_status(file, (void __user *)arg);
+		return fscrypt_ioctl_get_key_status(file, (void __user *)arg);
 #endif
 
 	case LL_IOC_UNLOCK_FOREIGN: {
@@ -4551,10 +4551,10 @@ int ll_migrate(struct inode *parent, struct file *file, struct lmv_user_md *lum,
 	}
 
 	if (IS_ENCRYPTED(child_inode)) {
-		rc = llcrypt_get_encryption_info(child_inode);
+		rc = fscrypt_get_encryption_info(child_inode);
 		if (rc)
 			goto out_iput;
-		if (!llcrypt_has_encryption_key(child_inode)) {
+		if (!fscrypt_has_encryption_key(child_inode)) {
 			CDEBUG(D_SEC, "no enc key for "DFID"\n",
 			       PFID(ll_inode2fid(child_inode)));
 			rc = -ENOKEY;

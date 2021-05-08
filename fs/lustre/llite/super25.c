@@ -63,7 +63,7 @@ static void ll_inode_destroy_callback(struct rcu_head *head)
 	struct inode *inode = container_of(head, struct inode, i_rcu);
 	struct ll_inode_info *ptr = ll_i2info(inode);
 
-	llcrypt_free_inode(inode);
+	fscrypt_free_inode(inode);
 	kmem_cache_free(ll_inode_cachep, ptr);
 }
 
@@ -77,7 +77,7 @@ static int ll_drop_inode(struct inode *inode)
 	int drop = generic_drop_inode(inode);
 
 	if (!drop)
-		drop = llcrypt_drop_inode(inode);
+		drop = fscrypt_drop_inode(inode);
 
 	return drop;
 }

@@ -64,7 +64,7 @@ int ll_set_encflags(struct inode *inode, void *encctx, u32 encctxlen,
 	if (rc)
 		return rc;
 
-	return preload ? llcrypt_get_encryption_info(inode) : 0;
+	return preload ? fscrypt_get_encryption_info(inode) : 0;
 }
 
 /* ll_set_context has 2 distinct behaviors, depending on the value of inode
@@ -143,7 +143,7 @@ void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set)
 
 static bool ll_empty_dir(struct inode *inode)
 {
-	/* used by llcrypt_ioctl_set_policy(), because a policy can only be set
+	/* used by fscrypt_ioctl_set_policy(), because a policy can only be set
 	 * on an empty dir.
 	 */
 	/* Here we choose to return true, meaning we always call .set_context.
@@ -153,7 +153,7 @@ static bool ll_empty_dir(struct inode *inode)
 	return true;
 }
 
-const struct llcrypt_operations lustre_cryptops = {
+const struct fscrypt_operations lustre_cryptops = {
 	.key_prefix		= "lustre:",
 	.get_context		= ll_get_context,
 	.set_context		= ll_set_context,

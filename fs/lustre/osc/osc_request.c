@@ -1371,11 +1371,11 @@ static inline void osc_release_bounce_pages(struct brw_page **pga,
 
 	for (i = 0; i < page_count; i++) {
 		/* Bounce pages allocated by a call to
-		 * llcrypt_encrypt_pagecache_blocks() in osc_brw_prep_request()
+		 * fscrypt_encrypt_pagecache_blocks() in osc_brw_prep_request()
 		 * are identified thanks to the PageChecked flag.
 		 */
 		if (PageChecked(pga[i]->pg))
-			llcrypt_finalize_bounce_page(&pga[i]->pg);
+			fscrypt_finalize_bounce_page(&pga[i]->pg);
 		pga[i]->count -= pga[i]->bp_count_diff;
 		pga[i]->off += pga[i]->bp_off_diff;
 	}
@@ -1463,7 +1463,7 @@ retry_encrypt:
 				pg->pg->index = pg->off >> PAGE_SHIFT;
 			}
 			data_page =
-				llcrypt_encrypt_pagecache_blocks(pg->pg,
+				fscrypt_encrypt_pagecache_blocks(pg->pg,
 								 nunits, 0,
 								 GFP_NOFS);
 			if (directio) {
@@ -2145,7 +2145,7 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 	if (inode && IS_ENCRYPTED(inode)) {
 		int idx;
 
-		if (!llcrypt_has_encryption_key(inode)) {
+		if (!fscrypt_has_encryption_key(inode)) {
 			CDEBUG(D_SEC, "no enc key for ino %lu\n", inode->i_ino);
 			goto out;
 		}
@@ -2181,7 +2181,7 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 					for (i = offs;
 					     i < offs + LUSTRE_ENCRYPTION_UNIT_SIZE;
 					     i += blocksize, lblk_num++) {
-						rc = llcrypt_decrypt_block_inplace(inode,
+						rc = fscrypt_decrypt_block_inplace(inode,
 										   pg->pg,
 										   blocksize, i,
 										   lblk_num);
@@ -2189,7 +2189,7 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 							break;
 					}
 				} else {
-					rc = llcrypt_decrypt_pagecache_blocks(pg->pg,
+					rc = fscrypt_decrypt_pagecache_blocks(pg->pg,
 									      LUSTRE_ENCRYPTION_UNIT_SIZE,
 									      offs);
 				}

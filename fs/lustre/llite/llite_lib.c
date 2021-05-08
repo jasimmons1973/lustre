@@ -616,8 +616,8 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 #if THREAD_SIZE >= 8192 /*b=17630*/
 	sb->s_export_op = &lustre_export_operations;
 #endif
-	llcrypt_set_ops(sb, &lustre_cryptops);
 
+	fscrypt_set_ops(sb, &lustre_cryptops);
 	/* make root inode
 	 * XXX: move this to after cbd setup?
 	 */
@@ -1682,7 +1682,7 @@ void ll_clear_inode(struct inode *inode)
 	 */
 	cl_inode_fini(inode);
 
-	llcrypt_put_encryption_info(inode);
+	fscrypt_put_encryption_info(inode);
 }
 
 static int ll_md_setattr(struct dentry *dentry, struct md_op_data *op_data)
@@ -2140,7 +2140,7 @@ int ll_setattr(struct dentry *de, struct iattr *attr)
 	enum op_xvalid xvalid = 0;
 	int rc;
 
-	rc = llcrypt_prepare_setattr(de, attr);
+	rc = fscrypt_prepare_setattr(de, attr);
 	if (rc)
 		return rc;
 

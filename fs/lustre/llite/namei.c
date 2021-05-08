@@ -674,7 +674,7 @@ static int ll_lookup_it_finish(struct ptlrpc_request *request,
 					      ll_i2sbi(inode)->ll_fsname,
 					      PFID(ll_inode2fid(inode)), rc);
 				} else if (encrypt) {
-					rc = llcrypt_get_encryption_info(inode);
+					rc = fscrypt_get_encryption_info(inode);
 					if (rc)
 						CDEBUG(D_SEC,
 						       "cannot get enc info for " DFID ": rc = %d\n",
@@ -744,10 +744,10 @@ static int ll_lookup_it_finish(struct ptlrpc_request *request,
 			d_lustre_revalidate(*de);
 
 		if (encrypt) {
-			rc = llcrypt_get_encryption_info(inode);
+			rc = fscrypt_get_encryption_info(inode);
 			if (rc)
 				goto out;
-			if (!llcrypt_has_encryption_key(inode)) {
+			if (!fscrypt_has_encryption_key(inode)) {
 				rc = -ENOKEY;
 				goto out;
 			}
@@ -878,7 +878,7 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 			*secctxlen = 0;
 	}
 	if (it->it_op & IT_CREAT && encrypt) {
-		rc = llcrypt_inherit_context(parent, NULL, op_data, false);
+		rc = fscrypt_inherit_context(parent, NULL, op_data, false);
 		if (rc) {
 			retval = ERR_PTR(rc);
 			goto out;
@@ -1134,11 +1134,11 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 		/* in case of create, this is going to be a regular file because
 		 * we set S_IFREG bit on it->it_create_mode above
 		 */
-		rc = llcrypt_get_encryption_info(dir);
+		rc = fscrypt_get_encryption_info(dir);
 		if (rc)
 			goto out_release;
 		if (open_flags & O_CREAT) {
-			if (!llcrypt_has_encryption_key(dir)) {
+			if (!fscrypt_has_encryption_key(dir)) {
 				rc = -ENOKEY;
 				goto out_release;
 			}
@@ -1390,11 +1390,11 @@ again:
 	if (ll_sbi_has_encrypt(sbi) &&
 	    ((IS_ENCRYPTED(dir) &&
 	    (S_ISREG(mode) || S_ISDIR(mode) || S_ISLNK(mode))) ||
-	    (unlikely(llcrypt_dummy_context_enabled(dir)) && S_ISDIR(mode)))) {
-		err = llcrypt_get_encryption_info(dir);
+	    (unlikely(fscrypt_dummy_context_enabled(dir)) && S_ISDIR(mode)))) {
+		err = fscrypt_get_encryption_info(dir);
 		if (err)
 			goto err_exit;
-		if (!llcrypt_has_encryption_key(dir)) {
+		if (!fscrypt_has_encryption_key(dir)) {
 			err = -ENOKEY;
 			goto err_exit;
 		}
@@ -1402,7 +1402,7 @@ again:
 	}
 
 	if (encrypt) {
-		err = llcrypt_inherit_context(dir, NULL, op_data, false);
+		err = fscrypt_inherit_context(dir, NULL, op_data, false);
 		if (err)
 			goto err_exit;
 	}
@@ -1504,7 +1504,7 @@ again:
 	d_instantiate(dentry, inode);
 
 	if (encrypt) {
-		err = llcrypt_inherit_context(dir, inode, NULL, true);
+		err = fscrypt_inherit_context(dir, inode, NULL, true);
 		if (err)
 			goto err_exit;
 	}
@@ -1740,7 +1740,7 @@ static int ll_link(struct dentry *old_dentry, struct inode *dir,
 	       PFID(ll_inode2fid(src)), src, PFID(ll_inode2fid(dir)), dir,
 	       new_dentry);
 
-	err = llcrypt_prepare_link(old_dentry, dir, new_dentry);
+	err = fscrypt_prepare_link(old_dentry, dir, new_dentry);
 	if (err)
 		return err;
 
@@ -1785,7 +1785,7 @@ static int ll_rename(struct inode *src, struct dentry *src_dchild,
 	if (unlikely(d_mountpoint(src_dchild) || d_mountpoint(tgt_dchild)))
 		return -EBUSY;
 
-	err = llcrypt_prepare_rename(src, src_dchild, tgt, tgt_dchild, flags);
+	err = fscrypt_prepare_rename(src, src_dchild, tgt, tgt_dchild, flags);
 	if (err)
 		return err;
 

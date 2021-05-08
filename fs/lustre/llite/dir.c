@@ -450,11 +450,11 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 
 	if (ll_sbi_has_encrypt(sbi) &&
 	    (IS_ENCRYPTED(parent) ||
-	     unlikely(llcrypt_dummy_context_enabled(parent)))) {
-		err = llcrypt_get_encryption_info(parent);
+	     unlikely(fscrypt_dummy_context_enabled(parent)))) {
+		err = fscrypt_get_encryption_info(parent);
 		if (err)
 			goto out_op_data;
-		if (!llcrypt_has_encryption_key(parent)) {
+		if (!fscrypt_has_encryption_key(parent)) {
 			err = -ENOKEY;
 			goto out_op_data;
 		}
@@ -476,7 +476,7 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 	}
 
 	if (encrypt) {
-		err = llcrypt_inherit_context(parent, NULL, op_data, false);
+		err = fscrypt_inherit_context(parent, NULL, op_data, false);
 		if (err)
 			goto out_op_data;
 	}
@@ -2149,28 +2149,28 @@ out_detach:
 	case FS_IOC_SET_ENCRYPTION_POLICY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_set_policy(file, (const void __user *)arg);
+		return fscrypt_ioctl_set_policy(file, (const void __user *)arg);
 	case FS_IOC_GET_ENCRYPTION_POLICY_EX:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_get_policy_ex(file, (void __user *)arg);
+		return fscrypt_ioctl_get_policy_ex(file, (void __user *)arg);
 	case FS_IOC_ADD_ENCRYPTION_KEY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_add_key(file, (void __user *)arg);
+		return fscrypt_ioctl_add_key(file, (void __user *)arg);
 	case FS_IOC_REMOVE_ENCRYPTION_KEY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_remove_key(file, (void __user *)arg);
+		return fscrypt_ioctl_remove_key(file, (void __user *)arg);
 	case FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_remove_key_all_users(file,
+		return fscrypt_ioctl_remove_key_all_users(file,
 							  (void __user *)arg);
 	case FS_IOC_GET_ENCRYPTION_KEY_STATUS:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return llcrypt_ioctl_get_key_status(file, (void __user *)arg);
+		return fscrypt_ioctl_get_key_status(file, (void __user *)arg);
 #endif
 	default:
 		return obd_iocontrol(cmd, sbi->ll_dt_exp, 0, NULL,

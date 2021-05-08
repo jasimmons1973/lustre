@@ -1681,25 +1681,9 @@ static inline struct pcc_super *ll_info2pccs(struct ll_inode_info *lli)
 	return ll_i2pccs(ll_info2i(lli));
 }
 
-#ifdef CONFIG_FS_ENCRYPTION
 /* crypto.c */
-extern const struct llcrypt_operations lustre_cryptops;
+extern const struct fscrypt_operations lustre_cryptops;
 
-#else /* !CONFIG_FS_ENCRYPTION */
-inline bool ll_sbi_has_test_dummy_encryption(struct ll_sb_info *sbi)
-{
-	return false;
-}
-
-inline bool ll_sbi_has_encrypt(struct ll_sb_info *sbi)
-{
-	return false;
-}
-
-inline void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set)
-{
-}
-#endif /* !CONFIG_FS_ENCRYPTION */
 /* llite/llite_foreign.c */
 int ll_manage_foreign(struct inode *inode, struct lustre_md *lmd);
 bool ll_foreign_is_openable(struct dentry *dentry, unsigned int flags);
