@@ -4151,10 +4151,10 @@ void lustre_assert_wire_constants(void)
 	LASSERTF((int)sizeof(((struct mgs_config_body *)0)->mcb_units) == 4, "found %lld\n",
 		 (long long)(int)sizeof(((struct mgs_config_body *)0)->mcb_units));
 
-	BUILD_BUG_ON(CONFIG_T_CONFIG != 0);
-	BUILD_BUG_ON(CONFIG_T_SPTLRPC != 1);
-	BUILD_BUG_ON(CONFIG_T_RECOVER != 2);
-	BUILD_BUG_ON(CONFIG_T_PARAMS != 3);
+	BUILD_BUG_ON(MGS_CFG_T_CONFIG != 0);
+	BUILD_BUG_ON(MGS_CFG_T_SPTLRPC != 1);
+	BUILD_BUG_ON(MGS_CFG_T_RECOVER != 2);
+	BUILD_BUG_ON(MGS_CFG_T_PARAMS != 3);
 
 	/* Checks for struct mgs_config_res */
 	LASSERTF((int)sizeof(struct mgs_config_res) == 16, "found %lld\n",

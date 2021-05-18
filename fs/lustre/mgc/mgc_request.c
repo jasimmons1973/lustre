@@ -50,7 +50,7 @@
 #include "mgc_internal.h"
 
 static int mgc_name2resid(char *name, int len, struct ldlm_res_id *res_id,
-			  int type)
+			  enum mgs_cfg_type type)
 {
 	u64 resname = 0;
 
@@ -69,12 +69,12 @@ static int mgc_name2resid(char *name, int len, struct ldlm_res_id *res_id,
 	res_id->name[0] = cpu_to_le64(resname);
 	/* XXX: unfortunately, sptlprc and config llog share one lock */
 	switch (type) {
-	case CONFIG_T_CONFIG:
-	case CONFIG_T_SPTLRPC:
+	case MGS_CFG_T_CONFIG:
+	case MGS_CFG_T_SPTLRPC:
 		resname = 0;
 		break;
-	case CONFIG_T_RECOVER:
-	case CONFIG_T_PARAMS:
+	case MGS_CFG_T_RECOVER:
+	case MGS_CFG_T_PARAMS:
 		resname = type;
 		break;
 	default:
@@ -86,7 +86,8 @@ static int mgc_name2resid(char *name, int len, struct ldlm_res_id *res_id,
 	return 0;
 }
 
-int mgc_fsname2resid(char *fsname, struct ldlm_res_id *res_id, int type)
+int mgc_fsname2resid(char *fsname, struct ldlm_res_id *res_id,
+		     enum mgs_cfg_type type)
 {
 	/* fsname is at most 8 chars long, maybe contain "-".
 	 * e.g. "lustre", "SUN-000"
@@ -96,7 +97,7 @@ int mgc_fsname2resid(char *fsname, struct ldlm_res_id *res_id, int type)
 EXPORT_SYMBOL(mgc_fsname2resid);
 
 static int mgc_logname2resid(char *logname, struct ldlm_res_id *res_id,
-			     int type)
+			     enum mgs_cfg_type type)
 {
 	char *name_end;
 	int len;
@@ -190,7 +191,7 @@ struct config_llog_data *config_log_find(char *logname,
 static
 struct config_llog_data *do_config_log_add(struct obd_device *obd,
 					   char *logname,
-					   int type,
+					   enum mgs_cfg_type type,
 					   struct config_llog_instance *cfg,
 					   struct super_block *sb)
 {
@@ -258,13 +259,13 @@ config_recover_log_add(struct obd_device *obd, char *fsname,
 	LASSERT(lcfg.cfg_instance);
 	strcat(logname, "-cliir");
 
-	cld = do_config_log_add(obd, logname, CONFIG_T_RECOVER, &lcfg, sb);
+	cld = do_config_log_add(obd, logname, MGS_CFG_T_RECOVER, &lcfg, sb);
 	return cld;
 }
 
 static struct config_llog_data *
 config_log_find_or_add(struct obd_device *obd, char *logname,
-		       struct super_block *sb, int type,
+		       struct super_block *sb, enum mgs_cfg_type type,
 		       struct config_llog_instance *cfg)
 {
 	struct config_llog_instance lcfg = *cfg;
@@ -314,7 +315,7 @@ config_log_add(struct obd_device *obd, char *logname,
 
 	if (cfg->cfg_sub_clds & CONFIG_SUB_SPTLRPC) {
 		sptlrpc_cld = config_log_find_or_add(obd, seclogname, NULL,
-						     CONFIG_T_SPTLRPC, cfg);
+						     MGS_CFG_T_SPTLRPC, cfg);
 		if (IS_ERR(sptlrpc_cld)) {
 			CERROR("can't create sptlrpc log: %s\n", seclogname);
 			rc = PTR_ERR(sptlrpc_cld);
@@ -324,7 +325,7 @@ config_log_add(struct obd_device *obd, char *logname,
 
 	if (cfg->cfg_sub_clds & CONFIG_SUB_PARAMS) {
 		params_cld = config_log_find_or_add(obd, PARAMS_FILENAME, sb,
-						    CONFIG_T_PARAMS, cfg);
+						    MGS_CFG_T_PARAMS, cfg);
 		if (IS_ERR(params_cld)) {
 			rc = PTR_ERR(params_cld);
 			CERROR("%s: can't create params log: rc = %d\n",
@@ -333,7 +334,7 @@ config_log_add(struct obd_device *obd, char *logname,
 		}
 	}
 
-	cld = do_config_log_add(obd, logname, CONFIG_T_CONFIG, cfg, sb);
+	cld = do_config_log_add(obd, logname, MGS_CFG_T_CONFIG, cfg, sb);
 	if (IS_ERR(cld)) {
 		CERROR("can't create log: %s\n", logname);
 		rc = PTR_ERR(cld);

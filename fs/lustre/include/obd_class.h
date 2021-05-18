@@ -205,7 +205,7 @@ struct config_llog_data {
 	struct config_llog_data	       *cld_recover;	/* imperative recover log */
 	struct obd_export	       *cld_mgcexp;
 	struct mutex			cld_lock;
-	int				cld_type;
+	enum mgs_cfg_type		cld_type;
 	unsigned int			cld_stopping:1, /*
 							 * we were told to stop
 							 * watching
