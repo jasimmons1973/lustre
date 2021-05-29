@@ -82,7 +82,7 @@ void lov_pool_putref(struct pool_desc *pool)
 	CDEBUG(D_INFO, "pool %p\n", pool);
 	if (atomic_dec_and_test(&pool->pool_refcount)) {
 		LASSERT(list_empty(&pool->pool_list));
-		tgt_pool_free(&pool->pool_obds);
+		lu_tgt_pool_free(&pool->pool_obds);
 		kfree_rcu(pool, rcu);
 	}
 }
@@ -268,7 +268,7 @@ int lov_pool_new(struct obd_device *obd, char *poolname)
 	 * up to deletion
 	 */
 	atomic_set(&new_pool->pool_refcount, 1);
-	rc = tgt_pool_init(&new_pool->pool_obds, 0);
+	rc = lu_tgt_pool_init(&new_pool->pool_obds, 0);
 	if (rc)
 		goto out_err;
 
@@ -310,7 +310,7 @@ out_err:
 	lov->lov_pool_count--;
 	spin_unlock(&obd->obd_dev_lock);
 	debugfs_remove_recursive(new_pool->pool_debugfs_entry);
-	tgt_pool_free(&new_pool->pool_obds);
+	lu_tgt_pool_free(&new_pool->pool_obds);
 	kfree(new_pool);
 
 	return rc;
@@ -401,7 +401,7 @@ int lov_pool_add(struct obd_device *obd, char *poolname, char *ostname)
 		goto out;
 	}
 
-	rc = tgt_pool_add(&pool->pool_obds, lov_idx, lov->lov_tgt_size);
+	rc = lu_tgt_pool_add(&pool->pool_obds, lov_idx, lov->lov_tgt_size);
 	if (rc)
 		goto out;
 
@@ -453,7 +453,7 @@ int lov_pool_remove(struct obd_device *obd, char *poolname, char *ostname)
 		goto out;
 	}
 
-	tgt_pool_remove(&pool->pool_obds, lov_idx);
+	lu_tgt_pool_remove(&pool->pool_obds, lov_idx);
 
 	CDEBUG(D_CONFIG, "%s removed from " LOV_POOLNAMEF "\n", ostname,
 	       poolname);
