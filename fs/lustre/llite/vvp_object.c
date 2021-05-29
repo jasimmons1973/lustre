@@ -164,13 +164,8 @@ static int vvp_prune(const struct lu_env *env, struct cl_object *obj)
 		return rc;
 	}
 
-	truncate_inode_pages(inode->i_mapping, 0);
-	if (inode->i_mapping->nrpages) {
-		CDEBUG(D_VFSTRACE, DFID ": still has %lu pages remaining\n",
-		       PFID(lu_object_fid(&obj->co_lu)),
-		       inode->i_mapping->nrpages);
-		return -EIO;
-	}
+	ll_truncate_inode_pages_final(inode);
+	clear_bit(AS_EXITING, &inode->i_mapping->flags);
 
 	return 0;
 }
