@@ -221,8 +221,9 @@ static int lov_io_mirror_write_intent(struct lov_io *lio,
 	*ext = (typeof(*ext)) { lio->lis_pos, lio->lis_endpos };
 	io->ci_need_write_intent = 0;
 
-	if (!(io->ci_type == CIT_WRITE || cl_io_is_trunc(io) ||
-	      cl_io_is_mkwrite(io)))
+	if (!(io->ci_type == CIT_WRITE || cl_io_is_mkwrite(io) ||
+	      cl_io_is_fallocate(io) || cl_io_is_trunc(io) ||
+	      cl_io_is_fault_writable(io)))
 		return 0;
 
 	/* FLR: check if it needs to send a write intent RPC to server.
@@ -574,7 +575,8 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 	/* check if it needs to instantiate layout */
 	if (!(io->ci_type == CIT_WRITE || cl_io_is_mkwrite(io) ||
 	      cl_io_is_fallocate(io) ||
-	      (cl_io_is_trunc(io) && io->u.ci_setattr.sa_attr.lvb_size > 0))) {
+	      (cl_io_is_trunc(io) && io->u.ci_setattr.sa_attr.lvb_size > 0)) ||
+	      cl_io_is_fault_writable(io)) {
 		result = 0;
 		goto out;
 	}

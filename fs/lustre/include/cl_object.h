@@ -2456,6 +2456,11 @@ int cl_io_lru_reserve(const struct lu_env *env, struct cl_io *io,
 int cl_io_read_ahead(const struct lu_env *env, struct cl_io *io,
 		     pgoff_t start, struct cl_read_ahead *ra);
 
+static inline int cl_io_is_fault_writable(const struct cl_io *io)
+{
+	return io->ci_type == CIT_FAULT && io->u.ci_fault.ft_writable;
+}
+
 /**
  * True, if @io is an O_APPEND write(2).
  */
