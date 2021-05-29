@@ -912,8 +912,6 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 	}
 
 	if (pca && pca->pca_dataset) {
-		struct pcc_dataset *dataset = pca->pca_dataset;
-
 		lum = kzalloc(sizeof(*lum), GFP_NOFS);
 		if (!lum) {
 			retval = ERR_PTR(-ENOMEM);
@@ -924,22 +922,7 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 		lum->lmm_pattern = LOV_PATTERN_F_RELEASED | LOV_PATTERN_RAID0;
 		op_data->op_data = lum;
 		op_data->op_data_size = sizeof(*lum);
-		op_data->op_archive_id = dataset->pccd_rwid;
-
-		rc = obd_fid_alloc(NULL, ll_i2mdexp(parent), &op_data->op_fid2,
-				   op_data);
-		if (rc) {
-			retval = ERR_PTR(rc);
-			goto out;
-		}
-
-		rc = pcc_inode_create(parent->i_sb, dataset, &op_data->op_fid2,
-				      &pca->pca_dentry);
-		if (rc) {
-			retval = ERR_PTR(rc);
-			goto out;
-		}
-
+		op_data->op_archive_id = pca->pca_dataset->pccd_rwid;
 		it->it_flags |= MDS_OPEN_PCC;
 	}
 
@@ -978,6 +961,16 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 	if (rc < 0) {
 		retval = ERR_PTR(rc);
 		goto out;
+	}
+
+	if (pca && pca->pca_dataset) {
+		rc = pcc_inode_create(parent->i_sb, pca->pca_dataset,
+				      &op_data->op_fid2,
+				      &pca->pca_dentry);
+		if (rc) {
+			retval = ERR_PTR(rc);
+			goto out;
+		}
 	}
 
 	/* dir layout may change */
