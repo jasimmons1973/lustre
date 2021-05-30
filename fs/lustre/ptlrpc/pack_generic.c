@@ -1230,6 +1230,24 @@ u32 lustre_msg_get_cksum(struct lustre_msg *msg)
 	}
 }
 
+u64 lustre_msg_get_mbits(struct lustre_msg *msg)
+{
+	switch (msg->lm_magic) {
+	case LUSTRE_MSG_MAGIC_V2: {
+		struct ptlrpc_body *pb = lustre_msg_ptlrpc_body(msg);
+
+		if (!pb) {
+			CERROR("invalid msg %p: no ptlrpc body!\n", msg);
+			return 0;
+		}
+		return pb->pb_mbits;
+	}
+	default:
+		CERROR("incorrect message magic: %08x\n", msg->lm_magic);
+		return 0;
+	}
+}
+
 u32 lustre_msg_calc_cksum(struct lustre_msg *msg, u32 buf)
 {
 	switch (msg->lm_magic) {

@@ -1554,6 +1554,7 @@ static int ptlrpc_server_handle_req_in(struct ptlrpc_service_part *svcpt,
 	struct ptlrpc_service *svc = svcpt->scp_service;
 	struct ptlrpc_request *req;
 	u32 deadline;
+	u32 opc;
 	int rc;
 
 	spin_lock(&svcpt->scp_lock);
@@ -1608,8 +1609,9 @@ static int ptlrpc_server_handle_req_in(struct ptlrpc_service_part *svcpt,
 		goto err_req;
 	}
 
+	opc = lustre_msg_get_opc(req->rq_reqmsg);
 	if (OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_DROP_REQ_OPC) &&
-	    lustre_msg_get_opc(req->rq_reqmsg) == cfs_fail_val) {
+	    opc == cfs_fail_val) {
 		CERROR("drop incoming rpc opc %u, x%llu\n",
 		       cfs_fail_val, req->rq_xid);
 		goto err_req;
@@ -1623,7 +1625,7 @@ static int ptlrpc_server_handle_req_in(struct ptlrpc_service_part *svcpt,
 		goto err_req;
 	}
 
-	switch (lustre_msg_get_opc(req->rq_reqmsg)) {
+	switch (opc) {
 	case MDS_WRITEPAGE:
 	case OST_WRITE:
 		req->rq_bulk_write = 1;
@@ -1688,7 +1690,19 @@ static int ptlrpc_server_handle_req_in(struct ptlrpc_service_part *svcpt,
 		req->rq_svc_thread->t_env->le_ses = &req->rq_session;
 	}
 
+
+	if (unlikely(OBD_FAIL_PRECHECK(OBD_FAIL_PTLRPC_ENQ_RESEND) &&
+		     (opc == LDLM_ENQUEUE) &&
+		     (lustre_msg_get_flags(req->rq_reqmsg) & MSG_RESENT)))
+		OBD_FAIL_TIMEOUT(OBD_FAIL_PTLRPC_ENQ_RESEND, 6);
+
 	ptlrpc_at_add_timed(req);
+
+	if (opc != OST_CONNECT && opc != MDS_CONNECT &&
+	    opc != MGS_CONNECT && req->rq_export) {
+		if (exp_connect_flags2(req->rq_export) & OBD_CONNECT2_REP_MBITS)
+			req->rq_rep_mbits = lustre_msg_get_mbits(req->rq_reqmsg);
+	}
 
 	/* Move it over to the request processing queue */
 	rc = ptlrpc_server_request_add(svcpt, req);

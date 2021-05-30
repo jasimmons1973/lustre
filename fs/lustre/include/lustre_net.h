@@ -867,6 +867,8 @@ struct ptlrpc_request {
 	u64				rq_xid;
 	/** bulk match bits */
 	u64				rq_mbits;
+	/** reply match bits */
+	u64				rq_rep_mbits;
 	/**
 	 * List item to for replay list. Not yet committed requests get linked
 	 * there.
@@ -2104,6 +2106,7 @@ timeout_t lustre_msg_get_timeout(struct lustre_msg *msg);
 timeout_t lustre_msg_get_service_timeout(struct lustre_msg *msg);
 char *lustre_msg_get_jobid(struct lustre_msg *msg);
 u32 lustre_msg_get_cksum(struct lustre_msg *msg);
+u64 lustre_msg_get_mbits(struct lustre_msg *msg);
 u32 lustre_msg_calc_cksum(struct lustre_msg *msg, u32 buf);
 void lustre_msg_set_handle(struct lustre_msg *msg,
 			   struct lustre_handle *handle);
