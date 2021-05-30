@@ -975,7 +975,8 @@ static inline void obd_uuid2fsname(char *buf, char *uuid, int buflen)
 #define LUSTRE_Q_SETQUOTAPOOL	0x800010	/* set user pool quota */
 #define LUSTRE_Q_GETINFOPOOL	0x800011	/* get pool quota info */
 #define LUSTRE_Q_SETINFOPOOL	0x800012	/* set pool quota info */
-
+#define LUSTRE_Q_GETDEFAULT_POOL	0x800013 /* get default pool quota*/
+#define LUSTRE_Q_SETDEFAULT_POOL	0x800014 /* set default pool quota */
 /* In the current Lustre implementation, the grace time is either the time
  * or the timestamp to be used after some quota ID exceeds the soft limt,
  * 48 bits should be enough, its high 16 bits can be used as quota flags.
