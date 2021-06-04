@@ -323,6 +323,10 @@ repeat:
 			CDEBUG(D_OTHER,
 			       "cur_offset %llu, chunk_offset %llu, buf_offset %u, rc = %d\n",
 			       cur_offset, (u64)chunk_offset, buf_offset, rc);
+		if (rc == -ESTALE) {
+			rc = 0;
+			goto out;
+		}
 		/* we`ve tried to reread the chunk, but there is no
 		 * new records
 		 */
