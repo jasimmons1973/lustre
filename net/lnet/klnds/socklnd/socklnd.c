@@ -744,7 +744,10 @@ ksocknal_accept(struct lnet_ni *ni, struct socket *sock)
 	struct sockaddr_storage peer;
 
 	rc = lnet_sock_getaddr(sock, true, &peer);
-	LASSERT(!rc);			/* we succeeded before */
+	if (rc != 0) {
+		CERROR("Can't determine new connection's address\n");
+		return rc;
+	}
 
 	cr = kzalloc(sizeof(*cr), GFP_NOFS);
 	if (!cr) {

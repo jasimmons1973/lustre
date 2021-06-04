@@ -200,7 +200,10 @@ lnet_accept(struct socket *sock, u32 magic)
 	LASSERT(sizeof(cr) <= 16);		/* not too big for the stack */
 
 	rc = lnet_sock_getaddr(sock, true, &peer);
-	LASSERT(!rc);				/* we succeeded before */
+	if (rc != 0) {
+		CERROR("Can't determine new connection's address\n");
+		return rc;
+	}
 
 	if (!lnet_accept_magic(magic, LNET_PROTO_ACCEPTOR_MAGIC)) {
 		if (lnet_accept_magic(magic, LNET_PROTO_MAGIC)) {
