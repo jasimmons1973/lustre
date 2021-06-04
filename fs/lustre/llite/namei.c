@@ -1792,6 +1792,11 @@ static int ll_rename(struct inode *src, struct dentry *src_dchild,
 	err = fscrypt_prepare_rename(src, src_dchild, tgt, tgt_dchild, flags);
 	if (err)
 		return err;
+	/* we prevent an encrypted file from being renamed
+	 * into an unencrypted dir
+	 */
+	if (IS_ENCRYPTED(src) && !IS_ENCRYPTED(tgt))
+		return -EXDEV;
 
 	if (src_dchild->d_inode)
 		mode = src_dchild->d_inode->i_mode;
