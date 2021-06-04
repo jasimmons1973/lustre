@@ -921,12 +921,13 @@ static inline int obd_statfs(const struct lu_env *env, struct obd_export *exp,
 			     struct obd_statfs *osfs, time64_t max_age,
 			     u32 flags)
 {
-	struct obd_device *obd = exp->exp_obd;
+	struct obd_device *obd;
 	int rc = 0;
 
-	if (unlikely(!obd))
+	if (unlikely(!exp) || !exp->exp_obd)
 		return -EINVAL;
 
+	obd = exp->exp_obd;
 	rc = obd_check_dev_active(obd);
 	if (rc)
 		return rc;
