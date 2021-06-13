@@ -1756,7 +1756,7 @@ void req_capsule_init(struct req_capsule *pill,
 	if (req && pill == &req->rq_pill && req->rq_pill_init)
 		return;
 
-	memset(pill, 0, sizeof(*pill));
+	pill->rc_fmt = NULL;
 	pill->rc_req = req;
 	pill->rc_loc = location;
 	req_capsule_init_area(pill);
@@ -1780,10 +1780,7 @@ static int __req_format_is_sane(const struct req_format *fmt)
 static struct lustre_msg *__req_msg(const struct req_capsule *pill,
 				    enum req_location loc)
 {
-	struct ptlrpc_request *req;
-
-	req = pill->rc_req;
-	return loc == RCL_CLIENT ? req->rq_reqmsg : req->rq_repmsg;
+	return loc == RCL_CLIENT ? pill->rc_reqmsg : pill->rc_repmsg;
 }
 
 /**
@@ -1881,6 +1878,26 @@ u32 __req_capsule_offset(const struct req_capsule *pill,
 	return offset;
 }
 
+void req_capsule_set_swabbed(struct req_capsule *pill, enum req_location loc,
+			    u32 index)
+{
+	if (loc == RCL_CLIENT)
+		req_capsule_set_req_swabbed(pill, index);
+	else
+		req_capsule_set_rep_swabbed(pill, index);
+}
+
+bool req_capsule_need_swab(struct req_capsule *pill, enum req_location loc,
+			   u32 index)
+{
+	if (loc == RCL_CLIENT)
+		return (req_capsule_req_need_swab(pill) &&
+			!req_capsule_req_swabbed(pill, index));
+
+	return (req_capsule_rep_need_swab(pill) &&
+	       !req_capsule_rep_swabbed(pill, index));
+}
+
 /**
  * Helper for __req_capsule_get(); swabs value / array of values and/or dumps
  * them if desired.
@@ -1898,12 +1915,11 @@ swabber_dumper_helper(struct req_capsule *pill,
 	int size;
 	int rc = 0;
 	bool do_swab;
-	bool inout = loc == RCL_CLIENT;
 	bool array = field->rmf_flags & RMF_F_STRUCT_ARRAY;
 
 	swabber = swabber ?: field->rmf_swabber;
 
-	if (ptlrpc_buf_need_swab(pill->rc_req, inout, offset) &&
+	if (req_capsule_need_swab(pill, loc, offset) &&
 	    (swabber || field->rmf_swab_len) && value)
 		do_swab = true;
 	else
@@ -1968,7 +1984,7 @@ swabber_dumper_helper(struct req_capsule *pill,
 		}
 	}
 	if (do_swab)
-		ptlrpc_buf_set_swabbed(pill->rc_req, inout, offset);
+		req_capsule_set_swabbed(pill, loc, offset);
 
 	return 0;
 }

@@ -486,7 +486,7 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 	if (err)
 		goto out_request;
 
-	err = ll_prep_inode(&inode, request, parent->i_sb, NULL);
+	err = ll_prep_inode(&inode, &request->rq_pill, parent->i_sb, NULL);
 	if (err)
 		goto out_inode;
 

@@ -1442,7 +1442,7 @@ again:
 		goto out;
 	}
 
-	mne_swab = ptlrpc_rep_need_swab(req);
+	mne_swab = req_capsule_rep_need_swab(&req->rq_pill);
 
 	for (i = 0; i < nrpages && ealen > 0; i++) {
 		int rc2;

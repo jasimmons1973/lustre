@@ -665,7 +665,7 @@ retry:
 		goto out;
 	}
 
-	rc = ll_prep_inode(&inode, req, NULL, itp);
+	rc = ll_prep_inode(&inode, &req->rq_pill, NULL, itp);
 
 	if (!rc && itp->it_lock_mode) {
 		u64 bits = 0;
@@ -4531,7 +4531,7 @@ int ll_get_fid_by_name(struct inode *parent, const char *name,
 		*fid = body->mbo_fid1;
 
 	if (inode)
-		rc = ll_prep_inode(inode, req, parent->i_sb, NULL);
+		rc = ll_prep_inode(inode, &req->rq_pill, parent->i_sb, NULL);
 out_req:
 	ptlrpc_req_finished(req);
 	return rc;

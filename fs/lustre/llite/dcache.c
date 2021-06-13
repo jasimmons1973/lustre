@@ -202,17 +202,13 @@ int ll_revalidate_it_finish(struct ptlrpc_request *request,
 			    struct lookup_intent *it,
 			    struct inode *inode)
 {
-	int rc = 0;
-
 	if (!request)
 		return 0;
 
 	if (it_disposition(it, DISP_LOOKUP_NEG))
 		return -ENOENT;
 
-	rc = ll_prep_inode(&inode, request, NULL, it);
-
-	return rc;
+	return ll_prep_inode(&inode, &request->rq_pill, NULL, it);
 }
 
 void ll_lookup_finish_locks(struct lookup_intent *it, struct inode *inode)

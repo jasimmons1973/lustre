@@ -770,6 +770,10 @@ struct ptlrpc_srv_req {
 #define rq_user_desc		rq_srv.sr_user_desc
 #define rq_ops			rq_srv.sr_ops
 #define rq_rqbd			rq_srv.sr_rqbd
+#define rq_reqmsg		rq_pill.rc_reqmsg
+#define rq_repmsg		rq_pill.rc_repmsg
+#define rq_req_swab_mask	rq_pill.rc_req_swab_mask
+#define rq_rep_swab_mask	rq_pill.rc_rep_swab_mask
 
 /**
  * Represents remote procedure call.
@@ -857,10 +861,6 @@ struct ptlrpc_request {
 	int				rq_replen;
 	/** Pool if request is from preallocated list */
 	struct ptlrpc_request_pool     *rq_pool;
-	/** Request message - what client sent */
-	struct lustre_msg	       *rq_reqmsg;
-	/** Reply message - server response */
-	struct lustre_msg	       *rq_repmsg;
 	/** Transaction number */
 	u64				rq_transno;
 	/** xid */
@@ -931,10 +931,6 @@ struct ptlrpc_request {
 	unsigned int		rq_reply_off;
 
 	/** @} */
-
-	/** Fields that help to see if request and reply were swabbed or not */
-	u32			rq_req_swab_mask;
-	u32			rq_rep_swab_mask;
 
 	/** how many early replies (for stats) */
 	int			rq_early_count;
@@ -1009,62 +1005,6 @@ static inline bool ptlrpc_nrs_req_can_move(struct ptlrpc_request *req)
 }
 
 /** @} nrs */
-
-/**
- * Returns true if request buffer at offset @index was already swabbed
- */
-static inline bool lustre_req_swabbed(struct ptlrpc_request *req, size_t index)
-{
-	LASSERT(index < sizeof(req->rq_req_swab_mask) * 8);
-	return req->rq_req_swab_mask & BIT(index);
-}
-
-/**
- * Returns true if request reply buffer at offset @index was already swabbed
- */
-static inline bool lustre_rep_swabbed(struct ptlrpc_request *req, size_t index)
-{
-	LASSERT(index < sizeof(req->rq_rep_swab_mask) * 8);
-	return req->rq_rep_swab_mask & BIT(index);
-}
-
-/**
- * Returns true if request needs to be swabbed into local cpu byteorder
- */
-static inline bool ptlrpc_req_need_swab(struct ptlrpc_request *req)
-{
-	return lustre_req_swabbed(req, MSG_PTLRPC_HEADER_OFF);
-}
-
-/**
- * Returns true if request reply needs to be swabbed into local cpu byteorder
- */
-static inline bool ptlrpc_rep_need_swab(struct ptlrpc_request *req)
-{
-	return lustre_rep_swabbed(req, MSG_PTLRPC_HEADER_OFF);
-}
-
-/**
- * Mark request buffer at offset @index that it was already swabbed
- */
-static inline void lustre_set_req_swabbed(struct ptlrpc_request *req,
-					  size_t index)
-{
-	LASSERT(index < sizeof(req->rq_req_swab_mask) * 8);
-	LASSERT((req->rq_req_swab_mask & BIT(index)) == 0);
-	req->rq_req_swab_mask |= BIT(index);
-}
-
-/**
- * Mark request reply buffer at offset @index that it was already swabbed
- */
-static inline void lustre_set_rep_swabbed(struct ptlrpc_request *req,
-					  size_t index)
-{
-	LASSERT(index < sizeof(req->rq_rep_swab_mask) * 8);
-	LASSERT((req->rq_rep_swab_mask & BIT(index)) == 0);
-	req->rq_rep_swab_mask |= BIT(index);
-}
 
 /**
  * Convert numerical request phase value @phase into text string description
@@ -2047,10 +1987,6 @@ int ptlrpc_reconnect_import(struct obd_import *imp);
 				 MDS_REG_MAXREQSIZE : OUT_MAXREQSIZE)
 #define PTLRPC_MAX_BUFLEN	(OST_IO_MAXREQSIZE > MD_MAX_BUFLEN ? \
 				 OST_IO_MAXREQSIZE : MD_MAX_BUFLEN)
-bool ptlrpc_buf_need_swab(struct ptlrpc_request *req, const int inout,
-			  u32 index);
-void ptlrpc_buf_set_swabbed(struct ptlrpc_request *req, const int inout,
-			    u32 index);
 int ptlrpc_unpack_rep_msg(struct ptlrpc_request *req, int len);
 int ptlrpc_unpack_req_msg(struct ptlrpc_request *req, int len);
 

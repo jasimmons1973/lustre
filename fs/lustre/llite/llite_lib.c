@@ -650,8 +650,8 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 		goto out_lock_cn_cb;
 	}
 
-	err = md_get_lustre_md(sbi->ll_md_exp, request, sbi->ll_dt_exp,
-			       sbi->ll_md_exp, &lmd);
+	err = md_get_lustre_md(sbi->ll_md_exp, &request->rq_pill,
+			       sbi->ll_dt_exp, sbi->ll_md_exp, &lmd);
 	if (err) {
 		CERROR("failed to understand root inode md: rc = %d\n", err);
 		ptlrpc_req_finished(request);
@@ -1723,7 +1723,7 @@ static int ll_md_setattr(struct dentry *dentry, struct md_op_data *op_data)
 		return rc;
 	}
 
-	rc = md_get_lustre_md(sbi->ll_md_exp, request, sbi->ll_dt_exp,
+	rc = md_get_lustre_md(sbi->ll_md_exp, &request->rq_pill, sbi->ll_dt_exp,
 			      sbi->ll_md_exp, &md);
 	if (rc) {
 		ptlrpc_req_finished(request);
@@ -2762,14 +2762,14 @@ int ll_remount_fs(struct super_block *sb, int *flags, char *data)
  * @sb:		super block for this file-system
  * @open_req:	pointer to the original open request
  */
-void ll_open_cleanup(struct super_block *sb, struct ptlrpc_request *open_req)
+void ll_open_cleanup(struct super_block *sb, struct req_capsule *pill)
 {
 	struct mdt_body	*body;
 	struct md_op_data *op_data;
 	struct ptlrpc_request *close_req = NULL;
 	struct obd_export *exp = ll_s2sbi(sb)->ll_md_exp;
 
-	body = req_capsule_server_get(&open_req->rq_pill, &RMF_MDT_BODY);
+	body = req_capsule_server_get(pill, &RMF_MDT_BODY);
 	op_data = kzalloc(sizeof(*op_data), GFP_NOFS);
 	if (!op_data)
 		return;
@@ -2782,7 +2782,7 @@ void ll_open_cleanup(struct super_block *sb, struct ptlrpc_request *open_req)
 	ll_finish_md_op_data(op_data);
 }
 
-int ll_prep_inode(struct inode **inode, struct ptlrpc_request *req,
+int ll_prep_inode(struct inode **inode, struct req_capsule *pill,
 		  struct super_block *sb, struct lookup_intent *it)
 {
 	struct ll_sb_info *sbi = NULL;
@@ -2792,7 +2792,7 @@ int ll_prep_inode(struct inode **inode, struct ptlrpc_request *req,
 
 	LASSERT(*inode || sb);
 	sbi = sb ? ll_s2sbi(sb) : ll_i2sbi(*inode);
-	rc = md_get_lustre_md(sbi->ll_md_exp, req, sbi->ll_dt_exp,
+	rc = md_get_lustre_md(sbi->ll_md_exp, pill, sbi->ll_dt_exp,
 			      sbi->ll_md_exp, &md);
 	if (rc)
 		goto out;
@@ -2878,7 +2878,7 @@ out:
 
 	if (rc != 0 && it && it->it_op & IT_OPEN) {
 		ll_intent_drop_lock(it);
-		ll_open_cleanup(sb ? sb : (*inode)->i_sb, req);
+		ll_open_cleanup(sb ? sb : (*inode)->i_sb, pill);
 	}
 
 	return rc;

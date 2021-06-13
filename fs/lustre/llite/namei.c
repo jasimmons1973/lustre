@@ -649,7 +649,7 @@ static int ll_lookup_it_finish(struct ptlrpc_request *request,
 		struct mdt_body *body = req_capsule_server_get(pill,
 							       &RMF_MDT_BODY);
 
-		rc = ll_prep_inode(&inode, request, (*de)->d_sb, it);
+		rc = ll_prep_inode(&inode, &request->rq_pill, (*de)->d_sb, it);
 		if (rc)
 			return rc;
 
@@ -789,7 +789,7 @@ static int ll_lookup_it_finish(struct ptlrpc_request *request,
 out:
 	if (rc != 0 && it->it_op & IT_OPEN) {
 		ll_intent_drop_lock(it);
-		ll_open_cleanup((*de)->d_sb, request);
+		ll_open_cleanup((*de)->d_sb, &request->rq_pill);
 	}
 
 	return rc;
@@ -1249,7 +1249,7 @@ static struct inode *ll_create_node(struct inode *dir, struct lookup_intent *it)
 	LASSERT(it_disposition(it, DISP_ENQ_CREATE_REF));
 	request = it->it_request;
 	it_clear_disposition(it, DISP_ENQ_CREATE_REF);
-	rc = ll_prep_inode(&inode, request, dir->i_sb, it);
+	rc = ll_prep_inode(&inode, &request->rq_pill, dir->i_sb, it);
 	if (rc) {
 		inode = ERR_PTR(rc);
 		goto out;
@@ -1485,7 +1485,7 @@ again:
 
 	ll_update_times(request, dir);
 
-	err = ll_prep_inode(&inode, request, dir->i_sb, NULL);
+	err = ll_prep_inode(&inode, &request->rq_pill, dir->i_sb, NULL);
 	if (err)
 		goto err_exit;
 

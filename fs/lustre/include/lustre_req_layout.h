@@ -62,10 +62,17 @@ enum req_location {
 #define REQ_MAX_FIELD_NR 12
 
 struct req_capsule {
-	struct ptlrpc_request		*rc_req;
-	const struct req_format		*rc_fmt;
-	enum req_location		 rc_loc;
-	u32				 rc_area[RCL_NR][REQ_MAX_FIELD_NR];
+	struct ptlrpc_request	*rc_req;
+	/** Request message - what client sent */
+	struct lustre_msg	*rc_reqmsg;
+	/** Reply message - server response */
+	struct lustre_msg	*rc_repmsg;
+	/** Fields that help to see if request and reply were swabved or not */
+	u32			 rc_req_swab_mask;
+	u32			 rc_rep_swab_mask;
+	const struct req_format	*rc_fmt;
+	enum req_location	 rc_loc;
+	u32			 rc_area[RCL_NR][REQ_MAX_FIELD_NR];
 };
 
 void req_capsule_init(struct req_capsule *pill, struct ptlrpc_request *req,
@@ -117,6 +124,69 @@ int req_capsule_field_present(const struct req_capsule *pill,
 void req_capsule_shrink(struct req_capsule *pill,
 			const struct req_msg_field *field,
 			u32 newlen, enum req_location loc);
+bool req_capsule_need_swab(struct req_capsule *pill, enum req_location loc,
+			   u32 index);
+void req_capsule_set_swabbed(struct req_capsule *pill, enum req_location loc,
+			     u32 index);
+
+/**
+ * Returns true if request buffer at offset \a index was already swabbed
+ */
+static inline bool req_capsule_req_swabbed(struct req_capsule *pill,
+					   size_t index)
+{
+	LASSERT(index < sizeof(pill->rc_req_swab_mask) * 8);
+	return pill->rc_req_swab_mask & BIT(index);
+}
+
+/**
+ * Returns true if request reply buffer at offset \a index was already swabbed
+ */
+static inline bool req_capsule_rep_swabbed(struct req_capsule *pill,
+					   size_t index)
+{
+	LASSERT(index < sizeof(pill->rc_rep_swab_mask) * 8);
+	return pill->rc_rep_swab_mask & BIT(index);
+}
+
+/**
+ * Returns true if request needs to be swabbed into local cpu byteorder
+ */
+static inline bool req_capsule_req_need_swab(struct req_capsule *pill)
+{
+	return req_capsule_req_swabbed(pill, MSG_PTLRPC_HEADER_OFF);
+}
+
+/**
+ * Returns true if request reply needs to be swabbed into local cpu byteorder
+ */
+static inline bool req_capsule_rep_need_swab(struct req_capsule *pill)
+{
+	return req_capsule_rep_swabbed(pill, MSG_PTLRPC_HEADER_OFF);
+}
+
+/**
+ * Mark request buffer at offset \a index that it was already swabbed
+ */
+static inline void req_capsule_set_req_swabbed(struct req_capsule *pill,
+					       size_t index)
+{
+	LASSERT(index < sizeof(pill->rc_req_swab_mask) * 8);
+	LASSERT((pill->rc_req_swab_mask & BIT(index)) == 0);
+	pill->rc_req_swab_mask |= BIT(index);
+}
+
+/**
+ * Mark request reply buffer at offset \a index that it was already swabbed
+ */
+static inline void req_capsule_set_rep_swabbed(struct req_capsule *pill,
+					       size_t index)
+{
+	LASSERT(index < sizeof(pill->rc_rep_swab_mask) * 8);
+	LASSERT((pill->rc_rep_swab_mask & BIT(index)) == 0);
+	pill->rc_rep_swab_mask |= BIT(index);
+}
+
 int  req_layout_init(void);
 void req_layout_fini(void);
 
