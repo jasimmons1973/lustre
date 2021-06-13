@@ -221,6 +221,7 @@ lnet_peer_alloc(lnet_nid_t nid)
 	spin_lock_init(&lp->lp_lock);
 	lp->lp_primary_nid = nid;
 	lp->lp_disc_src_nid = LNET_NID_ANY;
+	lp->lp_disc_dst_nid = LNET_NID_ANY;
 	if (lnet_peers_start_down())
 		lp->lp_alive = false;
 	else
@@ -2515,6 +2516,7 @@ lnet_discovery_event_reply(struct lnet_peer *lp, struct lnet_event *ev)
 	spin_lock(&lp->lp_lock);
 
 	lp->lp_disc_src_nid = ev->target.nid;
+	lp->lp_disc_dst_nid = ev->source.nid;
 
 	/*
 	 * If some kind of error happened the contents of message
@@ -3221,8 +3223,10 @@ __must_hold(&lp->lp_lock)
 			 * received by lp, we need to set the discovery source
 			 * NID for new_lp to the NID stored in lp.
 			 */
-			if (lp->lp_disc_src_nid != LNET_NID_ANY)
+			if (lp->lp_disc_src_nid != LNET_NID_ANY) {
 				new_lp->lp_disc_src_nid = lp->lp_disc_src_nid;
+				new_lp->lp_disc_dst_nid = lp->lp_disc_dst_nid;
+			}
 			spin_unlock(&new_lp->lp_lock);
 			spin_unlock(&lp->lp_lock);
 
@@ -3273,41 +3277,10 @@ __must_hold(&lp->lp_lock)
 	return rc ? rc : LNET_REDISCOVER_PEER;
 }
 
-/*
- * Select NID to send a Ping or Push to.
- */
-static lnet_nid_t lnet_peer_select_nid(struct lnet_peer *lp)
-{
-	struct lnet_peer_ni *lpni;
-
-	/* Look for a direct-connected NID for this peer. */
-	lpni = NULL;
-	while ((lpni = lnet_get_next_peer_ni_locked(lp, NULL, lpni)) != NULL) {
-		if (!lnet_get_net_locked(lpni->lpni_peer_net->lpn_net_id))
-			continue;
-		break;
-	}
-	if (lpni)
-		return lpni->lpni_nid;
-
-	/* Look for a routed-connected NID for this peer. */
-	lpni = NULL;
-	while ((lpni = lnet_get_next_peer_ni_locked(lp, NULL, lpni)) != NULL) {
-		if (!lnet_find_rnet_locked(lpni->lpni_peer_net->lpn_net_id))
-			continue;
-		break;
-	}
-	if (lpni)
-		return lpni->lpni_nid;
-
-	return LNET_NID_ANY;
-}
-
 /* Active side of ping. */
 static int lnet_peer_send_ping(struct lnet_peer *lp)
 __must_hold(&lp->lp_lock)
 {
-	lnet_nid_t pnid;
 	int nnis;
 	int rc;
 	int cpt;
@@ -3319,12 +3292,11 @@ __must_hold(&lp->lp_lock)
 	cpt = lnet_net_lock_current();
 	/* Refcount for MD. */
 	lnet_peer_addref_locked(lp);
-	pnid = lnet_peer_select_nid(lp);
 	lnet_net_unlock(cpt);
 
 	nnis = max_t(int, lp->lp_data_nnis, LNET_INTERFACES_MIN);
 
-	rc = lnet_send_ping(pnid, &lp->lp_ping_mdh, nnis, lp,
+	rc = lnet_send_ping(lp->lp_primary_nid, &lp->lp_ping_mdh, nnis, lp,
 			    the_lnet.ln_dc_handler, false);
 	/* if LNetMDBind in lnet_send_ping fails we need to decrement the
 	 * refcount on the peer, otherwise LNetMDUnlink will be called
@@ -3445,17 +3417,16 @@ __must_hold(&lp->lp_lock)
 		CERROR("Can't bind push source MD: %d\n", rc);
 		goto fail_error;
 	}
+
 	cpt = lnet_net_lock_current();
 	/* Refcount for MD. */
 	lnet_peer_addref_locked(lp);
 	id.pid = LNET_PID_LUSTRE;
-	id.nid = lnet_peer_select_nid(lp);
+	if (lp->lp_disc_dst_nid != LNET_NID_ANY)
+		id.nid = lp->lp_disc_dst_nid;
+	else
+		id.nid = lp->lp_primary_nid;
 	lnet_net_unlock(cpt);
-
-	if (id.nid == LNET_NID_ANY) {
-		rc = -EHOSTUNREACH;
-		goto fail_unlink;
-	}
 
 	rc = LNetPut(lp->lp_disc_src_nid, lp->lp_push_mdh,
 		     LNET_ACK_REQ, id, LNET_RESERVED_PORTAL,
@@ -3466,6 +3437,7 @@ __must_hold(&lp->lp_lock)
 	 * scratch
 	 */
 	lp->lp_disc_src_nid = LNET_NID_ANY;
+	lp->lp_disc_dst_nid = LNET_NID_ANY;
 	if (rc)
 		goto fail_unlink;
 
