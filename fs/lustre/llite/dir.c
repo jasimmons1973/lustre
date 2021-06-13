@@ -486,6 +486,8 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 	if (err)
 		goto out_request;
 
+	CFS_FAIL_TIMEOUT(OBD_FAIL_LLITE_SETDIRSTRIPE_PAUSE, cfs_fail_val);
+
 	err = ll_prep_inode(&inode, &request->rq_pill, parent->i_sb, NULL);
 	if (err)
 		goto out_inode;
