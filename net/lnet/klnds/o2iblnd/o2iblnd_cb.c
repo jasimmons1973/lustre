@@ -2323,8 +2323,7 @@ kiblnd_reject(struct rdma_cm_id *cmid, struct kib_rej *rej)
 {
 	int rc;
 
-	rc = rdma_reject(cmid, rej, sizeof(*rej));
-
+	rc = rdma_reject(cmid, rej, sizeof(*rej), IB_CM_REJ_CONSUMER_DEFINED);
 	if (rc)
 		CWARN("Error %d sending reject\n", rc);
 }
