@@ -175,6 +175,7 @@ struct ksock_net {
 	struct list_head	ksnn_list;		/* chain on global list */
 	atomic_t		ksnn_npeers;		/* # peers */
 	struct ksock_interface	ksnn_interface;		/* IP interface */
+	struct lnet_ni		*ksnn_ni;
 };
 
 /* When the ksock_net is shut down, this bias is added to
