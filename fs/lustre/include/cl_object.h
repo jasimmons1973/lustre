@@ -1996,7 +1996,13 @@ struct cl_io {
 	/**
 	 * Sequential read hints.
 	 */
-				ci_seq_read:1;
+				ci_seq_read:1,
+	/**
+	 * Do parallel (async) submission of DIO RPCs.  Note DIO is still sync
+	 * to userspace, only the RPCs are submitted async, then waited for at
+	 * the llite layer before returning.
+	 */
+				ci_parallel_dio:1;
 	/**
 	 * Bypass quota check
 	 */
@@ -2585,6 +2591,8 @@ int cl_sync_io_wait(const struct lu_env *env, struct cl_sync_io *anchor,
 		    long timeout);
 void cl_sync_io_note(const struct lu_env *env, struct cl_sync_io *anchor,
 		     int ioret);
+int cl_sync_io_wait_recycle(const struct lu_env *env, struct cl_sync_io *anchor,
+			    long timeout, int ioret);
 struct cl_dio_aio *cl_aio_alloc(struct kiocb *iocb);
 void cl_aio_free(struct cl_dio_aio *aio);
 

@@ -1619,12 +1619,15 @@ ll_file_io_generic(const struct lu_env *env, struct vvp_io_args *args,
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	struct vvp_io *vio = vvp_env_io(env);
 	struct range_lock range;
+	bool range_locked = false;
 	struct cl_io *io;
 	ssize_t result = 0;
 	int rc = 0;
+	int rc2 = 0;
 	unsigned int retried = 0;
 	unsigned int dio_lock = 0;
 	bool is_aio = false;
+	bool is_parallel_dio = false;
 	struct cl_dio_aio *ci_aio = NULL;
 	size_t per_bytes;
 	bool partial_io = false;
@@ -1642,6 +1645,17 @@ ll_file_io_generic(const struct lu_env *env, struct vvp_io_args *args,
 	if (file->f_flags & O_DIRECT) {
 		if (!is_sync_kiocb(args->u.normal.via_iocb))
 			is_aio = true;
+
+		/* the kernel does not support AIO on pipes, and parallel DIO
+		 * uses part of the AIO path, so we must not do parallel dio
+		 * to pipes
+		 */
+		is_parallel_dio = !iov_iter_is_pipe(args->u.normal.via_iter) &&
+			       !is_aio;
+
+		if (!ll_sbi_has_parallel_dio(sbi))
+			is_parallel_dio = false;
+
 		ci_aio = cl_aio_alloc(args->u.normal.via_iocb);
 		if (!ci_aio) {
 			rc = -ENOMEM;
@@ -1665,10 +1679,9 @@ restart:
 	io->ci_aio = ci_aio;
 	io->ci_dio_lock = dio_lock;
 	io->ci_ndelay_tried = retried;
+	io->ci_parallel_dio = is_parallel_dio;
 
 	if (cl_io_rw_init(env, io, iot, *ppos, per_bytes) == 0) {
-		bool range_locked = false;
-
 		if (file->f_flags & O_APPEND)
 			range_lock_init(&range, 0, LUSTRE_EOF);
 		else
@@ -1697,15 +1710,39 @@ restart:
 		ll_cl_add(file, env, io, LCC_RW);
 		rc = cl_io_loop(env, io);
 		ll_cl_remove(file, env);
-		if (range_locked) {
+		if (range_locked && !is_parallel_dio) {
 			CDEBUG(D_VFSTRACE, "Range unlock [%llu, %llu]\n",
 			       range.rl_start,
 			       range.rl_last);
 			range_unlock(&lli->lli_write_tree, &range);
+			range_locked = false;
 		}
 	} else {
 		/* cl_io_rw_init() handled IO */
 		rc = io->ci_result;
+	}
+
+	/* N/B: parallel DIO may be disabled during i/o submission;
+	 * if that occurs, async RPCs are resolved before we get here, and this
+	 * wait call completes immediately.
+	 */
+	if (is_parallel_dio) {
+		struct cl_sync_io *anchor = &io->ci_aio->cda_sync;
+
+		/* for dio, EIOCBQUEUED is an implementation detail,
+		 * and we don't return it to userspace
+		 */
+		if (rc == -EIOCBQUEUED)
+			rc = 0;
+
+		rc2 = cl_sync_io_wait_recycle(env, anchor, 0, 0);
+		if (rc2 < 0)
+			rc = rc2;
+
+		if (range_locked) {
+			range_unlock(&lli->lli_write_tree, &range);
+			range_locked = false;
+		}
 	}
 
 	/*
@@ -1717,8 +1754,12 @@ restart:
 	 */
 	if (io->ci_nob > 0) {
 		if (!is_aio) {
-			result += io->ci_nob;
-			*ppos = io->u.ci_wr.wr.crw_pos; /* for splice */
+			if (rc2 == 0) {
+				result += io->ci_nob;
+				*ppos = io->u.ci_wr.wr.crw_pos; /* for splice */
+			} else if (rc2) {
+				result = 0;
+			}
 		}
 		count -= io->ci_nob;
 
