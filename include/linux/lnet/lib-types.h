@@ -43,7 +43,9 @@
 #include <linux/types.h>
 #include <linux/completion.h>
 #include <linux/kref.h>
+#include <net/genetlink.h>
 
+#include <uapi/linux/lnet/lnet-nl.h>
 #include <uapi/linux/lnet/lnet-types.h>
 #include <uapi/linux/lnet/lnetctl.h>
 #include <uapi/linux/lnet/lnet-dlc.h>
@@ -1279,5 +1281,18 @@ struct lnet {
 	/* UDSP list */
 	struct list_head		ln_udsp_list;
 };
+
+static const struct nla_policy scalar_attr_policy[LN_SCALAR_CNT + 1] = {
+	[LN_SCALAR_ATTR_LIST]		= { .type = NLA_NESTED },
+	[LN_SCALAR_ATTR_LIST_SIZE]	= { .type = NLA_U16 },
+	[LN_SCALAR_ATTR_INDEX]		= { .type = NLA_U16 },
+	[LN_SCALAR_ATTR_NLA_TYPE]	= { .type = NLA_U16 },
+	[LN_SCALAR_ATTR_VALUE]		= { .type = NLA_STRING },
+	[LN_SCALAR_ATTR_KEY_FORMAT]	= { .type = NLA_U16 },
+};
+
+int lnet_genl_send_scalar_list(struct sk_buff *msg, u32 portid, u32 seq,
+			       const struct genl_family *family, int flags,
+			       u8 cmd, const struct ln_key_list *data[]);
 
 #endif
