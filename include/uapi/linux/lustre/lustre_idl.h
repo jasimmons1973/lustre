@@ -2480,6 +2480,7 @@ enum llog_op_type {
 	/* LLOG_JOIN_REC	= LLOG_OP_MAGIC | 0x50000, obsolete  1.8.0 */
 	CHANGELOG_REC		= LLOG_OP_MAGIC | 0x60000,
 	CHANGELOG_USER_REC	= LLOG_OP_MAGIC | 0x70000,
+	CHANGELOG_USER_REC2	= LLOG_OP_MAGIC | 0x70002,
 	HSM_AGENT_REC		= LLOG_OP_MAGIC | 0x80000,
 	LLOG_HDR_MAGIC		= LLOG_OP_MAGIC | 0x45539,
 	LLOG_LOGID_MAGIC	= LLOG_OP_MAGIC | 0x4553b,
@@ -2575,11 +2576,28 @@ struct llog_changelog_rec {
 	struct llog_rec_tail	cr_do_not_use;	/**< for_sizezof_only */
 } __attribute__((packed));
 
+#define CHANGELOG_USER_NAMELEN 16 /* base name including NUL terminator */
+
 struct llog_changelog_user_rec {
 	struct llog_rec_hdr	cur_hdr;
 	__u32			cur_id;
 	__u32			cur_padding;
 	__u64			cur_endrec;
+	struct llog_rec_tail	cur_tail;
+} __attribute__((packed));
+
+/* this is twice the size of CHANGELOG_USER_REC */
+struct llog_changelog_user_rec2 {
+	struct llog_rec_hdr	cur_hdr;
+	__u32			cur_id;
+	/* only for use in relative time comparisons to detect idle users */
+	__u32			cur_time;
+	__u64			cur_endrec;
+	__u32                   cur_mask;
+	__u32			cur_padding1;
+	char			cur_name[CHANGELOG_USER_NAMELEN];
+	__u64			cur_padding2;
+	__u64			cur_padding3;
 	struct llog_rec_tail	cur_tail;
 } __attribute__((packed));
 
