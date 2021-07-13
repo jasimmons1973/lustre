@@ -39,7 +39,8 @@
 /**
  *  Array of hash algorithm speed in MByte per second
  */
-static int cfs_crypto_hash_speeds[CFS_HASH_ALG_MAX];
+int cfs_crypto_hash_speeds[CFS_HASH_ALG_MAX];
+EXPORT_SYMBOL(cfs_crypto_hash_speeds);
 
 /**
  * Initialize the state descriptor for the specified hash algorithm.
