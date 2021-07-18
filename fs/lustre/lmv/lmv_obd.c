@@ -1430,6 +1430,7 @@ static int lmv_close(struct obd_export *exp, struct md_op_data *op_data,
 static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 *mdt)
 {
 	struct lu_tgt_desc *tgt, *cur = NULL;
+	u64 total_avail = 0;
 	u64 total_weight = 0;
 	u64 cur_weight = 0;
 	int total_usable = 0;
@@ -1460,23 +1461,25 @@ static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 *mdt)
 
 		tgt->ltd_qos.ltq_usable = 1;
 		lu_tgt_qos_weight_calc(tgt);
-		if (tgt->ltd_index == *mdt) {
+		if (tgt->ltd_index == *mdt)
 			cur = tgt;
-			cur_weight = tgt->ltd_qos.ltq_weight;
-		}
+		total_avail += tgt->ltd_qos.ltq_avail;
 		total_weight += tgt->ltd_qos.ltq_weight;
 		total_usable++;
 	}
 
-	/* if current MDT has higher-than-average space, stay on same MDT */
-	rand = total_weight / total_usable;
-	if (cur_weight >= rand) {
+	/* if current MDT has above-average space, within range of the QOS
+	 * threshold, stay on the same MDT to avoid creating needless remote
+	 * MDT directories.
+	 */
+	rand = total_avail * (256 - lmv->lmv_qos.lq_threshold_rr) /
+	       (total_usable * 256);
+	if (cur && cur->ltd_qos.ltq_avail >= rand) {
 		tgt = cur;
 		rc = 0;
 		goto unlock;
 	}
 
-	cur_weight = 0;
 	rand = lu_prandom_u64_max(total_weight);
 
 	lmv_foreach_connected_tgt(lmv, tgt) {

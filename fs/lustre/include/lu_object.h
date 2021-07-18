@@ -1434,7 +1434,7 @@ struct lu_svr_qos {
 	struct obd_uuid		 lsq_uuid;	/* ptlrpc's c_remote_uuid */
 	struct list_head	 lsq_svr_list;	/* link to lq_svr_list */
 	u64			 lsq_bavail;	/* total bytes avail on svr */
-	u64			 lsq_iavail;	/* tital inode avail on svr */
+	u64			 lsq_iavail;	/* total inode avail on svr */
 	u64			 lsq_penalty;	/* current penalty */
 	u64			 lsq_penalty_per_obj; /* penalty decrease
 						       * every obj
@@ -1451,6 +1451,7 @@ struct lu_tgt_qos {
 	u64			 ltq_penalty_per_obj; /* penalty decrease
 						       * every obj
 						       */
+	u64			 ltq_avail;	/* bytes/inode avail */
 	u64			 ltq_weight;	/* net weighting */
 	time64_t		 ltq_used;	/* last used time, seconds */
 	bool			 ltq_usable:1;	/* usable for striping */
