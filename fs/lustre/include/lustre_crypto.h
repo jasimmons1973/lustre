@@ -58,6 +58,8 @@ static inline bool ll_sbi_has_encrypt(struct ll_sb_info *sbi)
 
 static inline void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set) { }
 #endif
+/* sizeof(struct fscrypt_context_v2) = 40 */
+#define LLCRYPT_ENC_CTX_SIZE 40
 
 /* Encoding/decoding routines inspired from yEnc principles.
  * We just take care of a few critical characters:

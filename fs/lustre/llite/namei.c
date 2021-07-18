@@ -33,6 +33,7 @@
 #include <linux/fs.h>
 #include <linux/sched.h>
 #include <linux/mm.h>
+#include <linux/file.h>
 #include <linux/quotaops.h>
 #include <linux/highmem.h>
 #include <linux/pagemap.h>
@@ -878,10 +879,102 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 			*secctxlen = 0;
 	}
 	if (it->it_op & IT_CREAT && encrypt) {
-		rc = fscrypt_inherit_context(parent, NULL, op_data, false);
-		if (rc) {
-			retval = ERR_PTR(rc);
-			goto out;
+		/* Volatile file name may look like:
+		 * <parent>/LUSTRE_VOLATILE_HDR:<mdt_index>:<random>:fd=<fd>
+		 * where fd is opened descriptor of reference file.
+		 */
+		if (unlikely(filename_is_volatile(dentry->d_name.name,
+						  dentry->d_name.len, NULL))) {
+			int ctx_size = LLCRYPT_ENC_CTX_SIZE;
+			struct lustre_sb_info *lsi;
+			struct file *ref_file;
+			struct inode *ref_inode;
+			char *p, *q, *fd_str;
+			void *ctx;
+			int fd;
+
+			p = strnstr(dentry->d_name.name, ":fd=",
+				    dentry->d_name.len);
+			if (!p || strlen(p + 4) == 0) {
+				retval = ERR_PTR(-EINVAL);
+				goto out;
+			}
+
+			q = strchrnul(p + 4, ':');
+			fd_str = kstrndup(p + 4, q - p - 4, GFP_NOFS);
+			if (!fd_str) {
+				retval = ERR_PTR(-ENOMEM);
+				goto out;
+			}
+			rc = kstrtouint(fd_str, 10, &fd);
+			kfree(fd_str);
+			if (rc) {
+				rc = -EINVAL;
+				goto inherit;
+			}
+
+			ref_file = fget(fd);
+			if (!ref_file) {
+				rc = -EINVAL;
+				goto inherit;
+			}
+
+			ref_inode = file_inode(ref_file);
+			if (!ref_inode) {
+				fput(ref_file);
+				rc = -EINVAL;
+				goto inherit;
+			}
+
+			lsi = s2lsi(ref_inode->i_sb);
+
+getctx:
+			ctx = kzalloc(ctx_size, GFP_NOFS);
+			if (!ctx) {
+				retval = ERR_PTR(-ENOMEM);
+				goto out;
+			}
+
+#ifdef CONFIG_FS_ENCRYPTION
+			rc = ref_inode->i_sb->s_cop->get_context(ref_inode,
+								 ctx, ctx_size);
+#else
+			rc = -ENODATA;
+#endif
+			if (rc == -ERANGE) {
+				kfree(ctx);
+				ctx_size *= 2;
+				goto getctx;
+			}
+			fput(ref_file);
+			if (rc < 0) {
+				kfree(ctx);
+				goto inherit;
+			}
+
+			op_data->op_file_encctx_size = rc;
+			if (rc == ctx_size) {
+				op_data->op_file_encctx = ctx;
+			} else {
+				op_data->op_file_encctx = kzalloc(op_data->op_file_encctx_size,
+								  GFP_NOFS);
+				if (!op_data->op_file_encctx) {
+					kfree(ctx);
+					retval = ERR_PTR(-ENOMEM);
+					goto out;
+				}
+				memcpy(op_data->op_file_encctx, ctx,
+				       op_data->op_file_encctx_size);
+				kfree(ctx);
+			}
+		} else {
+inherit:
+			rc = fscrypt_inherit_context(parent, NULL, op_data,
+						     false);
+			if (rc) {
+				retval = ERR_PTR(rc);
+				goto out;
+			}
 		}
 		if (encctx)
 			*encctx = op_data->op_file_encctx;
