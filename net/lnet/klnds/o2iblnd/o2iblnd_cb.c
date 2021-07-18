@@ -721,6 +721,7 @@ kiblnd_post_tx_locked(struct kib_conn *conn, struct kib_tx *tx, int credit)
 	struct kib_msg *msg = tx->tx_msg;
 	struct kib_peer_ni *peer_ni = conn->ibc_peer;
 	struct lnet_ni *ni = peer_ni->ibp_ni;
+	struct kib_fast_reg_descriptor *frd = tx->tx_fmr.fmr_frd;
 	int ver = conn->ibc_version;
 	int rc;
 	int done;
@@ -809,11 +810,10 @@ kiblnd_post_tx_locked(struct kib_conn *conn, struct kib_tx *tx, int credit)
 		/* close_conn will launch failover */
 		rc = -ENETDOWN;
 	} else {
-		struct kib_fast_reg_descriptor *frd = tx->tx_fmr.fmr_frd;
 		const struct ib_send_wr *bad = &tx->tx_wrq[tx->tx_nwrq - 1].wr;
 		struct ib_send_wr *wrq = &tx->tx_wrq[0].wr;
 
-		if (frd) {
+		if (frd && !frd->frd_posted) {
 			if (!frd->frd_valid) {
 				wrq = &frd->frd_inv_wr;
 				wrq->next = &frd->frd_fastreg_wr.wr;
@@ -837,11 +837,13 @@ kiblnd_post_tx_locked(struct kib_conn *conn, struct kib_tx *tx, int credit)
 
 	conn->ibc_last_send = ktime_get();
 
-	if (!rc)
+	if (rc == 0) {
+		if (frd)
+			frd->frd_posted = true;
 		return 0;
+	}
 
-	/*
-	 * NB credits are transferred in the actual
+	/* NB credits are transferred in the actual
 	 * message, which can only be the last work item
 	 */
 	conn->ibc_credits += credit;
