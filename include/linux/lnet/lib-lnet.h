@@ -804,7 +804,6 @@ bool lnet_net_unique(u32 net_id, struct list_head *nilist,
 bool lnet_ni_unique_net(struct list_head *nilist, char *iface);
 void lnet_incr_dlc_seq(void);
 u32 lnet_get_dlc_seq_locked(void);
-int lnet_get_net_count(void);
 
 struct lnet_peer_net *lnet_get_next_peer_net_locked(struct lnet_peer *lp,
 						    u32 prev_lpn_id);
