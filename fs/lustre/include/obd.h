@@ -706,6 +706,8 @@ enum md_op_flags {
 	MF_MDC_CANCEL_FID4	= BIT(3),
 	MF_GET_MDT_IDX		= BIT(4),
 	MF_GETATTR_BY_FID	= BIT(5),
+	MF_QOS_MKDIR		= BIT(6),
+	MF_RR_MKDIR		= BIT(7),
 };
 
 enum md_cli_flags {
@@ -794,6 +796,9 @@ struct md_op_data {
 	u32			op_file_encctx_size;
 
 	u32			op_projid;
+
+	/* mkdir */
+	unsigned short		op_dir_depth;
 
 	u16			op_mirror_id;
 

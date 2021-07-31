@@ -1427,7 +1427,8 @@ static int lmv_close(struct obd_export *exp, struct md_op_data *op_data,
 	return md_close(tgt->ltd_exp, op_data, mod, request);
 }
 
-static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 *mdt)
+static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 *mdt,
+					      unsigned short dir_depth)
 {
 	struct lu_tgt_desc *tgt, *cur = NULL;
 	u64 total_avail = 0;
@@ -1470,10 +1471,10 @@ static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 *mdt)
 
 	/* if current MDT has above-average space, within range of the QOS
 	 * threshold, stay on the same MDT to avoid creating needless remote
-	 * MDT directories.
+	 * MDT directories. It's more likely for low level directories.
 	 */
 	rand = total_avail * (256 - lmv->lmv_qos.lq_threshold_rr) /
-	       (total_usable * 256);
+	       (total_usable * 256 * (1 + dir_depth / 4));
 	if (cur && cur->ltd_qos.ltq_avail >= rand) {
 		tgt = cur;
 		rc = 0;
@@ -1727,12 +1728,14 @@ static inline bool lmv_op_default_qos_mkdir(const struct md_op_data *op_data)
 {
 	const struct lmv_stripe_md *lsm = op_data->op_default_mea1;
 
-	return lsm && lsm->lsm_md_master_mdt_index == LMV_OFFSET_DEFAULT;
+	return (op_data->op_flags & MF_QOS_MKDIR) ||
+	       (lsm && lsm->lsm_md_master_mdt_index == LMV_OFFSET_DEFAULT);
 }
 
-/* mkdir by QoS in two cases:
- * 1. 'lfs mkdir -i -1'
- * 2. parent default LMV master_mdt_index is -1
+/* mkdir by QoS in three cases:
+ * 1. ROOT default LMV is space balanced.
+ * 2. 'lfs mkdir -i -1'
+ * 3. parent default LMV master_mdt_index is -1
  *
  * NB, mkdir by QoS only if parent is not striped, this is to avoid remote
  * directories under striped directory.
@@ -1754,11 +1757,12 @@ static inline bool lmv_op_qos_mkdir(const struct md_op_data *op_data)
 	return false;
 }
 
-/* if default LMV is set, and its index is LMV_OFFSET_DEFAULT, and
- * 1. max_inherit_rr is set and is not LMV_INHERIT_RR_NONE
+/* if parent default LMV is space balanced, and
+ * 1. max_inherit_rr is set
  * 2. or parent is ROOT
- * mkdir roundrobin.
- * NB, this also needs to check server is balanced, which is checked by caller.
+ * mkdir roundrobin. Or if parent doesn't have default LMV, while ROOT default
+ * LMV requests roundrobin mkdir, do the same.
+ * NB, this needs to check server is balanced, which is done by caller.
  */
 static inline bool lmv_op_default_rr_mkdir(const struct md_op_data *op_data)
 {
@@ -1767,7 +1771,8 @@ static inline bool lmv_op_default_rr_mkdir(const struct md_op_data *op_data)
 	if (!lmv_op_default_qos_mkdir(op_data))
 		return false;
 
-	return lsm->lsm_md_max_inherit_rr != LMV_INHERIT_RR_NONE ||
+	return (op_data->op_flags & MF_RR_MKDIR) ||
+	       (lsm && lsm->lsm_md_max_inherit_rr != LMV_INHERIT_RR_NONE) ||
 	       fid_is_root(&op_data->op_fid1);
 }
 
@@ -1842,7 +1847,8 @@ int lmv_create(struct obd_export *exp, struct md_op_data *op_data,
 	} else if (lmv_op_qos_mkdir(op_data)) {
 		struct lmv_tgt_desc *tmp = tgt;
 
-		tgt = lmv_locate_tgt_qos(lmv, &op_data->op_mds);
+		tgt = lmv_locate_tgt_qos(lmv, &op_data->op_mds,
+					 op_data->op_dir_depth);
 		if (tgt == ERR_PTR(-EAGAIN)) {
 			if (ltd_qos_is_balanced(&lmv->lmv_mdt_descs) &&
 			    !lmv_op_default_rr_mkdir(op_data) &&

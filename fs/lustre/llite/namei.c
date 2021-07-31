@@ -741,8 +741,10 @@ static int ll_lookup_it_finish(struct ptlrpc_request *request,
 
 	if (!it_disposition(it, DISP_LOOKUP_NEG)) {
 		/* We have the "lookup" lock, so unhide dentry */
-		if (bits & MDS_INODELOCK_LOOKUP)
+		if (bits & MDS_INODELOCK_LOOKUP) {
 			d_lustre_revalidate(*de);
+			ll_update_dir_depth(parent, d_inode(*de));
+		}
 
 		if (encrypt) {
 			rc = fscrypt_get_encryption_info(inode);
@@ -1415,10 +1417,6 @@ static int ll_create_it(struct inode *dir, struct dentry *dentry,
 			return rc;
 	}
 
-	ll_set_lock_data(ll_i2sbi(dir)->ll_md_exp, inode, it, &bits);
-	if (bits & MDS_INODELOCK_LOOKUP)
-		d_lustre_revalidate(dentry);
-
 	d_instantiate(dentry, inode);
 
 	if (encrypt) {
@@ -1427,8 +1425,17 @@ static int ll_create_it(struct inode *dir, struct dentry *dentry,
 			return rc;
 	}
 
-	if (!(ll_i2sbi(inode)->ll_flags & LL_SBI_FILE_SECCTX))
+	if (!(ll_i2sbi(inode)->ll_flags & LL_SBI_FILE_SECCTX)) {
 		rc = ll_inode_init_security(dentry, inode, dir);
+		if (rc)
+			return rc;
+	}
+
+	ll_set_lock_data(ll_i2sbi(dir)->ll_md_exp, inode, it, &bits);
+	if (bits & MDS_INODELOCK_LOOKUP) {
+		d_lustre_revalidate(dentry);
+		ll_update_dir_depth(dir, inode);
+	}
 
 	return rc;
 }
@@ -1449,6 +1456,58 @@ void ll_update_times(struct ptlrpc_request *request, struct inode *inode)
 	if (body->mbo_valid & OBD_MD_FLCTIME &&
 	    body->mbo_ctime > inode->i_ctime.tv_sec)
 		inode->i_ctime.tv_sec = body->mbo_ctime;
+}
+
+/* once default LMV (space balanced) is set on ROOT, it should take effect if
+ * default LMV is not set on parent directory.
+ */
+static void ll_qos_mkdir_prep(struct md_op_data *op_data, struct inode *dir)
+{
+	struct inode *root = dir->i_sb->s_root->d_inode;
+	struct ll_inode_info *rlli = ll_i2info(root);
+	struct ll_inode_info *lli = ll_i2info(dir);
+	struct lmv_stripe_md *lsm;
+
+	op_data->op_dir_depth = lli->lli_depth;
+
+	/* parent directory is striped */
+	if (unlikely(lli->lli_lsm_md))
+		return;
+
+	/* default LMV set on parent directory */
+	if (unlikely(lli->lli_default_lsm_md))
+		return;
+
+	/* parent is ROOT */
+	if (unlikely(dir == root))
+		return;
+
+	/* default LMV not set on ROOT */
+	if (!rlli->lli_default_lsm_md)
+		return;
+
+	down_read(&rlli->lli_lsm_sem);
+	lsm = rlli->lli_default_lsm_md;
+	if (!lsm)
+		goto unlock;
+
+	/* not space balanced */
+	if (lsm->lsm_md_master_mdt_index != LMV_OFFSET_DEFAULT)
+		goto unlock;
+
+	if (lsm->lsm_md_max_inherit != LMV_INHERIT_NONE &&
+	    (lsm->lsm_md_max_inherit == LMV_INHERIT_UNLIMITED ||
+	     lsm->lsm_md_max_inherit >= lli->lli_depth)) {
+		op_data->op_flags |= MF_QOS_MKDIR;
+		if (lsm->lsm_md_max_inherit_rr != LMV_INHERIT_RR_NONE &&
+		    (lsm->lsm_md_max_inherit_rr == LMV_INHERIT_RR_UNLIMITED ||
+		     lsm->lsm_md_max_inherit_rr >= lli->lli_depth))
+			op_data->op_flags |= MF_RR_MKDIR;
+		CDEBUG(D_INODE, DFID" requests qos mkdir %#x\n",
+		       PFID(&lli->lli_fid), op_data->op_flags);
+	}
+unlock:
+	up_read(&rlli->lli_lsm_sem);
 }
 
 static int ll_new_node(struct inode *dir, struct dentry *dentry,
@@ -1474,6 +1533,9 @@ again:
 		err = PTR_ERR(op_data);
 		goto err_exit;
 	}
+
+	if (S_ISDIR(mode))
+		ll_qos_mkdir_prep(op_data, dir);
 
 	if (sbi->ll_flags & LL_SBI_FILE_SECCTX) {
 		err = ll_dentry_init_security(dentry, mode, &dentry->d_name,
