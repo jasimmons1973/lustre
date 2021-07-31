@@ -3692,6 +3692,8 @@ lnet_get_local_ni_hstats(struct lnet_ioctl_local_ni_hstats *stats)
 		atomic_read(&ni->ni_hstats.hlt_local_timeout);
 	stats->hlni_local_error =
 		atomic_read(&ni->ni_hstats.hlt_local_error);
+	stats->hlni_fatal_error =
+		atomic_read(&ni->ni_fatal_error_on);
 	stats->hlni_health_value =
 		atomic_read(&ni->ni_healthv);
 	stats->hlni_ping_count = ni->ni_ping_count;
