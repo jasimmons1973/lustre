@@ -1487,6 +1487,21 @@ static void kiblnd_fini_fmr_poolset(struct kib_fmr_poolset *fps)
 	}
 }
 
+static int kiblnd_get_link_status(struct net_device *dev)
+{
+	int ret = -1;
+
+	LASSERT(dev);
+
+	if (!netif_running(dev))
+		ret = 0;
+	/* Some devices may not be providing link settings */
+	else if (dev->ethtool_ops->get_link)
+		ret = dev->ethtool_ops->get_link(dev);
+
+	return ret;
+}
+
 static int
 kiblnd_init_fmr_poolset(struct kib_fmr_poolset *fps, int cpt, int ncpts,
 			struct kib_net *net,
@@ -2347,6 +2362,7 @@ int kiblnd_dev_failover(struct kib_dev *dev, struct net *ns)
 	struct ib_pd *pd;
 	struct kib_net *net;
 	struct sockaddr_in addr;
+	struct net_device *netdev;
 	unsigned long flags;
 	int rc = 0;
 	int i;
@@ -2467,10 +2483,17 @@ out:
 	if (hdev)
 		kiblnd_hdev_decref(hdev);
 
-	if (rc)
+	if (rc) {
 		dev->ibd_failed_failover++;
-	else
+	} else {
 		dev->ibd_failed_failover = 0;
+
+		rcu_read_lock();
+		netdev = dev_get_by_name_rcu(ns, dev->ibd_ifname);
+		if (netdev && (kiblnd_get_link_status(netdev) == 1))
+			kiblnd_set_ni_fatal_on(dev->ibd_hdev, 0);
+		rcu_read_unlock();
+	}
 
 	return rc;
 }
