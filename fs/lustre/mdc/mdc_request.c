@@ -557,6 +557,13 @@ static int mdc_get_lustre_md(struct obd_export *exp, struct req_capsule *pill,
 			goto out;
 		}
 
+		if (md_exp->exp_obd->obd_type->typ_lu == &mdc_device_type) {
+			CERROR("%s: no LMV, upgrading from old version?\n",
+			       md_exp->exp_obd->obd_name);
+			rc = 0;
+			goto out_acl;
+		}
+
 		if (md->body->mbo_valid & OBD_MD_MEA) {
 			lmv_size = md->body->mbo_eadatasize;
 			if (!lmv_size) {
@@ -618,6 +625,7 @@ static int mdc_get_lustre_md(struct obd_export *exp, struct req_capsule *pill,
 	}
 	rc = 0;
 
+out_acl:
 	/* for ACL, it's possible that FLACL is set but aclsize is zero.
 	 * only when aclsize != 0 there's an actual segment for ACL
 	 * in reply buffer.
