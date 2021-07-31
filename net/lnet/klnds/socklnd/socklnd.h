@@ -650,7 +650,15 @@ void ksocknal_next_tx_carrier(struct ksock_conn *conn);
 void ksocknal_queue_tx_locked(struct ksock_tx *tx, struct ksock_conn *conn);
 void ksocknal_txlist_done(struct lnet_ni *ni, struct list_head *txlist, int error);
 void ksocknal_query(struct lnet_ni *ni, lnet_nid_t nid, time64_t *when);
-int ksocknal_thread_start(int (*fn)(void *arg), void *arg, char *name);
+#define ksocknal_thread_start(fn, data, namefmt, arg...)		\
+	({								\
+		struct task_struct *__task = kthread_run(fn, data,	\
+							 namefmt, ##arg);\
+		if (!IS_ERR(__task))					\
+			atomic_inc(&ksocknal_data.ksnd_nthreads);	\
+		PTR_ERR_OR_ZERO(__task);				\
+	})
+
 void ksocknal_thread_fini(void);
 void ksocknal_launch_all_connections_locked(struct ksock_peer_ni *peer_ni);
 struct ksock_conn_cb *
