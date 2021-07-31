@@ -284,7 +284,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	data->ocd_connect_flags = OBD_CONNECT_IBITS	| OBD_CONNECT_NODEVOH  |
 				  OBD_CONNECT_ATTRFID	| OBD_CONNECT_GRANT    |
 				  OBD_CONNECT_VERSION	| OBD_CONNECT_BRW_SIZE |
-				  OBD_CONNECT_SRVLOCK	| OBD_CONNECT_TRUNCLOCK|
+				  OBD_CONNECT_SRVLOCK	|
 				  OBD_CONNECT_CANCELSET | OBD_CONNECT_FID      |
 				  OBD_CONNECT_AT	| OBD_CONNECT_LOV_V3   |
 				  OBD_CONNECT_VBR	| OBD_CONNECT_FULL20   |
@@ -510,7 +510,6 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 				  OBD_CONNECT_REQPORTAL | OBD_CONNECT_BRW_SIZE |
 				  OBD_CONNECT_CANCELSET | OBD_CONNECT_FID      |
 				  OBD_CONNECT_SRVLOCK   |
-				  OBD_CONNECT_TRUNCLOCK |
 				  OBD_CONNECT_AT	| OBD_CONNECT_OSS_CAPA |
 				  OBD_CONNECT_VBR	| OBD_CONNECT_FULL20   |
 				  OBD_CONNECT_64BITHASH | OBD_CONNECT_MAXBYTES |

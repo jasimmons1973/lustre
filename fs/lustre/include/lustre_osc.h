@@ -116,12 +116,10 @@ struct osc_device {
 	struct osc_stats {
 		u64		os_lockless_writes;	/* by bytes */
 		u64		os_lockless_reads;	/* by bytes */
-		u64		os_lockless_truncates;	/* by times */
 	} od_stats;
 
 	/* configuration item(s) */
 	time64_t		od_contention_time;
-	int			od_lockless_truncate;
 };
 
 /* \defgroup osc osc
