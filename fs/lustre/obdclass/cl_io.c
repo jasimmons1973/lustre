@@ -825,7 +825,8 @@ EXPORT_SYMBOL(cl_page_list_init);
 /**
  * Adds a page to a page list.
  */
-void cl_page_list_add(struct cl_page_list *plist, struct cl_page *page)
+void cl_page_list_add(struct cl_page_list *plist, struct cl_page *page,
+		      bool get_ref)
 {
 	/* it would be better to check that page is owned by "current" io, but
 	 * it is not passed here.
@@ -836,7 +837,8 @@ void cl_page_list_add(struct cl_page_list *plist, struct cl_page *page)
 	list_add_tail(&page->cp_batch, &plist->pl_pages);
 	++plist->pl_nr;
 	lu_ref_add_at(&page->cp_reference, &page->cp_queue_ref, "queue", plist);
-	cl_page_get(page);
+	if (get_ref)
+		cl_page_get(page);
 }
 EXPORT_SYMBOL(cl_page_list_add);
 
@@ -1019,7 +1021,7 @@ void cl_2queue_init_page(struct cl_2queue *queue, struct cl_page *page)
 	/*
 	 * Add a page to the incoming page list of 2-queue.
 	 */
-	cl_page_list_add(&queue->c2_qin, page);
+	cl_page_list_add(&queue->c2_qin, page, true);
 }
 EXPORT_SYMBOL(cl_2queue_init_page);
 

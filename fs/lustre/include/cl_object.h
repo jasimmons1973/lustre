@@ -2548,14 +2548,16 @@ static inline struct cl_page *cl_page_list_first(struct cl_page_list *plist)
 	list_for_each_entry_safe((page), (temp), &(list)->pl_pages, cp_batch)
 
 void cl_page_list_init(struct cl_page_list *plist);
-void cl_page_list_add(struct cl_page_list *plist, struct cl_page *page);
+void cl_page_list_add(struct cl_page_list *plist, struct cl_page *page,
+		      bool get_ref);
 void cl_page_list_move(struct cl_page_list *dst, struct cl_page_list *src,
 		       struct cl_page *page);
 void cl_page_list_move_head(struct cl_page_list *dst, struct cl_page_list *src,
 			    struct cl_page *page);
-void cl_page_list_splice(struct cl_page_list *list, struct cl_page_list *head);
-void cl_page_list_del(const struct lu_env *env, struct cl_page_list *plist,
-		      struct cl_page *page);
+void cl_page_list_splice(struct cl_page_list *list,
+			 struct cl_page_list *head);
+void cl_page_list_del(const struct lu_env *env,
+		      struct cl_page_list *plist, struct cl_page *page);
 void cl_page_list_disown(const struct lu_env *env,
 			 struct cl_io *io, struct cl_page_list *plist);
 void cl_page_list_discard(const struct lu_env *env,
@@ -2563,10 +2565,10 @@ void cl_page_list_discard(const struct lu_env *env,
 void cl_page_list_fini(const struct lu_env *env, struct cl_page_list *plist);
 
 void cl_2queue_init(struct cl_2queue *queue);
-void cl_2queue_disown(const struct lu_env *env,
-		      struct cl_io *io, struct cl_2queue *queue);
-void cl_2queue_discard(const struct lu_env *env,
-		       struct cl_io *io, struct cl_2queue *queue);
+void cl_2queue_disown(const struct lu_env *env, struct cl_io *io,
+		      struct cl_2queue *queue);
+void cl_2queue_discard(const struct lu_env *env, struct cl_io *io,
+		       struct cl_2queue *queue);
 void cl_2queue_fini(const struct lu_env *env, struct cl_2queue *queue);
 void cl_2queue_init_page(struct cl_2queue *queue, struct cl_page *page);
 
