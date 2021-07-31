@@ -816,8 +816,8 @@ static int proc_lnet_portal_rotor(struct ctl_table *table, int write,
 	}
 
 	buf = memdup_user_nul(buffer, nob);
-	if (!buf)
-		return -ENOMEM;
+	if (IS_ERR(buf))
+		return PTR_ERR(buf);
 
 	tmp = strim(buf);
 
