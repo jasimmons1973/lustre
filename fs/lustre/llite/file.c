@@ -1656,7 +1656,8 @@ ll_file_io_generic(const struct lu_env *env, struct vvp_io_args *args,
 		if (!ll_sbi_has_parallel_dio(sbi))
 			is_parallel_dio = false;
 
-		ci_aio = cl_aio_alloc(args->u.normal.via_iocb);
+		ci_aio = cl_aio_alloc(args->u.normal.via_iocb,
+				      ll_i2info(inode)->lli_clob);
 		if (!ci_aio) {
 			rc = -ENOMEM;
 			goto out;
@@ -1814,7 +1815,7 @@ out:
 		cl_sync_io_note(env, &io->ci_aio->cda_sync,
 				rc == -EIOCBQUEUED ? 0 : rc);
 		if (!is_aio) {
-			cl_aio_free(io->ci_aio);
+			cl_aio_free(env, io->ci_aio);
 			io->ci_aio = NULL;
 		}
 	}
