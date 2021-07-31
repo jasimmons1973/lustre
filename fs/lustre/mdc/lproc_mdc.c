@@ -268,45 +268,6 @@ mdc_cached_mb_seq_write(struct file *file, const char __user *buffer,
 }
 LDEBUGFS_SEQ_FOPS(mdc_cached_mb);
 
-static int mdc_contention_seconds_seq_show(struct seq_file *m, void *v)
-{
-	struct obd_device *obd = m->private;
-	struct osc_device *od  = obd2osc_dev(obd);
-
-	seq_printf(m, "%lld\n", od->od_contention_time);
-	return 0;
-}
-
-static ssize_t mdc_contention_seconds_seq_write(struct file *file,
-						const char __user *buffer,
-						size_t count, loff_t *off)
-{
-	struct seq_file *sfl = file->private_data;
-	struct obd_device *obd = sfl->private;
-	struct osc_device *od  = obd2osc_dev(obd);
-	int rc;
-	char kernbuf[128];
-	s64 val;
-
-	if (count >= sizeof(kernbuf))
-		return -EINVAL;
-
-	if (copy_from_user(kernbuf, buffer, count))
-		return -EFAULT;
-	kernbuf[count] = 0;
-
-	rc = kstrtos64(kernbuf, count, &val);
-	if (rc)
-		return rc;
-	if (val < 0 || val > INT_MAX)
-		return -ERANGE;
-
-	od->od_contention_time = val;
-
-	return count;
-}
-LDEBUGFS_SEQ_FOPS(mdc_contention_seconds);
-
 static int mdc_unstable_stats_seq_show(struct seq_file *m, void *v)
 {
 	struct obd_device *obd = m->private;
@@ -628,8 +589,6 @@ static struct ldebugfs_vars lprocfs_mdc_obd_vars[] = {
 	  .fops	=	&mdc_checksum_type_fops		},
 	{ .name	=	"timeouts",
 	  .fops	=	&mdc_timeouts_fops		},
-	{ .name	=	"contention_seconds",
-	  .fops	=	&mdc_contention_seconds_fops	},
 	{ .name	=	"import",
 	  .fops	=	&mdc_import_fops		},
 	{ .name	=	"state",
