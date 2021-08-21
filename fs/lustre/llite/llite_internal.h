@@ -32,6 +32,8 @@
 
 #ifndef LLITE_INTERNAL_H
 #define LLITE_INTERNAL_H
+
+#include <linux/pagemap.h>
 #include <obd.h>
 #include <uapi/linux/lustre/lustre_ver.h>
 #include <lustre_disk.h>	/* for s2sbi */
@@ -1109,6 +1111,11 @@ void ll_cl_add(struct file *file, const struct lu_env *env, struct cl_io *io,
 	       enum lcc_type type);
 void ll_cl_remove(struct file *file, const struct lu_env *env);
 struct ll_cl_context *ll_cl_find(struct file *file);
+
+static inline void mapping_clear_exiting(struct address_space *mapping)
+{
+	clear_bit(AS_EXITING, &mapping->flags);
+}
 
 extern const struct address_space_operations ll_aops;
 
