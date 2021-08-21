@@ -403,6 +403,9 @@ struct ksock_conn_cb {
 	int			ksnr_conn_count;	/* total # conns for
 							 * this cb
 							 */
+	unsigned int		ksnr_max_conns;		/* conns_per_peer at
+							 * peer creation
+							 */
 };
 
 #define SOCKNAL_KEEPALIVE_PING	1	/* cookie for keepalive ping */
@@ -696,6 +699,7 @@ void ksocknal_read_callback(struct ksock_conn *conn);
 void ksocknal_write_callback(struct ksock_conn *conn);
 
 int ksocknal_tunables_init(void);
+void ksocknal_tunables_setup(struct lnet_ni *ni);
 
 void ksocknal_lib_csum_tx(struct ksock_tx *tx);
 
