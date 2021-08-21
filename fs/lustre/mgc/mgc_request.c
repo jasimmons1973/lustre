@@ -1093,7 +1093,7 @@ static int mgc_apply_recover_logs(struct obd_device *mgc,
 	struct lustre_cfg *lcfg;
 	struct lustre_cfg_bufs bufs;
 	u64 prev_version = 0;
-	char *inst;
+	char inst[MTI_NAME_MAXLEN + 1];
 	char *buf;
 	int bufsz;
 	int pos;
@@ -1107,19 +1107,15 @@ static int mgc_apply_recover_logs(struct obd_device *mgc,
 	/* get dynamic nids setting */
 	dynamic_nids = mgc->obd_dynamic_nids;
 
-	inst = kzalloc(PAGE_SIZE, GFP_KERNEL);
-	if (!inst)
-		return -ENOMEM;
-
-	pos = snprintf(inst, PAGE_SIZE, "%px", cfg->cfg_instance);
-	if (pos >= PAGE_SIZE) {
-		kfree(inst);
+	pos = snprintf(inst, sizeof(inst), "%px", cfg->cfg_instance);
+	if (pos >= sizeof(inst))
 		return -E2BIG;
-	}
 
-	++pos;
-	buf = inst + pos;
-	bufsz = PAGE_SIZE - pos;
+	buf = kzalloc(PAGE_SIZE, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+	bufsz = PAGE_SIZE;
+	pos = 0;
 
 	while (datalen > 0) {
 		int entry_len = sizeof(*entry);
@@ -1204,7 +1200,7 @@ static int mgc_apply_recover_logs(struct obd_device *mgc,
 				  is_ost ? "OST" : "MDT", entry->mne_index);
 
 		cname = is_ost ? "osc" : "mdc",
-			pos += sprintf(obdname + pos, "-%s-%s", cname, inst);
+		pos += snprintf(obdname + pos, bufsz, "-%s-%s", cname, inst);
 		lustre_cfg_bufs_reset(&bufs, obdname);
 
 		/* find the obd by obdname */
@@ -1308,7 +1304,7 @@ fail:;
 		/* continue, even one with error */
 	}
 
-	kfree(inst);
+	kfree(buf);
 	return rc;
 }
 
