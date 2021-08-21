@@ -1420,16 +1420,38 @@ lnet_find_route_locked(struct lnet_remotenet *rnet, u32 src_net,
 	return best_route;
 }
 
+static inline unsigned int
+lnet_dev_prio_of_md(struct lnet_ni *ni, unsigned int dev_idx)
+{
+	if (dev_idx == UINT_MAX)
+		return UINT_MAX;
+
+	if (!ni || !ni->ni_net || !ni->ni_net->net_lnd ||
+	    !ni->ni_net->net_lnd->lnd_get_dev_prio)
+		return UINT_MAX;
+
+	return ni->ni_net->net_lnd->lnd_get_dev_prio(ni, dev_idx);
+}
+
 static struct lnet_ni *
 lnet_get_best_ni(struct lnet_net *local_net, struct lnet_ni *best_ni,
 		 struct lnet_peer *peer, struct lnet_peer_net *peer_net,
-		 int md_cpt)
+		 struct lnet_msg *msg, int md_cpt)
 {
-	struct lnet_ni *ni = NULL;
+	struct lnet_libmd *md = msg->msg_md;
+	unsigned int offset = msg->msg_offset;
 	unsigned int shortest_distance;
+	struct lnet_ni *ni = NULL;
 	int best_credits;
 	int best_healthv;
 	u32 best_sel_prio;
+	unsigned int best_dev_prio;
+	unsigned int dev_idx = UINT_MAX;
+	struct page *page = lnet_get_first_page(md, offset);
+
+	msg->msg_rdma_force = lnet_is_rdma_only_page(page);
+	if (msg->msg_rdma_force)
+		dev_idx = lnet_get_dev_idx(page);
 
 	/* If there is no peer_ni that we can send to on this network,
 	 * then there is no point in looking for a new best_ni here.
@@ -1440,9 +1462,11 @@ lnet_get_best_ni(struct lnet_net *local_net, struct lnet_ni *best_ni,
 	if (!best_ni) {
 		best_sel_prio = LNET_MAX_SELECTION_PRIORITY;
 		shortest_distance = UINT_MAX;
+		best_dev_prio = UINT_MAX;
 		best_credits = INT_MIN;
 		best_healthv = 0;
 	} else {
+		best_dev_prio = lnet_dev_prio_of_md(best_ni, dev_idx);
 		shortest_distance = cfs_cpt_distance(lnet_cpt_table(), md_cpt,
 						     best_ni->ni_dev_cpt);
 		best_credits = atomic_read(&best_ni->ni_tx_credits);
@@ -1456,6 +1480,7 @@ lnet_get_best_ni(struct lnet_net *local_net, struct lnet_ni *best_ni,
 		int ni_healthv;
 		int ni_fatal;
 		u32 ni_sel_prio;
+		unsigned int ni_dev_prio;
 
 		ni_credits = atomic_read(&ni->ni_tx_credits);
 		ni_healthv = atomic_read(&ni->ni_healthv);
@@ -1471,6 +1496,8 @@ lnet_get_best_ni(struct lnet_net *local_net, struct lnet_ni *best_ni,
 					    md_cpt,
 					    ni->ni_dev_cpt);
 
+		ni_dev_prio = lnet_dev_prio_of_md(ni, dev_idx);
+
 		/*
 		 * All distances smaller than the NUMA range
 		 * are treated equally.
@@ -1478,22 +1505,21 @@ lnet_get_best_ni(struct lnet_net *local_net, struct lnet_ni *best_ni,
 		if (distance < lnet_numa_range)
 			distance = lnet_numa_range;
 
-		/*
-		 * Select on health, shorter distance, available
-		 * credits, then round-robin.
+		/* * Select on health, selection policy, direct dma prio,
+		 * shorter distance, available credits, then round-robin.
 		 */
 		if (ni_fatal)
 			continue;
 
 		if (best_ni)
 			CDEBUG(D_NET,
-			       "compare ni %s [c:%d, d:%d, s:%d, p:%u] with best_ni %s [c:%d, d:%d, s:%d, p:%u]\n",
+			       "compare ni %s [c:%d, d:%d, s:%d, p:%u, g:%u] with best_ni %s [c:%d, d:%d, s:%d, p:%u, g:%u]\n",
 			       libcfs_nid2str(ni->ni_nid), ni_credits, distance,
-			       ni->ni_seq, ni_sel_prio,
+			       ni->ni_seq, ni_sel_prio, ni_dev_prio,
 			       (best_ni) ? libcfs_nid2str(best_ni->ni_nid)
 			       : "not selected", best_credits, shortest_distance,
 			       (best_ni) ? best_ni->ni_seq : 0,
-			       best_sel_prio);
+			       best_sel_prio, best_dev_prio);
 		else
 			goto select_ni;
 
@@ -1505,6 +1531,11 @@ lnet_get_best_ni(struct lnet_net *local_net, struct lnet_ni *best_ni,
 		if (ni_sel_prio > best_sel_prio)
 			continue;
 		else if (ni_sel_prio < best_sel_prio)
+			goto select_ni;
+
+		if (ni_dev_prio > best_dev_prio)
+			continue;
+		else if (ni_dev_prio < best_dev_prio)
 			goto select_ni;
 
 		if (distance > shortest_distance)
@@ -1522,6 +1553,7 @@ lnet_get_best_ni(struct lnet_net *local_net, struct lnet_ni *best_ni,
 
 select_ni:
 		best_sel_prio = ni_sel_prio;
+		best_dev_prio = ni_dev_prio;
 		shortest_distance = distance;
 		best_healthv = ni_healthv;
 		best_ni = ni;
@@ -1812,6 +1844,7 @@ struct lnet_ni *
 lnet_find_best_ni_on_spec_net(struct lnet_ni *cur_best_ni,
 			      struct lnet_peer *peer,
 			      struct lnet_peer_net *peer_net,
+			      struct lnet_msg *msg,
 			      int cpt)
 {
 	struct lnet_net *local_net;
@@ -1829,7 +1862,7 @@ lnet_find_best_ni_on_spec_net(struct lnet_ni *cur_best_ni,
 	 *	3. Round Robin
 	 */
 	best_ni = lnet_get_best_ni(local_net, cur_best_ni,
-				   peer, peer_net, cpt);
+				   peer, peer_net, msg, cpt);
 
 	return best_ni;
 }
@@ -2064,6 +2097,7 @@ use_lpn:
 	if (!sd->sd_best_ni) {
 		lpn = gwni->lpni_peer_net;
 		sd->sd_best_ni = lnet_find_best_ni_on_spec_net(NULL, gw, lpn,
+							       sd->sd_msg,
 							       sd->sd_md_cpt);
 		if (!sd->sd_best_ni) {
 			CERROR("Internal Error. Expected local ni on %s but non found :%s\n",
@@ -2143,7 +2177,7 @@ lnet_handle_spec_router_dst(struct lnet_send_data *sd)
 
 struct lnet_ni *
 lnet_find_best_ni_on_local_net(struct lnet_peer *peer, int md_cpt,
-			       bool discovery)
+			       struct lnet_msg *msg, bool discovery)
 {
 	struct lnet_peer_net *lpn = NULL;
 	struct lnet_peer_net *best_lpn = NULL;
@@ -2237,8 +2271,8 @@ select_lpn:
 		/* Select the best NI on the same net as best_lpn chosen
 		 * above
 		 */
-		best_ni = lnet_find_best_ni_on_spec_net(NULL, peer,
-							best_lpn, md_cpt);
+		best_ni = lnet_find_best_ni_on_spec_net(NULL, peer, best_lpn,
+							msg, md_cpt);
 	}
 
 	return best_ni;
@@ -2298,6 +2332,7 @@ lnet_select_preferred_best_ni(struct lnet_send_data *sd)
 		best_ni =
 			lnet_find_best_ni_on_spec_net(NULL, sd->sd_peer,
 						      sd->sd_best_lpni->lpni_peer_net,
+						      sd->sd_msg,
 						      sd->sd_md_cpt);
 		/* If there is no best_ni we don't have a route */
 		if (!best_ni) {
@@ -2350,6 +2385,7 @@ lnet_handle_any_local_nmr_dst(struct lnet_send_data *sd)
 		sd->sd_best_ni = lnet_find_best_ni_on_spec_net(NULL,
 							       sd->sd_peer,
 							       sd->sd_best_lpni->lpni_peer_net,
+							       sd->sd_msg,
 							       sd->sd_md_cpt);
 		if (!sd->sd_best_ni) {
 			CERROR("Unable to forward message to %s. No local NI available\n",
@@ -2382,6 +2418,7 @@ lnet_handle_any_mr_dsta(struct lnet_send_data *sd)
 		sd->sd_best_ni =
 		  lnet_find_best_ni_on_spec_net(NULL, sd->sd_peer,
 						sd->sd_best_lpni->lpni_peer_net,
+						sd->sd_msg,
 						sd->sd_md_cpt);
 
 		if (!sd->sd_best_ni) {
@@ -2403,6 +2440,7 @@ lnet_handle_any_mr_dsta(struct lnet_send_data *sd)
 	 */
 	sd->sd_best_ni = lnet_find_best_ni_on_local_net(sd->sd_peer,
 					sd->sd_md_cpt,
+					sd->sd_msg,
 					lnet_msg_discovery(sd->sd_msg));
 	if (sd->sd_best_ni) {
 		sd->sd_best_lpni =

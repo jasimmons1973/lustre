@@ -312,7 +312,32 @@ struct lnet_lnd {
 
 	/* accept a new connection */
 	int (*lnd_accept)(struct lnet_ni *ni, struct socket *sock);
+
+	/* get dma_dev priority */
+	unsigned int (*lnd_get_dev_prio)(struct lnet_ni *ni,
+					 unsigned int dev_idx);
 };
+
+/* FIXME !!!!! The abstract for GPU page support (PCI peer2peer)
+ * was done for only the external NVIDIA driver and done very
+ * poorly. Once DRI / TTM supports peer2peer we can redo this
+ * right.
+ */
+static inline unsigned int lnet_get_dev_prio(struct device *dev,
+					     unsigned int dev_idx)
+{
+	return UINT_MAX;
+}
+
+static inline bool lnet_is_rdma_only_page(struct page *page)
+{
+	return false;
+}
+
+static inline unsigned int lnet_get_dev_idx(struct page *page)
+{
+	return false;
+}
 
 struct lnet_tx_queue {
 	int			tq_credits;	/* # tx credits free */

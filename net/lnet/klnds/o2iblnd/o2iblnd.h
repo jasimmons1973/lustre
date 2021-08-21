@@ -858,18 +858,18 @@ static inline void kiblnd_dma_unmap_single(struct ib_device *dev,
 #define KIBLND_UNMAP_ADDR_SET(p, m, a)	do {} while (0)
 #define KIBLND_UNMAP_ADDR(p, m, a)	(a)
 
-static inline int kiblnd_dma_map_sg(struct ib_device *dev,
+static inline int kiblnd_dma_map_sg(struct kib_hca_dev *hdev,
 				    struct scatterlist *sg, int nents,
 				    enum dma_data_direction direction)
 {
-	return ib_dma_map_sg(dev, sg, nents, direction);
+	return ib_dma_map_sg(hdev->ibh_ibdev, sg, nents, direction);
 }
 
-static inline void kiblnd_dma_unmap_sg(struct ib_device *dev,
+static inline void kiblnd_dma_unmap_sg(struct kib_hca_dev *hdev,
 				       struct scatterlist *sg, int nents,
 				       enum dma_data_direction direction)
 {
-	ib_dma_unmap_sg(dev, sg, nents, direction);
+	ib_dma_unmap_sg(hdev->ibh_ibdev, sg, nents, direction);
 }
 
 static inline u64 kiblnd_sg_dma_address(struct ib_device *dev,
@@ -959,3 +959,4 @@ int kiblnd_post_rx(struct kib_rx *rx, int credit);
 int kiblnd_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg);
 int kiblnd_recv(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg,
 		int delayed, struct iov_iter *to, unsigned int rlen);
+unsigned int kiblnd_get_dev_prio(struct lnet_ni *ni, unsigned int dev_idx);
