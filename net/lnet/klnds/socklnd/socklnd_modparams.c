@@ -23,6 +23,8 @@
 #if defined(__x86_64__) || defined(__i386__)
 #include <asm/hypervisor.h>
 #endif
+#include <linux/inetdevice.h>
+#include <linux/ethtool.h>
 
 #define CURRENT_LND_VERSION 1
 
@@ -154,6 +156,75 @@ MODULE_PARM_DESC(protocol, "protocol version");
 struct ksock_tunables ksocknal_tunables;
 static struct lnet_ioctl_config_socklnd_tunables default_tunables;
 
+static int ksocklnd_ni_get_eth_intf_speed(struct lnet_ni *ni)
+{
+	const struct in_ifaddr *ifa;
+	struct net_device *dev;
+	int intf_idx = -1;
+	int ret = -1;
+
+	rtnl_lock();
+	for_each_netdev(ni->ni_net_ns, dev) {
+		int flags = dev_get_flags(dev);
+		struct in_device *in_dev;
+
+		if (flags & IFF_LOOPBACK) /* skip the loopback IF */
+			continue;
+
+		if (!(flags & IFF_UP))
+			continue;
+
+		in_dev = __in_dev_get_rcu(dev);
+		if (!in_dev)
+			continue;
+
+		in_dev_for_each_ifa_rcu(ifa, in_dev) {
+			if (strcmp(ifa->ifa_label, ni->ni_interface) == 0)
+				intf_idx = dev->ifindex;
+		}
+		if (intf_idx >= 0)
+			break;
+	}
+	if (intf_idx >= 0) {
+		struct ethtool_link_ksettings cmd;
+		int ethtool_ret;
+
+		/* Some devices may not be providing link settings */
+		ethtool_ret = __ethtool_get_link_ksettings(dev, &cmd);
+		if (!ethtool_ret)
+			ret = cmd.base.speed;
+		else
+			ret = ethtool_ret;
+	}
+	rtnl_unlock();
+
+	return ret;
+}
+
+static int ksocklnd_speed2cpp(int speed)
+{
+	/* Use the minimum of 1Gbps to avoid calling ilog2 with 0 */
+	if (speed < 1000)
+		speed = 1000;
+
+	/* Pick heuristically optimal conns_per_peer value
+	 * for the specified ethernet interface speed (Mbps)
+	 */
+	return ilog2(speed / 1000) / 2 + 1;
+}
+
+static int ksocklnd_lookup_conns_per_peer(struct lnet_ni *ni)
+{
+	int cpp = DEFAULT_CONNS_PER_PEER;
+	int speed = ksocklnd_ni_get_eth_intf_speed(ni);
+
+	CDEBUG(D_NET, "intf %s speed %d\n", ni->ni_interface, speed);
+	if (speed > 0)
+		cpp = ksocklnd_speed2cpp(speed);
+
+	return cpp;
+}
+
 int ksocknal_tunables_init(void)
 {
 	default_tunables.lnd_version = CURRENT_LND_VERSION;
@@ -248,6 +319,6 @@ void ksocknal_tunables_setup(struct lnet_ni *ni)
 			*ksocknal_tunables.ksnd_peerrtrcredits;
 
 	if (!tunables->lnd_conns_per_peer)
-		tunables->lnd_conns_per_peer = (conns_per_peer) ?
-			conns_per_peer : DEFAULT_CONNS_PER_PEER;
+		tunables->lnd_conns_per_peer =
+			ksocklnd_lookup_conns_per_peer(ni);
 }
