@@ -895,6 +895,14 @@ EXPORT_SYMBOL(cl_page_list_move_head);
  */
 void cl_page_list_splice(struct cl_page_list *src, struct cl_page_list *dst)
 {
+#ifdef CONFIG_LUSTRE_DEBUG_LU_REF
+	struct cl_page *page;
+	struct cl_page *tmp;
+
+	cl_page_list_for_each_safe(page, tmp, src)
+		lu_ref_set_at(&page->cp_reference, &page->cp_queue_ref,
+			      "queue", src, dst);
+#endif
 	dst->pl_nr += src->pl_nr;
 	src->pl_nr = 0;
 	list_splice_tail_init(&src->pl_pages, &dst->pl_pages);

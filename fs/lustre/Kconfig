@@ -61,6 +61,15 @@ config LUSTRE_DEBUG_EXPENSIVE_CHECK
 
 	  Use with caution. If unsure, say N.
 
+config LUSTRE_DEBUG_LU_REF
+	bool "Enable Lustre lu_ref checks"
+	depends on LUSTRE_DEBUG_EXPENSIVE_CHECK
+	help
+	  lu_ref gives the ability to track references to a given object. It is
+	  quite cpu expensive so its disabled by default.
+
+	  Use with caution. If unsure, say N.
+
 config LUSTRE_TRANSLATE_ERRNOS
 	bool
 	depends on LUSTRE_FS && !X86
