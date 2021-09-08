@@ -507,7 +507,7 @@ kiblnd_rx_complete(struct kib_rx *rx, int status, int nob)
 	}
 
 	if (msg->ibm_srcnid != conn->ibc_peer->ibp_nid ||
-	    msg->ibm_dstnid != ni->ni_nid ||
+	    msg->ibm_dstnid != lnet_nid_to_nid4(&ni->ni_nid) ||
 	    msg->ibm_srcstamp != conn->ibc_incarnation ||
 	    msg->ibm_dststamp != net->ibn_incarnation) {
 		CERROR("Stale rx from %s\n",
@@ -2369,11 +2369,12 @@ kiblnd_passive_connect(struct rdma_cm_id *cmid, void *priv, int priv_nob)
 	}
 
 	if (!ni ||				/* no matching net */
-	    ni->ni_nid != reqmsg->ibm_dstnid ||	/* right NET, wrong NID! */
+	    lnet_nid_to_nid4(&ni->ni_nid) !=
+	    reqmsg->ibm_dstnid ||		/* right NET, wrong NID! */
 	    net->ibn_dev != ibdev) {		/* wrong device */
 		CERROR("Can't accept conn from %s on %s (%s:%d:%pI4h): bad dst nid %s\n",
 		       libcfs_nid2str(nid),
-		       !ni ? "NA" : libcfs_nid2str(ni->ni_nid),
+		       ni ? libcfs_nidstr(&ni->ni_nid) : "NA",
 		       ibdev->ibd_ifname, ibdev->ibd_nnets,
 		       &ibdev->ibd_ifip,
 		       libcfs_nid2str(reqmsg->ibm_dstnid));
@@ -2490,8 +2491,8 @@ kiblnd_passive_connect(struct rdma_cm_id *cmid, void *priv, int priv_nob)
 		 * the lower NID connection win so we can move forward.
 		 */
 		if (peer2->ibp_connecting &&
-		    nid < ni->ni_nid && peer2->ibp_races <
-		    MAX_CONN_RACES_BEFORE_ABORT) {
+		    nid < lnet_nid_to_nid4(&ni->ni_nid) &&
+		    peer2->ibp_races < MAX_CONN_RACES_BEFORE_ABORT) {
 			peer2->ibp_races++;
 			write_unlock_irqrestore(g_lock, flags);
 
@@ -2924,7 +2925,7 @@ kiblnd_check_connreply(struct kib_conn *conn, void *priv, int priv_nob)
 	}
 
 	read_lock_irqsave(&kiblnd_data.kib_global_lock, flags);
-	if (msg->ibm_dstnid == ni->ni_nid &&
+	if (msg->ibm_dstnid == lnet_nid_to_nid4(&ni->ni_nid) &&
 	    msg->ibm_dststamp == net->ibn_incarnation)
 		rc = 0;
 	else
@@ -3568,13 +3569,13 @@ kiblnd_qp_event(struct ib_event *event, void *arg)
 	case IB_EVENT_PORT_ERR:
 	case IB_EVENT_DEVICE_FATAL:
 		CERROR("Fatal device error for NI %s\n",
-		       libcfs_nid2str(conn->ibc_peer->ibp_ni->ni_nid));
+		       libcfs_nidstr(&conn->ibc_peer->ibp_ni->ni_nid));
 		atomic_set(&conn->ibc_peer->ibp_ni->ni_fatal_error_on, 1);
 		return;
 
 	case IB_EVENT_PORT_ACTIVE:
 		CERROR("Port reactivated for NI %s\n",
-		       libcfs_nid2str(conn->ibc_peer->ibp_ni->ni_nid));
+		       libcfs_nidstr(&conn->ibc_peer->ibp_ni->ni_nid));
 		atomic_set(&conn->ibc_peer->ibp_ni->ni_fatal_error_on, 0);
 		return;
 

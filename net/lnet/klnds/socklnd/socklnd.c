@@ -949,7 +949,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_conn_cb *conn_cb,
 		 * Am I already connecting to this guy?  Resolve in
 		 * favour of higher NID...
 		 */
-		if (peerid.nid < ni->ni_nid &&
+		if (peerid.nid < lnet_nid_to_nid4(&ni->ni_nid) &&
 		    ksocknal_connecting(peer_ni->ksnp_conn_cb,
 					((struct sockaddr *)&conn->ksnc_peeraddr))) {
 			rc = EALREADY;
@@ -1820,12 +1820,13 @@ ksocknal_ctl(struct lnet_ni *ni, unsigned int cmd, void *arg)
 
 	case IOC_LIBCFS_REGISTER_MYNID:
 		/* Ignore if this is a noop */
-		if (data->ioc_nid == ni->ni_nid)
+		if (nid_is_nid4(&ni->ni_nid) &&
+		    data->ioc_nid == lnet_nid_to_nid4(&ni->ni_nid))
 			return 0;
 
 		CERROR("obsolete IOC_LIBCFS_REGISTER_MYNID: %s(%s)\n",
 		       libcfs_nid2str(data->ioc_nid),
-		       libcfs_nid2str(ni->ni_nid));
+		       libcfs_nidstr(&ni->ni_nid));
 		return -EINVAL;
 
 	case IOC_LIBCFS_PUSH_CONNECTION:
@@ -2369,8 +2370,7 @@ ksocknal_startup(struct lnet_ni *ni)
 
 	LASSERT(ksi);
 	LASSERT(ksi->ksni_addr.ss_family == AF_INET);
-	ni->ni_nid = LNET_MKNID(LNET_NIDNET(ni->ni_nid),
-				ntohl(((struct sockaddr_in *)&ksi->ksni_addr)->sin_addr.s_addr));
+	ni->ni_nid.nid_addr[0] = ((struct sockaddr_in *)&ksi->ksni_addr)->sin_addr.s_addr;
 	list_add(&net->ksnn_list, &ksocknal_data.ksnd_nets);
 	net->ksnn_ni = ni;
 	ksocknal_data.ksnd_nnets++;

@@ -667,6 +667,17 @@ static void lnet_assert_wire_constants(void)
 	BUILD_BUG_ON((int)sizeof(lnet_nid_t) != 8);
 	BUILD_BUG_ON((int)sizeof(lnet_pid_t) != 4);
 
+	/* Checks for struct lnet_nid */
+	BUILD_BUG_ON((int)sizeof(struct lnet_nid) != 20);
+	BUILD_BUG_ON((int)offsetof(struct lnet_nid, nid_size) != 0);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_nid *)0)->nid_size) != 1);
+	BUILD_BUG_ON((int)offsetof(struct lnet_nid, nid_type) != 1);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_nid *)0)->nid_type) != 1);
+	BUILD_BUG_ON((int)offsetof(struct lnet_nid, nid_num) != 2);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_nid *)0)->nid_num) != 2);
+	BUILD_BUG_ON((int)offsetof(struct lnet_nid, nid_addr) != 4);
+	BUILD_BUG_ON((int)sizeof(((struct lnet_nid *)0)->nid_addr) != 16);
+
 	/* Checks for struct lnet_process_id_packed */
 	BUILD_BUG_ON((int)sizeof(struct lnet_process_id_packed) != 12);
 	BUILD_BUG_ON((int)offsetof(struct lnet_process_id_packed, nid) != 0);
@@ -1518,16 +1529,18 @@ lnet_islocalnet(u32 net_id)
 }
 
 struct lnet_ni *
-lnet_nid2ni_locked(lnet_nid_t nid, int cpt)
+lnet_nid2ni_locked(lnet_nid_t nid4, int cpt)
 {
 	struct lnet_net *net;
 	struct lnet_ni *ni;
+	struct lnet_nid nid;
 
 	LASSERT(cpt != LNET_LOCK_EX);
+	lnet_nid4_to_nid(nid4, &nid);
 
 	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
 		list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
-			if (ni->ni_nid == nid)
+			if (nid_same(&ni->ni_nid, &nid))
 				return ni;
 		}
 	}
@@ -1826,7 +1839,9 @@ lnet_ping_target_install_locked(struct lnet_ping_buffer *pbuf)
 
 			ns = &pbuf->pb_info.pi_ni[i];
 
-			ns->ns_nid = ni->ni_nid;
+			if (!nid_is_nid4(&ni->ni_nid))
+				continue;
+			ns->ns_nid = lnet_nid_to_nid4(&ni->ni_nid);
 
 			lnet_ni_lock(ni);
 			ns->ns_status = lnet_ni_get_status_locked(ni);
@@ -2142,7 +2157,7 @@ lnet_clear_zombies_nis_locked(struct lnet_net *net)
 			++i;
 			if ((i & (-i)) == i) {
 				CDEBUG(D_WARNING, "Waiting for zombie LNI %s\n",
-				       libcfs_nid2str(ni->ni_nid));
+				       libcfs_nidstr(&ni->ni_nid));
 			}
 			schedule_timeout_uninterruptible(HZ);
 
@@ -2167,7 +2182,7 @@ lnet_clear_zombies_nis_locked(struct lnet_net *net)
 
 		if (!islo)
 			CDEBUG(D_LNI, "Removed LNI %s\n",
-			       libcfs_nid2str(ni->ni_nid));
+			       libcfs_nidstr(&ni->ni_nid));
 
 		lnet_ni_free(ni);
 		i = 2;
@@ -2283,7 +2298,6 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_lnd_tunables *tun)
 	struct lnet_tx_queue *tq;
 	int i;
 	struct lnet_net *net = ni->ni_net;
-	u32 seed;
 
 	mutex_lock(&the_lnet.ln_lnd_mutex);
 
@@ -2339,18 +2353,12 @@ lnet_startup_lndni(struct lnet_ni *ni, struct lnet_lnd_tunables *tun)
 		tq->tq_credits = lnet_ni_tq_credits(ni);
 	}
 
-	/* Nodes with small feet have little entropy. The NID for this
-	 * node gives the most entropy in the low bits.
-	 */
-	seed = LNET_NIDADDR(ni->ni_nid);
-	add_device_randomness(&seed, sizeof(seed));
-
 	atomic_set(&ni->ni_tx_credits,
 		   lnet_ni_tq_credits(ni) * ni->ni_ncpts);
 	atomic_set(&ni->ni_healthv, LNET_MAX_HEALTH_VALUE);
 
 	CDEBUG(D_LNI, "Added LNI %s [%d/%d/%d/%d]\n",
-	       libcfs_nid2str(ni->ni_nid),
+	       libcfs_nidstr(&ni->ni_nid),
 	       ni->ni_net->net_tunables.lct_peer_tx_credits,
 	       lnet_ni_tq_credits(ni) * LNET_CPT_NUMBER,
 	       ni->ni_net->net_tunables.lct_peer_rtr_credits,
@@ -2924,7 +2932,7 @@ lnet_fill_ni_info(struct lnet_ni *ni, struct lnet_ioctl_config_ni *cfg_ni,
 	size_t min_size = 0;
 	int i;
 
-	if (!ni || !cfg_ni || !tun)
+	if (!ni || !cfg_ni || !tun || !nid_is_nid4(&ni->ni_nid))
 		return;
 
 	if (ni->ni_interface) {
@@ -2933,7 +2941,7 @@ lnet_fill_ni_info(struct lnet_ni *ni, struct lnet_ioctl_config_ni *cfg_ni,
 			sizeof(cfg_ni->lic_ni_intf));
 	}
 
-	cfg_ni->lic_nid = ni->ni_nid;
+	cfg_ni->lic_nid = lnet_nid_to_nid4(&ni->ni_nid);
 	cfg_ni->lic_status = lnet_ni_get_status_locked(ni);
 	cfg_ni->lic_dev_cpt = ni->ni_dev_cpt;
 
@@ -2993,7 +3001,7 @@ lnet_fill_ni_info_legacy(struct lnet_ni *ni,
 	size_t min_size, tunable_size = 0;
 	int i;
 
-	if (!ni || !config)
+	if (!ni || !config || !nid_is_nid4(&ni->ni_nid))
 		return;
 
 	net_config = (struct lnet_ioctl_net_config *)config->cfg_bulk;
@@ -3007,7 +3015,7 @@ lnet_fill_ni_info_legacy(struct lnet_ni *ni,
 		ni->ni_interface,
 		sizeof(net_config->ni_interface));
 
-	config->cfg_nid = ni->ni_nid;
+	config->cfg_nid = lnet_nid_to_nid4(&ni->ni_nid);
 	config->cfg_config_u.cfg_net.net_peer_timeout =
 		ni->ni_net->net_tunables.lct_peer_timeout;
 	config->cfg_config_u.cfg_net.net_max_tx_credits =
@@ -3287,7 +3295,7 @@ static int lnet_add_net_common(struct lnet_net *net,
 		rc = lnet_udsp_apply_policies_on_ni(ni);
 		if (rc)
 			CERROR("Failed to apply UDSPs on ni %s\n",
-			       libcfs_nid2str(ni->ni_nid));
+			       libcfs_nidstr(&ni->ni_nid));
 	}
 	lnet_net_unlock(LNET_LOCK_EX);
 
@@ -3637,12 +3645,13 @@ lnet_ni_set_healthv(lnet_nid_t nid, int value, bool all)
 	lnet_net_lock(LNET_LOCK_EX);
 	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
 		list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
-			if (ni->ni_nid == nid || all) {
+			if (all || (nid_is_nid4(&ni->ni_nid) &&
+				    lnet_nid_to_nid4(&ni->ni_nid) == nid)) {
 				atomic_set(&ni->ni_healthv, value);
 				if (list_empty(&ni->ni_recovery) &&
 				    value < LNET_MAX_HEALTH_VALUE) {
 					CERROR("manually adding local NI %s to recovery\n",
-					       libcfs_nid2str(ni->ni_nid));
+					       libcfs_nidstr(&ni->ni_nid));
 					list_add_tail(&ni->ni_recovery,
 						      &the_lnet.ln_mt_localNIRecovq);
 					lnet_ni_addref_locked(ni, 0);
@@ -3666,7 +3675,7 @@ lnet_ni_set_conns_per_peer(lnet_nid_t nid, int value, bool all)
 	lnet_net_lock(LNET_LOCK_EX);
 	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
 		list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
-			if (ni->ni_nid != nid && !all)
+			if (lnet_nid_to_nid4(&ni->ni_nid) != nid && !all)
 				continue;
 			if (LNET_NETTYP(net->net_id) == SOCKLND)
 				ni->ni_lnd_tunables.lnd_tun_u.lnd_sock.lnd_conns_per_peer = value;
@@ -3729,7 +3738,9 @@ lnet_get_local_ni_recovery_list(struct lnet_ioctl_recovery_list *list)
 
 	lnet_net_lock(LNET_LOCK_EX);
 	list_for_each_entry(ni, &the_lnet.ln_mt_localNIRecovq, ni_recovery) {
-		list->rlst_nid_array[i] = ni->ni_nid;
+		if (!nid_is_nid4(&ni->ni_nid))
+			continue;
+		list->rlst_nid_array[i] = lnet_nid_to_nid4(&ni->ni_nid);
 		i++;
 		if (i >= LNET_MAX_SHOW_NUM_NID)
 			break;
@@ -4381,10 +4392,13 @@ LNetGetId(unsigned int index, struct lnet_process_id *id)
 
 	list_for_each_entry(net, &the_lnet.ln_nets, net_list) {
 		list_for_each_entry(ni, &net->net_ni_list, ni_netlist) {
+			if (!nid_is_nid4(&ni->ni_nid))
+				/* FIXME this needs to be handled */
+				continue;
 			if (index-- != 0)
 				continue;
 
-			id->nid = ni->ni_nid;
+			id->nid = lnet_nid_to_nid4(&ni->ni_nid);
 			id->pid = the_lnet.ln_pid;
 			rc = 0;
 			break;

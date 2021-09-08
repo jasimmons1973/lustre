@@ -1691,21 +1691,21 @@ lnet_notify(struct lnet_ni *ni, lnet_nid_t nid, bool alive, bool reset,
 	LASSERT(!in_interrupt());
 
 	CDEBUG(D_NET, "%s notifying %s: %s\n",
-	       !ni ? "userspace" : libcfs_nid2str(ni->ni_nid),
+	       !ni ? "userspace" : libcfs_nidstr(&ni->ni_nid),
 	       libcfs_nid2str(nid), alive ? "up" : "down");
 
 	if (ni &&
-	    LNET_NIDNET(ni->ni_nid) != LNET_NIDNET(nid)) {
+	    LNET_NID_NET(&ni->ni_nid) != LNET_NIDNET(nid)) {
 		CWARN("Ignoring notification of %s %s by %s (different net)\n",
 		      libcfs_nid2str(nid), alive ? "birth" : "death",
-		      libcfs_nid2str(ni->ni_nid));
+		      libcfs_nidstr(&ni->ni_nid));
 		return -EINVAL;
 	}
 
 	/* can't do predictions... */
 	if (when > now) {
 		CWARN("Ignoring prediction from %s of %s %s %lld seconds in the future\n",
-		      !ni ? "userspace" : libcfs_nid2str(ni->ni_nid),
+		      ni ? libcfs_nidstr(&ni->ni_nid) : "userspace",
 		      libcfs_nid2str(nid), alive ? "up" : "down", when - now);
 		return -EINVAL;
 	}

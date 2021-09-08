@@ -1579,7 +1579,7 @@ ksocknal_send_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 	/* rely on caller to hold a ref on socket so it wouldn't disappear */
 	LASSERT(conn->ksnc_proto);
 
-	hello->kshm_src_nid = ni->ni_nid;
+	hello->kshm_src_nid = lnet_nid_to_nid4(&ni->ni_nid);
 	hello->kshm_dst_nid = peer_nid;
 	hello->kshm_src_pid = the_lnet.ln_pid;
 
@@ -1628,7 +1628,7 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 	LASSERT(!active == !(conn->ksnc_type != SOCKLND_CONN_NONE));
 
 	timeout = active ? ksocknal_timeout() :
-			    lnet_acceptor_timeout();
+		lnet_acceptor_timeout();
 
 	rc = lnet_sock_read(sock, &hello->kshm_magic,
 			    sizeof(hello->kshm_magic), timeout);
@@ -1672,7 +1672,9 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 				conn->ksnc_proto = &ksocknal_protocol_v1x;
 #endif
 			hello->kshm_nips = 0;
-			ksocknal_send_hello(ni, conn, ni->ni_nid, hello);
+			ksocknal_send_hello(ni, conn,
+					    lnet_nid_to_nid4(&ni->ni_nid),
+					    hello);
 		}
 
 		CERROR("Unknown protocol version (%d.x expected) from %pIS\n",
@@ -1709,7 +1711,7 @@ ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 		recv_id.pid = rpc_get_port((struct sockaddr *)
 					   &conn->ksnc_peeraddr) |
 					   LNET_PID_USERFLAG;
-		recv_id.nid = LNET_MKNID(LNET_NIDNET(ni->ni_nid),
+		recv_id.nid = LNET_MKNID(LNET_NID_NET(&ni->ni_nid),
 					 ntohl(((struct sockaddr_in *)
 					 &conn->ksnc_peeraddr)->sin_addr.s_addr));
 	} else {
