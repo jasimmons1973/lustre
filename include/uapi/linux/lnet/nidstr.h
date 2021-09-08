@@ -100,6 +100,7 @@ static inline char *libcfs_nidstr(const struct lnet_nid *nid)
 
 __u32 libcfs_str2net(const char *str);
 lnet_nid_t libcfs_str2nid(const char *str);
+int libcfs_strnid(struct lnet_nid *nid, const char *str);
 int libcfs_str2anynid(lnet_nid_t *nid, const char *str);
 char *libcfs_id2str(struct lnet_process_id id);
 void cfs_free_nidlist(struct list_head *list);
