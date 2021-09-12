@@ -189,7 +189,7 @@ ksocknal_queue_tx_zcack_v3(struct ksock_conn *conn,
 	if (cookie == tx->tx_msg.ksm_zc_cookies[0] ||
 	    cookie == tx->tx_msg.ksm_zc_cookies[1]) {
 		CWARN("%s: duplicated ZC cookie: %llu\n",
-		      libcfs_id2str(conn->ksnc_peer->ksnp_id), cookie);
+		      libcfs_idstr(&conn->ksnc_peer->ksnp_id), cookie);
 		return 1; /* XXX return error in the future */
 	}
 
@@ -243,14 +243,14 @@ ksocknal_queue_tx_zcack_v3(struct ksock_conn *conn,
 		}
 
 	} else {
-		/*
-		 * ksm_zc_cookies[0] < ksm_zc_cookies[1],
-		 * it is range of cookies
+		/* ksm_zc_cookies[0] < ksm_zc_cookies[1], it is range
+		 * of cookies
 		 */
 		if (cookie >= tx->tx_msg.ksm_zc_cookies[0] &&
 		    cookie <= tx->tx_msg.ksm_zc_cookies[1]) {
 			CWARN("%s: duplicated ZC cookie: %llu\n",
-			      libcfs_id2str(conn->ksnc_peer->ksnp_id), cookie);
+			      libcfs_idstr(&conn->ksnc_peer->ksnp_id),
+			      cookie);
 			return 1; /* XXX: return error in the future */
 		}
 
@@ -398,8 +398,8 @@ ksocknal_handle_zcreq(struct ksock_conn *c, u64 cookie, int remote)
 	if (!tx)
 		return -ENOMEM;
 
-	rc = ksocknal_launch_packet(peer_ni->ksnp_ni, tx, peer_ni->ksnp_id);
-	if (!rc)
+	rc = ksocknal_launch_packet(peer_ni->ksnp_ni, tx, &peer_ni->ksnp_id);
+	if (rc == 0)
 		return 0;
 
 	ksocknal_free_tx(tx);

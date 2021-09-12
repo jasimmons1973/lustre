@@ -542,7 +542,7 @@ simulate_error:
 			break;
 		}
 		CDEBUG(D_NET, "[%p] Error %d on write to %s ip %pISp\n",
-		       conn, rc, libcfs_id2str(conn->ksnc_peer->ksnp_id),
+		       conn, rc, libcfs_idstr(&conn->ksnc_peer->ksnp_id),
 		       &conn->ksnc_peeraddr);
 	}
 
@@ -677,7 +677,7 @@ ksocknal_queue_tx_locked(struct ksock_tx *tx, struct ksock_conn *conn)
 	LASSERT(!conn->ksnc_closing);
 
 	CDEBUG(D_NET, "Sending to %s ip %pISp\n",
-	       libcfs_id2str(conn->ksnc_peer->ksnp_id),
+	       libcfs_idstr(&conn->ksnc_peer->ksnp_id),
 	       &conn->ksnc_peeraddr);
 
 	ksocknal_tx_prep(conn, tx);
@@ -804,10 +804,11 @@ ksocknal_find_connecting_conn_cb_locked(struct ksock_peer_ni *peer_ni)
 
 int
 ksocknal_launch_packet(struct lnet_ni *ni, struct ksock_tx *tx,
-		       struct lnet_process_id id)
+		       struct lnet_processid *id)
 {
 	struct ksock_peer_ni *peer_ni;
 	struct ksock_conn *conn;
+	struct sockaddr_in sa;
 	rwlock_t *g_lock;
 	int retry;
 	int rc;
@@ -846,23 +847,31 @@ ksocknal_launch_packet(struct lnet_ni *ni, struct ksock_tx *tx,
 
 		write_unlock_bh(g_lock);
 
-		if (id.pid & LNET_PID_USERFLAG) {
+		if (id->pid & LNET_PID_USERFLAG) {
 			CERROR("Refusing to create a connection to userspace process %s\n",
-			       libcfs_id2str(id));
+			       libcfs_idstr(id));
 			return -EHOSTUNREACH;
 		}
 
 		if (retry) {
-			CERROR("Can't find peer_ni %s\n", libcfs_id2str(id));
+			CERROR("Can't find peer_ni %s\n", libcfs_idstr(id));
 			return -EHOSTUNREACH;
 		}
 
-		rc = ksocknal_add_peer(ni, id,
-				       LNET_NIDADDR(id.nid),
-				       lnet_acceptor_port());
+		memset(&sa, 0, sizeof(sa));
+		sa.sin_family = AF_INET;
+		sa.sin_addr.s_addr = id->nid.nid_addr[0];
+		sa.sin_port = htons(lnet_acceptor_port());
+		{
+			struct lnet_process_id id4 = {
+				.pid = id->pid,
+				.nid = lnet_nid_to_nid4(&id->nid),
+			};
+			rc = ksocknal_add_peer(ni, id4, (struct sockaddr *)&sa);
+		}
 		if (rc) {
 			CERROR("Can't add peer_ni %s: %d\n",
-			       libcfs_id2str(id), rc);
+			       libcfs_idstr(id), rc);
 			return rc;
 		}
 	}
@@ -892,7 +901,7 @@ ksocknal_launch_packet(struct lnet_ni *ni, struct ksock_tx *tx,
 	write_unlock_bh(g_lock);
 
 	/* NB Routes may be ignored if connections to them failed recently */
-	CNETERR("No usable routes to %s\n", libcfs_id2str(id));
+	CNETERR("No usable routes to %s\n", libcfs_idstr(id));
 	tx->tx_hstatus = LNET_MSG_STATUS_REMOTE_ERROR;
 	return -EHOSTUNREACH;
 }
@@ -902,7 +911,7 @@ ksocknal_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 {
 	unsigned int mpflag = 0;
 	int type = lntmsg->msg_type;
-	struct lnet_process_id target = lntmsg->msg_target;
+	struct lnet_processid target;
 	unsigned int payload_niov = lntmsg->msg_niov;
 	struct bio_vec *payload_kiov = lntmsg->msg_kiov;
 	unsigned int payload_offset = lntmsg->msg_offset;
@@ -911,12 +920,14 @@ ksocknal_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 	int desc_size;
 	int rc;
 
-	/*
-	 * NB 'private' is different depending on what we're sending.
+	/* NB 'private' is different depending on what we're sending.
 	 * Just ignore it...
 	 */
+	target.pid = lntmsg->msg_target.pid;
+	lnet_nid4_to_nid(lntmsg->msg_target.nid, &target.nid);
+
 	CDEBUG(D_NET, "sending %u bytes in %d frags to %s\n",
-	       payload_nob, payload_niov, libcfs_id2str(target));
+	       payload_nob, payload_niov, libcfs_idstr(&target));
 
 	LASSERT(!payload_nob || payload_niov > 0);
 	LASSERT(payload_niov <= LNET_MAX_IOV);
@@ -954,7 +965,7 @@ ksocknal_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 	tx->tx_msg.ksm_zc_cookies[1] = 0;
 
 	/* The first fragment will be set later in pro_pack */
-	rc = ksocknal_launch_packet(ni, tx, target);
+	rc = ksocknal_launch_packet(ni, tx, &target);
 	if (mpflag)
 		memalloc_noreclaim_restore(mpflag);
 
@@ -1051,7 +1062,7 @@ ksocknal_process_receive(struct ksock_conn *conn)
 {
 	struct kvec *kvec = conn->ksnc_rx_iov_space;
 	struct lnet_hdr *lhdr;
-	struct lnet_process_id *id;
+	struct lnet_processid *id;
 	int rc;
 
 	LASSERT(refcount_read(&conn->ksnc_conn_refcount) > 0);
@@ -1067,19 +1078,19 @@ again:
 		rc = ksocknal_receive(conn);
 
 		if (rc <= 0) {
-			struct lnet_process_id ksnp_id;
+			struct lnet_processid *ksnp_id;
 
-			ksnp_id = conn->ksnc_peer->ksnp_id;
+			ksnp_id = &conn->ksnc_peer->ksnp_id;
 
 			LASSERT(rc != -EAGAIN);
 
 			if (!rc)
 				CDEBUG(D_NET, "[%p] EOF from %s ip %pISp\n",
-				       conn, libcfs_id2str(ksnp_id),
+				       conn, libcfs_idstr(ksnp_id),
 				       &conn->ksnc_peeraddr);
 			else if (!conn->ksnc_closing)
 				CERROR("[%p] Error %d on read from %s ip %pISp\n",
-				       conn, rc, libcfs_id2str(ksnp_id),
+				       conn, rc, libcfs_idstr(ksnp_id),
 				       &conn->ksnc_peeraddr);
 
 			/* it's not an error if conn is being closed */
@@ -1105,7 +1116,7 @@ again:
 		if (conn->ksnc_msg.ksm_type != KSOCK_MSG_NOOP &&
 		    conn->ksnc_msg.ksm_type != KSOCK_MSG_LNET) {
 			CERROR("%s: Unknown message type: %x\n",
-			       libcfs_id2str(conn->ksnc_peer->ksnp_id),
+			       libcfs_idstr(&conn->ksnc_peer->ksnp_id),
 			       conn->ksnc_msg.ksm_type);
 			ksocknal_new_packet(conn, 0);
 			ksocknal_close_conn_and_siblings(conn, -EPROTO);
@@ -1117,7 +1128,7 @@ again:
 		    conn->ksnc_msg.ksm_csum != conn->ksnc_rx_csum) {
 			/* NOOP Checksum error */
 			CERROR("%s: Checksum error, wire:0x%08X data:0x%08X\n",
-			       libcfs_id2str(conn->ksnc_peer->ksnp_id),
+			       libcfs_idstr(&conn->ksnc_peer->ksnp_id),
 			       conn->ksnc_msg.ksm_csum, conn->ksnc_rx_csum);
 			ksocknal_new_packet(conn, 0);
 			ksocknal_close_conn_and_siblings(conn, -EPROTO);
@@ -1133,12 +1144,12 @@ again:
 				cookie = conn->ksnc_msg.ksm_zc_cookies[0];
 
 			rc = conn->ksnc_proto->pro_handle_zcack(conn, cookie,
-					       conn->ksnc_msg.ksm_zc_cookies[1]);
-
+								conn->ksnc_msg.ksm_zc_cookies[1]);
 			if (rc) {
 				CERROR("%s: Unknown ZC-ACK cookie: %llu, %llu\n",
-				       libcfs_id2str(conn->ksnc_peer->ksnp_id),
-				       cookie, conn->ksnc_msg.ksm_zc_cookies[1]);
+				       libcfs_idstr(&conn->ksnc_peer->ksnp_id),
+				       cookie,
+				       conn->ksnc_msg.ksm_zc_cookies[1]);
 				ksocknal_new_packet(conn, 0);
 				ksocknal_close_conn_and_siblings(conn, -EPROTO);
 				return rc;
@@ -1172,7 +1183,7 @@ again:
 
 			/* Substitute process ID assigned at connection time */
 			lhdr->src_pid = cpu_to_le32(id->pid);
-			lhdr->src_nid = cpu_to_le64(id->nid);
+			lhdr->src_nid = cpu_to_le64(lnet_nid_to_nid4(&id->nid));
 		}
 
 		conn->ksnc_rx_state = SOCKNAL_RX_PARSE;
@@ -1180,7 +1191,8 @@ again:
 
 		rc = lnet_parse(conn->ksnc_peer->ksnp_ni,
 				&conn->ksnc_msg.ksm_u.lnetmsg.ksnm_hdr,
-				conn->ksnc_peer->ksnp_id.nid, conn, 0);
+				lnet_nid_to_nid4(&conn->ksnc_peer->ksnp_id.nid),
+				conn, 0);
 		if (rc < 0) {
 			/* I just received garbage: give up on this conn */
 			ksocknal_new_packet(conn, 0);
@@ -1207,7 +1219,7 @@ again:
 		    conn->ksnc_msg.ksm_csum &&  /* has checksum */
 		    conn->ksnc_msg.ksm_csum != conn->ksnc_rx_csum) {
 			CERROR("%s: Checksum error, wire:0x%08X data:0x%08X\n",
-			       libcfs_id2str(conn->ksnc_peer->ksnp_id),
+			       libcfs_idstr(&conn->ksnc_peer->ksnp_id),
 			       conn->ksnc_msg.ksm_csum, conn->ksnc_rx_csum);
 			rc = -EIO;
 		}
@@ -1219,9 +1231,10 @@ again:
 			id = &conn->ksnc_peer->ksnp_id;
 
 			rc = conn->ksnc_proto->pro_handle_zcreq(conn,
-					conn->ksnc_msg.ksm_zc_cookies[0],
-					*ksocknal_tunables.ksnd_nonblk_zcack ||
-					le64_to_cpu(lhdr->src_nid) != id->nid);
+								conn->ksnc_msg.ksm_zc_cookies[0],
+								*ksocknal_tunables.ksnd_nonblk_zcack ||
+								le64_to_cpu(lhdr->src_nid) !=
+								lnet_nid_to_nid4(&id->nid));
 		}
 
 		if (rc && conn->ksnc_lnet_msg)
@@ -1796,7 +1809,7 @@ ksocknal_connect(struct ksock_conn_cb *conn_cb)
 		if (peer_ni->ksnp_accepting > 0) {
 			CDEBUG(D_NET,
 			       "peer_ni %s(%d) already connecting to me, retry later.\n",
-			       libcfs_nid2str(peer_ni->ksnp_id.nid),
+			       libcfs_nidstr(&peer_ni->ksnp_id.nid),
 			       peer_ni->ksnp_accepting);
 			retry_later = true;
 		}
@@ -1820,13 +1833,13 @@ ksocknal_connect(struct ksock_conn_cb *conn_cb)
 
 		if (ktime_get_seconds() >= deadline) {
 			rc = -ETIMEDOUT;
-			lnet_connect_console_error(rc, peer_ni->ksnp_id.nid,
-						   (struct sockaddr *)
-						   &conn_cb->ksnr_addr);
+			lnet_connect_console_error(rc,
+						   lnet_nid_to_nid4(&peer_ni->ksnp_id.nid),
+						   (struct sockaddr *)&conn_cb->ksnr_addr);
 			goto failed;
 		}
 
-		sock = lnet_connect(peer_ni->ksnp_id.nid,
+		sock = lnet_connect(lnet_nid_to_nid4(&peer_ni->ksnp_id.nid),
 				    conn_cb->ksnr_myiface,
 				    (struct sockaddr *)&conn_cb->ksnr_addr,
 				    peer_ni->ksnp_ni->ni_net_ns);
@@ -1838,9 +1851,9 @@ ksocknal_connect(struct ksock_conn_cb *conn_cb)
 		rc = ksocknal_create_conn(peer_ni->ksnp_ni, conn_cb, sock,
 					  type);
 		if (rc < 0) {
-			lnet_connect_console_error(rc, peer_ni->ksnp_id.nid,
-						   (struct sockaddr *)
-						   &conn_cb->ksnr_addr);
+			lnet_connect_console_error(rc,
+						   lnet_nid_to_nid4(&peer_ni->ksnp_id.nid),
+						   (struct sockaddr *)&conn_cb->ksnr_addr);
 			goto failed;
 		}
 
@@ -1851,7 +1864,7 @@ ksocknal_connect(struct ksock_conn_cb *conn_cb)
 		retry_later = (rc);
 		if (retry_later)
 			CDEBUG(D_NET, "peer_ni %s: conn race, retry later.\n",
-			       libcfs_nid2str(peer_ni->ksnp_id.nid));
+			       libcfs_nidstr(&peer_ni->ksnp_id.nid));
 
 		write_lock_bh(&ksocknal_data.ksnd_global_lock);
 	}
@@ -2191,18 +2204,18 @@ ksocknal_find_timed_out_conn(struct ksock_peer_ni *peer_ni)
 			switch (error) {
 			case ECONNRESET:
 				CNETERR("A connection with %s (%pISp) was reset; it may have rebooted.\n",
-					libcfs_id2str(peer_ni->ksnp_id),
+					libcfs_idstr(&peer_ni->ksnp_id),
 					&conn->ksnc_peeraddr);
 				break;
 			case ETIMEDOUT:
 				CNETERR("A connection with %s (%pISp) timed out; the network or node may be down.\n",
-					libcfs_id2str(peer_ni->ksnp_id),
+					libcfs_idstr(&peer_ni->ksnp_id),
 					&conn->ksnc_peeraddr);
 				break;
 			default:
 				CNETERR("An unexpected network error %d occurred with %s (%pISp\n",
 					error,
-					libcfs_id2str(peer_ni->ksnp_id),
+					libcfs_idstr(&peer_ni->ksnp_id),
 					&conn->ksnc_peeraddr);
 				break;
 			}
@@ -2215,7 +2228,7 @@ ksocknal_find_timed_out_conn(struct ksock_peer_ni *peer_ni)
 			/* Timed out incomplete incoming message */
 			ksocknal_conn_addref(conn);
 			CNETERR("Timeout receiving from %s (%pISp), state %d wanted %zd left %d\n",
-				libcfs_id2str(peer_ni->ksnp_id),
+				libcfs_idstr(&peer_ni->ksnp_id),
 				&conn->ksnc_peeraddr,
 				conn->ksnc_rx_state,
 				iov_iter_count(&conn->ksnc_rx_to),
@@ -2236,7 +2249,7 @@ ksocknal_find_timed_out_conn(struct ksock_peer_ni *peer_ni)
 				tx->tx_hstatus =
 					LNET_MSG_STATUS_LOCAL_TIMEOUT;
 			CNETERR("Timeout sending data to %s (%pISp) the network or that node may be down.\n",
-				libcfs_id2str(peer_ni->ksnp_id),
+				libcfs_idstr(&peer_ni->ksnp_id),
 				&conn->ksnc_peeraddr);
 			return conn;
 		}
@@ -2322,7 +2335,7 @@ ksocknal_send_keepalive_locked(struct ksock_peer_ni *peer_ni)
 		return -ENOMEM;
 	}
 
-	if (!ksocknal_launch_packet(peer_ni->ksnp_ni, tx, peer_ni->ksnp_id)) {
+	if (!ksocknal_launch_packet(peer_ni->ksnp_ni, tx, &peer_ni->ksnp_id)) {
 		read_lock(&ksocknal_data.ksnd_global_lock);
 		return 1;
 	}
@@ -2423,7 +2436,7 @@ again:
 		read_unlock(&ksocknal_data.ksnd_global_lock);
 
 		CERROR("Total %d stale ZC_REQs for peer_ni %s detected; the oldest(%p) timed out %lld secs ago, resid: %d, wmem: %d\n",
-		       n, libcfs_nid2str(peer_ni->ksnp_id.nid), tx_stale,
+		       n, libcfs_nidstr(&peer_ni->ksnp_id.nid), tx_stale,
 		       ktime_get_seconds() - deadline,
 		       resid, conn->ksnc_sock->sk->sk_wmem_queued);
 
