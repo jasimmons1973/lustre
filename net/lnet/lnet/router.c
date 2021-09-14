@@ -170,7 +170,7 @@ lnet_move_route(struct lnet_route *route, struct lnet_peer *lp,
 
 	CDEBUG(D_NET, "deleting route %s->%s\n",
 	       libcfs_net2str(route->lr_net),
-	       libcfs_nid2str(route->lr_nid));
+	       libcfs_nidstr(&route->lr_nid));
 
 	/* use the gateway's lp_primary_nid to delete the route as the
 	 * lr_nid can be a constituent NID of the peer
@@ -207,7 +207,7 @@ lnet_rtr_transfer_to_peer(struct lnet_peer *src, struct lnet_peer *target)
 		CDEBUG(D_NET, "%s: %s->%s\n",
 		       libcfs_nidstr(&src->lp_primary_nid),
 		       libcfs_net2str(route->lr_net),
-		       libcfs_nid2str(route->lr_nid));
+		       libcfs_nidstr(&route->lr_nid));
 	}
 	list_splice_init(&src->lp_rtrq, &target->lp_rtrq);
 	list_for_each_entry_safe(route, tmp, &src->lp_routes, lr_gwlist) {
@@ -356,7 +356,7 @@ lnet_consolidate_routes_locked(struct lnet_peer *orig_lp,
 	 * intent here is not to confuse the user who added the route.
 	 */
 	list_for_each_entry(route, &orig_lp->lp_routes, lr_gwlist) {
-		lpni = lnet_peer_get_ni_locked(orig_lp, route->lr_nid);
+		lpni = lnet_peer_ni_get_locked(orig_lp, &route->lr_nid);
 		if (!lpni) {
 			lnet_net_lock(LNET_LOCK_EX);
 			list_move(&route->lr_gwlist, &new_lp->lp_routes);
@@ -640,7 +640,7 @@ lnet_add_route_to_rnet(struct lnet_remotenet *rnet, struct lnet_route *route)
 }
 
 int
-lnet_add_route(u32 net, u32 hops, lnet_nid_t gateway,
+lnet_add_route(u32 net, u32 hops, struct lnet_nid *gateway,
 	       u32 priority, u32 sensitivity)
 {
 	struct list_head *route_entry;
@@ -653,13 +653,13 @@ lnet_add_route(u32 net, u32 hops, lnet_nid_t gateway,
 	int rc;
 
 	CDEBUG(D_NET, "Add route: remote net %s hops %d priority %u gw %s\n",
-	       libcfs_net2str(net), hops, priority, libcfs_nid2str(gateway));
+	       libcfs_net2str(net), hops, priority, libcfs_nidstr(gateway));
 
-	if (gateway == LNET_NID_ANY ||
-	    gateway == LNET_NID_LO_0 ||
+	if (LNET_NID_IS_ANY(gateway) ||
+	    nid_is_lo0(gateway) ||
 	    net == LNET_NET_ANY ||
 	    LNET_NETTYP(net) == LOLND ||
-	    LNET_NIDNET(gateway) == net ||
+	    LNET_NID_NET(gateway) == net ||
 	    (hops != LNET_UNDEFINED_HOPS && (hops < 1 || hops > 255)))
 		return -EINVAL;
 
@@ -667,10 +667,10 @@ lnet_add_route(u32 net, u32 hops, lnet_nid_t gateway,
 	if (lnet_islocalnet(net))
 		return -EEXIST;
 
-	if (!lnet_islocalnet(LNET_NIDNET(gateway))) {
+	if (!lnet_islocalnet(LNET_NID_NET(gateway))) {
 		CERROR("Cannot add route with gateway %s. There is no local interface configured on LNet %s\n",
-		       libcfs_nid2str(gateway),
-		       libcfs_net2str(LNET_NIDNET(gateway)));
+		       libcfs_nidstr(gateway),
+		       libcfs_net2str(LNET_NID_NET(gateway)));
 		return -EHOSTUNREACH;
 	}
 
@@ -679,7 +679,7 @@ lnet_add_route(u32 net, u32 hops, lnet_nid_t gateway,
 	rnet = kzalloc(sizeof(*rnet), GFP_NOFS);
 	if (!route || !rnet) {
 		CERROR("Out of memory creating route %s %d %s\n",
-		       libcfs_net2str(net), hops, libcfs_nid2str(gateway));
+		       libcfs_net2str(net), hops, libcfs_nidstr(gateway));
 		kfree(route);
 		kfree(rnet);
 		return -ENOMEM;
@@ -688,9 +688,9 @@ lnet_add_route(u32 net, u32 hops, lnet_nid_t gateway,
 	INIT_LIST_HEAD(&rnet->lrn_routes);
 	rnet->lrn_net = net;
 	/* store the local and remote net that the route represents */
-	route->lr_lnet = LNET_NIDNET(gateway);
+	route->lr_lnet = LNET_NID_NET(gateway);
 	route->lr_net = net;
-	route->lr_nid = gateway;
+	route->lr_nid = *gateway;
 	route->lr_priority = priority;
 	route->lr_hops = hops;
 	if (lnet_peers_start_down())
@@ -713,7 +713,7 @@ lnet_add_route(u32 net, u32 hops, lnet_nid_t gateway,
 		rc = PTR_ERR(lpni);
 		CERROR("Error %d creating route %s %d %s\n", rc,
 		       libcfs_net2str(net), hops,
-		       libcfs_nid2str(gateway));
+		       libcfs_nidstr(gateway));
 		return rc;
 	}
 
@@ -741,8 +741,8 @@ lnet_add_route(u32 net, u32 hops, lnet_nid_t gateway,
 		}
 
 		/* our lookups must be true */
-		LASSERT(lnet_nid_to_nid4(&route2->lr_gateway->lp_primary_nid) !=
-			gateway);
+		LASSERT(!nid_same(&route2->lr_gateway->lp_primary_nid,
+				  gateway));
 	}
 
 	/* It is possible to add multiple routes through the same peer,
@@ -933,8 +933,8 @@ int lnet_get_rtr_pool_cfg(int cpt, struct lnet_ioctl_pool_cfg *pool_cfg)
 }
 
 int
-lnet_get_route(int idx, u32 *net, u32 *hops,
-	       lnet_nid_t *gateway, u32 *flags, u32 *priority, u32 *sensitivity)
+lnet_get_route(int idx, u32 *net, u32 *hops, lnet_nid_t *gateway,
+	       u32 *flags, u32 *priority, u32 *sensitivity)
 {
 	struct lnet_remotenet *rnet;
 	struct list_head *rn_list;
@@ -950,7 +950,7 @@ lnet_get_route(int idx, u32 *net, u32 *hops,
 			list_for_each_entry(route, &rnet->lrn_routes, lr_list) {
 				if (!idx--) {
 					*net = rnet->lrn_net;
-					*gateway = route->lr_nid;
+					*gateway = lnet_nid_to_nid4(&route->lr_nid);
 					*hops = route->lr_hops;
 					*priority =
 					    route->lr_priority;
@@ -1774,8 +1774,7 @@ lnet_notify(struct lnet_ni *ni, lnet_nid_t nid, bool alive, bool reset,
 		 */
 		if (lnet_is_discovery_disabled(lp)) {
 			list_for_each_entry(route, &lp->lp_routes, lr_gwlist) {
-				if (route->lr_nid ==
-				    lnet_nid_to_nid4(&lpni->lpni_nid))
+				if (nid_same(&route->lr_nid, &lpni->lpni_nid))
 					lnet_set_route_aliveness(route, alive);
 			}
 		}

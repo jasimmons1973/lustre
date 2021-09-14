@@ -517,7 +517,7 @@ int lnet_notify(struct lnet_ni *ni, lnet_nid_t peer, bool alive, bool reset,
 		time64_t when);
 void lnet_notify_locked(struct lnet_peer_ni *lp, int notifylnd, int alive,
 			time64_t when);
-int lnet_add_route(u32 net, u32 hops, lnet_nid_t gateway_nid,
+int lnet_add_route(u32 net, u32 hops, struct lnet_nid *gateway,
 		   u32 priority, u32 sensitivity);
 int lnet_del_route(u32 net, lnet_nid_t gw_nid);
 void lnet_move_route(struct lnet_route *route, struct lnet_peer *lp,
@@ -567,7 +567,8 @@ struct lnet_net *lnet_get_net_locked(u32 net_id);
 void lnet_net_clr_pref_rtrs(struct lnet_net *net);
 int lnet_net_add_pref_rtr(struct lnet_net *net, lnet_nid_t gw_nid);
 
-int lnet_islocalnid(lnet_nid_t nid);
+int lnet_islocalnid4(lnet_nid_t nid);
+int lnet_islocalnid(struct lnet_nid *nid);
 int lnet_islocalnet(u32 net);
 int lnet_islocalnet_locked(u32 net);
 
@@ -837,9 +838,11 @@ struct lnet_peer_ni *lnet_get_next_peer_ni_locked(struct lnet_peer *peer,
 						  struct lnet_peer_ni *prev);
 struct lnet_peer_ni *lnet_nid2peerni_locked(lnet_nid_t nid, lnet_nid_t pref,
 					    int cpt);
-struct lnet_peer_ni *lnet_nid2peerni_ex(lnet_nid_t nid, int cpt);
+struct lnet_peer_ni *lnet_nid2peerni_ex(struct lnet_nid *nid, int cpt);
 struct lnet_peer_ni *lnet_peer_get_ni_locked(struct lnet_peer *lp,
 					     lnet_nid_t nid);
+struct lnet_peer_ni *lnet_peer_ni_get_locked(struct lnet_peer *lp,
+					     struct lnet_nid *nid);
 struct lnet_peer_ni *lnet_find_peer_ni_locked(lnet_nid_t nid);
 struct lnet_peer_ni *lnet_peer_ni_find_locked(struct lnet_nid *nid);
 struct lnet_peer *lnet_find_peer(lnet_nid_t nid);

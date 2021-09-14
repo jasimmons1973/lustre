@@ -905,7 +905,7 @@ struct lnet_route {
 	/* router node */
 	struct lnet_peer       *lr_gateway;
 	/* NID used to add route */
-	lnet_nid_t		lr_nid;
+	struct lnet_nid		lr_nid;
 	/* remote network number */
 	u32			lr_net;
 	/* local network number */
