@@ -38,9 +38,9 @@
 #include <linux/unistd.h>
 #include <linux/uaccess.h>
 #include <linux/delay.h>
-
 #include <linux/fs.h>
 #include <linux/pagemap.h>
+#include <linux/file.h>
 
 #define DEBUG_SUBSYSTEM S_LLITE
 
@@ -317,6 +317,8 @@ static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 
 	result = io->ci_result;
 	if (result == 0) {
+		struct file *vm_file = vma->vm_file;
+
 		vio = vvp_env_io(env);
 		vio->u.fault.ft_vma = vma;
 		vio->u.fault.ft_vmpage = NULL;
@@ -324,13 +326,15 @@ static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 		vio->u.fault.ft_flags = 0;
 		vio->u.fault.ft_flags_valid = false;
 
+		get_file(vm_file);
+
 		/* May call ll_readpage() */
-		ll_cl_add(vma->vm_file, env, io, LCC_MMAP);
+		ll_cl_add(vm_file, env, io, LCC_MMAP);
 
 		result = cl_io_loop(env, io);
 
-		ll_cl_remove(vma->vm_file, env);
-
+		ll_cl_remove(vm_file, env);
+		fput(vm_file);
 		/* ft_flags are only valid if we reached
 		 * the call to filemap_fault
 		 */
