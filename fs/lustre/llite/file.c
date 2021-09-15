@@ -4460,7 +4460,6 @@ int ll_fsync(struct file *file, loff_t start, loff_t end, int datasync)
 
 
 	rc = file_write_and_wait_range(file, start, end);
-	inode_lock(inode);
 
 	/* catch async errors that were recorded back when async writeback
 	 * failed for pages in this mapping.
@@ -4502,8 +4501,6 @@ int ll_fsync(struct file *file, loff_t start, loff_t end, int datasync)
 		else
 			fd->fd_write_failed = false;
 	}
-
-	inode_unlock(inode);
 
 	if (!rc)
 		ll_stats_ops_tally(ll_i2sbi(inode), LPROC_LL_FSYNC,
