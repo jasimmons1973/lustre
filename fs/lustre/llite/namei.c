@@ -812,6 +812,7 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 	struct md_op_data *op_data = NULL;
 	struct lov_user_md *lum = NULL;
 	char secctx_name[XATTR_NAME_MAX + 1];
+	struct fscrypt_name fname;
 	struct inode *inode;
 	u32 opc;
 	int rc;
@@ -846,12 +847,31 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 	if (it->it_op & IT_CREAT)
 		opc = LUSTRE_OPC_CREATE;
 	else
-		opc = LUSTRE_OPC_ANY;
+		opc = LUSTRE_OPC_LOOKUP;
 
-	op_data = ll_prep_md_op_data(NULL, parent, NULL, dentry->d_name.name,
-				     dentry->d_name.len, 0, opc, NULL);
+	/* Here we should be calling fscrypt_prepare_lookup(). But it installs a
+	 * custom ->d_revalidate() method, so we lose ll_d_ops.
+	 * To workaround this, call ll_setup_filename() and do the rest
+	 * manually. Also make a copy of fscrypt_d_revalidate() (unfortunately
+	 * not exported function) and call it from ll_revalidate_dentry(), to
+	 * ensure we do not cache stale dentries after a key has been added.
+	 */
+	rc = ll_setup_filename(parent, &dentry->d_name, 1, &fname);
+	if ((!rc || rc == -ENOENT) && fname.is_ciphertext_name) {
+		spin_lock(&dentry->d_lock);
+		dentry->d_flags |= DCACHE_ENCRYPTED_NAME;
+		spin_unlock(&dentry->d_lock);
+	}
+	if (rc == -ENOENT)
+		return NULL;
+	if (rc)
+		return ERR_PTR(rc);
+
+	op_data = ll_prep_md_op_data(NULL, parent, NULL, fname.disk_name.name,
+				     fname.disk_name.len, 0, opc, NULL);
 	if (IS_ERR(op_data)) {
-		retval = ERR_CAST(op_data);
+		fscrypt_free_filename(&fname);
+		return ERR_CAST(op_data);
 		goto out;
 	}
 
@@ -1111,6 +1131,7 @@ out:
 			op_data->op_file_encctx = NULL;
 			op_data->op_file_encctx_size = 0;
 		}
+		fscrypt_free_filename(&fname);
 		ll_finish_md_op_data(op_data);
 	}
 
@@ -1934,6 +1955,7 @@ static int ll_rename(struct inode *src, struct dentry *src_dchild,
 		     struct inode *tgt, struct dentry *tgt_dchild,
 		     unsigned int flags)
 {
+	struct fscrypt_name foldname, fnewname;
 	struct ptlrpc_request *request = NULL;
 	struct ll_sb_info *sbi = ll_i2sbi(src);
 	struct md_op_data *op_data;
@@ -1977,11 +1999,20 @@ static int ll_rename(struct inode *src, struct dentry *src_dchild,
 	if (tgt_dchild->d_inode)
 		op_data->op_fid4 = *ll_inode2fid(tgt_dchild->d_inode);
 
+	err = ll_setup_filename(src, &src_dchild->d_name, 1, &foldname);
+	if (err)
+		return err;
+	err = ll_setup_filename(tgt, &tgt_dchild->d_name, 1, &fnewname);
+	if (err) {
+		fscrypt_free_filename(&foldname);
+		return err;
+	}
 	err = md_rename(sbi->ll_md_exp, op_data,
-			src_dchild->d_name.name,
-			src_dchild->d_name.len,
-			tgt_dchild->d_name.name,
-			tgt_dchild->d_name.len, &request);
+			foldname.disk_name.name, foldname.disk_name.len,
+			fnewname.disk_name.name, fnewname.disk_name.len,
+			&request);
+	fscrypt_free_filename(&foldname);
+	fscrypt_free_filename(&fnewname);
 	ll_finish_md_op_data(op_data);
 	if (!err) {
 		ll_update_times(request, src);

@@ -42,6 +42,7 @@
 #include <linux/pagevec.h>
 #include <linux/prefetch.h>
 #include <linux/security.h>
+#include <linux/fscrypt.h>
 
 #define DEBUG_SUBSYSTEM S_LLITE
 
@@ -181,10 +182,17 @@ int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	u64 pos = *ppos;
 	bool is_api32 = ll_need_32bit_api(sbi);
-	int is_hash64 = sbi->ll_flags & LL_SBI_64BIT_HASH;
+	bool is_hash64 = sbi->ll_flags & LL_SBI_64BIT_HASH;
+	struct fscrypt_str lltr = FSTR_INIT(NULL, 0);
 	struct page *page;
 	bool done = false;
 	int rc = 0;
+
+	if (IS_ENCRYPTED(inode)) {
+		rc = fscrypt_fname_alloc_buffer(inode, NAME_MAX, &lltr);
+		if (rc < 0)
+			return rc;
+	}
 
 	page = ll_get_dir_page(inode, op_data, pos);
 
@@ -232,8 +240,26 @@ int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
 			 * so the parameter 'name' for 'ctx->actor()'
 			 * must be part of the 'ent'.
 			 */
-			done = !dir_emit(ctx, ent->lde_name,
-					 namelen, ino, type);
+			if (!IS_ENCRYPTED(inode)) {
+				done = !dir_emit(ctx, ent->lde_name, namelen,
+						 ino, type);
+			} else {
+				/* Directory is encrypted */
+				int save_len = lltr.len;
+				struct fscrypt_str de_name
+					= FSTR_INIT(ent->lde_name, namelen);
+
+				rc = ll_fname_disk_to_usr(inode, 0, 0, &de_name,
+							  &lltr);
+				de_name = lltr;
+				lltr.len = save_len;
+				if (rc) {
+					done = 1;
+					break;
+				}
+				done = !dir_emit(ctx, de_name.name, de_name.len,
+						 ino, type);
+			}
 		}
 
 		if (done) {
@@ -264,6 +290,7 @@ int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
 	}
 
 	ctx->pos = pos;
+	fscrypt_fname_free_buffer(&lltr);
 	return rc;
 }
 
@@ -284,6 +311,12 @@ static int ll_readdir(struct file *filp, struct dir_context *ctx)
 	       "VFS Op:inode=" DFID "(%p) pos/size %lu/%llu 32bit_api %d\n",
 	       PFID(ll_inode2fid(inode)), inode, (unsigned long)pos,
 	       i_size_read(inode), api32);
+
+	if (IS_ENCRYPTED(inode)) {
+		rc = fscrypt_get_encryption_info(inode);
+		if (rc && rc != -ENOKEY)
+			goto out;
+	}
 
 	if (pos == MDS_DIR_END_OFF) {
 		/*

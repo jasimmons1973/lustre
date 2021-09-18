@@ -631,7 +631,7 @@ retry:
 	}
 
 	op_data  = ll_prep_md_op_data(NULL, d_inode(parent), inode, name, len,
-				      O_RDWR, LUSTRE_OPC_ANY, NULL);
+				      O_RDWR, LUSTRE_OPC_OPEN, NULL);
 	if (IS_ERR(op_data)) {
 		kfree(name);
 		return PTR_ERR(op_data);
@@ -2164,7 +2164,7 @@ int ll_lov_getstripe_ea_info(struct inode *inode, const char *filename,
 			     struct ptlrpc_request **request)
 {
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
-	struct mdt_body *body;
+	struct mdt_body  *body;
 	struct lov_mds_md *lmm = NULL;
 	struct ptlrpc_request *req = NULL;
 	struct md_op_data *op_data;
@@ -4744,7 +4744,7 @@ int ll_migrate(struct inode *parent, struct file *file, struct lmv_user_md *lum,
 	}
 
 	op_data = ll_prep_md_op_data(NULL, parent, NULL, name, namelen,
-				     child_inode->i_mode, LUSTRE_OPC_ANY, NULL);
+				     child_inode->i_mode, LUSTRE_OPC_MIGR, NULL);
 	if (IS_ERR(op_data)) {
 		rc = PTR_ERR(op_data);
 		goto out_iput;
@@ -4788,8 +4788,9 @@ again:
 		spin_unlock(&och->och_mod->mod_open_req->rq_lock);
 	}
 
-	rc = md_rename(ll_i2sbi(parent)->ll_md_exp, op_data, name, namelen,
-		       name, namelen, &request);
+	rc = md_rename(ll_i2sbi(parent)->ll_md_exp, op_data,
+		       op_data->op_name, op_data->op_namelen,
+		       op_data->op_name, op_data->op_namelen, &request);
 	if (!rc) {
 		LASSERT(request);
 		ll_update_times(request, parent);
