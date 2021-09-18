@@ -150,35 +150,6 @@ struct lu_seq_range_array {
  */
 
 /**
- * Flags for lustre_mdt_attrs::lma_compat and lustre_mdt_attrs::lma_incompat.
- * Deprecated since HSM and SOM attributes are now stored in separate on-disk
- * xattr.
- */
-enum lma_compat {
-	LMAC_HSM	= 0x00000001,
-/*	LMAC_SOM	= 0x00000002, obsolete since 2.8.0 */
-	LMAC_NOT_IN_OI	= 0x00000004, /* the object does NOT need OI mapping */
-	LMAC_FID_ON_OST = 0x00000008, /* For OST-object, its OI mapping is
-				       * under /O/<seq>/d<x>.
-				       */
-};
-
-/**
- * Masks for all features that should be supported by a Lustre version to
- * access a specific file.
- * This information is stored in lustre_mdt_attrs::lma_incompat.
- */
-enum lma_incompat {
-	LMAI_RELEASED		= 0x00000001, /* file is released */
-	LMAI_AGENT		= 0x00000002, /* agent inode */
-	LMAI_REMOTE_PARENT	= 0x00000004, /* the parent of the object
-					       * is on the remote MDT
-					       */
-};
-
-#define LMA_INCOMPAT_SUPP	(LMAI_AGENT | LMAI_REMOTE_PARENT)
-
-/**
  * fid constants
  */
 enum {
@@ -293,8 +264,8 @@ enum fid_seq {
 	FID_SEQ_OST_MDT0	= 0,
 	FID_SEQ_LLOG		= 1, /* unnamed llogs */
 	FID_SEQ_ECHO		= 2,
-	FID_SEQ_OST_MDT1	= 3,
-	FID_SEQ_OST_MAX		= 9, /* Max MDT count before OST_on_FID */
+	FID_SEQ_UNUSED_START	= 3, /* Unused */
+	FID_SEQ_UNUSED_END	= 9, /* Unused */
 	FID_SEQ_LLOG_NAME	= 10, /* named llogs */
 	FID_SEQ_RSVD		= 11,
 	FID_SEQ_IGIF		= 12,
@@ -340,6 +311,7 @@ enum special_oid {
 enum dot_lustre_oid {
 	FID_OID_DOT_LUSTRE	= 1UL,
 	FID_OID_DOT_LUSTRE_OBF	= 2UL,
+	FID_OID_DOT_LUSTRE_LPF	= 3UL,
 };
 
 /** OID for FID_SEQ_ROOT */
@@ -721,11 +693,8 @@ struct ptlrpc_body_v2 {
 #define OBD_CONNECT_LARGE_ACL		0x200ULL /* more than 32 ACL entries */
 #define OBD_CONNECT_TRANSNO		0x800ULL /*replay sends init transno */
 #define OBD_CONNECT_IBITS	       0x1000ULL /* not checked in 2.11+ */
-#define OBD_CONNECT_JOIN	       0x2000ULL /*files can be concatenated.
-						  *We do not support JOIN FILE
-						  *anymore, reserve this flags
-						  *just for preventing such bit
-						  *to be reused.
+#define OBD_CONNECT_BARRIER	       0x2000ULL /* write barrier. Resevered to
+						  * avoid use on client.
 						  */
 #define OBD_CONNECT_ATTRFID	       0x4000ULL /*Server can GetAttr By Fid*/
 #define OBD_CONNECT_NODEVOH	       0x8000ULL /*No open hndl on specl nodes*/
@@ -1214,8 +1183,6 @@ lov_mds_md_max_stripe_count(__kernel_size_t buf_size, __u32 lmm_magic)
 							 * requests means the
 							 * client holds the lock
 							 */
-#define OBD_MD_FLOBJCOUNT	(0x0000400000000000ULL) /* for multiple destroy */
-
 /*	OBD_MD_FLRMTLSETFACL	(0x0001000000000000ULL) lfs lsetfacl, obsolete */
 /*	OBD_MD_FLRMTLGETFACL	(0x0002000000000000ULL) lfs lgetfacl, obsolete */
 /*	OBD_MD_FLRMTRSETFACL	(0x0004000000000000ULL) lfs rsetfacl, obsolete */
@@ -1293,6 +1260,7 @@ struct hsm_state_set {
 				      * space for unstable pages; asking
 				      * it to sync quickly
 				      */
+#define OBD_BRW_OVER_PRJQUOTA 0x8000 /* Running out of project quota */
 #define OBD_BRW_RDMA_ONLY    0x20000 /* RPC contains RDMA-only pages*/
 
 #define OBD_MAX_GRANT 0x7fffffffUL /* Max grant allowed to one client: 2 GiB */
@@ -2272,8 +2240,8 @@ struct ldlm_intent {
 };
 
 struct ldlm_resource_desc {
-	enum ldlm_type lr_type;
-	__u32 lr_padding;	/* also fix lustre_swab_ldlm_resource_desc */
+	enum ldlm_type	   lr_type;
+	__u32		   lr_pad; /* also fix lustre_swab_ldlm_resource_desc */
 	struct ldlm_res_id lr_name;
 };
 
@@ -2435,6 +2403,8 @@ enum llog_ctxt_id {
 	/* for multiple changelog consumers */
 	LLOG_CHANGELOG_USER_ORIG_CTXT = 14,
 	LLOG_AGENT_ORIG_CTXT = 15, /**< agent requests generation on cdt */
+	LLOG_UPDATELOG_ORIG_CTXT = 16, /* update log. reserve for the client */
+	LLOG_UPDATELOG_REPL_CTXT = 17, /* update log. reserve for the client */
 	LLOG_MAX_CTXTS
 };
 
@@ -2478,6 +2448,9 @@ enum llog_op_type {
 	CHANGELOG_USER_REC	= LLOG_OP_MAGIC | 0x70000,
 	CHANGELOG_USER_REC2	= LLOG_OP_MAGIC | 0x70002,
 	HSM_AGENT_REC		= LLOG_OP_MAGIC | 0x80000,
+	UPDATE_REC		= LLOG_OP_MAGIC | 0xa0000, /* Resevered to avoid
+							    * use on client.
+							    */
 	LLOG_HDR_MAGIC		= LLOG_OP_MAGIC | 0x45539,
 	LLOG_LOGID_MAGIC	= LLOG_OP_MAGIC | 0x4553b,
 };
@@ -2570,31 +2543,6 @@ struct llog_changelog_rec {
 	struct llog_rec_hdr	cr_hdr;
 	struct changelog_rec	cr;		/**< Variable length field */
 	struct llog_rec_tail	cr_do_not_use;	/**< for_sizezof_only */
-} __attribute__((packed));
-
-#define CHANGELOG_USER_NAMELEN 16 /* base name including NUL terminator */
-
-struct llog_changelog_user_rec {
-	struct llog_rec_hdr	cur_hdr;
-	__u32			cur_id;
-	__u32			cur_padding;
-	__u64			cur_endrec;
-	struct llog_rec_tail	cur_tail;
-} __attribute__((packed));
-
-/* this is twice the size of CHANGELOG_USER_REC */
-struct llog_changelog_user_rec2 {
-	struct llog_rec_hdr	cur_hdr;
-	__u32			cur_id;
-	/* only for use in relative time comparisons to detect idle users */
-	__u32			cur_time;
-	__u64			cur_endrec;
-	__u32                   cur_mask;
-	__u32			cur_padding1;
-	char			cur_name[CHANGELOG_USER_NAMELEN];
-	__u64			cur_padding2;
-	__u64			cur_padding3;
-	struct llog_rec_tail	cur_tail;
 } __attribute__((packed));
 
 enum agent_req_status {

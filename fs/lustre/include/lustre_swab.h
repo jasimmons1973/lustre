@@ -70,7 +70,6 @@ void lustre_swab_mdt_rec_reint(struct mdt_rec_reint *rr);
 void lustre_swab_lmv_desc(struct lmv_desc *ld);
 void lustre_swab_lmv_mds_md(union lmv_mds_md *lmm);
 void lustre_swab_lov_desc(struct lov_desc *ld);
-void lustre_swab_gl_desc(union ldlm_gl_desc *desc);
 void lustre_swab_ldlm_intent(struct ldlm_intent *i);
 void lustre_swab_ldlm_request(struct ldlm_request *rq);
 void lustre_swab_ldlm_reply(struct ldlm_reply *r);

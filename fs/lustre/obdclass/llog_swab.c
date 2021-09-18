@@ -189,25 +189,6 @@ void lustre_swab_llog_rec(struct llog_rec_hdr *rec)
 		break;
 	}
 
-	case CHANGELOG_USER_REC:
-	case CHANGELOG_USER_REC2:
-	{
-		struct llog_changelog_user_rec2 *cur =
-			(struct llog_changelog_user_rec2 *)rec;
-
-		__swab32s(&cur->cur_id);
-		__swab64s(&cur->cur_endrec);
-		if (cur->cur_hdr.lrh_type == CHANGELOG_USER_REC2) {
-			__swab32s(&cur->cur_mask);
-			BUILD_BUG_ON(offsetof(typeof(*cur), cur_padding1) == 0);
-			BUILD_BUG_ON(offsetof(typeof(*cur), cur_padding2) == 0);
-			BUILD_BUG_ON(offsetof(typeof(*cur), cur_padding3) == 0);
-		}
-		tail = (struct llog_rec_tail *)((char *)rec +
-						rec->lrh_len - sizeof(*tail));
-		break;
-	}
-
 	case HSM_AGENT_REC: {
 		struct llog_agent_req_rec *arr =
 			(struct llog_agent_req_rec *)rec;
@@ -225,20 +206,6 @@ void lustre_swab_llog_rec(struct llog_rec_hdr *rec)
 		break;
 	}
 
-	case MDS_SETATTR64_REC:
-	{
-		struct llog_setattr64_rec *lsr =
-			(struct llog_setattr64_rec *)rec;
-
-		lustre_swab_ost_id(&lsr->lsr_oi);
-		__swab32s(&lsr->lsr_uid);
-		__swab32s(&lsr->lsr_uid_h);
-		__swab32s(&lsr->lsr_gid);
-		__swab32s(&lsr->lsr_gid_h);
-		__swab64s(&lsr->lsr_valid);
-		tail = &lsr->lsr_tail;
-		break;
-	}
 	case OBD_CFG_REC:
 		/* these are swabbed as they are consumed */
 		break;

@@ -1738,17 +1738,6 @@ void lustre_swab_generic_32s(u32 *val)
 	__swab32s(val);
 }
 
-void lustre_swab_gl_desc(union ldlm_gl_desc *desc)
-{
-	lustre_swab_lu_fid(&desc->lquota_desc.gl_id.qid_fid);
-	__swab64s(&desc->lquota_desc.gl_flags);
-	__swab64s(&desc->lquota_desc.gl_ver);
-	__swab64s(&desc->lquota_desc.gl_hardlimit);
-	__swab64s(&desc->lquota_desc.gl_softlimit);
-	__swab64s(&desc->lquota_desc.gl_time);
-	BUILD_BUG_ON(offsetof(typeof(desc->lquota_desc), gl_pad2) == 0);
-}
-
 void lustre_swab_ost_lvb_v1(struct ost_lvb_v1 *lvb)
 {
 	__swab64s(&lvb->lvb_size);
@@ -2321,7 +2310,7 @@ void lustre_swab_ldlm_intent(struct ldlm_intent *i)
 static void lustre_swab_ldlm_resource_desc(struct ldlm_resource_desc *r)
 {
 	__swab32s(&r->lr_type);
-	BUILD_BUG_ON(offsetof(typeof(*r), lr_padding) == 0);
+	BUILD_BUG_ON(offsetof(typeof(*r), lr_pad) == 0);
 	lustre_swab_ldlm_res_id(&r->lr_name);
 }
 
