@@ -489,6 +489,7 @@ struct lnet_ni *lnet_nid2ni_locked(lnet_nid_t nid, int cpt);
 struct lnet_ni *lnet_nid2ni_addref(lnet_nid_t nid);
 struct lnet_ni *lnet_net2ni_locked(u32 net, int cpt);
 struct lnet_ni *lnet_net2ni_addref(u32 net);
+struct lnet_ni *lnet_nid_to_ni_addref(struct lnet_nid *nid);
 struct lnet_net *lnet_get_net_locked(u32 net_id);
 
 extern unsigned int lnet_response_tracking;
@@ -742,9 +743,9 @@ unsigned int lnet_get_lnd_timeout(void);
 void lnet_register_lnd(struct lnet_lnd *lnd);
 void lnet_unregister_lnd(struct lnet_lnd *lnd);
 
-struct socket *lnet_connect(lnet_nid_t peer_nid, int interface,
+struct socket *lnet_connect(struct lnet_nid *peer_nid, int interface,
 			    struct sockaddr *peeraddr, struct net *ns);
-void lnet_connect_console_error(int rc, lnet_nid_t peer_nid,
+void lnet_connect_console_error(int rc, struct lnet_nid *peer_nid,
 				struct sockaddr *sa);
 int lnet_count_acceptor_nets(void);
 int lnet_acceptor_timeout(void);
