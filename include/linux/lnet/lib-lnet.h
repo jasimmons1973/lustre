@@ -480,7 +480,8 @@ lnet_net2rnethash(u32 net)
 extern struct lnet_lnd the_lolnd;
 extern int avoid_asym_router_failure;
 
-unsigned int lnet_nid_cpt_hash(lnet_nid_t nid, unsigned int number);
+unsigned int lnet_nid_cpt_hash(struct lnet_nid *nid,
+			       unsigned int number);
 int lnet_cpt_of_nid_locked(struct lnet_nid *nid, struct lnet_ni *ni);
 int lnet_cpt_of_nid(lnet_nid_t nid, struct lnet_ni *ni);
 struct lnet_ni *lnet_nid2ni_locked(lnet_nid_t nid, int cpt);
@@ -838,6 +839,7 @@ struct lnet_peer_ni *lnet_nid2peerni_ex(lnet_nid_t nid, int cpt);
 struct lnet_peer_ni *lnet_peer_get_ni_locked(struct lnet_peer *lp,
 					     lnet_nid_t nid);
 struct lnet_peer_ni *lnet_find_peer_ni_locked(lnet_nid_t nid);
+struct lnet_peer_ni *lnet_peer_ni_find_locked(struct lnet_nid *nid);
 struct lnet_peer *lnet_find_peer(lnet_nid_t nid);
 void lnet_peer_net_added(struct lnet_net *net);
 lnet_nid_t lnet_peer_primary_nid_locked(lnet_nid_t nid);
@@ -905,8 +907,8 @@ lnet_peer_ni_is_configured(struct lnet_peer_ni *lpni)
 static inline bool
 lnet_peer_ni_is_primary(struct lnet_peer_ni *lpni)
 {
-	return lnet_nid_to_nid4(&lpni->lpni_nid) ==
-			lpni->lpni_peer_net->lpn_peer->lp_primary_nid;
+	return nid_same(&lpni->lpni_nid,
+			 &lpni->lpni_peer_net->lpn_peer->lp_primary_nid);
 }
 
 bool lnet_peer_is_uptodate(struct lnet_peer *lp);
@@ -1081,7 +1083,7 @@ lnet_set_route_aliveness(struct lnet_route *route, bool alive)
 	if (old != alive)
 		CERROR("route to %s through %s has gone from %s to %s\n",
 		       libcfs_net2str(route->lr_net),
-		       libcfs_nid2str(route->lr_gateway->lp_primary_nid),
+		       libcfs_nidstr(&route->lr_gateway->lp_primary_nid),
 		       old ? "up" : "down",
 		       alive ? "up" : "down");
 }
