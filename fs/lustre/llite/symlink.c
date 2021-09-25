@@ -38,8 +38,13 @@
 #include "llite_internal.h"
 
 /* Must be called with lli_size_mutex locked */
+/* HAVE_IOP_GET_LINK is defined from kernel 4.5, whereas
+ * IS_ENCRYPTED is brought by kernel 4.14.
+ * So there is no need to handle encryption case otherwise.
+ */
 static int ll_readlink_internal(struct inode *inode,
-				struct ptlrpc_request **request, char **symname)
+				struct ptlrpc_request **request,
+				char **symname, struct delayed_call *done)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
@@ -97,13 +102,30 @@ static int ll_readlink_internal(struct inode *inode,
 	}
 
 	*symname = req_capsule_server_get(&(*request)->rq_pill, &RMF_MDT_MD);
-	if (!*symname || strnlen(*symname, symlen) != symlen - 1) {
+	if (!*symname ||
+	    (!IS_ENCRYPTED(inode) &&
+	     strnlen(*symname, symlen) != symlen - 1)) {
 		/* not full/NULL terminated */
 		CERROR("%s: inode " DFID ": symlink not NULL terminated string of length %d\n",
 		       ll_i2sbi(inode)->ll_fsname,
 		       PFID(ll_inode2fid(inode)), symlen - 1);
 		rc = -EPROTO;
 		goto failed;
+	}
+
+	if (IS_ENCRYPTED(inode)) {
+		const char *target = fscrypt_get_symlink(inode, *symname,
+							 symlen, done);
+		if (IS_ERR(target))
+			return PTR_ERR(target);
+		symlen = strlen(target) + 1;
+		*symname = (char *)target;
+
+		/* Do not cache symlink targets encoded without the key,
+		 * since those become outdated once the key is added.
+		 */
+		if (!fscrypt_has_encryption_key(inode))
+			return 0;
 	}
 
 	lli->lli_symlink_name = kzalloc(symlen, GFP_NOFS);
@@ -131,12 +153,12 @@ static const char *ll_get_link(struct dentry *dentry,
 	int rc;
 	char *symname = NULL;
 
+	CDEBUG(D_VFSTRACE, "VFS Op:name=%pd, inode="DFID"(%p)\n",
+	       dentry, PFID(ll_inode2fid(inode)), inode);
 	if (!dentry)
 		return ERR_PTR(-ECHILD);
-
-	CDEBUG(D_VFSTRACE, "VFS Op\n");
 	ll_inode_size_lock(inode);
-	rc = ll_readlink_internal(inode, &request, &symname);
+	rc = ll_readlink_internal(inode, &request, &symname, done);
 	ll_inode_size_unlock(inode);
 	if (rc) {
 		ptlrpc_req_finished(request);
@@ -151,10 +173,61 @@ static const char *ll_get_link(struct dentry *dentry,
 	return symname;
 }
 
+/**
+ * ll_getattr_link() - link-specific getattr to set the correct st_size
+ *		       for encrypted symlinks
+ *
+ * Override st_size of encrypted symlinks to be the length of the decrypted
+ * symlink target (or the no-key encoded symlink target, if the key is
+ * unavailable) rather than the length of the encrypted symlink target. This is
+ * necessary for st_size to match the symlink target that userspace actually
+ * sees.  POSIX requires this, and some userspace programs depend on it.
+ *
+ * For non encrypted symlinks, this is a just calling ll_getattr().
+ * For encrypted symlinks, this additionally requires reading the symlink target
+ * from disk if needed, setting up the inode's encryption key if possible, and
+ * then decrypting or encoding the symlink target.  This makes lstat() more
+ * heavyweight than is normally the case.  However, decrypted symlink targets
+ * will be cached in ->i_link, so usually the symlink won't have to be read and
+ * decrypted again later if/when it is actually followed, readlink() is called,
+ * or lstat() is called again.
+ *
+ * Return: 0 on success, -errno on failure
+ */
+static int ll_getattr_link(const struct path *path, struct kstat *stat,
+			   u32 request_mask, unsigned int flags)
+{
+	struct dentry *dentry = path->dentry;
+	struct inode *inode = d_inode(dentry);
+	DEFINE_DELAYED_CALL(done);
+	const char *link;
+	int rc;
+
+	rc = ll_getattr(path, stat, request_mask, flags);
+	if (rc || !IS_ENCRYPTED(inode))
+		return rc;
+
+	/*
+	 * To get the symlink target that userspace will see (whether it's the
+	 * decrypted target or the no-key encoded target), we can just get it
+	 * in the same way the VFS does during path resolution and readlink().
+	 */
+	link = READ_ONCE(inode->i_link);
+	if (!link) {
+		link = inode->i_op->get_link(dentry, inode, &done);
+		if (IS_ERR(link))
+			return PTR_ERR(link);
+	}
+	stat->size = strlen(link);
+	do_delayed_call(&done);
+	return 0;
+}
+
+
 const struct inode_operations ll_fast_symlink_inode_operations = {
 	.setattr	= ll_setattr,
 	.get_link	= ll_get_link,
-	.getattr	= ll_getattr,
+	.getattr	= ll_getattr_link,
 	.permission	= ll_inode_permission,
 	.listxattr	= ll_listxattr,
 };
