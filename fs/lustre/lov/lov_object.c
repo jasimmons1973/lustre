@@ -234,6 +234,7 @@ static int lov_init_raid0(const struct lu_env *env, struct lov_device *dev,
 		struct lov_oinfo *oinfo = lse->lsme_oinfo[i];
 		int ost_idx = oinfo->loi_ost_idx;
 		struct cl_device *subdev;
+		struct obd_export *exp;
 
 		if (lov_oinfo_is_dummy(oinfo))
 			continue;
@@ -248,6 +249,13 @@ static int lov_init_raid0(const struct lu_env *env, struct lov_device *dev,
 			       lov2obd(dev->ld_lov)->obd_name, ost_idx);
 			result = -EIO;
 			goto out;
+		}
+
+		exp = dev->ld_lov->lov_tgts[ost_idx]->ltd_exp;
+		if (likely(exp)) {
+			/* the more fast OSTs the better */
+			if (exp->exp_obd->obd_osfs.os_state & OS_STATFS_NONROT)
+				lle->lle_preference++;
 		}
 
 		subdev = lovsub2cl_dev(dev->ld_target[ost_idx]);
@@ -621,7 +629,7 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 	unsigned int mirror_count;
 	int result = 0;
 	unsigned int seq;
-	int i, j;
+	int i, j, preference;
 	bool dom_size = 0;
 
 	LASSERT(lsm->lsm_entry_count > 0);
@@ -661,6 +669,7 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 
 		lle->lle_lsme = lsm->lsm_entries[i];
 		lle->lle_type = lov_entry_type(lle->lle_lsme);
+		lle->lle_preference = 0;
 		switch (lle->lle_type) {
 		case LOV_PATTERN_RAID0:
 			lle->lle_comp_ops = &raid0_ops;
@@ -722,8 +731,8 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 		/* entries must be sorted by mirrors */
 		lre->lre_mirror_id = mirror_id;
 		lre->lre_start = lre->lre_end = i;
-		lre->lre_preferred = !!(lle->lle_lsme->lsme_flags &
-					LCME_FL_PREF_RD);
+		lre->lre_preference = lle->lle_lsme->lsme_flags &
+					LCME_FL_PREF_RD ? 1000 : 0;
 		lre->lre_valid = lle->lle_valid;
 		lre->lre_stale = !lle->lle_valid;
 		lre->lre_foreign = lsme_is_foreign(lle->lle_lsme);
@@ -771,6 +780,7 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 	 * so that different clients would use different mirrors for read.
 	 */
 	mirror_count = 0;
+	preference = -1;
 	seq = hash_long((unsigned long)lov, 8);
 	for (i = 0; i < comp->lo_mirror_count; i++) {
 		unsigned int idx = (i + seq) % comp->lo_mirror_count;
@@ -784,8 +794,16 @@ static int lov_init_composite(const struct lu_env *env, struct lov_device *dev,
 
 		mirror_count++; /* valid mirror */
 
-		if (lre->lre_preferred || comp->lo_preferred_mirror < 0)
+		/* aggregated preference of all involved OSTs */
+		for (j = lre->lre_start; j <= lre->lre_end; j++) {
+			lre->lre_preference +=
+				comp->lo_entries[j].lle_preference;
+		}
+
+		if (lre->lre_preference > preference) {
+			preference = lre->lre_preference;
 			comp->lo_preferred_mirror = idx;
+		}
 	}
 	if (!mirror_count) {
 		CDEBUG(D_INODE, DFID
