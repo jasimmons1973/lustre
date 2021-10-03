@@ -135,19 +135,6 @@ ll_iget_for_nfs(struct super_block *sb,
 	if (IS_ERR(result))
 		return result;
 
-	/**
-	 * In case d_obtain_alias() found a disconnected dentry, always update
-	 * lli_pfid to allow later operation (normally open) have parent fid,
-	 * which may be used by MDS to create data.
-	 */
-	if (parent) {
-		struct ll_inode_info *lli = ll_i2info(inode);
-
-		spin_lock(&lli->lli_lock);
-		lli->lli_pfid = *parent;
-		spin_unlock(&lli->lli_lock);
-	}
-
 	/*
 	 * Need to signal to the ll_intent_file_open that
 	 * we came from NFS and so opencache needs to be
