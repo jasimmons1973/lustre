@@ -109,6 +109,12 @@ static int ll_xattr_cache_add(struct list_head *cache,
 	struct ll_xattr_entry *xattr;
 
 	if (ll_xattr_cache_find(cache, xattr_name, &xattr) == 0) {
+		if (!strcmp(xattr_name, LL_XATTR_NAME_ENCRYPTION_CONTEXT))
+			/* it means enc ctx was already in cache,
+			 * ignore error as it cannot be modified
+			 */
+			return 0;
+
 		CDEBUG(D_CACHE, "duplicate xattr: [%s]\n", xattr_name);
 		return -EPROTO;
 	}
@@ -211,7 +217,7 @@ static int ll_xattr_cache_list(struct list_head *cache,
 }
 
 /**
- * Check if the xattr cache is initialized (filled).
+ * Check if the xattr cache is initialized.
  *
  * Return:	0 @cache is not initialized
  *		1 @cache is initialized
@@ -219,6 +225,17 @@ static int ll_xattr_cache_list(struct list_head *cache,
 static int ll_xattr_cache_valid(struct ll_inode_info *lli)
 {
 	return test_bit(LLIF_XATTR_CACHE, &lli->lli_flags);
+}
+
+/**
+ * Check if the xattr cache is filled.
+ *
+ * \retval 0 @cache is not filled
+ * \retval 1 @cache is filled
+ */
+static int ll_xattr_cache_filled(struct ll_inode_info *lli)
+{
+	return test_bit(LLIF_XATTR_CACHE_FILLED, &lli->lli_flags);
 }
 
 /**
@@ -236,6 +253,7 @@ static int ll_xattr_cache_destroy_locked(struct ll_inode_info *lli)
 	while (ll_xattr_cache_del(&lli->lli_xattrs, NULL) == 0)
 		; /* empty loop */
 
+	clear_bit(LLIF_XATTR_CACHE_FILLED, &lli->lli_flags);
 	clear_bit(LLIF_XATTR_CACHE, &lli->lli_flags);
 
 	return 0;
@@ -259,7 +277,8 @@ int ll_xattr_cache_destroy(struct inode *inode)
  * Find or request an LDLM lock with xattr data.
  * Since LDLM does not provide API for atomic match_or_enqueue,
  * the function handles it with a separate enq lock.
- * If successful, the function exits with the list lock held.
+ * If successful, the function exits with a write lock held
+ * on lli_xattrs_list_rwsem.
  *
  * Return:	0 no error occurred
  *		-ENOMEM not enough memory
@@ -280,7 +299,7 @@ static int ll_xattr_find_get_lock(struct inode *inode,
 	/* inode may have been shrunk and recreated, so data is gone, match lock
 	 * only when data exists.
 	 */
-	if (ll_xattr_cache_valid(lli)) {
+	if (ll_xattr_cache_filled(lli)) {
 		/* Try matching first. */
 		mode = ll_take_md_lock(inode, MDS_INODELOCK_XATTR, &lockh, 0,
 				       LCK_PR);
@@ -324,7 +343,9 @@ out:
 /**
  * Refill the xattr cache.
  *
- * Fetch and cache the whole of xattrs for @inode, acquiring a read lock.
+ * Fetch and cache the whole of xattrs for @inode, thanks to the write lock
+ * on lli_xattrs_list_rwsem obtained from ll_xattr_find_get_lock().
+ * If successful, this write lock is kept.
  *
  * Return:		0 no error occurred
  *			-EPROTO network protocol error
@@ -346,7 +367,7 @@ static int ll_xattr_cache_refill(struct inode *inode)
 		goto err_req;
 
 	/* Do we have the data at this point? */
-	if (ll_xattr_cache_valid(lli)) {
+	if (ll_xattr_cache_filled(lli)) {
 		ll_stats_ops_tally(sbi, LPROC_LL_GETXATTR_HITS, 1);
 		ll_intent_drop_lock(&oit);
 		rc = 0;
@@ -385,7 +406,8 @@ static int ll_xattr_cache_refill(struct inode *inode)
 
 	CDEBUG(D_CACHE, "caching: xdata=%p xtail=%p\n", xdata, xtail);
 
-	ll_xattr_cache_init(lli);
+	if (!ll_xattr_cache_valid(lli))
+		ll_xattr_cache_init(lli);
 
 	for (i = 0; i < body->mbo_max_mdsize; i++) {
 		CDEBUG(D_CACHE, "caching [%s]=%.*s\n", xdata, *xsizes, xval);
@@ -422,6 +444,8 @@ static int ll_xattr_cache_refill(struct inode *inode)
 
 	if (xdata != xtail || xval != xvtail)
 		CERROR("a hole in xattr data\n");
+	else
+		set_bit(LLIF_XATTR_CACHE_FILLED, &lli->lli_flags);
 
 	ll_set_lock_data(sbi->ll_md_exp, inode, &oit, NULL);
 	ll_intent_drop_lock(&oit);
@@ -466,14 +490,27 @@ int ll_xattr_cache_get(struct inode *inode, const char *name, char *buffer,
 	LASSERT(!!(valid & OBD_MD_FLXATTR) ^ !!(valid & OBD_MD_FLXATTRLS));
 
 	down_read(&lli->lli_xattrs_list_rwsem);
-	if (!ll_xattr_cache_valid(lli)) {
+	/* For performance reasons, we do not want to refill complete xattr
+	 * cache if we are just interested in encryption context.
+	 */
+	if ((valid & OBD_MD_FLXATTRLS ||
+	     strcmp(name, LL_XATTR_NAME_ENCRYPTION_CONTEXT) != 0) &&
+	    !ll_xattr_cache_valid(lli)) {
 		up_read(&lli->lli_xattrs_list_rwsem);
 		rc = ll_xattr_cache_refill(inode);
 		if (rc)
 			return rc;
+		/* Turn the write lock obtained in ll_xattr_cache_refill()
+		 * into a read lock.
+		 */
 		downgrade_write(&lli->lli_xattrs_list_rwsem);
 	} else {
 		ll_stats_ops_tally(ll_i2sbi(inode), LPROC_LL_GETXATTR_HITS, 1);
+	}
+
+	if (!ll_xattr_cache_valid(lli)) {
+		rc = -ENODATA;
+		goto out;
 	}
 
 	if (valid & OBD_MD_FLXATTR) {
@@ -521,18 +558,10 @@ int ll_xattr_cache_insert(struct inode *inode,
 	struct ll_inode_info *lli = ll_i2info(inode);
 	int rc;
 
-	down_read(&lli->lli_xattrs_list_rwsem);
+	down_write(&lli->lli_xattrs_list_rwsem);
 	if (!ll_xattr_cache_valid(lli))
 		ll_xattr_cache_init(lli);
-	rc = ll_xattr_cache_add(&lli->lli_xattrs, name, buffer,
-				size);
-	up_read(&lli->lli_xattrs_list_rwsem);
-
-	if (rc == -EPROTO &&
-	    strcmp(name, LL_XATTR_NAME_ENCRYPTION_CONTEXT) == 0)
-		/* it means enc ctx was already in cache,
-		 * ignore error as it cannot be modified
-		 */
-		rc = 0;
+	rc = ll_xattr_cache_add(&lli->lli_xattrs, name, buffer, size);
+	up_write(&lli->lli_xattrs_list_rwsem);
 	return rc;
 }
