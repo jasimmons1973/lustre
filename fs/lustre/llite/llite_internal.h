@@ -123,8 +123,7 @@ struct ll_trunc_sem {
 
 struct ll_inode_info {
 	u32				lli_inode_magic;
-
-	spinlock_t			lli_lock;
+	rwlock_t			lli_lock;
 	unsigned long			lli_flags;
 	struct posix_acl		*lli_posix_acl;
 
@@ -280,7 +279,8 @@ struct ll_inode_info {
 
 	struct rw_semaphore		lli_xattrs_list_rwsem;
 	struct mutex			lli_xattrs_enq_lock;
-	struct list_head		lli_xattrs;/* ll_xattr_entry->xe_list */
+	struct list_head		lli_xattrs; /* ll_xattr_entry->xe_list */
+	struct list_head		lli_lccs; /* list of ll_cl_context */
 };
 
 static inline void ll_trunc_sem_init(struct ll_trunc_sem *sem)
@@ -376,11 +376,11 @@ static inline void lli_clear_acl(struct ll_inode_info *lli)
 static inline void lli_replace_acl(struct ll_inode_info *lli,
 				   struct lustre_md *md)
 {
-	spin_lock(&lli->lli_lock);
+	write_lock(&lli->lli_lock);
 	if (lli->lli_posix_acl)
 		posix_acl_release(lli->lli_posix_acl);
 	lli->lli_posix_acl = md->posix_acl;
-	spin_unlock(&lli->lli_lock);
+	write_unlock(&lli->lli_lock);
 }
 #else
 static inline void lli_clear_acl(struct ll_inode_info *lli)
@@ -941,8 +941,6 @@ struct ll_file_data {
 	 */
 	bool fd_write_failed;
 	bool ll_lock_no_expand;
-	rwlock_t fd_lock; /* protect lcc list */
-	struct list_head fd_lccs; /* list of ll_cl_context */
 	/* Used by mirrored file to lead IOs to a specific mirror, usually
 	 * for mirror resync. 0 means default.
 	 */
@@ -1107,10 +1105,10 @@ void ll_readahead_init(struct inode *inode, struct ll_readahead_state *ras);
 int vvp_io_write_commit(const struct lu_env *env, struct cl_io *io);
 
 enum lcc_type;
-void ll_cl_add(struct file *file, const struct lu_env *env, struct cl_io *io,
+void ll_cl_add(struct inode *inode, const struct lu_env *env, struct cl_io *io,
 	       enum lcc_type type);
-void ll_cl_remove(struct file *file, const struct lu_env *env);
-struct ll_cl_context *ll_cl_find(struct file *file);
+void ll_cl_remove(struct inode *inode, const struct lu_env *env);
+struct ll_cl_context *ll_cl_find(struct inode *inode);
 
 static inline void mapping_clear_exiting(struct address_space *mapping)
 {

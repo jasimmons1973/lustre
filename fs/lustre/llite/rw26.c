@@ -355,7 +355,7 @@ static ssize_t ll_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	if (ll_iov_iter_alignment(iter) & ~PAGE_MASK)
 		return -EINVAL;
 
-	lcc = ll_cl_find(file);
+	lcc = ll_cl_find(inode);
 	if (!lcc)
 		return -EIO;
 
@@ -518,6 +518,7 @@ static int ll_write_begin(struct file *file, struct address_space *mapping,
 	const struct lu_env *env = NULL;
 	struct cl_io *io = NULL;
 	struct cl_page *page = NULL;
+	struct inode *inode = file_inode(file);
 	struct cl_object *clob = ll_i2info(mapping->host)->lli_clob;
 	pgoff_t index = pos >> PAGE_SHIFT;
 	struct page *vmpage = NULL;
@@ -527,7 +528,7 @@ static int ll_write_begin(struct file *file, struct address_space *mapping,
 
 	CDEBUG(D_VFSTRACE, "Writing %lu of %d to %d bytes\n", index, from, len);
 
-	lcc = ll_cl_find(file);
+	lcc = ll_cl_find(inode);
 	if (!lcc) {
 		vmpage = grab_cache_page_nowait(mapping, index);
 		result = ll_tiny_write_begin(vmpage, mapping);

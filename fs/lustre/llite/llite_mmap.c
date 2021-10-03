@@ -270,6 +270,7 @@ static inline vm_fault_t to_fault_error(int result)
  */
 static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 {
+	struct inode *inode = file_inode(vma->vm_file);
 	struct lu_env *env;
 	struct cl_io *io;
 	struct vvp_io *vio = NULL;
@@ -282,15 +283,15 @@ static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 	if (IS_ERR(env))
 		return VM_FAULT_ERROR;
 
-	if (ll_sbi_has_fast_read(ll_i2sbi(file_inode(vma->vm_file)))) {
+	if (ll_sbi_has_fast_read(ll_i2sbi(inode))) {
 		/* do fast fault */
 		bool has_retry = vmf->flags & FAULT_FLAG_RETRY_NOWAIT;
 
 		/* To avoid loops, instruct downstream to not drop mmap_sem */
 		vmf->flags |= FAULT_FLAG_RETRY_NOWAIT;
-		ll_cl_add(vma->vm_file, env, NULL, LCC_MMAP);
+		ll_cl_add(inode, env, NULL, LCC_MMAP);
 		fault_ret = filemap_fault(vmf);
-		ll_cl_remove(vma->vm_file, env);
+		ll_cl_remove(inode, env);
 		if (has_retry)
 			vmf->flags &= ~FAULT_FLAG_RETRY_NOWAIT;
 
@@ -318,8 +319,6 @@ static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 
 	result = io->ci_result;
 	if (result == 0) {
-		struct file *vm_file = vma->vm_file;
-
 		vio = vvp_env_io(env);
 		vio->u.fault.ft_vma = vma;
 		vio->u.fault.ft_vmpage = NULL;
@@ -327,15 +326,13 @@ static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 		vio->u.fault.ft_flags = 0;
 		vio->u.fault.ft_flags_valid = false;
 
-		get_file(vm_file);
-
 		/* May call ll_readpage() */
-		ll_cl_add(vm_file, env, io, LCC_MMAP);
+		ll_cl_add(inode, env, io, LCC_MMAP);
 
 		result = cl_io_loop(env, io);
 
-		ll_cl_remove(vm_file, env);
-		fput(vm_file);
+		ll_cl_remove(inode, env);
+
 		/* ft_flags are only valid if we reached
 		 * the call to filemap_fault
 		 */

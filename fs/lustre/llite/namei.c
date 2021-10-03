@@ -1604,6 +1604,7 @@ again:
 			}
 			fakeinode->i_sb = dchild->d_sb;
 			fakeinode->i_mode |= S_IFLNK;
+			ll_lli_init(ll_i2info(fakeinode));
 			err = ll_set_encflags(fakeinode,
 					      op_data->op_file_encctx,
 					      op_data->op_file_encctx_size,
