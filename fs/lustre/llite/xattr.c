@@ -67,11 +67,11 @@ static int xattr_type_filter(struct ll_sb_info *sbi,
 
 	if ((handler->flags == XATTR_ACL_ACCESS_T ||
 	     handler->flags == XATTR_ACL_DEFAULT_T) &&
-	   !(sbi->ll_flags & LL_SBI_ACL))
+	   !test_bit(LL_SBI_ACL, sbi->ll_flags))
 		return -EOPNOTSUPP;
 
 	if (handler->flags == XATTR_USER_T &&
-	    !(sbi->ll_flags & LL_SBI_USER_XATTR))
+	    !test_bit(LL_SBI_USER_XATTR, sbi->ll_flags))
 		return -EOPNOTSUPP;
 
 	if (handler->flags == XATTR_TRUSTED_T &&
@@ -153,9 +153,7 @@ static int ll_xattr_set_common(const struct xattr_handler *handler,
 	if (rc) {
 		if (rc == -EOPNOTSUPP && handler->flags == XATTR_USER_T) {
 			LCONSOLE_INFO("Disabling user_xattr feature because it is not supported on the server\n");
-			spin_lock(&sbi->ll_lock);
-			sbi->ll_flags &= ~LL_SBI_USER_XATTR;
-			spin_unlock(&sbi->ll_lock);
+			clear_bit(LL_SBI_USER_XATTR, sbi->ll_flags);
 		}
 		return rc;
 	}
@@ -431,12 +429,9 @@ getxattr_nocache:
 
 out_xattr:
 	if (rc == -EOPNOTSUPP && type == XATTR_USER_T) {
-		LCONSOLE_INFO(
-			"%s: disabling user_xattr feature because it is not supported on the server: rc = %d\n",
-			sbi->ll_fsname, rc);
-		spin_lock(&sbi->ll_lock);
-		sbi->ll_flags &= ~LL_SBI_USER_XATTR;
-		spin_unlock(&sbi->ll_lock);
+		LCONSOLE_INFO("%s: disabling user_xattr feature because it is not supported on the server: rc = %d\n",
+			      sbi->ll_fsname, rc);
+		clear_bit(LL_SBI_USER_XATTR, sbi->ll_flags);
 	}
 out:
 	ptlrpc_req_finished(req);

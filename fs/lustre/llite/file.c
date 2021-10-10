@@ -2625,7 +2625,7 @@ int ll_fid2path(struct inode *inode, void __user *arg)
 	int rc;
 
 	if (!capable(CAP_DAC_READ_SEARCH) &&
-	    !(ll_i2sbi(inode)->ll_flags & LL_SBI_USER_FID2PATH))
+	    !test_bit(LL_SBI_USER_FID2PATH, ll_i2sbi(inode)->ll_flags))
 		return -EPERM;
 
 	/* Only need to get the buflen */
@@ -5393,9 +5393,8 @@ int ll_inode_permission(struct inode *inode, int mask)
 	squash = &sbi->ll_squash;
 	if (unlikely(squash->rsi_uid &&
 		     uid_eq(current_fsuid(), GLOBAL_ROOT_UID) &&
-		     !(sbi->ll_flags & LL_SBI_NOROOTSQUASH))) {
+		     !test_bit(LL_SBI_NOROOTSQUASH, sbi->ll_flags)))
 		squash_id = true;
-	}
 
 	if (squash_id) {
 		CDEBUG(D_OTHER, "squash creds (%d:%d)=>(%d:%d)\n",
@@ -5494,9 +5493,9 @@ const struct file_operations *ll_select_file_operations(struct ll_sb_info *sbi)
 {
 	const struct file_operations *fops = &ll_file_operations_noflock;
 
-	if (sbi->ll_flags & LL_SBI_FLOCK)
+	if (test_bit(LL_SBI_FLOCK, sbi->ll_flags))
 		fops = &ll_file_operations_flock;
-	else if (sbi->ll_flags & LL_SBI_LOCALFLOCK)
+	else if (test_bit(LL_SBI_LOCALFLOCK, sbi->ll_flags))
 		fops = &ll_file_operations;
 
 	return fops;
@@ -5787,7 +5786,8 @@ int ll_layout_refresh(struct inode *inode, u32 *gen)
 	int rc;
 
 	*gen = ll_layout_version_get(lli);
-	if (!(sbi->ll_flags & LL_SBI_LAYOUT_LOCK) || *gen != CL_LAYOUT_GEN_NONE)
+	if (!test_bit(LL_SBI_LAYOUT_LOCK, sbi->ll_flags) ||
+	    *gen != CL_LAYOUT_GEN_NONE)
 		return 0;
 
 	/* sanity checks */

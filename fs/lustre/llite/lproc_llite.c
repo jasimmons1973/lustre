@@ -610,7 +610,8 @@ static ssize_t checksums_show(struct kobject *kobj, struct attribute *attr,
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
 
-	return sprintf(buf, "%u\n", (sbi->ll_flags & LL_SBI_CHECKSUM) ? 1 : 0);
+	return scnprintf(buf, PAGE_SIZE, "%u\n",
+			 test_bit(LL_SBI_CHECKSUM, sbi->ll_flags));
 }
 
 static ssize_t checksums_store(struct kobject *kobj, struct attribute *attr,
@@ -630,12 +631,10 @@ static ssize_t checksums_store(struct kobject *kobj, struct attribute *attr,
 	if (rc)
 		return rc;
 
-	spin_lock(&sbi->ll_lock);
 	if (val)
-		sbi->ll_flags |= LL_SBI_CHECKSUM;
+		set_bit(LL_SBI_CHECKSUM, sbi->ll_flags);
 	else
-		sbi->ll_flags &= ~LL_SBI_CHECKSUM;
-	spin_unlock(&sbi->ll_lock);
+		clear_bit(LL_SBI_CHECKSUM, sbi->ll_flags);
 	tmp = val;
 
 	rc = obd_set_info_async(NULL, sbi->ll_dt_exp, sizeof(KEY_CHECKSUM),
@@ -809,7 +808,8 @@ static ssize_t statahead_agl_show(struct kobject *kobj,
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
 
-	return sprintf(buf, "%u\n", sbi->ll_flags & LL_SBI_AGL_ENABLED ? 1 : 0);
+	return scnprintf(buf, PAGE_SIZE, "%u\n",
+			 test_bit(LL_SBI_AGL_ENABLED, sbi->ll_flags));
 }
 
 static ssize_t statahead_agl_store(struct kobject *kobj,
@@ -826,12 +826,10 @@ static ssize_t statahead_agl_store(struct kobject *kobj,
 	if (rc)
 		return rc;
 
-	spin_lock(&sbi->ll_lock);
 	if (val)
-		sbi->ll_flags |= LL_SBI_AGL_ENABLED;
+		set_bit(LL_SBI_AGL_ENABLED, sbi->ll_flags);
 	else
-		sbi->ll_flags &= ~LL_SBI_AGL_ENABLED;
-	spin_unlock(&sbi->ll_lock);
+		clear_bit(LL_SBI_AGL_ENABLED, sbi->ll_flags);
 
 	return count;
 }
@@ -861,7 +859,8 @@ static ssize_t lazystatfs_show(struct kobject *kobj,
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
 
-	return sprintf(buf, "%u\n", sbi->ll_flags & LL_SBI_LAZYSTATFS ? 1 : 0);
+	return scnprintf(buf, PAGE_SIZE, "%u\n",
+			 test_bit(LL_SBI_LAZYSTATFS, sbi->ll_flags));
 }
 
 static ssize_t lazystatfs_store(struct kobject *kobj,
@@ -878,12 +877,10 @@ static ssize_t lazystatfs_store(struct kobject *kobj,
 	if (rc)
 		return rc;
 
-	spin_lock(&sbi->ll_lock);
 	if (val)
-		sbi->ll_flags |= LL_SBI_LAZYSTATFS;
+		set_bit(LL_SBI_LAZYSTATFS, sbi->ll_flags);
 	else
-		sbi->ll_flags &= ~LL_SBI_LAZYSTATFS;
-	spin_unlock(&sbi->ll_lock);
+		clear_bit(LL_SBI_LAZYSTATFS, sbi->ll_flags);
 
 	return count;
 }
@@ -1006,29 +1003,6 @@ static ssize_t default_easize_store(struct kobject *kobj,
 }
 LUSTRE_RW_ATTR(default_easize);
 
-static int ll_sbi_flags_seq_show(struct seq_file *m, void *v)
-{
-	const char *const str[] = LL_SBI_FLAGS;
-	struct super_block *sb = m->private;
-	int flags = ll_s2sbi(sb)->ll_flags;
-	int i = 0;
-
-	while (flags != 0) {
-		if (ARRAY_SIZE(str) <= i) {
-			CERROR("%s: Revise array LL_SBI_FLAGS to match sbi flags please.\n",
-			       ll_s2sbi(sb)->ll_fsname);
-			return -EINVAL;
-		}
-
-		if (flags & 0x1)
-			seq_printf(m, "%s ", str[i]);
-		flags >>= 1;
-		++i;
-	}
-	seq_puts(m, "\b\n");
-	return 0;
-}
-
 LDEBUGFS_SEQ_FOPS_RO(ll_sbi_flags);
 
 static ssize_t xattr_cache_show(struct kobject *kobj,
@@ -1055,7 +1029,7 @@ static ssize_t xattr_cache_store(struct kobject *kobj,
 	if (rc)
 		return rc;
 
-	if (val && !(sbi->ll_flags & LL_SBI_XATTR_CACHE))
+	if (val && !test_bit(LL_SBI_XATTR_CACHE, sbi->ll_flags))
 		return -ENOTSUPP;
 
 	sbi->ll_xattr_cache_enabled = val;
@@ -1072,7 +1046,8 @@ static ssize_t tiny_write_show(struct kobject *kobj,
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
 
-	return sprintf(buf, "%u\n", !!(sbi->ll_flags & LL_SBI_TINY_WRITE));
+	return scnprintf(buf, PAGE_SIZE, "%u\n",
+			 test_bit(LL_SBI_TINY_WRITE, sbi->ll_flags));
 }
 
 static ssize_t tiny_write_store(struct kobject *kobj,
@@ -1091,9 +1066,9 @@ static ssize_t tiny_write_store(struct kobject *kobj,
 
 	spin_lock(&sbi->ll_lock);
 	if (val)
-		sbi->ll_flags |= LL_SBI_TINY_WRITE;
+		set_bit(LL_SBI_TINY_WRITE, sbi->ll_flags);
 	else
-		sbi->ll_flags &= ~LL_SBI_TINY_WRITE;
+		clear_bit(LL_SBI_TINY_WRITE, sbi->ll_flags);
 	spin_unlock(&sbi->ll_lock);
 
 	return count;
@@ -1108,7 +1083,7 @@ static ssize_t parallel_dio_show(struct kobject *kobj,
 					      ll_kset.kobj);
 
 	return snprintf(buf, PAGE_SIZE, "%u\n",
-		       !!(sbi->ll_flags & LL_SBI_PARALLEL_DIO));
+			test_bit(LL_SBI_PARALLEL_DIO, sbi->ll_flags));
 }
 
 static ssize_t parallel_dio_store(struct kobject *kobj,
@@ -1127,9 +1102,9 @@ static ssize_t parallel_dio_store(struct kobject *kobj,
 
 	spin_lock(&sbi->ll_lock);
 	if (val)
-		sbi->ll_flags |= LL_SBI_PARALLEL_DIO;
+		set_bit(LL_SBI_PARALLEL_DIO, sbi->ll_flags);
 	else
-		sbi->ll_flags &= ~LL_SBI_PARALLEL_DIO;
+		clear_bit(LL_SBI_PARALLEL_DIO, sbi->ll_flags);
 	spin_unlock(&sbi->ll_lock);
 
 	return count;
@@ -1274,7 +1249,8 @@ static ssize_t fast_read_show(struct kobject *kobj,
 	struct ll_sb_info *sbi = container_of(kobj, struct ll_sb_info,
 					      ll_kset.kobj);
 
-	return sprintf(buf, "%u\n", !!(sbi->ll_flags & LL_SBI_FAST_READ));
+	return scnprintf(buf, PAGE_SIZE, "%u\n",
+			 test_bit(LL_SBI_FAST_READ, sbi->ll_flags));
 }
 
 static ssize_t fast_read_store(struct kobject *kobj,
@@ -1293,9 +1269,9 @@ static ssize_t fast_read_store(struct kobject *kobj,
 
 	spin_lock(&sbi->ll_lock);
 	if (val)
-		sbi->ll_flags |= LL_SBI_FAST_READ;
+		set_bit(LL_SBI_FAST_READ, sbi->ll_flags);
 	else
-		sbi->ll_flags &= ~LL_SBI_FAST_READ;
+		clear_bit(LL_SBI_FAST_READ, sbi->ll_flags);
 	spin_unlock(&sbi->ll_lock);
 
 	return count;
@@ -1310,7 +1286,7 @@ static ssize_t file_heat_show(struct kobject *kobj,
 					      ll_kset.kobj);
 
 	return scnprintf(buf, PAGE_SIZE, "%u\n",
-			 !!(sbi->ll_flags & LL_SBI_FILE_HEAT));
+			 test_bit(LL_SBI_FILE_HEAT, sbi->ll_flags));
 }
 
 static ssize_t file_heat_store(struct kobject *kobj,
@@ -1329,9 +1305,9 @@ static ssize_t file_heat_store(struct kobject *kobj,
 
 	spin_lock(&sbi->ll_lock);
 	if (val)
-		sbi->ll_flags |= LL_SBI_FILE_HEAT;
+		set_bit(LL_SBI_FILE_HEAT, sbi->ll_flags);
 	else
-		sbi->ll_flags &= ~LL_SBI_FILE_HEAT;
+		clear_bit(LL_SBI_FILE_HEAT, sbi->ll_flags);
 	spin_unlock(&sbi->ll_lock);
 
 	return count;

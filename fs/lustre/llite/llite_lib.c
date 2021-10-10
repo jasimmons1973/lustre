@@ -155,11 +155,11 @@ static struct ll_sb_info *ll_init_sbi(void)
 	sbi->ll_ra_info.ra_max_read_ahead_whole_pages = -1;
 	atomic_set(&sbi->ll_ra_info.ra_async_inflight, 0);
 
-	sbi->ll_flags |= LL_SBI_VERBOSE;
-	sbi->ll_flags |= LL_SBI_CHECKSUM;
-	sbi->ll_flags |= LL_SBI_FLOCK;
-	sbi->ll_flags |= LL_SBI_LRU_RESIZE;
-	sbi->ll_flags |= LL_SBI_LAZYSTATFS;
+	set_bit(LL_SBI_VERBOSE, sbi->ll_flags);
+	set_bit(LL_SBI_CHECKSUM, sbi->ll_flags);
+	set_bit(LL_SBI_FLOCK, sbi->ll_flags);
+	set_bit(LL_SBI_LRU_RESIZE, sbi->ll_flags);
+	set_bit(LL_SBI_LAZYSTATFS, sbi->ll_flags);
 
 	for (i = 0; i <= LL_PROCESS_HIST_MAX; i++) {
 		struct per_process_info *pp_ext;
@@ -176,10 +176,10 @@ static struct ll_sb_info *ll_init_sbi(void)
 	atomic_set(&sbi->ll_sa_wrong, 0);
 	atomic_set(&sbi->ll_sa_running, 0);
 	atomic_set(&sbi->ll_agl_total, 0);
-	sbi->ll_flags |= LL_SBI_AGL_ENABLED;
-	sbi->ll_flags |= LL_SBI_FAST_READ;
-	sbi->ll_flags |= LL_SBI_TINY_WRITE;
-	sbi->ll_flags |= LL_SBI_PARALLEL_DIO;
+	set_bit(LL_SBI_AGL_ENABLED, sbi->ll_flags);
+	set_bit(LL_SBI_FAST_READ, sbi->ll_flags);
+	set_bit(LL_SBI_TINY_WRITE, sbi->ll_flags);
+	set_bit(LL_SBI_PARALLEL_DIO, sbi->ll_flags);
 	ll_sbi_set_encrypt(sbi, true);
 
 	/* root squash */
@@ -257,6 +257,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	struct lustre_md lmd;
 	u64 valid;
 	int size, err, checksum;
+	bool api32;
 
 	sbi->ll_md_obd  = class_name2obd(md);
 	if (!sbi->ll_md_obd) {
@@ -320,7 +321,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 				   OBD_CONNECT2_REP_MBITS |
 				   OBD_CONNECT2_ATOMIC_OPEN_LOCK;
 
-	if (sbi->ll_flags & LL_SBI_LRU_RESIZE)
+	if (test_bit(LL_SBI_LRU_RESIZE, sbi->ll_flags))
 		data->ocd_connect_flags |= OBD_CONNECT_LRU_RESIZE;
 	data->ocd_connect_flags |= OBD_CONNECT_ACL_FLAGS;
 
@@ -337,7 +338,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 
 	if (sb_rdonly(sb))
 		data->ocd_connect_flags |= OBD_CONNECT_RDONLY;
-	if (sbi->ll_flags & LL_SBI_USER_XATTR)
+	if (test_bit(LL_SBI_USER_XATTR, sbi->ll_flags))
 		data->ocd_connect_flags |= OBD_CONNECT_XATTR;
 
 	/* Setting this indicates we correctly support S_NOSEC (See kernel
@@ -348,7 +349,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	sbi->ll_fop = ll_select_file_operations(sbi);
 
 	/* always ping even if server suppress_pings */
-	if (sbi->ll_flags & LL_SBI_ALWAYS_PING)
+	if (test_bit(LL_SBI_ALWAYS_PING, sbi->ll_flags))
 		data->ocd_connect_flags &= ~OBD_CONNECT_PINGLESS;
 
 	obd_connect_set_secctx(data);
@@ -451,29 +452,29 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	sbi->ll_namelen = osfs->os_namelen;
 	sbi->ll_mnt.mnt = current->fs->root.mnt;
 
-	if ((sbi->ll_flags & LL_SBI_USER_XATTR) &&
+	if (test_bit(LL_SBI_USER_XATTR, sbi->ll_flags) &&
 	    !(data->ocd_connect_flags & OBD_CONNECT_XATTR)) {
 		LCONSOLE_INFO("Disabling user_xattr feature because it is not supported on the server\n");
-		sbi->ll_flags &= ~LL_SBI_USER_XATTR;
+		clear_bit(LL_SBI_USER_XATTR, sbi->ll_flags);
 	}
 
 	if (data->ocd_connect_flags & OBD_CONNECT_ACL) {
 		sb->s_flags |= SB_POSIXACL;
-		sbi->ll_flags |= LL_SBI_ACL;
+		set_bit(LL_SBI_ACL, sbi->ll_flags);
 	} else {
 		LCONSOLE_INFO("client wants to enable acl, but mdt not!\n");
 		sb->s_flags &= ~SB_POSIXACL;
-		sbi->ll_flags &= ~LL_SBI_ACL;
+		clear_bit(LL_SBI_ACL, sbi->ll_flags);
 	}
 
 	if (data->ocd_connect_flags & OBD_CONNECT_64BITHASH)
-		sbi->ll_flags |= LL_SBI_64BIT_HASH;
+		set_bit(LL_SBI_64BIT_HASH, sbi->ll_flags);
 
 	if (data->ocd_connect_flags & OBD_CONNECT_LAYOUTLOCK)
-		sbi->ll_flags |= LL_SBI_LAYOUT_LOCK;
+		set_bit(LL_SBI_LAYOUT_LOCK, sbi->ll_flags);
 
 	if (obd_connect_has_secctx(data))
-		sbi->ll_flags |= LL_SBI_FILE_SECCTX;
+		set_bit(LL_SBI_FILE_SECCTX, sbi->ll_flags);
 
 	if (ll_sbi_has_encrypt(sbi) && !obd_connect_has_enc(data)) {
 		if (ll_sbi_has_test_dummy_encryption(sbi))
@@ -492,7 +493,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 			 * during processing llog, it won't be enabled here.
 			 */
 			spin_lock(&sbi->ll_lock);
-			sbi->ll_flags |= LL_SBI_XATTR_CACHE;
+			set_bit(LL_SBI_XATTR_CACHE, sbi->ll_flags);
 			spin_unlock(&sbi->ll_lock);
 			sbi->ll_xattr_cache_enabled = 1;
 		}
@@ -542,7 +543,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	data->ocd_connect_flags |= OBD_CONNECT_LRU_RESIZE;
 
 	/* always ping even if server suppress_pings */
-	if (sbi->ll_flags & LL_SBI_ALWAYS_PING)
+	if (test_bit(LL_SBI_ALWAYS_PING, sbi->ll_flags))
 		data->ocd_connect_flags &= ~OBD_CONNECT_PINGLESS;
 
 	if (ll_sbi_has_encrypt(sbi))
@@ -630,7 +631,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	 * XXX: move this to after cbd setup?
 	 */
 	valid = OBD_MD_FLGETATTR | OBD_MD_FLBLOCKS | OBD_MD_FLMODEASIZE;
-	if (sbi->ll_flags & LL_SBI_ACL)
+	if (test_bit(LL_SBI_ACL, sbi->ll_flags))
 		valid |= OBD_MD_FLACL;
 
 	op_data = kzalloc(sizeof(*op_data), GFP_NOFS);
@@ -660,9 +661,8 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	}
 
 	LASSERT(fid_is_sane(&sbi->ll_root_fid));
-	root = ll_iget(sb, cl_fid_build_ino(&sbi->ll_root_fid,
-					    sbi->ll_flags & LL_SBI_32BIT_API),
-		       &lmd);
+	api32 = test_bit(LL_SBI_32BIT_API, sbi->ll_flags);
+	root = ll_iget(sb, cl_fid_build_ino(&sbi->ll_root_fid, api32), &lmd);
 	md_free_lustre_md(sbi->ll_md_exp, &lmd);
 	ptlrpc_req_finished(request);
 
@@ -673,7 +673,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 		goto out_root;
 	}
 
-	checksum = sbi->ll_flags & LL_SBI_CHECKSUM;
+	checksum = test_bit(LL_SBI_CHECKSUM, sbi->ll_flags);
 	if (sbi->ll_checksum_set) {
 		err = obd_set_info_async(NULL, sbi->ll_dt_exp,
 					 sizeof(KEY_CHECKSUM), KEY_CHECKSUM,
@@ -864,183 +864,193 @@ void ll_kill_super(struct super_block *sb)
 	}
 }
 
-static inline int ll_set_opt(const char *opt, char *data, int fl)
+/* Since we use this table for ll_sbi_flags_seq_show make
+ * sure what you want displayed for a specific token that
+ * is listed more than once below be listed first. For
+ * example we want "checksum" displayed, not "nochecksum"
+ * for the sbi_flags.
+ */
+static const match_table_t ll_sbi_flags_name = {
+	{LL_SBI_NOLCK,			"nolock"},
+	{LL_SBI_CHECKSUM,		"checksum"},
+	{LL_SBI_CHECKSUM,		"nochecksum"},
+	{LL_SBI_LOCALFLOCK,		"localflock"},
+	{LL_SBI_FLOCK,			"flock"},
+	{LL_SBI_FLOCK,			"noflock"},
+	{LL_SBI_USER_XATTR,		"user_xattr"},
+	{LL_SBI_USER_XATTR,		"nouser_xattr"},
+	{LL_SBI_LRU_RESIZE,		"lruresize"},
+	{LL_SBI_LRU_RESIZE,		"nolruresize"},
+	{LL_SBI_LAZYSTATFS,		"lazystatfs"},
+	{LL_SBI_LAZYSTATFS,		"nolazystatfs"},
+	{LL_SBI_32BIT_API,		"32bitapi"},
+	{LL_SBI_USER_FID2PATH,		"user_fid2path"},
+	{LL_SBI_USER_FID2PATH,		"nouser_fid2path"},
+	{LL_SBI_VERBOSE,		"verbose"},
+	{LL_SBI_VERBOSE,		"noverbose"},
+	{LL_SBI_ALWAYS_PING,		"always_ping"},
+	{LL_SBI_TEST_DUMMY_ENCRYPTION,	"test_dummy_encryption"},
+	{LL_SBI_ENCRYPT,		"encrypt"},
+	{LL_SBI_ENCRYPT,		"noencrypt"},
+	{LL_SBI_FOREIGN_SYMLINK,	"foreign_symlink=%s"},
+	{LL_SBI_NUM_MOUNT_OPT,		NULL},
+
+	{LL_SBI_ACL,			"acl"},
+	{LL_SBI_AGL_ENABLED,		"agl"},
+	{LL_SBI_64BIT_HASH,		"64bit_hash"},
+	{LL_SBI_LAYOUT_LOCK,		"layout"},
+	{LL_SBI_XATTR_CACHE,		"xattr_cache"},
+	{LL_SBI_NOROOTSQUASH,		"norootsquash"},
+	{LL_SBI_FAST_READ,		"fast_read"},
+	{LL_SBI_FILE_SECCTX,		"file_secctx"},
+	{LL_SBI_TINY_WRITE,		"tiny_write"},
+	{LL_SBI_FILE_HEAT,		"file_heat"},
+	{LL_SBI_PARALLEL_DIO,		"parallel_dio"},
+};
+
+int ll_sbi_flags_seq_show(struct seq_file *m, void *v)
 {
-	if (strncmp(opt, data, strlen(opt)) != 0)
-		return 0;
-	else
-		return fl;
+	struct super_block *sb = m->private;
+	int i;
+
+	for (i = 0; i < LL_SBI_NUM_FLAGS; i++) {
+		int j;
+
+		if (!test_bit(i, ll_s2sbi(sb)->ll_flags))
+			continue;
+
+		for (j = 0; j < ARRAY_SIZE(ll_sbi_flags_name); j++) {
+			if (ll_sbi_flags_name[j].token == i &&
+			    ll_sbi_flags_name[j].pattern) {
+				seq_printf(m, "%s ",
+					   ll_sbi_flags_name[j].pattern);
+				break;
+			}
+		}
+	}
+	seq_puts(m, "\b\n");
+	return 0;
 }
 
 /* non-client-specific mount options are parsed in lmd_parse */
-static int ll_options(char *options, struct ll_sb_info *sbi)
+static int ll_options(char *options, struct super_block *sb)
 {
-	int tmp;
-	char *s1 = options, *s2;
-	int *flags = &sbi->ll_flags;
+	struct ll_sb_info *sbi = ll_s2sbi(sb);
+	char *s2, *s1, *opts;
 
 	if (!options)
 		return 0;
 
+	/* Don't stomp on lmd_opts */
+	opts = kstrdup(options, GFP_KERNEL);
+	if (!opts)
+		return -ENOMEM;
+	s1 = opts;
+	s2 = opts;
+
 	CDEBUG(D_CONFIG, "Parsing opts %s\n", options);
 
-	while (*s1) {
+	while ((s1 = strsep(&opts, ",")) != NULL) {
+		substring_t args[MAX_OPT_ARGS];
+		bool turn_off = false;
+		int token;
+
+		if (!*s1)
+			continue;
+
 		CDEBUG(D_SUPER, "next opt=%s\n", s1);
-		tmp = ll_set_opt("nolock", s1, LL_SBI_NOLCK);
-		if (tmp) {
-			*flags |= tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("flock", s1, LL_SBI_FLOCK);
-		if (tmp) {
-			*flags = (*flags & ~LL_SBI_LOCALFLOCK) | tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("localflock", s1, LL_SBI_LOCALFLOCK);
-		if (tmp) {
-			*flags = (*flags & ~LL_SBI_FLOCK) | tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("noflock", s1,
-				 LL_SBI_FLOCK | LL_SBI_LOCALFLOCK);
-		if (tmp) {
-			*flags &= ~tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("user_xattr", s1, LL_SBI_USER_XATTR);
-		if (tmp) {
-			*flags |= tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("nouser_xattr", s1, LL_SBI_USER_XATTR);
-		if (tmp) {
-			*flags &= ~tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("context", s1, 1);
-		if (tmp)
-			goto next;
-		tmp = ll_set_opt("fscontext", s1, 1);
-		if (tmp)
-			goto next;
-		tmp = ll_set_opt("defcontext", s1, 1);
-		if (tmp)
-			goto next;
-		tmp = ll_set_opt("rootcontext", s1, 1);
-		if (tmp)
-			goto next;
-		tmp = ll_set_opt("user_fid2path", s1, LL_SBI_USER_FID2PATH);
-		if (tmp) {
-			*flags |= tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("nouser_fid2path", s1, LL_SBI_USER_FID2PATH);
-		if (tmp) {
-			*flags &= ~tmp;
-			goto next;
+		if (strncmp(s1, "no", 2) == 0)
+			turn_off = true;
+
+		/*
+		 * Initialize args struct so we know whether arg was
+		 * found; some options take optional arguments.
+		 */
+		args[0].to = NULL;
+		args[0].from = NULL;
+		token = match_token(s1, ll_sbi_flags_name, args);
+		if (token == LL_SBI_NUM_MOUNT_OPT) {
+			if (match_wildcard("context", s1) ||
+			    match_wildcard("fscontext", s1) ||
+			    match_wildcard("defcontext", s1) ||
+			    match_wildcard("rootcontext", s1))
+				continue;
+
+			LCONSOLE_ERROR_MSG(0x152,
+					   "Unknown option '%s', won't mount.\n",
+					   s1);
+			return -EINVAL;
 		}
 
-		tmp = ll_set_opt("checksum", s1, LL_SBI_CHECKSUM);
-		if (tmp) {
-			*flags |= tmp;
+		switch (token) {
+		case LL_SBI_NOLCK:
+		case LL_SBI_32BIT_API:
+		case LL_SBI_64BIT_HASH:
+		case LL_SBI_ALWAYS_PING:
+			set_bit(token, sbi->ll_flags);
+			break;
+
+		case LL_SBI_FLOCK:
+			clear_bit(LL_SBI_LOCALFLOCK, sbi->ll_flags);
+			if (turn_off)
+				clear_bit(LL_SBI_FLOCK, sbi->ll_flags);
+			else
+				set_bit(token, sbi->ll_flags);
+			break;
+
+		case LL_SBI_LOCALFLOCK:
+			clear_bit(LL_SBI_FLOCK, sbi->ll_flags);
+			set_bit(token, sbi->ll_flags);
+			break;
+
+		case LL_SBI_CHECKSUM:
 			sbi->ll_checksum_set = 1;
-			goto next;
-		}
-		tmp = ll_set_opt("nochecksum", s1, LL_SBI_CHECKSUM);
-		if (tmp) {
-			*flags &= ~tmp;
-			sbi->ll_checksum_set = 1;
-			goto next;
-		}
-		tmp = ll_set_opt("lruresize", s1, LL_SBI_LRU_RESIZE);
-		if (tmp) {
-			*flags |= tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("nolruresize", s1, LL_SBI_LRU_RESIZE);
-		if (tmp) {
-			*flags &= ~tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("lazystatfs", s1, LL_SBI_LAZYSTATFS);
-		if (tmp) {
-			*flags |= tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("nolazystatfs", s1, LL_SBI_LAZYSTATFS);
-		if (tmp) {
-			*flags &= ~tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("32bitapi", s1, LL_SBI_32BIT_API);
-		if (tmp) {
-			*flags |= tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("verbose", s1, LL_SBI_VERBOSE);
-		if (tmp) {
-			*flags |= tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("noverbose", s1, LL_SBI_VERBOSE);
-		if (tmp) {
-			*flags &= ~tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("always_ping", s1, LL_SBI_ALWAYS_PING);
-		if (tmp) {
-			*flags |= tmp;
-			goto next;
-		}
-		tmp = ll_set_opt("test_dummy_encryption", s1,
-				 LL_SBI_TEST_DUMMY_ENCRYPTION);
-		if (tmp) {
+			/* fall through */
+		case LL_SBI_USER_XATTR:
+		case LL_SBI_USER_FID2PATH:
+		case LL_SBI_LRU_RESIZE:
+		case LL_SBI_LAZYSTATFS:
+		case LL_SBI_VERBOSE:
+			if (turn_off)
+				clear_bit(token, sbi->ll_flags);
+			else
+				set_bit(token, sbi->ll_flags);
+			break;
+		case LL_SBI_TEST_DUMMY_ENCRYPTION: {
 #ifdef CONFIG_FS_ENCRYPTION
-			*flags |= tmp;
+			set_bit(token, sbi->ll_flags);
 #else
 			LCONSOLE_WARN("Test dummy encryption mount option ignored: encryption not supported\n");
 #endif
-			goto next;
+			break;
 		}
-		tmp = ll_set_opt("noencrypt", s1, LL_SBI_ENCRYPT);
-		if (tmp) {
+		case LL_SBI_ENCRYPT:
 #ifdef CONFIG_FS_ENCRYPTION
-			*flags &= ~tmp;
+			if (turn_off)
+				clear_bit(token, sbi->ll_flags);
+			else
+				set_bit(token, sbi->ll_flags);
 #else
-			LCONSOLE_WARN("noencrypt mount option ignored: encryption not supported\n");
+			LCONSOLE_WARN("noencrypt or encrypt mount option ignored: encryption not supported\n");
 #endif
-			goto next;
-		}
-		tmp = ll_set_opt("foreign_symlink", s1, LL_SBI_FOREIGN_SYMLINK);
-		if (tmp) {
-			int prefix_pos = sizeof("foreign_symlink=") - 1;
-			int equal_pos = sizeof("foreign_symlink=") - 2;
-
+			break;
+		case LL_SBI_FOREIGN_SYMLINK:
 			/* non-default prefix provided ? */
-			if (strlen(s1) >= sizeof("foreign_symlink=") &&
-			    *(s1 + equal_pos) == '=') {
-				char *old = sbi->ll_foreign_symlink_prefix;
-				size_t old_len =
-					sbi->ll_foreign_symlink_prefix_size;
+			if (args->from) {
+				size_t old_len;
+				char *old;
 
 				/* path must be absolute */
-				if (*(s1 + sizeof("foreign_symlink=") -
-				    1) != '/') {
+				if (args->from[0] != '/') {
 					LCONSOLE_ERROR_MSG(0x152,
 							   "foreign prefix '%s' must be an absolute path\n",
-							   s1 + prefix_pos);
+							   args->from);
 					return -EINVAL;
 				}
-				/* last option ? */
-				s2 = strchrnul(s1 + prefix_pos, ',');
-
-				if (sbi->ll_foreign_symlink_prefix) {
-					sbi->ll_foreign_symlink_prefix = NULL;
-					sbi->ll_foreign_symlink_prefix_size = 0;
-				}
+				old_len = sbi->ll_foreign_symlink_prefix_size;
+				old = sbi->ll_foreign_symlink_prefix;
 				/* alloc for path length and '\0' */
-				sbi->ll_foreign_symlink_prefix = kmalloc(s2 - (s1 + prefix_pos) + 1,
-									 GFP_KERNEL);
+				sbi->ll_foreign_symlink_prefix = match_strdup(args);
 				if (!sbi->ll_foreign_symlink_prefix) {
 					/* restore previous */
 					sbi->ll_foreign_symlink_prefix = old;
@@ -1048,31 +1058,22 @@ static int ll_options(char *options, struct ll_sb_info *sbi)
 						old_len;
 					return -ENOMEM;
 				}
-				kfree(old);
-				strncpy(sbi->ll_foreign_symlink_prefix,
-					s1 + prefix_pos,
-					s2 - (s1 + prefix_pos));
 				sbi->ll_foreign_symlink_prefix_size =
-					s2 - (s1 + prefix_pos) + 1;
+					args->to - args->from + 1;
+				kfree(old);
+
+				/* enable foreign symlink support */
+				set_bit(token, sbi->ll_flags);
 			} else {
 				LCONSOLE_ERROR_MSG(0x152,
 						   "invalid %s option\n", s1);
 			}
-			/* enable foreign symlink support */
-			*flags |= tmp;
-			goto next;
-		}
-		LCONSOLE_ERROR_MSG(0x152, "Unknown option '%s', won't mount.\n",
-				   s1);
-		return -EINVAL;
-
-next:
-		/* Find next opt */
-		s2 = strchr(s1, ',');
-		if (!s2)
+		/* fall through */
+		default:
 			break;
-		s1 = s2 + 1;
+		}
 	}
+	kfree(opts);
 	return 0;
 }
 
@@ -1168,7 +1169,7 @@ int ll_fill_super(struct super_block *sb)
 		goto out_free;
 	}
 
-	err = ll_options(lsi->lsi_lmd->lmd_opts, sbi);
+	err = ll_options(lsi->lsi_lmd->lmd_opts, sb);
 	if (err)
 		goto out_free;
 
@@ -1271,7 +1272,7 @@ out_free:
 	kfree(cfg);
 	if (err)
 		ll_put_super(sb);
-	else if (sbi->ll_flags & LL_SBI_VERBOSE)
+	else if (test_bit(LL_SBI_VERBOSE, sbi->ll_flags))
 		LCONSOLE_WARN("Mounted %s\n", profilenm);
 
 	return err;
@@ -1339,7 +1340,7 @@ void ll_put_super(struct super_block *sb)
 	while ((obd = class_devices_in_group(&sbi->ll_sb_uuid, &next)))
 		class_manual_cleanup(obd);
 
-	if (sbi->ll_flags & LL_SBI_VERBOSE)
+	if (test_bit(LL_SBI_VERBOSE, sbi->ll_flags))
 		LCONSOLE_WARN("Unmounted %s\n", profilenm ? profilenm : "");
 
 	if (profilenm)
@@ -1408,7 +1409,7 @@ static struct inode *ll_iget_anon_dir(struct super_block *sb,
 	ino_t ino;
 
 	LASSERT(md->lmv);
-	ino = cl_fid_build_ino(fid, sbi->ll_flags & LL_SBI_32BIT_API);
+	ino = cl_fid_build_ino(fid, test_bit(LL_SBI_32BIT_API, sbi->ll_flags));
 	inode = iget_locked(sb, ino);
 	if (!inode) {
 		CERROR("%s: failed get simple inode " DFID ": rc = -ENOENT\n",
@@ -2207,7 +2208,7 @@ int ll_statfs_internal(struct ll_sb_info *sbi, struct obd_statfs *osfs,
 
 	max_age = ktime_get_seconds() - sbi->ll_statfs_max_age;
 
-	if (sbi->ll_flags & LL_SBI_LAZYSTATFS)
+	if (test_bit(LL_SBI_LAZYSTATFS, sbi->ll_flags))
 		flags |= OBD_STATFS_NODELAY;
 
 	rc = obd_statfs(NULL, sbi->ll_md_exp, osfs, max_age, flags);
@@ -2383,6 +2384,7 @@ int ll_update_inode(struct inode *inode, struct lustre_md *md)
 	struct ll_inode_info *lli = ll_i2info(inode);
 	struct mdt_body *body = md->body;
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
+	bool api32;
 	int rc = 0;
 
 	if (body->mbo_valid & OBD_MD_FLEASIZE) {
@@ -2400,8 +2402,8 @@ int ll_update_inode(struct inode *inode, struct lustre_md *md)
 	if (body->mbo_valid & OBD_MD_FLACL)
 		lli_replace_acl(lli, md);
 
-	inode->i_ino = cl_fid_build_ino(&body->mbo_fid1,
-					sbi->ll_flags & LL_SBI_32BIT_API);
+	api32 = test_bit(LL_SBI_32BIT_API, sbi->ll_flags);
+	inode->i_ino = cl_fid_build_ino(&body->mbo_fid1, api32);
 	inode->i_generation = cl_fid_build_gen(&body->mbo_fid1);
 
 	if (body->mbo_valid & OBD_MD_FLATIME) {
@@ -2782,7 +2784,7 @@ int ll_remount_fs(struct super_block *sb, int *flags, char *data)
 		else
 			sb->s_flags &= ~SB_RDONLY;
 
-		if (sbi->ll_flags & LL_SBI_VERBOSE)
+		if (test_bit(LL_SBI_VERBOSE, sbi->ll_flags))
 			LCONSOLE_WARN("Remounted %s %s\n", profilenm,
 				      read_only ?  "read-only" : "read-write");
 	}
@@ -2853,24 +2855,23 @@ int ll_prep_inode(struct inode **inode, struct req_capsule *pill,
 		if (rc)
 			goto out;
 	} else {
+		bool api32 = test_bit(LL_SBI_32BIT_API, sbi->ll_flags);
+		struct lu_fid *fid1 = &md.body->mbo_fid1;
+
 		LASSERT(sb);
 
 		/*
 		 * At this point server returns to client's same fid as client
 		 * generated for creating. So using ->fid1 is okay here.
 		 */
-		if (!fid_is_sane(&md.body->mbo_fid1)) {
+		if (!fid_is_sane(fid1)) {
 			CERROR("%s: Fid is insane " DFID "\n",
-			       sbi->ll_fsname,
-			       PFID(&md.body->mbo_fid1));
+			       sbi->ll_fsname, PFID(fid1));
 			rc = -EINVAL;
 			goto out;
 		}
 
-		*inode = ll_iget(sb,
-				 cl_fid_build_ino(&md.body->mbo_fid1,
-						  sbi->ll_flags & LL_SBI_32BIT_API),
-				 &md);
+		*inode = ll_iget(sb, cl_fid_build_ino(fid1, api32), &md);
 		if (IS_ERR(*inode)) {
 			lmd_clear_acl(&md);
 			rc = IS_ERR(*inode) ? PTR_ERR(*inode) : -ENOMEM;
@@ -3055,7 +3056,7 @@ struct md_op_data *ll_prep_md_op_data(struct md_op_data *op_data,
 		fid_zero(&op_data->op_fid2);
 	}
 
-	if (ll_i2sbi(i1)->ll_flags & LL_SBI_64BIT_HASH)
+	if (test_bit(LL_SBI_64BIT_HASH, ll_i2sbi(i1)->ll_flags))
 		op_data->op_cli_flags |= CLI_HASH64;
 
 	if (ll_need_32bit_api(ll_i2sbi(i1)))
@@ -3132,47 +3133,40 @@ void ll_finish_md_op_data(struct md_op_data *op_data)
 int ll_show_options(struct seq_file *seq, struct dentry *dentry)
 {
 	struct ll_sb_info *sbi;
+	int i;
 
 	LASSERT(seq && dentry);
 	sbi = ll_s2sbi(dentry->d_sb);
 
-	if (sbi->ll_flags & LL_SBI_NOLCK)
-		seq_puts(seq, ",nolock");
+	if (test_bit(LL_SBI_NOLCK, sbi->ll_flags))
+		seq_puts(seq, "nolock");
 
-	/* "flock" is the default since 2.13, but it wasn't for many years,
-	 * so it is still useful to print this to show it is enabled.
-	 * Start to print "noflock" so it is now clear when flock is disabled.
-	 */
-	if (sbi->ll_flags & LL_SBI_FLOCK)
-		seq_puts(seq, ",flock");
-	else if (sbi->ll_flags & LL_SBI_LOCALFLOCK)
-		seq_puts(seq, ",localflock");
-	else
-		seq_puts(seq, ",noflock");
+	for (i = 1; ll_sbi_flags_name[i].token != LL_SBI_NUM_MOUNT_OPT; i++) {
+		/* match_table in some cases has patterns for both enabled and
+		 * disabled cases. Ignore 'no'xxx versions if bit is set.
+		 */
+		if (test_bit(ll_sbi_flags_name[i].token, sbi->ll_flags) &&
+		    strncmp(ll_sbi_flags_name[i].pattern, "no", 2)) {
+			if (ll_sbi_flags_name[i].token ==
+			    LL_SBI_FOREIGN_SYMLINK) {
+				seq_show_option(seq, "foreign_symlink",
+						sbi->ll_foreign_symlink_prefix);
+			} else {
+				seq_printf(seq, ",%s",
+					   ll_sbi_flags_name[i].pattern);
+			}
 
-	if (sbi->ll_flags & LL_SBI_USER_XATTR)
-		seq_puts(seq, ",user_xattr");
-
-	if (sbi->ll_flags & LL_SBI_LAZYSTATFS)
-		seq_puts(seq, ",lazystatfs");
-
-	if (sbi->ll_flags & LL_SBI_USER_FID2PATH)
-		seq_puts(seq, ",user_fid2path");
-
-	if (sbi->ll_flags & LL_SBI_ALWAYS_PING)
-		seq_puts(seq, ",always_ping");
-
-	if (ll_sbi_has_test_dummy_encryption(sbi))
-		seq_puts(seq, ",test_dummy_encryption");
-
-	if (ll_sbi_has_encrypt(sbi))
-		seq_puts(seq, ",encrypt");
-	else
-		seq_puts(seq, ",noencrypt");
-
-	if (sbi->ll_flags & LL_SBI_FOREIGN_SYMLINK) {
-		seq_puts(seq, ",foreign_symlink=");
-		seq_puts(seq, sbi->ll_foreign_symlink_prefix);
+			/* You can have either localflock or flock but not
+			 * both. If localflock is set don't print flock or
+			 * noflock.
+			 */
+			if (ll_sbi_flags_name[i].token == LL_SBI_LOCALFLOCK)
+				i += 2;
+		} else if (!test_bit(ll_sbi_flags_name[i].token, sbi->ll_flags) &&
+			   !strncmp(ll_sbi_flags_name[i].pattern, "no", 2)) {
+			seq_printf(seq, ",%s",
+				   ll_sbi_flags_name[i].pattern);
+		}
 	}
 
 	return 0;
@@ -3276,12 +3270,9 @@ void ll_compute_rootsquash_state(struct ll_sb_info *sbi)
 	/* Update norootsquash flag */
 	spin_lock(&squash->rsi_lock);
 	if (list_empty(&squash->rsi_nosquash_nids)) {
-		spin_lock(&sbi->ll_lock);
-		sbi->ll_flags &= ~LL_SBI_NOROOTSQUASH;
-		spin_unlock(&sbi->ll_lock);
+		clear_bit(LL_SBI_NOROOTSQUASH, sbi->ll_flags);
 	} else {
-		/*
-		 * Do not apply root squash as soon as one of our NIDs is
+		/* Do not apply root squash as soon as one of our NIDs is
 		 * in the nosquash_nids list
 		 */
 		matched = false;
@@ -3297,10 +3288,9 @@ void ll_compute_rootsquash_state(struct ll_sb_info *sbi)
 		}
 		spin_lock(&sbi->ll_lock);
 		if (matched)
-			sbi->ll_flags |= LL_SBI_NOROOTSQUASH;
+			set_bit(LL_SBI_NOROOTSQUASH, sbi->ll_flags);
 		else
-			sbi->ll_flags &= ~LL_SBI_NOROOTSQUASH;
-		spin_unlock(&sbi->ll_lock);
+			clear_bit(LL_SBI_NOROOTSQUASH, sbi->ll_flags);
 	}
 	spin_unlock(&squash->rsi_lock);
 }
@@ -3375,7 +3365,7 @@ int ll_getparent(struct file *file, struct getparent __user *arg)
 	int rc;
 
 	if (!capable(CAP_DAC_READ_SEARCH) &&
-	    !(ll_i2sbi(inode)->ll_flags & LL_SBI_USER_FID2PATH))
+	    !test_bit(LL_SBI_USER_FID2PATH, ll_i2sbi(inode)->ll_flags))
 		return -EPERM;
 
 	if (get_user(name_size, &arg->gp_name_size))
