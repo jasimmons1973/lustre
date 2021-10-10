@@ -1652,8 +1652,8 @@ lnet_handle_send(struct lnet_send_data *sd)
 	 */
 	best_lpni->lpni_seq++;
 	best_lpni->lpni_peer_net->lpn_seq++;
-	best_ni->ni_seq++;
 	best_ni->ni_net->net_seq++;
+	best_ni->ni_seq = best_ni->ni_net->net_seq;
 
 	CDEBUG(D_NET,
 	       "%s NI seq info: [%d:%d:%d:%u] %s LPNI seq info [%d:%d:%d:%u]\n",
