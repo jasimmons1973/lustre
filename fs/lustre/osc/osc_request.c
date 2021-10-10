@@ -1167,7 +1167,8 @@ static inline int can_merge_pages(struct brw_page *p1, struct brw_page *p2)
 	if (p1->flag != p2->flag) {
 		unsigned int mask = ~(OBD_BRW_FROM_GRANT | OBD_BRW_NOCACHE |
 				      OBD_BRW_SYNC | OBD_BRW_ASYNC |
-				      OBD_BRW_NOQUOTA | OBD_BRW_SOFT_SYNC);
+				      OBD_BRW_NOQUOTA | OBD_BRW_SOFT_SYNC |
+				      OBD_BRW_SYS_RESOURCE);
 
 		/* warn if we try to combine flags that we don't know to be
 		 * safe to combine
@@ -3548,6 +3549,7 @@ int osc_setup_common(struct obd_device *obd, struct lustre_cfg *lcfg)
 		goto out_ptlrpcd_work;
 
 	cli->cl_grant_shrink_interval = GRANT_SHRINK_INTERVAL;
+	cli->cl_root_squash = 0;
 	osc_update_next_shrink(cli);
 
 	return 0;
