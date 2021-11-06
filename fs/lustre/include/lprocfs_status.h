@@ -209,6 +209,7 @@ struct lprocfs_stats {
 	/* 1 + the biggest cpu # whose ls_percpu slot has been allocated */
 	unsigned short			ls_biggest_alloc_num;
 	enum lprocfs_stats_flags	ls_flags;
+	ktime_t				ls_init;
 	/* Lock used when there are no percpu stats areas; For percpu stats,
 	 * it is used to protect ls_biggest_alloc_num change
 	 */
@@ -444,9 +445,11 @@ void ldebugfs_add_vars(struct dentry *parent, struct ldebugfs_vars *var,
 
 int lprocfs_obd_setup(struct obd_device *obd, bool uuid_only);
 int lprocfs_obd_cleanup(struct obd_device *obd);
+void lprocfs_stats_header(struct seq_file *seq, ktime_t now,
+			  ktime_t ts_init, int width, const char *colon,
+			  bool show_units);
 
 /* Generic callbacks */
-
 int ldebugfs_uint(struct seq_file *m, void *data);
 int lprocfs_wr_uint(struct file *file, const char __user *buffer,
 		    unsigned long count, void *data);

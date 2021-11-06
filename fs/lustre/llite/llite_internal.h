@@ -581,6 +581,7 @@ struct per_process_info {
 
 /* pp_extents[LL_PROCESS_HIST_MAX] will hold the combined process info */
 struct ll_rw_extents_info {
+	ktime_t pp_init;
 	struct per_process_info pp_extents[LL_PROCESS_HIST_MAX + 1];
 };
 
@@ -696,11 +697,13 @@ struct ll_sb_info {
 
 	struct lu_site		*ll_site;
 	struct cl_device	*ll_cl;
+
 	/* Statistics */
 	struct ll_rw_extents_info ll_rw_extents_info;
 	int			ll_extent_process_count;
-	struct ll_rw_process_info ll_rw_process_info[LL_PROCESS_HIST_MAX];
 	unsigned int		ll_offset_process_count;
+	ktime_t			ll_process_stats_init;
+	struct ll_rw_process_info ll_rw_process_info[LL_PROCESS_HIST_MAX];
 	struct ll_rw_process_info ll_rw_offset_info[LL_OFFSET_HIST_MAX];
 	unsigned int		ll_rw_offset_entry_count;
 	int			ll_stats_track_id;
