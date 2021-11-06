@@ -158,21 +158,22 @@ static struct ll_eopcode {
 
 const char *ll_opcode2str(u32 opcode)
 {
-	/* When one of the assertions below fail, chances are that:
-	 *     1) A new opcode was added in include/lustre/lustre_idl.h,
-	 *	but is missing from the table above.
-	 * or  2) The opcode space was renumbered or rearranged,
-	 *	and the opcode_offset() function in
-	 *	ptlrpc_internal.h needs to be modified.
-	 */
 	u32 offset = opcode_offset(opcode);
 
+	/* When one of the assertions below fail, chances are that:
+	 *     1) A new opcode was added in include/lustre/lustre_idl.h,
+	 *	  but is missing from the table above.
+	 * or  2) The opcode space was renumbered or rearranged,
+	 *	  and the opcode_offset() function in
+	 *	  ptlrpc_internal.h needs to be modified.
+	 */
 	LASSERTF(offset < LUSTRE_MAX_OPCODES,
 		 "offset %u >= LUSTRE_MAX_OPCODES %u\n",
 		 offset, LUSTRE_MAX_OPCODES);
 	LASSERTF(ll_rpc_opcode_table[offset].opcode == opcode,
 		 "ll_rpc_opcode_table[%u].opcode %u != opcode %u\n",
 		 offset, ll_rpc_opcode_table[offset].opcode, opcode);
+
 	return ll_rpc_opcode_table[offset].opname;
 }
 
@@ -249,7 +250,7 @@ ptlrpc_ldebugfs_register(struct dentry *root, char *dir,
 }
 
 static int
-ptlrpc_lprocfs_req_history_len_seq_show(struct seq_file *m, void *v)
+ptlrpc_lprocfs_req_buffer_history_len_seq_show(struct seq_file *m, void *v)
 {
 	struct ptlrpc_service *svc = m->private;
 	struct ptlrpc_service_part *svcpt;
@@ -260,13 +261,14 @@ ptlrpc_lprocfs_req_history_len_seq_show(struct seq_file *m, void *v)
 		total += svcpt->scp_hist_nrqbds;
 
 	seq_printf(m, "%d\n", total);
+
 	return 0;
 }
 
-LDEBUGFS_SEQ_FOPS_RO(ptlrpc_lprocfs_req_history_len);
+LDEBUGFS_SEQ_FOPS_RO(ptlrpc_lprocfs_req_buffer_history_len);
 
 static int
-ptlrpc_lprocfs_req_history_max_seq_show(struct seq_file *m, void *n)
+ptlrpc_lprocfs_req_buffer_history_max_seq_show(struct seq_file *m, void *n)
 {
 	struct ptlrpc_service *svc = m->private;
 	struct ptlrpc_service_part *svcpt;
@@ -281,9 +283,9 @@ ptlrpc_lprocfs_req_history_max_seq_show(struct seq_file *m, void *n)
 }
 
 static ssize_t
-ptlrpc_lprocfs_req_history_max_seq_write(struct file *file,
-					 const char __user *buffer,
-					 size_t count, loff_t *off)
+ptlrpc_lprocfs_req_buffer_history_max_seq_write(struct file *file,
+						const char __user *buffer,
+						size_t count, loff_t *off)
 {
 	struct seq_file *m = file->private_data;
 	struct ptlrpc_service *svc = m->private;
@@ -325,7 +327,7 @@ ptlrpc_lprocfs_req_history_max_seq_write(struct file *file,
 	return count;
 }
 
-LDEBUGFS_SEQ_FOPS(ptlrpc_lprocfs_req_history_max);
+LDEBUGFS_SEQ_FOPS(ptlrpc_lprocfs_req_buffer_history_max);
 
 static int
 ptlrpc_lprocfs_req_buffers_max_seq_show(struct seq_file *m, void *n)
@@ -513,7 +515,7 @@ static void nrs_policy_get_info_locked(struct ptlrpc_nrs_policy *policy,
  * Reads and prints policy status information for all policies of a PTLRPC
  * service.
  */
-static int ptlrpc_lprocfs_nrs_seq_show(struct seq_file *m, void *n)
+static int ptlrpc_lprocfs_nrs_policies_seq_show(struct seq_file *m, void *n)
 {
 	struct ptlrpc_service *svc = m->private;
 	struct ptlrpc_service_part *svcpt;
@@ -660,11 +662,13 @@ unlock:
 	return rc;
 }
 
+#define LPROCFS_NRS_WR_MAX_ARG (1024)
 /**
  * The longest valid command string is the maximum policy name size, plus the
  * length of the " reg" substring
  */
-#define LPROCFS_NRS_WR_MAX_CMD	(NRS_POL_NAME_MAX + sizeof(" reg") - 1)
+#define LPROCFS_NRS_WR_MAX_CMD	(NRS_POL_NAME_MAX + sizeof(" reg") - 1 + \
+				 LPROCFS_NRS_WR_MAX_ARG)
 
 /**
  * Starts and stops a given policy on a PTLRPC service.
@@ -673,9 +677,9 @@ unlock:
  * if the optional token is omitted, the operation is performed on both the
  * regular and high-priority (if the service has one) NRS head.
  */
-static ssize_t ptlrpc_lprocfs_nrs_seq_write(struct file *file,
-					    const char __user *buffer,
-					    size_t count, loff_t *off)
+static ssize_t ptlrpc_lprocfs_nrs_policies_seq_write(struct file *file,
+						     const char __user *buffer,
+						     size_t count, loff_t *off)
 {
 	struct seq_file *m = file->private_data;
 	struct ptlrpc_service *svc = m->private;
@@ -753,7 +757,7 @@ out:
 	return rc < 0 ? rc : count;
 }
 
-LDEBUGFS_SEQ_FOPS(ptlrpc_lprocfs_nrs);
+LDEBUGFS_SEQ_FOPS(ptlrpc_lprocfs_nrs_policies);
 
 /** @} nrs */
 
@@ -777,8 +781,7 @@ ptlrpc_lprocfs_svc_req_history_seek(struct ptlrpc_service_part *svcpt,
 		 * we're searching for a seq on or after it (i.e. more
 		 * recent), search from it onwards.
 		 * Since the service history is LRU (i.e. culled reqs will
-		 * be near the head), we shouldn't have to do long
-		 * re-scans
+		 * be near the head), we shouldn't have to do long re-scans
 		 */
 		LASSERTF(srhi->srhi_seq == srhi->srhi_req->rq_history_seq,
 			 "%s:%d: seek seq %llu, request seq %llu\n",
@@ -1136,16 +1139,16 @@ void ptlrpc_ldebugfs_register_service(struct dentry *entry,
 {
 	struct ldebugfs_vars lproc_vars[] = {
 		{ .name		= "req_buffer_history_len",
-		  .fops		= &ptlrpc_lprocfs_req_history_len_fops,
+		  .fops		= &ptlrpc_lprocfs_req_buffer_history_len_fops,
 		  .data		= svc },
 		{ .name		= "req_buffer_history_max",
-		  .fops		= &ptlrpc_lprocfs_req_history_max_fops,
+		  .fops		= &ptlrpc_lprocfs_req_buffer_history_max_fops,
 		  .data		= svc },
 		{ .name		= "timeouts",
 		  .fops		= &ptlrpc_lprocfs_timeouts_fops,
 		  .data		= svc },
 		{ .name		= "nrs_policies",
-		  .fops		= &ptlrpc_lprocfs_nrs_fops,
+		  .fops		= &ptlrpc_lprocfs_nrs_policies_fops,
 		  .data		= svc },
 		{ .name		= "req_buffers_max",
 		  .fops		= &ptlrpc_lprocfs_req_buffers_max_fops,
