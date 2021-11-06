@@ -1245,18 +1245,19 @@ lnet_new_rtrbuf(struct lnet_rtrbufpool *rbp, int cpt)
 	int sz = offsetof(struct lnet_rtrbuf, rb_kiov[npages]);
 	struct page *page;
 	struct lnet_rtrbuf *rb;
-	int i;
+	int i, node;
 
 	rb = kzalloc_cpt(sz, GFP_NOFS, cpt);
 	if (!rb)
 		return NULL;
 
+	node = cfs_cpt_spread_node(lnet_cpt_table(), cpt);
 	rb->rb_pool = rbp;
 
 	for (i = 0; i < npages; i++) {
-		page = alloc_pages_node(
-				cfs_cpt_spread_node(lnet_cpt_table(), cpt),
-				GFP_KERNEL | __GFP_ZERO, 0);
+		page = alloc_pages_node(node,
+					GFP_KERNEL | __GFP_ZERO | __GFP_NORETRY,
+					0);
 		if (!page) {
 			while (--i >= 0)
 				__free_page(rb->rb_kiov[i].bv_page);
@@ -1344,8 +1345,8 @@ lnet_rtrpool_adjust_bufs(struct lnet_rtrbufpool *rbp, int nbufs, int cpt)
 	while (num_rb-- > 0) {
 		rb = lnet_new_rtrbuf(rbp, cpt);
 		if (!rb) {
-			CERROR("Failed to allocate %d route bufs of %d pages\n",
-			       nbufs, npages);
+			CERROR("lnet: error allocating %ux%u page router buffers on CPT %u: rc = %d\n",
+			       nbufs, npages, cpt, -ENOMEM);
 
 			lnet_net_lock(cpt);
 			rbp->rbp_req_nbuffers = old_req_nbufs;
@@ -1496,8 +1497,11 @@ lnet_rtrpools_alloc(int im_a_router)
 	} else if (!strcmp(forwarding, "enabled")) {
 		/* explicitly enabled */
 	} else {
-		LCONSOLE_ERROR_MSG(0x10b, "'forwarding' not set to either 'enabled' or 'disabled'\n");
-		return -EINVAL;
+		rc = -EINVAL;
+		LCONSOLE_ERROR_MSG(0x10b,
+				   "lnet: forwarding='%s' not set to either 'enabled' or 'disabled': rc = %d\n",
+				   forwarding, rc);
+		return rc;
 	}
 
 	nrb_tiny = lnet_nrb_tiny_calculate();
@@ -1516,9 +1520,11 @@ lnet_rtrpools_alloc(int im_a_router)
 						LNET_NRBPOOLS *
 						sizeof(*the_lnet.ln_rtrpools[0]));
 	if (!the_lnet.ln_rtrpools) {
+		rc = -ENOMEM;
 		LCONSOLE_ERROR_MSG(0x10c,
-				   "Failed to initialize router buffe pool\n");
-		return -ENOMEM;
+			"lnet: error allocating router buffer pool: rc = %d\n",
+			rc);
+		return rc;
 	}
 
 	cfs_percpt_for_each(rtrp, i, the_lnet.ln_rtrpools) {
