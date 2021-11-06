@@ -1427,7 +1427,7 @@ static int lmv_close(struct obd_export *exp, struct md_op_data *op_data,
 	return md_close(tgt->ltd_exp, op_data, mod, request);
 }
 
-static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 *mdt,
+static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 mdt,
 					      unsigned short dir_depth)
 {
 	struct lu_tgt_desc *tgt, *cur = NULL;
@@ -1462,7 +1462,7 @@ static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 *mdt,
 
 		tgt->ltd_qos.ltq_usable = 1;
 		lu_tgt_qos_weight_calc(tgt);
-		if (tgt->ltd_index == *mdt)
+		if (tgt->ltd_index == mdt)
 			cur = tgt;
 		total_avail += tgt->ltd_qos.ltq_avail;
 		total_weight += tgt->ltd_qos.ltq_weight;
@@ -1477,7 +1477,6 @@ static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 *mdt,
 	       (total_usable * 256 * (1 + dir_depth / 4));
 	if (cur && cur->ltd_qos.ltq_avail >= rand) {
 		tgt = cur;
-		rc = 0;
 		goto unlock;
 	}
 
@@ -1491,9 +1490,7 @@ static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 *mdt,
 		if (cur_weight < rand)
 			continue;
 
-		*mdt = tgt->ltd_index;
 		ltd_qos_update(&lmv->lmv_mdt_descs, tgt, &total_weight);
-		rc = 0;
 		goto unlock;
 	}
 
@@ -1506,7 +1503,7 @@ unlock:
 	return tgt;
 }
 
-static struct lu_tgt_desc *lmv_locate_tgt_rr(struct lmv_obd *lmv, u32 *mdt)
+static struct lu_tgt_desc *lmv_locate_tgt_rr(struct lmv_obd *lmv)
 {
 	struct lu_tgt_desc *tgt;
 	int i;
@@ -1520,8 +1517,7 @@ static struct lu_tgt_desc *lmv_locate_tgt_rr(struct lmv_obd *lmv, u32 *mdt)
 		if (!tgt || !tgt->ltd_exp || !tgt->ltd_active)
 			continue;
 
-		*mdt = tgt->ltd_index;
-		lmv->lmv_qos_rr_index = (*mdt + 1) %
+		lmv->lmv_qos_rr_index = (tgt->ltd_index + 1) %
 					lmv->lmv_mdt_descs.ltd_tgts_size;
 		spin_unlock(&lmv->lmv_lock);
 
@@ -1530,6 +1526,65 @@ static struct lu_tgt_desc *lmv_locate_tgt_rr(struct lmv_obd *lmv, u32 *mdt)
 	spin_unlock(&lmv->lmv_lock);
 
 	return ERR_PTR(-ENODEV);
+}
+
+/* locate MDT which is less full (avoid the most full MDT) */
+static struct lu_tgt_desc *lmv_locate_tgt_lf(struct lmv_obd *lmv)
+{
+	struct lu_tgt_desc *min = NULL;
+	struct lu_tgt_desc *tgt;
+	u64 avail = 0;
+	u64 rand;
+
+	if (!ltd_qos_is_usable(&lmv->lmv_mdt_descs))
+		return ERR_PTR(-EAGAIN);
+
+	down_write(&lmv->lmv_qos.lq_rw_sem);
+
+	if (!ltd_qos_is_usable(&lmv->lmv_mdt_descs)) {
+		tgt = ERR_PTR(-EAGAIN);
+		goto unlock;
+	}
+
+	lmv_foreach_tgt(lmv, tgt) {
+		if (!tgt->ltd_exp || !tgt->ltd_active) {
+			tgt->ltd_qos.ltq_usable = 0;
+			continue;
+		}
+
+		tgt->ltd_qos.ltq_usable = 1;
+		lu_tgt_qos_weight_calc(tgt);
+		avail += tgt->ltd_qos.ltq_avail;
+		if (!min || min->ltd_qos.ltq_avail > tgt->ltd_qos.ltq_avail)
+			min = tgt;
+	}
+
+	/* avoid the most full MDT */
+	if (min)
+		avail -= min->ltd_qos.ltq_avail;
+
+	rand = lu_prandom_u64_max(avail);
+	avail = 0;
+	lmv_foreach_connected_tgt(lmv, tgt) {
+		if (!tgt->ltd_qos.ltq_usable)
+			continue;
+
+		if (tgt == min)
+			continue;
+
+		avail += tgt->ltd_qos.ltq_avail;
+		if (avail < rand)
+			continue;
+
+		goto unlock;
+	}
+
+	/* no proper target found */
+	tgt = ERR_PTR(-EAGAIN);
+unlock:
+	up_write(&lmv->lmv_qos.lq_rw_sem);
+
+	return tgt;
 }
 
 /* locate MDT by file name, for striped directory, the file name hash decides
@@ -1847,7 +1902,7 @@ int lmv_create(struct obd_export *exp, struct md_op_data *op_data,
 	} else if (lmv_op_qos_mkdir(op_data)) {
 		struct lmv_tgt_desc *tmp = tgt;
 
-		tgt = lmv_locate_tgt_qos(lmv, &op_data->op_mds,
+		tgt = lmv_locate_tgt_qos(lmv, op_data->op_mds,
 					 op_data->op_dir_depth);
 		if (tgt == ERR_PTR(-EAGAIN)) {
 			if (ltd_qos_is_balanced(&lmv->lmv_mdt_descs) &&
@@ -1858,11 +1913,12 @@ int lmv_create(struct obd_export *exp, struct md_op_data *op_data,
 				 */
 				tgt = tmp;
 			else
-				tgt = lmv_locate_tgt_rr(lmv, &op_data->op_mds);
+				tgt = lmv_locate_tgt_rr(lmv);
 		}
 		if (IS_ERR(tgt))
 			return PTR_ERR(tgt);
 
+		op_data->op_mds = tgt->ltd_index;
 		/*
 		 * only update statfs after QoS mkdir, this means the cached
 		 * statfs may be stale, and current mkdir may not follow QoS
@@ -2069,6 +2125,53 @@ static int lmv_link(struct obd_export *exp, struct md_op_data *op_data,
 	return md_link(tgt->ltd_exp, op_data, request);
 }
 
+/* migrate the top directory */
+static inline bool lmv_op_topdir_migrate(const struct md_op_data *op_data)
+{
+	if (!S_ISDIR(op_data->op_mode))
+		return false;
+
+	if (lmv_dir_layout_changing(op_data->op_mea1))
+		return false;
+
+	return true;
+}
+
+/* migrate top dir to specific MDTs */
+static inline bool lmv_topdir_specific_migrate(const struct md_op_data *op_data)
+{
+	const struct lmv_user_md *lum = op_data->op_data;
+
+	if (!lmv_op_topdir_migrate(op_data))
+		return false;
+
+	return le32_to_cpu(lum->lum_stripe_offset) != LMV_OFFSET_DEFAULT;
+}
+
+/* migrate top dir in QoS mode if user issued "lfs migrate -m -1..." */
+static inline bool lmv_topdir_qos_migrate(const struct md_op_data *op_data)
+{
+	const struct lmv_user_md *lum = op_data->op_data;
+
+	if (!lmv_op_topdir_migrate(op_data))
+		return false;
+
+	return le32_to_cpu(lum->lum_stripe_offset) == LMV_OFFSET_DEFAULT;
+}
+
+static inline bool lmv_subdir_specific_migrate(const struct md_op_data *op_data)
+{
+	const struct lmv_user_md *lum = op_data->op_data;
+
+	if (!S_ISDIR(op_data->op_mode))
+		return false;
+
+	if (!lmv_dir_layout_changing(op_data->op_mea1))
+		return false;
+
+	return le32_to_cpu(lum->lum_stripe_offset) != LMV_OFFSET_DEFAULT;
+}
+
 static int lmv_migrate(struct obd_export *exp, struct md_op_data *op_data,
 			const char *name, size_t namelen,
 			struct ptlrpc_request **request)
@@ -2133,19 +2236,56 @@ static int lmv_migrate(struct obd_export *exp, struct md_op_data *op_data,
 	if (IS_ERR(child_tgt))
 		return PTR_ERR(child_tgt);
 
-	/* for directory, migrate to MDT specified by lum_stripe_offset;
-	 * otherwise migrate to the target stripe of parent, but parent
-	 * directory may have finished migration (normally current file too),
-	 * allocate FID on MDT lum_stripe_offset, and server will check
-	 * whether file was migrated already.
-	 */
-	if (S_ISDIR(op_data->op_mode) || !tp_tgt) {
+	if (lmv_topdir_specific_migrate(op_data)) {
 		struct lmv_user_md *lum = op_data->op_data;
 
 		op_data->op_mds = le32_to_cpu(lum->lum_stripe_offset);
-	} else  {
+	} else if (lmv_topdir_qos_migrate(op_data)) {
+		tgt = lmv_locate_tgt_lf(lmv);
+		if (tgt == ERR_PTR(-EAGAIN))
+			tgt = lmv_locate_tgt_rr(lmv);
+		if (IS_ERR(tgt))
+			return PTR_ERR(tgt);
+
+		op_data->op_mds = tgt->ltd_index;
+	} else if (lmv_subdir_specific_migrate(op_data)) {
+		struct lmv_user_md *lum = op_data->op_data;
+		u32 i;
+
+		LASSERT(tp_tgt);
+		if (le32_to_cpu(lum->lum_magic) == LMV_USER_MAGIC_SPECIFIC) {
+			/* adjust MDTs in lum, since subdir is located on where
+			 * its parent stripe is, not the first specified MDT.
+			 */
+			for (i = 0; i < le32_to_cpu(lum->lum_stripe_count);
+			     i++) {
+				if (le32_to_cpu(lum->lum_objects[i].lum_mds) ==
+				    tp_tgt->ltd_index)
+					break;
+			}
+
+			if (i == le32_to_cpu(lum->lum_stripe_count))
+				return -ENODEV;
+
+			lum->lum_objects[i].lum_mds =
+				lum->lum_objects[0].lum_mds;
+			lum->lum_objects[0].lum_mds =
+				cpu_to_le32(tp_tgt->ltd_index);
+		}
+		/* NB, the above adjusts subdir migration for command like
+		 * "lfs migrate -m 0,1,2 ...", but for migration like
+		 * "lfs migrate -m 0 -c 2 ...", the top dir is migrated to MDT0
+		 * and MDT1, however its subdir may be migrated to MDT1 and MDT2
+		 */
+
+		lum->lum_stripe_offset = cpu_to_le32(tp_tgt->ltd_index);
 		op_data->op_mds = tp_tgt->ltd_index;
+	} else if (tp_tgt) {
+		op_data->op_mds = tp_tgt->ltd_index;
+	} else {
+		op_data->op_mds = sp_tgt->ltd_index;
 	}
+
 	rc = lmv_fid_alloc(NULL, exp, &target_fid, op_data);
 	if (rc)
 		return rc;
