@@ -570,6 +570,8 @@ again:
 			if (i == 0) {
 				memcpy(infos[pol_idx].pi_name, tmp.pi_name,
 				       NRS_POL_NAME_MAX);
+				memcpy(infos[pol_idx].pi_arg, tmp.pi_arg,
+				       sizeof(tmp.pi_arg));
 				memcpy(&infos[pol_idx].pi_state, &tmp.pi_state,
 				       sizeof(tmp.pi_state));
 				infos[pol_idx].pi_fallback = tmp.pi_fallback;
@@ -578,17 +580,39 @@ again:
 				 * sanity-check the values we get.
 				 */
 			} else {
-				LASSERT(strncmp(infos[pol_idx].pi_name,
-						tmp.pi_name,
-						NRS_POL_NAME_MAX) == 0);
+				if (strncmp(infos[pol_idx].pi_name,
+					    tmp.pi_name,
+					    NRS_POL_NAME_MAX) != 0) {
+					spin_unlock(&nrs->nrs_lock);
+					rc = -EINVAL;
+					CERROR("%s: failed to check pi_name: rc = %d\n",
+					       svc->srv_thread_name, rc);
+					goto unlock;
+				}
+				if (strncmp(infos[pol_idx].pi_arg,
+					    tmp.pi_arg,
+					    sizeof(tmp.pi_arg)) != 0) {
+					spin_unlock(&nrs->nrs_lock);
+					rc = -EINVAL;
+					CERROR("%s: failed to check pi_arg: rc = %d\n",
+					       svc->srv_thread_name, rc);
+					goto unlock;
+				}
 				/**
-				 * Not asserting ptlrpc_nrs_pol_info::pi_state,
+				 * Not checking ptlrpc_nrs_pol_info::pi_state,
 				 * because it may be different between
 				 * instances of the same policy in different
 				 * service partitions.
 				 */
-				LASSERT(infos[pol_idx].pi_fallback ==
-					tmp.pi_fallback);
+
+				if (infos[pol_idx].pi_fallback !=
+				    tmp.pi_fallback) {
+					spin_unlock(&nrs->nrs_lock);
+					rc = -EINVAL;
+					CERROR("%s: failed to check pi_fallback: rc = %d\n",
+					       svc->srv_thread_name, rc);
+					goto unlock;
+				}
 			}
 
 			infos[pol_idx].pi_req_queued += tmp.pi_req_queued;
@@ -633,12 +657,18 @@ again:
 		   !hp ?  "\nregular_requests:" : "high_priority_requests:");
 
 	for (pol_idx = 0; pol_idx < num_pols; pol_idx++) {
-		seq_printf(m,  "  - name: %s\n"
-			       "    state: %s\n"
+		if (strlen(infos[pol_idx].pi_arg) > 0)
+			seq_printf(m, "  - name: %s %s\n",
+				   infos[pol_idx].pi_name,
+				   infos[pol_idx].pi_arg);
+		else
+			seq_printf(m, "  - name: %s\n",
+				   infos[pol_idx].pi_name);
+
+		seq_printf(m,  "    state: %s\n"
 			       "    fallback: %s\n"
 			       "    queued: %-20d\n"
 			       "    active: %-20d\n\n",
-			       infos[pol_idx].pi_name,
 			       nrs_state2str(infos[pol_idx].pi_state),
 			       infos[pol_idx].pi_fallback ? "yes" : "no",
 			       (int)infos[pol_idx].pi_req_queued,
@@ -655,8 +685,9 @@ again:
 		goto again;
 	}
 
-	kfree(infos);
 unlock:
+	kfree(infos);
+
 	mutex_unlock(&nrs_core.nrs_mutex);
 
 	return rc;
