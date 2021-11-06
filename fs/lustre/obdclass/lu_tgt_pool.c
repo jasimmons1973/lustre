@@ -138,10 +138,6 @@ int lu_tgt_pool_add(struct lu_tgt_pool *op, u32 idx, unsigned int min_count)
 
 	down_write(&op->op_rw_sem);
 
-	rc = lu_tgt_pool_extend(op, min_count);
-	if (rc)
-		goto out;
-
 	/* search ost in pool array */
 	for (i = 0; i < op->op_count; i++) {
 		if (op->op_array[i] == idx) {
@@ -149,6 +145,11 @@ int lu_tgt_pool_add(struct lu_tgt_pool *op, u32 idx, unsigned int min_count)
 			goto out;
 		}
 	}
+
+	rc = lu_tgt_pool_extend(op, min_count);
+	if (rc)
+		goto out;
+
 	/* ost not found we add it */
 	op->op_array[op->op_count] = idx;
 	op->op_count++;

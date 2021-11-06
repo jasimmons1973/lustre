@@ -270,7 +270,7 @@ int lov_pool_new(struct obd_device *obd, char *poolname)
 	atomic_set(&new_pool->pool_refcount, 1);
 	rc = lu_tgt_pool_init(&new_pool->pool_obds, 0);
 	if (rc)
-		goto out_err;
+		goto out_free_pool;
 
 	/* get ref for debugfs file */
 	lov_pool_getref(new_pool);
@@ -311,6 +311,7 @@ out_err:
 	spin_unlock(&obd->obd_dev_lock);
 	debugfs_remove_recursive(new_pool->pool_debugfs_entry);
 	lu_tgt_pool_free(&new_pool->pool_obds);
+out_free_pool:
 	kfree(new_pool);
 
 	return rc;
