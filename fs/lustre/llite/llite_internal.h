@@ -416,6 +416,7 @@ static inline void ll_layout_version_set(struct ll_inode_info *lli, u32 gen)
 }
 
 int ll_xattr_cache_destroy(struct inode *inode);
+int ll_xattr_cache_empty(struct inode *inode);
 
 int ll_xattr_cache_get(struct inode *inode, const char *name,
 		       char *buffer, size_t size, u64 valid);

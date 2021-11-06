@@ -272,6 +272,40 @@ int ll_xattr_cache_destroy(struct inode *inode)
 }
 
 /**
+ * ll_xattr_cache_empty - empty xattr cache for @ino
+ *
+ * Similar to ll_xattr_cache_destroy(), but preserves encryption context.
+ * So only LLIF_XATTR_CACHE_FILLED flag is cleared, but not LLIF_XATTR_CACHE.
+ */
+int ll_xattr_cache_empty(struct inode *inode)
+{
+	struct ll_inode_info *lli = ll_i2info(inode);
+	struct ll_xattr_entry *entry, *n;
+
+	down_write(&lli->lli_xattrs_list_rwsem);
+	if (!ll_xattr_cache_valid(lli) ||
+	    !ll_xattr_cache_filled(lli))
+		goto out_empty;
+
+	list_for_each_entry_safe(entry, n, &lli->lli_xattrs, xe_list) {
+		if (strcmp(entry->xe_name,
+			   LL_XATTR_NAME_ENCRYPTION_CONTEXT) == 0)
+			continue;
+
+		CDEBUG(D_CACHE, "delete: %s\n", entry->xe_name);
+		list_del(&entry->xe_list);
+		kfree(entry->xe_name);
+		kfree(entry->xe_value);
+		kmem_cache_free(xattr_kmem, entry);
+	}
+	clear_bit(LLIF_XATTR_CACHE_FILLED, &lli->lli_flags);
+
+out_empty:
+	up_write(&lli->lli_xattrs_list_rwsem);
+	return 0;
+}
+
+/**
  * Match or enqueue a PR lock.
  *
  * Find or request an LDLM lock with xattr data.
@@ -495,7 +529,7 @@ int ll_xattr_cache_get(struct inode *inode, const char *name, char *buffer,
 	 */
 	if ((valid & OBD_MD_FLXATTRLS ||
 	     strcmp(name, LL_XATTR_NAME_ENCRYPTION_CONTEXT) != 0) &&
-	    !ll_xattr_cache_valid(lli)) {
+	    !ll_xattr_cache_filled(lli)) {
 		up_read(&lli->lli_xattrs_list_rwsem);
 		rc = ll_xattr_cache_refill(inode);
 		if (rc)
