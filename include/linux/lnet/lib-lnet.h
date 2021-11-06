@@ -87,7 +87,7 @@ extern unsigned int lnet_current_net_count;
 #define DEFAULT_CREDITS	256
 
 /* default number of connections per peer */
-#define DEFAULT_CONNS_PER_PEER	1
+#define DEFAULT_CONNS_PER_PEER	0
 
 int choose_ipv4_src(u32 *ret, int interface, u32 dst_ipaddr, struct net *ns);
 

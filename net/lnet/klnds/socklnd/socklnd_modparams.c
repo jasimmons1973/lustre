@@ -163,6 +163,10 @@ static int ksocklnd_ni_get_eth_intf_speed(struct lnet_ni *ni)
 	int intf_idx = -1;
 	int ret = -1;
 
+	/* check if ni has interface assigned */
+	if (!ni->ni_net_ns || !ni->ni_interface)
+		return 0;
+
 	rtnl_lock();
 	for_each_netdev(ni->ni_net_ns, dev) {
 		int flags = dev_get_flags(dev);
@@ -215,10 +219,12 @@ static int ksocklnd_speed2cpp(int speed)
 
 static int ksocklnd_lookup_conns_per_peer(struct lnet_ni *ni)
 {
-	int cpp = DEFAULT_CONNS_PER_PEER;
+	int cpp = 1;
 	int speed = ksocklnd_ni_get_eth_intf_speed(ni);
 
-	CDEBUG(D_NET, "intf %s speed %d\n", ni->ni_interface, speed);
+	if (ni->ni_interface)
+		CDEBUG(D_NET, "intf %s speed %d\n", ni->ni_interface, speed);
+
 	if (speed > 0)
 		cpp = ksocklnd_speed2cpp(speed);
 
