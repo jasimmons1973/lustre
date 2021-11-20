@@ -1018,7 +1018,9 @@ struct ldlm_enqueue_info {
 	/* whether enqueue slave stripes */
 	unsigned int		ei_enq_slave:1;
 	/* whether acquire rpc slot */
-	unsigned int		ei_enq_slot:1;
+	unsigned int		ei_req_slot:1;
+	/** whether acquire mod rpc slot */
+	unsigned int		ei_mod_slot:1;
 };
 
 extern struct obd_ops ldlm_obd_ops;
@@ -1343,7 +1345,8 @@ struct ptlrpc_request *ldlm_enqueue_pack(struct obd_export *exp, int lvb_len);
 int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
 			  struct ldlm_enqueue_info *einfo, u8 with_policy,
 			  u64 *flags, void *lvb, u32 lvb_len,
-			  const struct lustre_handle *lockh, int rc);
+			  const struct lustre_handle *lockh, int rc,
+			  bool request_slot);
 int ldlm_cli_convert_req(struct ldlm_lock *lock, u32 *flags, u64 new_bits);
 int ldlm_cli_convert(struct ldlm_lock *lock,
 		     enum ldlm_cancel_flags cancel_flags);
