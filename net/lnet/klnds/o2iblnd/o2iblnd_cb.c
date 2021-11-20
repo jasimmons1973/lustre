@@ -2658,22 +2658,12 @@ kiblnd_check_reconnect(struct kib_conn *conn, int version,
 		reason = "Unknown";
 		break;
 
-	case IBLND_REJECT_RDMA_FRAGS: {
-		struct lnet_ioctl_config_o2iblnd_tunables *tunables;
-
+	case IBLND_REJECT_RDMA_FRAGS:
 		if (!cp) {
 			reason = "can't negotiate max frags";
 			goto out;
 		}
-		tunables = &peer_ni->ibp_ni->ni_lnd_tunables.lnd_tun_u.lnd_o2ib;
-		/*
-		 * This check only makes sense if the kernel supports global
-		 * memory registration. Otherwise, map_on_demand will never == 0
-		 */
-		if (!tunables->lnd_map_on_demand) {
-			reason = "map_on_demand must be enabled";
-			goto out;
-		}
+
 		if (conn->ibc_max_frags <= frag_num) {
 			reason = "unsupported max frags";
 			goto out;
@@ -2682,7 +2672,7 @@ kiblnd_check_reconnect(struct kib_conn *conn, int version,
 		peer_ni->ibp_max_frags = frag_num;
 		reason = "rdma fragments";
 		break;
-	}
+
 	case IBLND_REJECT_MSG_QUEUE_SIZE:
 		if (!cp) {
 			reason = "can't negotiate queue depth";
