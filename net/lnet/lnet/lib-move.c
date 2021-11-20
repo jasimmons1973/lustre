@@ -3900,7 +3900,7 @@ lnet_parse_put(struct lnet_ni *ni, struct lnet_msg *msg)
 	le32_to_cpus(&hdr->msg.put.offset);
 
 	/* Primary peer NID. */
-	info.mi_id.nid = msg->msg_initiator;
+	lnet_nid4_to_nid(msg->msg_initiator, &info.mi_id.nid);
 	info.mi_id.pid = hdr->src_pid;
 	info.mi_opc = LNET_MD_OP_PUT;
 	info.mi_portal = hdr->msg.put.ptl_index;
@@ -3939,7 +3939,7 @@ again:
 
 	case LNET_MATCHMD_DROP:
 		CNETERR("Dropping PUT from %s portal %d match %llu offset %d length %d: %d\n",
-			libcfs_id2str(info.mi_id), info.mi_portal,
+			libcfs_idstr(&info.mi_id), info.mi_portal,
 			info.mi_mbits, info.mi_roffset, info.mi_rlength, rc);
 
 		return -ENOENT;	/* -ve: OK but no match */
@@ -3964,7 +3964,7 @@ lnet_parse_get(struct lnet_ni *ni, struct lnet_msg *msg, int rdma_get)
 	source_id.nid = hdr->src_nid;
 	source_id.pid = hdr->src_pid;
 	/* Primary peer NID */
-	info.mi_id.nid = msg->msg_initiator;
+	lnet_nid4_to_nid(msg->msg_initiator, &info.mi_id.nid);
 	info.mi_id.pid = hdr->src_pid;
 	info.mi_opc = LNET_MD_OP_GET;
 	info.mi_portal = hdr->msg.get.ptl_index;
@@ -3976,7 +3976,7 @@ lnet_parse_get(struct lnet_ni *ni, struct lnet_msg *msg, int rdma_get)
 	rc = lnet_ptl_match_md(&info, msg);
 	if (rc == LNET_MATCHMD_DROP) {
 		CNETERR("Dropping GET from %s portal %d match %llu offset %d length %d\n",
-			libcfs_id2str(info.mi_id), info.mi_portal,
+			libcfs_idstr(&info.mi_id), info.mi_portal,
 			info.mi_mbits, info.mi_roffset, info.mi_rlength);
 		return -ENOENT;	/* -ve: OK but no match */
 	}
@@ -4008,7 +4008,7 @@ lnet_parse_get(struct lnet_ni *ni, struct lnet_msg *msg, int rdma_get)
 		/* didn't get as far as lnet_ni_send() */
 		CERROR("%s: Unable to send REPLY for GET from %s: %d\n",
 		       libcfs_nidstr(&ni->ni_nid),
-		       libcfs_id2str(info.mi_id), rc);
+		       libcfs_idstr(&info.mi_id), rc);
 
 		lnet_finalize(msg, rc);
 	}

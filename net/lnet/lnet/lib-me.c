@@ -68,7 +68,7 @@
  */
 struct lnet_me *
 LNetMEAttach(unsigned int portal,
-	     struct lnet_process_id match_id,
+	     struct lnet_processid *match_id,
 	     u64 match_bits, u64 ignore_bits,
 	     enum lnet_unlink unlink, enum lnet_ins_pos pos)
 {
@@ -93,7 +93,7 @@ LNetMEAttach(unsigned int portal,
 	lnet_res_lock(mtable->mt_cpt);
 
 	me->me_portal = portal;
-	me->me_match_id = match_id;
+	me->me_match_id = *match_id;
 	me->me_match_bits = match_bits;
 	me->me_ignore_bits = ignore_bits;
 	me->me_unlink = unlink;

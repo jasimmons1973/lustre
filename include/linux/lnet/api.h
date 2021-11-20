@@ -96,7 +96,7 @@ lnet_nid_t LNetPrimaryNID(lnet_nid_t nid);
  */
 struct lnet_me *
 LNetMEAttach(unsigned int portal,
-	     struct lnet_process_id match_id_in,
+	     struct lnet_processid *match_id_in,
 	     u64 match_bits_in,
 	     u64 ignore_bits_in,
 	     enum lnet_unlink unlink_in,

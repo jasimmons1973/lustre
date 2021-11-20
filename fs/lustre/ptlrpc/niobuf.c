@@ -120,7 +120,7 @@ static void __mdunlink_iterate_helper(struct lnet_handle_md *bd_mds,
 static int ptlrpc_register_bulk(struct ptlrpc_request *req)
 {
 	struct ptlrpc_bulk_desc *desc = req->rq_bulk;
-	struct lnet_process_id peer;
+	struct lnet_processid peer;
 	int rc = 0;
 	int posted_md;
 	int total_md;
@@ -150,7 +150,9 @@ static int ptlrpc_register_bulk(struct ptlrpc_request *req)
 
 	desc->bd_failure = 0;
 
-	peer = desc->bd_import->imp_connection->c_peer;
+	peer.pid = desc->bd_import->imp_connection->c_peer.pid;
+	lnet_nid4_to_nid(desc->bd_import->imp_connection->c_peer.nid,
+		      &peer.nid);
 
 	LASSERT(desc->bd_cbid.cbid_fn == client_bulk_callback);
 	LASSERT(desc->bd_cbid.cbid_arg == desc);
@@ -186,7 +188,7 @@ static int ptlrpc_register_bulk(struct ptlrpc_request *req)
 		    OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_BULK_ATTACH)) {
 			rc = -ENOMEM;
 		} else {
-			me = LNetMEAttach(desc->bd_portal, peer, mbits, 0,
+			me = LNetMEAttach(desc->bd_portal, &peer, mbits, 0,
 					  LNET_UNLINK, LNET_INS_AFTER);
 			rc = PTR_ERR_OR_ZERO(me);
 		}
@@ -225,7 +227,7 @@ static int ptlrpc_register_bulk(struct ptlrpc_request *req)
 	/* Holler if peer manages to touch buffers before he knows the mbits */
 	if (desc->bd_refs != total_md)
 		CWARN("%s: Peer %s touched %d buffers while I registered\n",
-		      desc->bd_import->imp_obd->obd_name, libcfs_id2str(peer),
+		      desc->bd_import->imp_obd->obd_name, libcfs_idstr(&peer),
 		      total_md - desc->bd_refs);
 	spin_unlock(&desc->bd_lock);
 
@@ -492,6 +494,7 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 	unsigned int mpflag = 0;
 	bool rep_mbits = false;
 	struct lnet_handle_md bulk_cookie;
+	struct lnet_processid peer;
 	struct ptlrpc_connection *connection;
 	struct lnet_me *reply_me;
 	struct lnet_md reply_md;
@@ -627,12 +630,14 @@ int ptl_send_rpc(struct ptlrpc_request *request, int noreply)
 			request->rq_repmsg = NULL;
 		}
 
+		peer.pid = connection->c_peer.pid;
+		lnet_nid4_to_nid(connection->c_peer.nid, &peer.nid);
 		if (request->rq_bulk &&
 		    OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_BULK_REPLY_ATTACH)) {
 			reply_me = ERR_PTR(-ENOMEM);
 		} else {
 			reply_me = LNetMEAttach(request->rq_reply_portal,
-						connection->c_peer,
+						&peer,
 						rep_mbits ? request->rq_mbits :
 						request->rq_xid,
 						0, LNET_UNLINK, LNET_INS_AFTER);
@@ -761,8 +766,8 @@ EXPORT_SYMBOL(ptl_send_rpc);
 int ptlrpc_register_rqbd(struct ptlrpc_request_buffer_desc *rqbd)
 {
 	struct ptlrpc_service *service = rqbd->rqbd_svcpt->scp_service;
-	static struct lnet_process_id match_id = {
-		.nid = LNET_NID_ANY,
+	static struct lnet_processid match_id = {
+		.nid = LNET_ANY_NID,
 		.pid = LNET_PID_ANY
 	};
 	int rc;
@@ -780,7 +785,7 @@ int ptlrpc_register_rqbd(struct ptlrpc_request_buffer_desc *rqbd)
 	 * threads can find it by grabbing a local lock
 	 */
 	me = LNetMEAttach(service->srv_req_portal,
-			  match_id, 0, ~0, LNET_UNLINK,
+			  &match_id, 0, ~0, LNET_UNLINK,
 			  rqbd->rqbd_svcpt->scp_cpt >= 0 ?
 			  LNET_INS_LOCAL : LNET_INS_AFTER);
 	if (IS_ERR(me)) {
