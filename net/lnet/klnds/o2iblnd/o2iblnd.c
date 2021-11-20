@@ -1392,7 +1392,7 @@ static int kiblnd_alloc_freg_pool(struct kib_fmr_poolset *fps,
 		frd->frd_mr = ib_alloc_mr(fpo->fpo_hdev->ibh_pd,
 					  fastreg_gaps ? IB_MR_TYPE_SG_GAPS :
 							 IB_MR_TYPE_MEM_REG,
-					  LNET_MAX_IOV);
+					  IBLND_MAX_RDMA_FRAGS);
 		if (IS_ERR(frd->frd_mr)) {
 			rc = PTR_ERR(frd->frd_mr);
 			CERROR("Failed to allocate ib_alloc_mr: %d\n", rc);

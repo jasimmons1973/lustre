@@ -662,6 +662,7 @@ kiblnd_setup_rd_kiov(struct lnet_ni *ni, struct kib_tx *tx,
 	struct scatterlist *sg;
 	int fragnob;
 	int max_nkiov;
+	int sg_count = 0;
 
 	CDEBUG(D_NET, "niov %d offset %d nob %d\n", nkiov, offset, nob);
 
@@ -682,6 +683,12 @@ kiblnd_setup_rd_kiov(struct lnet_ni *ni, struct kib_tx *tx,
 	do {
 		LASSERT(nkiov > 0);
 
+		if (!sg) {
+			CERROR("lacking enough sg entries to map tx\n");
+			return -EFAULT;
+		}
+		sg_count++;
+
 		fragnob = min((int)(kiov->bv_len - offset), nob);
 
 		/* We're allowed to start at a non-aligned page offset in
@@ -700,10 +707,6 @@ kiblnd_setup_rd_kiov(struct lnet_ni *ni, struct kib_tx *tx,
 		sg_set_page(sg, kiov->bv_page, fragnob,
 			    kiov->bv_offset + offset);
 		sg = sg_next(sg);
-		if (!sg) {
-			CERROR("lacking enough sg entries to map tx\n");
-			return -EFAULT;
-		}
 
 		offset = 0;
 		kiov++;
@@ -711,7 +714,7 @@ kiblnd_setup_rd_kiov(struct lnet_ni *ni, struct kib_tx *tx,
 		nob -= fragnob;
 	} while (nob > 0);
 
-	return kiblnd_map_tx(ni, tx, rd, sg - tx->tx_frags);
+	return kiblnd_map_tx(ni, tx, rd, sg_count);
 }
 
 static int
@@ -1008,7 +1011,7 @@ kiblnd_init_tx_msg(struct lnet_ni *ni, struct kib_tx *tx, int type,
 	int nob = offsetof(struct kib_msg, ibm_u) + body_nob;
 
 	LASSERT(tx->tx_nwrq >= 0);
-	LASSERT(tx->tx_nwrq < IBLND_MAX_RDMA_FRAGS + 1);
+	LASSERT(tx->tx_nwrq <= IBLND_MAX_RDMA_FRAGS);
 	LASSERT(nob <= IBLND_MSG_SIZE);
 
 	kiblnd_init_msg(tx->tx_msg, type, body_nob);
