@@ -744,15 +744,15 @@ lnet_delay_rule_check(void)
 			break;
 
 		spin_lock_bh(&delay_dd.dd_lock);
-		rule = list_first_entry_or_null(&delay_dd.dd_sched_rules,
-						struct lnet_delay_rule,
-						dl_sched_link);
-		if (!rule)
-			list_del_init(&rule->dl_sched_link);
-		spin_unlock_bh(&delay_dd.dd_lock);
-
-		if (!rule)
+		if (list_empty(&delay_dd.dd_sched_rules)) {
+			spin_unlock_bh(&delay_dd.dd_lock);
 			break;
+		}
+
+		rule = list_entry(delay_dd.dd_sched_rules.next,
+				  struct lnet_delay_rule, dl_sched_link);
+		list_del_init(&rule->dl_sched_link);
+		spin_unlock_bh(&delay_dd.dd_lock);
 
 		delayed_msg_check(rule, false, &msgs);
 		delay_rule_decref(rule); /* -1 for delay_dd.dd_sched_rules */
