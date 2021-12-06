@@ -396,6 +396,8 @@ static int ll_xattr_cache_refill(struct inode *inode)
 	u32 *xsizes;
 	int rc, i;
 
+	CFS_FAIL_TIMEOUT(OBD_FAIL_LLITE_XATTR_PAUSE, cfs_fail_val ?: 2);
+
 	rc = ll_xattr_find_get_lock(inode, &oit, &req);
 	if (rc)
 		goto err_req;
