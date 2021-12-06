@@ -3598,6 +3598,9 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 		if (ioc->lil_count != 1)
 			return -EINVAL;
 
+		if (IS_ENCRYPTED(inode))
+			return -EOPNOTSUPP;
+
 		arg += sizeof(*ioc);
 		if (copy_from_user(&param.pa_archive_id, (void __user *)arg,
 				   sizeof(u32))) {
