@@ -431,8 +431,8 @@ static int lustre_stop_mgc(struct super_block *sb)
 {
 	struct lustre_sb_info *lsi = s2lsi(sb);
 	struct obd_device *obd;
-	char *niduuid = NULL, *ptr = NULL;
-	int i, rc = 0, len = 0;
+	char niduuid[MAX_OBD_NAME + 6], *ptr = NULL;
+	int i, rc = 0;
 
 	if (!lsi)
 		return -ENOENT;
@@ -467,23 +467,16 @@ static int lustre_stop_mgc(struct super_block *sb)
 			CDEBUG(D_MOUNT, "disconnect failed %d\n", rc);
 	}
 
-	/* Save the obdname for cleaning the nid uuids, which are obdname_XX */
-	len = strlen(obd->obd_name) + 6;
-	niduuid = kzalloc(len, GFP_NOFS);
-	if (niduuid) {
-		strcpy(niduuid, obd->obd_name);
-		ptr = niduuid + strlen(niduuid);
-	}
+	/*
+	 * Cache the obdname for cleaning the nid uuids, which are
+	 * obdname_XX before calling class_manual_cleanup
+	 */
+	strcpy(niduuid, obd->obd_name);
+	ptr = niduuid + strlen(niduuid);
 
 	rc = class_manual_cleanup(obd);
 	if (rc)
 		goto out;
-
-	/* Clean the nid uuids */
-	if (!niduuid) {
-		rc = -ENOMEM;
-		goto out;
-	}
 
 	for (i = 0; i < lsi->lsi_lmd->lmd_mgs_failnodes; i++) {
 		sprintf(ptr, "_%x", i);
@@ -494,8 +487,6 @@ static int lustre_stop_mgc(struct super_block *sb)
 			       niduuid, rc);
 	}
 out:
-	kfree(niduuid);
-
 	/* class_import_put will get rid of the additional connections */
 	mutex_unlock(&mgc_start_lock);
 	return rc;
