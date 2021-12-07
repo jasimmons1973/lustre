@@ -701,12 +701,12 @@ struct ll_sb_info {
 	struct cl_device	*ll_cl;
 
 	/* Statistics */
-	struct ll_rw_extents_info ll_rw_extents_info;
+	struct ll_rw_extents_info *ll_rw_extents_info;
 	int			ll_extent_process_count;
 	unsigned int		ll_offset_process_count;
+	struct ll_rw_process_info *ll_rw_process_info;
+	struct ll_rw_process_info *ll_rw_offset_info;
 	ktime_t			ll_process_stats_init;
-	struct ll_rw_process_info ll_rw_process_info[LL_PROCESS_HIST_MAX];
-	struct ll_rw_process_info ll_rw_offset_info[LL_OFFSET_HIST_MAX];
 	unsigned int		ll_rw_offset_entry_count;
 	int			ll_stats_track_id;
 	enum stats_track_type	ll_stats_track_type;
@@ -997,6 +997,7 @@ void ll_stats_ops_tally(struct ll_sb_info *sbi, int op, long count);
 void ll_rw_stats_tally(struct ll_sb_info *sbi, pid_t pid,
 		       struct ll_file_data *file, loff_t pos,
 		       size_t count, int rw);
+void ll_free_rw_stats_info(struct ll_sb_info *sbi);
 
 enum {
 	LPROC_LL_READ_BYTES,
