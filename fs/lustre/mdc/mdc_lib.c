@@ -621,6 +621,8 @@ void mdc_getattr_pack(struct req_capsule *pill, u64 valid, u32 flags,
 	b->mbo_valid = valid;
 	if (op_data->op_bias & MDS_CROSS_REF)
 		b->mbo_valid |= OBD_MD_FLCROSSREF;
+	if (op_data->op_bias & MDS_FID_OP)
+		b->mbo_valid |= OBD_MD_NAMEHASH;
 	b->mbo_eadatasize = ea_size;
 	b->mbo_flags = flags;
 	__mdc_pack_body(b, op_data->op_suppgids[0]);

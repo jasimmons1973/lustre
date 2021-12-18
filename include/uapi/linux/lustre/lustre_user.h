@@ -1221,12 +1221,13 @@ enum la_valid {
 #define MDS_OPEN_PCC      010000000000000ULL /* PCC: auto RW-PCC cache attach
 					      * for newly created file
 					      */
+#define MDS_OP_WITH_FID	  020000000000000ULL /* operation carried out by FID */
 
 #define MDS_OPEN_FL_INTERNAL (MDS_OPEN_HAS_EA | MDS_OPEN_HAS_OBJS |	\
 			      MDS_OPEN_OWNEROVERRIDE | MDS_OPEN_LOCK |	\
 			      MDS_OPEN_BY_FID | MDS_OPEN_LEASE |	\
 			      MDS_OPEN_RELEASE | MDS_OPEN_RESYNC |	\
-			      MDS_OPEN_PCC)
+			      MDS_OPEN_PCC | MDS_OP_WITH_FID)
 
 /********* Changelogs **********/
 /** Changelog record types */

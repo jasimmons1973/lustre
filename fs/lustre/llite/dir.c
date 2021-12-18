@@ -250,7 +250,7 @@ int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
 					= FSTR_INIT(ent->lde_name, namelen);
 
 				rc = ll_fname_disk_to_usr(inode, 0, 0, &de_name,
-							  &lltr);
+							  &lltr, &fid);
 				de_name = lltr;
 				lltr.len = save_len;
 				if (rc) {

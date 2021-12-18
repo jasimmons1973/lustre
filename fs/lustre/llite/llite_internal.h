@@ -1705,11 +1705,22 @@ static inline struct pcc_super *ll_info2pccs(struct ll_inode_info *lli)
 
 /* crypto.c */
 #ifdef CONFIG_FS_ENCRYPTION
+/* The digested form is made of a FID (16 bytes) followed by the second-to-last
+ * ciphertext block (16 bytes), so a total length of 32 bytes.
+ * That way, llcrypt does not compute a digested form of this digest.
+ */
+struct ll_digest_filename {
+	struct lu_fid ldf_fid;
+	char ldf_excerpt[LLCRYPT_FNAME_DIGEST_SIZE];
+};
+
 int ll_setup_filename(struct inode *dir, const struct qstr *iname,
-		      int lookup, struct fscrypt_name *fname);
+		      int lookup, struct fscrypt_name *fname,
+		      struct lu_fid *fid);
 int ll_fname_disk_to_usr(struct inode *inode,
 			 u32 hash, u32 minor_hash,
-			 struct fscrypt_str *iname, struct fscrypt_str *oname);
+			 struct fscrypt_str *iname, struct fscrypt_str *oname,
+			 struct lu_fid *fid);
 int ll_revalidate_d_crypto(struct dentry *dentry, unsigned int flags);
 #else
 int ll_setup_filename(struct inode *dir, const struct qstr *iname,
