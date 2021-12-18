@@ -1710,6 +1710,8 @@ enum mds_op_bias {
 	/* setstripe create only, don't restripe if target exists */
 	MDS_SETSTRIPE_CREATE	= 1 << 21,
 	MDS_FID_OP		= 1 << 22,
+	/* migrate dirent only */
+	MDS_MIGRATE_NSONLY	= 1 << 23,
 };
 
 #define MDS_CLOSE_INTENT (MDS_HSM_RELEASE | MDS_CLOSE_LAYOUT_SWAP |         \
