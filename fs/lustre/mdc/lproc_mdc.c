@@ -566,6 +566,33 @@ static ssize_t mdc_dom_min_repsize_seq_write(struct file *file,
 }
 LDEBUGFS_SEQ_FOPS(mdc_dom_min_repsize);
 
+static int mdc_lsom_seq_show(struct seq_file *m, void *v)
+{
+	struct obd_device *dev = m->private;
+
+	seq_printf(m, "%s\n", dev->u.cli.cl_lsom_update ? "On" : "Off");
+
+	return 0;
+}
+
+static ssize_t mdc_lsom_seq_write(struct file *file,
+				  const char __user *buffer,
+				  size_t count, loff_t *off)
+{
+	struct obd_device *dev;
+	bool val;
+	int rc;
+
+	dev =  ((struct seq_file *)file->private_data)->private;
+	rc = kstrtobool_from_user(buffer, count, &val);
+	if (rc)
+		return rc;
+
+	dev->u.cli.cl_lsom_update = val;
+	return count;
+}
+LDEBUGFS_SEQ_FOPS(mdc_lsom);
+
 LDEBUGFS_SEQ_FOPS_RO_TYPE(mdc, connect_flags);
 LDEBUGFS_SEQ_FOPS_RO_TYPE(mdc, server_uuid);
 LDEBUGFS_SEQ_FOPS_RO_TYPE(mdc, timeouts);
@@ -601,6 +628,8 @@ static struct ldebugfs_vars lprocfs_mdc_obd_vars[] = {
 	  .fops	=	&mdc_stats_fops			},
 	{ .name	=	"mdc_dom_min_repsize",
 	  .fops	=	&mdc_dom_min_repsize_fops	},
+	{ .name =	"mdc_lsom",
+	  .fops =	&mdc_lsom_fops			},
 	{ NULL }
 };
 

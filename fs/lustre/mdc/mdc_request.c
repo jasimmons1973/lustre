@@ -952,7 +952,8 @@ static int mdc_close(struct obd_export *exp, struct md_op_data *op_data,
 	req->rq_request_portal = MDS_READPAGE_PORTAL;
 	ptlrpc_at_set_req_timeout(req);
 
-	if (!(exp_connect_flags2(exp) & OBD_CONNECT2_LSOM))
+	if (!obd->u.cli.cl_lsom_update ||
+	    !(exp_connect_flags2(exp) & OBD_CONNECT2_LSOM))
 		op_data->op_xvalid &= ~(OP_XVALID_LAZYSIZE |
 					OP_XVALID_LAZYBLOCKS);
 
@@ -2842,6 +2843,7 @@ int mdc_setup(struct obd_device *obd, struct lustre_cfg *cfg)
 		goto err_osc_cleanup;
 
 	obd->u.cli.cl_dom_min_inline_repsize = MDC_DOM_DEF_INLINE_REPSIZE;
+	obd->u.cli.cl_lsom_update = true;
 
 	ns_register_cancel(obd->obd_namespace, mdc_cancel_weight);
 
