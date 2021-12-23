@@ -41,7 +41,7 @@ static int ll_get_context(struct inode *inode, void *ctx, size_t len)
 		return PTR_ERR(env);
 
 	/* Set lcc_getencctx=1 to allow this thread to read
-	 * LL_XATTR_NAME_ENCRYPTION_CONTEXT xattr, as requested by llcrypt.
+	 * LL_XATTR_NAME_ENCRYPTION_CONTEXT xattr, as requested by fscrypt.
 	 */
 	ll_cl_add(inode, env, NULL, LCC_RW);
 	ll_env_info(env)->lti_io_ctx.lcc_getencctx = 1;
@@ -129,7 +129,33 @@ static int ll_set_context(struct inode *inode, const void *ctx, size_t len,
 	return ll_set_encflags(inode, (void *)ctx, len, false);
 }
 
-#define llcrypto_free_ctx	kfree
+/**
+ * ll_file_open_encrypt() - overlay to fscrypt_file_open
+ * @inode: the inode being opened
+ * @filp: the struct file being set up
+ *
+ * This overlay function is necessary to handle encrypted file open without
+ * the key. We allow this access pattern to applications that know what they
+ * are doing, by using the specific flag O_FILE_ENC.
+ * This flag is only compatible with O_DIRECT IOs, to make sure ciphertext
+ * data is wiped from page cache once IOs are finished.
+ */
+int ll_file_open_encrypt(struct inode *inode, struct file *filp)
+{
+	int rc;
+
+	rc = fscrypt_file_open(inode, filp);
+	if (likely(rc != -ENOKEY))
+		return rc;
+
+	if (rc == -ENOKEY &&
+	    (filp->f_flags & O_FILE_ENC) == O_FILE_ENC &&
+	    filp->f_flags & O_DIRECT)
+		/* allow file open with O_FILE_ENC flag when we have O_DIRECT */
+		rc = 0;
+
+	return rc;
+}
 
 bool ll_sbi_has_test_dummy_encryption(struct ll_sb_info *sbi)
 {
@@ -183,9 +209,9 @@ static bool ll_empty_dir(struct inode *inode)
  * This overlay function is necessary to properly encode @fname after
  * encryption, as it will be sent over the wire.
  * This overlay function is also necessary to handle the case of operations
- * carried out without the key. Normally llcrypt makes use of digested names in
+ * carried out without the key. Normally fscrypt makes use of digested names in
  * that case. Having a digested name works for local file systems that can call
- * llcrypt_match_name(), but Lustre server side is not aware of encryption.
+ * fscrypt_match_name(), but Lustre server side is not aware of encryption.
  * So for keyless @lookup operations on long names, for Lustre we choose to
  * present to users the encoded struct ll_digest_filename, instead of a digested
  * name. FID and name hash can then easily be extracted and put into the
@@ -218,6 +244,17 @@ int ll_setup_filename(struct inode *dir, const struct qstr *iname,
 		fid->f_ver = 0;
 	}
 	rc = fscrypt_setup_filename(dir, &dname, lookup, fname);
+	if (rc == -ENOENT && lookup &&
+	    !fscrypt_has_encryption_key(dir) &&
+	    unlikely(filename_is_volatile(iname->name, iname->len, NULL))) {
+		/* For purpose of migration or mirroring without enc key, we
+		 * allow lookup of volatile file without enc context.
+		 */
+		memset(fname, 0, sizeof(struct fscrypt_name));
+		fname->disk_name.name = (unsigned char *)iname->name;
+		fname->disk_name.len = iname->len;
+		rc = 0;
+	}
 	if (rc)
 		return rc;
 
@@ -294,9 +331,9 @@ out_free:
  * This overlay function is necessary to properly decode @iname before
  * decryption, as it comes from the wire.
  * This overlay function is also necessary to handle the case of operations
- * carried out without the key. Normally llcrypt makes use of digested names in
+ * carried out without the key. Normally fscrypt makes use of digested names in
  * that case. Having a digested name works for local file systems that can call
- * llcrypt_match_name(), but Lustre server side is not aware of encryption.
+ * fscrypt_match_name(), but Lustre server side is not aware of encryption.
  * So for keyless @lookup operations on long names, for Lustre we choose to
  * present to users the encoded struct ll_digest_filename, instead of a digested
  * name. FID and name hash can then easily be extracted and put into the
@@ -334,7 +371,7 @@ int ll_fname_disk_to_usr(struct inode *inode,
 			digested = 1;
 			/* Without the key for long names, set the dentry name
 			 * to the representing struct ll_digest_filename. It
-			 * will be encoded by llcrypt for display, and will
+			 * will be encoded by fscrypt for display, and will
 			 * enable further lookup requests.
 			 */
 			if (!fid)
@@ -373,7 +410,7 @@ int ll_revalidate_d_crypto(struct dentry *dentry, unsigned int flags)
 	int valid;
 
 	/*
-	 * Plaintext names are always valid, since llcrypt doesn't support
+	 * Plaintext names are always valid, since fscrypt doesn't support
 	 * reverting to ciphertext names without evicting the directory's inode
 	 * -- which implies eviction of the dentries in the directory.
 	 */
@@ -383,7 +420,7 @@ int ll_revalidate_d_crypto(struct dentry *dentry, unsigned int flags)
 	/*
 	 * Ciphertext name; valid if the directory's key is still unavailable.
 	 *
-	 * Although llcrypt forbids rename() on ciphertext names, we still must
+	 * Although fscrypt forbids rename() on ciphertext names, we still must
 	 * use dget_parent() here rather than use ->d_parent directly.  That's
 	 * because a corrupted fs image may contain directory hard links, which
 	 * the VFS handles by moving the directory's dentry tree in the dcache

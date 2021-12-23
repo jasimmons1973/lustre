@@ -1184,6 +1184,8 @@ void ll_kill_super(struct super_block *sb);
 struct inode *ll_inode_from_resource_lock(struct ldlm_lock *lock);
 void ll_dir_clear_lsm_md(struct inode *inode);
 void ll_clear_inode(struct inode *inode);
+int volatile_ref_file(const char *volatile_name, int volatile_len,
+		      struct file **ref_file);
 int ll_setattr_raw(struct dentry *dentry, struct iattr *attr,
 		   enum op_xvalid xvalid, bool hsm_import);
 int ll_setattr(struct dentry *de, struct iattr *attr);
@@ -1707,7 +1709,7 @@ static inline struct pcc_super *ll_info2pccs(struct ll_inode_info *lli)
 #ifdef CONFIG_FS_ENCRYPTION
 /* The digested form is made of a FID (16 bytes) followed by the second-to-last
  * ciphertext block (16 bytes), so a total length of 32 bytes.
- * That way, llcrypt does not compute a digested form of this digest.
+ * That way, fscrypt does not compute a digested form of this digest.
  */
 struct ll_digest_filename {
 	struct lu_fid ldf_fid;
@@ -1722,6 +1724,7 @@ int ll_fname_disk_to_usr(struct inode *inode,
 			 struct fscrypt_str *iname, struct fscrypt_str *oname,
 			 struct lu_fid *fid);
 int ll_revalidate_d_crypto(struct dentry *dentry, unsigned int flags);
+int ll_file_open_encrypt(struct inode *inode, struct file *filp);
 #else
 int ll_setup_filename(struct inode *dir, const struct qstr *iname,
 		      int lookup, struct fscrypt_name *fname)
@@ -1739,6 +1742,11 @@ int ll_fname_disk_to_usr(struct inode *inode,
 int ll_revalidate_d_crypto(struct dentry *dentry, unsigned int flags)
 {
 	return 1;
+}
+
+int ll_file_open_encrypt(struct inode *inode, struct file *filp)
+{
+	return 0;
 }
 #endif
 

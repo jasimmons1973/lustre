@@ -365,7 +365,7 @@ int ll_xattr_list(struct inode *inode, const char *name, int type, void *buffer,
 	int rc;
 
 	/* Getting LL_XATTR_NAME_ENCRYPTION_CONTEXT xattr is only allowed
-	 * when it comes from ll_get_context(), ie when llcrypt needs to
+	 * when it comes from ll_get_context(), ie when fscrypt needs to
 	 * know the encryption context.
 	 * Otherwise, any direct reading of this xattr returns -EPERM.
 	 */
@@ -646,7 +646,7 @@ ssize_t ll_listxattr(struct dentry *dentry, char *buffer, size_t size)
 
 		/* Listing xattrs should not expose
 		 * LL_XATTR_NAME_ENCRYPTION_CONTEXT xattr, unless it comes
-		 * from llcrypt.
+		 * from fscrypt.
 		 */
 		if (get_xattr_type(xattr_name)->flags == XATTR_SECURITY_T &&
 		    !strcmp(xattr_name, LL_XATTR_NAME_ENCRYPTION_CONTEXT)) {

@@ -40,6 +40,7 @@
 #include <linux/module.h>
 #include <linux/random.h>
 #include <linux/statfs.h>
+#include <linux/file.h>
 #include <linux/types.h>
 #include <linux/mm.h>
 #include <linux/delay.h>
@@ -1863,7 +1864,7 @@ int ll_io_zero_page(struct inode *inode, pgoff_t index, pgoff_t offset,
 		 */
 		SetPagePrivate2(vmpage);
 		rc = ll_io_read_page(env, io, clpage, NULL);
-		if (!PagePrivate2(vmpage))
+		if (!PagePrivate2(vmpage)) {
 			/* PagePrivate2 was cleared in osc_brw_fini_request()
 			 * meaning we read an empty page. In this case, in order
 			 * to avoid allocating unnecessary block in truncated
@@ -1872,6 +1873,7 @@ int ll_io_zero_page(struct inode *inode, pgoff_t index, pgoff_t offset,
 			 */
 			rc = 0;
 			goto clpfini;
+		}
 		ClearPagePrivate2(vmpage);
 		if (rc)
 			goto clpfini;
@@ -1923,6 +1925,44 @@ putenv:
 		cl_env_put(env, &refcheck);
 
 	return rc;
+}
+
+/**
+ * Get reference file from volatile file name.
+ * Volatile file name may look like:
+ * <parent>/LUSTRE_VOLATILE_HDR:<mdt_index>:<random>:fd=<fd>
+ * where fd is opened descriptor of reference file.
+ *
+ * \param[in] volatile_name	volatile file name
+ * \param[in] volatile_len	volatile file name length
+ * \param[out] ref_file		pointer to struct file of reference file
+ *
+ * \retval 0		on success
+ * \retval negative	errno on failure
+ */
+int volatile_ref_file(const char *volatile_name, int volatile_len,
+		      struct file **ref_file)
+{
+	char *p, *q, *fd_str;
+	int fd, rc;
+
+	p = strnstr(volatile_name, ":fd=", volatile_len);
+	if (!p || strlen(p + 4) == 0)
+		return -EINVAL;
+
+	q = strchrnul(p + 4, ':');
+	fd_str = kstrndup(p + 4, q - p - 4, GFP_NOFS);
+	if (!fd_str)
+		return -ENOMEM;
+	rc = kstrtouint(fd_str, 10, &fd);
+	kfree(fd_str);
+	if (rc)
+		return -EINVAL;
+
+	*ref_file = fget(fd);
+	if (!(*ref_file))
+		return -EINVAL;
+	return 0;
 }
 
 /* If this inode has objects allocated to it (lsm != NULL), then the OST
@@ -2089,6 +2129,58 @@ int ll_setattr_raw(struct dentry *dentry, struct iattr *attr,
 							     offset, PAGE_SIZE - offset);
 					if (rc)
 						goto out;
+				}
+				/* If encrypted volatile file without the key,
+				 * we need to fetch size from reference file,
+				 * and set it on OST objects. This happens when
+				 * migrating or extending an encrypted file
+				 * without the key.
+				 */
+				if (filename_is_volatile(dentry->d_name.name,
+							 dentry->d_name.len,
+							 NULL) &&
+				    fscrypt_require_key(inode) == -ENOKEY) {
+					struct file *ref_file;
+					struct inode *ref_inode;
+					struct ll_inode_info *ref_lli;
+					struct cl_object *ref_obj;
+					struct cl_attr ref_attr = { 0 };
+					struct lu_env *env;
+					u16 refcheck;
+
+					rc = volatile_ref_file(
+						dentry->d_name.name,
+						dentry->d_name.len,
+						&ref_file);
+					if (rc)
+						goto out;
+
+					ref_inode = file_inode(ref_file);
+					if (!ref_inode) {
+						fput(ref_file);
+						rc = -EINVAL;
+						goto out;
+					}
+
+					env = cl_env_get(&refcheck);
+					if (IS_ERR(env)) {
+						rc = PTR_ERR(env);
+						goto out;
+					}
+
+					ref_lli = ll_i2info(ref_inode);
+					ref_obj = ref_lli->lli_clob;
+					cl_object_attr_lock(ref_obj);
+					rc = cl_object_attr_get(env, ref_obj,
+								&ref_attr);
+					cl_object_attr_unlock(ref_obj);
+					cl_env_put(env, &refcheck);
+					fput(ref_file);
+					if (rc)
+						goto out;
+
+					attr->ia_valid |= ATTR_SIZE;
+					attr->ia_size = ref_attr.cat_size;
 				}
 			}
 			rc = cl_setattr_ost(ll_i2info(inode)->lli_clob,
@@ -2462,7 +2554,15 @@ int ll_update_inode(struct inode *inode, struct lustre_md *md)
 
 	LASSERT(fid_seq(&lli->lli_fid) != 0);
 
-	lli->lli_attr_valid = body->mbo_valid;
+	/* In case of encrypted file without the key, please do not lose
+	 * clear text size stored into lli_lazysize in ll_merge_attr(),
+	 * we will need it in ll_prepare_close().
+	 */
+	if (lli->lli_attr_valid & OBD_MD_FLLAZYSIZE && lli->lli_lazysize &&
+	    fscrypt_require_key(inode) == -ENOKEY)
+		lli->lli_attr_valid = body->mbo_valid | OBD_MD_FLLAZYSIZE;
+	else
+		lli->lli_attr_valid = body->mbo_valid;
 	if (body->mbo_valid & OBD_MD_FLSIZE) {
 		i_size_write(inode, body->mbo_size);
 
@@ -3097,11 +3197,10 @@ struct md_op_data *ll_prep_md_op_data(struct md_op_data *op_data,
 			op_data->op_flags |= MF_OPNAME_KMALLOCED;
 	}
 
-	/* In fact LUSTRE_OPC_LOOKUP, LUSTRE_OPC_OPEN, LUSTRE_OPC_MIGR
+	/* In fact LUSTRE_OPC_LOOKUP, LUSTRE_OPC_OPEN
 	 * are LUSTRE_OPC_ANY
 	 */
-	if (opc == LUSTRE_OPC_LOOKUP || opc == LUSTRE_OPC_OPEN ||
-	    opc == LUSTRE_OPC_MIGR)
+	if (opc == LUSTRE_OPC_LOOKUP || opc == LUSTRE_OPC_OPEN)
 		op_data->op_code = LUSTRE_OPC_ANY;
 	else
 		op_data->op_code = opc;

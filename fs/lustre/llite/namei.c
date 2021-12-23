@@ -49,7 +49,7 @@
 static int ll_create_it(struct inode *dir, struct dentry *dentry,
 			struct lookup_intent *it,
 			void *secctx, u32 secctxlen, bool encrypt,
-			void *encctx, u32 encctxlen);
+			void *encctx, u32 encctxlen, unsigned int open_flags);
 
 /* called from iget5_locked->find_inode() under inode_hash_lock spinlock */
 static int ll_test_inode(struct inode *inode, void *opaque)
@@ -908,44 +908,21 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 			*secctxlen = 0;
 	}
 	if (it->it_op & IT_CREAT && encrypt) {
-		/* Volatile file name may look like:
-		 * <parent>/LUSTRE_VOLATILE_HDR:<mdt_index>:<random>:fd=<fd>
-		 * where fd is opened descriptor of reference file.
-		 */
 		if (unlikely(filename_is_volatile(dentry->d_name.name,
 						  dentry->d_name.len, NULL))) {
+			/* get encryption context from reference file */
 			int ctx_size = LLCRYPT_ENC_CTX_SIZE;
 			struct lustre_sb_info *lsi;
 			struct file *ref_file;
 			struct inode *ref_inode;
-			char *p, *q, *fd_str;
 			void *ctx;
-			int fd;
 
-			p = strnstr(dentry->d_name.name, ":fd=",
-				    dentry->d_name.len);
-			if (!p || strlen(p + 4) == 0) {
-				retval = ERR_PTR(-EINVAL);
-				goto out;
-			}
-
-			q = strchrnul(p + 4, ':');
-			fd_str = kstrndup(p + 4, q - p - 4, GFP_NOFS);
-			if (!fd_str) {
-				retval = ERR_PTR(-ENOMEM);
-				goto out;
-			}
-			rc = kstrtouint(fd_str, 10, &fd);
-			kfree(fd_str);
+			rc = volatile_ref_file(dentry->d_name.name,
+					       dentry->d_name.len,
+					       &ref_file);
 			if (rc) {
-				rc = -EINVAL;
-				goto inherit;
-			}
-
-			ref_file = fget(fd);
-			if (!ref_file) {
-				rc = -EINVAL;
-				goto inherit;
+				retval = ERR_PTR(rc);
+				goto out;
 			}
 
 			ref_inode = file_inode(ref_file);
@@ -1254,7 +1231,14 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 		if (rc)
 			goto out_release;
 		if (open_flags & O_CREAT) {
-			if (!fscrypt_has_encryption_key(dir)) {
+			/* For migration or mirroring without enc key, we still
+			 * need to be able to create a volatile file.
+			 */
+			if (!fscrypt_has_encryption_key(dir) &&
+			    (!filename_is_volatile(dentry->d_name.name,
+						   dentry->d_name.len, NULL) ||
+			    (open_flags & O_FILE_ENC) != O_FILE_ENC ||
+			    !(open_flags & O_DIRECT))) {
 				rc = -ENOKEY;
 				goto out_release;
 			}
@@ -1287,7 +1271,8 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 		if (it_disposition(it, DISP_OPEN_CREATE)) {
 			/* Dentry instantiated in ll_create_it. */
 			rc = ll_create_it(dir, dentry, it, secctx, secctxlen,
-					  encrypt, encctx, encctxlen);
+					  encrypt, encctx, encctxlen,
+					  open_flags);
 			security_release_secctx(secctx, secctxlen);
 			kfree(encctx);
 			if (rc) {
@@ -1414,7 +1399,7 @@ static struct inode *ll_create_node(struct inode *dir, struct lookup_intent *it)
 static int ll_create_it(struct inode *dir, struct dentry *dentry,
 			struct lookup_intent *it,
 			void *secctx, u32 secctxlen, bool encrypt,
-			void *encctx, u32 encctxlen)
+			void *encctx, u32 encctxlen, unsigned int open_flags)
 {
 	struct inode *inode;
 	u64 bits = 0;
@@ -1449,7 +1434,18 @@ static int ll_create_it(struct inode *dir, struct dentry *dentry,
 	d_instantiate(dentry, inode);
 
 	if (encrypt) {
-		rc = ll_set_encflags(inode, encctx, encctxlen, true);
+		bool preload = true;
+
+		/* For migration or mirroring without enc key, we
+		 * create a volatile file without enc context.
+		 */
+		if (!fscrypt_has_encryption_key(dir) &&
+		    filename_is_volatile(dentry->d_name.name,
+					 dentry->d_name.len, NULL) &&
+		    (open_flags & O_FILE_ENC) == O_FILE_ENC &&
+		    open_flags & O_DIRECT)
+			preload = false;
+		rc = ll_set_encflags(inode, encctx, encctxlen, preload);
 		if (rc)
 			return rc;
 	}

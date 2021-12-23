@@ -257,7 +257,7 @@ ll_direct_rw_pages(const struct lu_env *env, struct cl_io *io, size_t size,
 		if (inode && IS_ENCRYPTED(inode)) {
 			/* In case of Direct IO on encrypted file, we need to
 			 * add a reference to the inode on the cl_page.
-			 * This info is required by llcrypt to proceed
+			 * This info is required by fscrypt to proceed
 			 * to encryption/decryption.
 			 * This is safe because we know these pages are private
 			 * to the thread doing the Direct IO.

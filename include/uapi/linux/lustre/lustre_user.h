@@ -399,6 +399,10 @@ struct ll_ioc_lease_id {
  * devices and are safe for use on new files (See LU-812, LU-4209).
  */
 #define O_LOV_DELAY_CREATE	(O_NOCTTY | FASYNC)
+/* O_FILE_ENC principle is similar to O_LOV_DELAY_CREATE above,
+ * for access to encrypted files without the encryption key.
+ */
+#define O_FILE_ENC		(O_NOCTTY | O_NDELAY)
 
 #define LL_FILE_IGNORE_LOCK	0x00000001
 #define LL_FILE_GROUP_LOCKED	0x00000002
