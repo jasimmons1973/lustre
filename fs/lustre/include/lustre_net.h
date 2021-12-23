@@ -2010,7 +2010,7 @@ u32 lustre_msg_hdr_size(u32 magic, u32 count);
 u32 lustre_msg_size(u32 magic, int count, u32 *lengths);
 u32 lustre_msg_size_v2(int count, u32 *lengths);
 u32 lustre_packed_msg_size(struct lustre_msg *msg);
-u32 lustre_msg_early_size(void);
+extern u32 lustre_msg_early_size;
 void *lustre_msg_buf_v2(struct lustre_msg_v2 *m, u32 n, u32 min_size);
 void *lustre_msg_buf(struct lustre_msg *m, u32 n, u32 minlen);
 u32 lustre_msg_buflen(struct lustre_msg *m, u32 n);

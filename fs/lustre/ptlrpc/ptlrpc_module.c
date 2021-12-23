@@ -85,6 +85,7 @@ static int __init ptlrpc_init(void)
 	mutex_init(&pinger_mutex);
 	mutex_init(&ptlrpcd_mutex);
 	ptlrpc_init_xid();
+	lustre_msg_early_size_init();
 
 	rc = libcfs_setup();
 	if (rc)

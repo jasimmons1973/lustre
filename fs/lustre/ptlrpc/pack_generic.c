@@ -72,14 +72,16 @@ u32 lustre_msg_hdr_size(u32 magic, u32 count)
 	}
 }
 
+u32 lustre_msg_early_size;
+EXPORT_SYMBOL(lustre_msg_early_size);
+
 /* early reply size */
-u32 lustre_msg_early_size(void)
+void lustre_msg_early_size_init(void)
 {
 	u32 pblen = sizeof(struct ptlrpc_body);
 
-	return lustre_msg_size(LUSTRE_MSG_MAGIC_V2, 1, &pblen);
+	lustre_msg_early_size = lustre_msg_size(LUSTRE_MSG_MAGIC_V2, 1, &pblen);
 }
-EXPORT_SYMBOL(lustre_msg_early_size);
 
 u32 lustre_msg_size_v2(int count, u32 *lengths)
 {
