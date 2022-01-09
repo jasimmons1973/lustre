@@ -233,7 +233,7 @@ static int ll_get_name(struct dentry *dentry, char *name,
 	}
 
 	inode_lock(dir);
-	rc = ll_dir_read(dir, &pos, op_data, &lgd.ctx);
+	rc = ll_dir_read(dir, &pos, op_data, &lgd.ctx, NULL);
 	inode_unlock(dir);
 	ll_finish_md_op_data(op_data);
 	if (!rc && !lgd.lgd_found)

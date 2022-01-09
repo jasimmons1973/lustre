@@ -920,6 +920,10 @@ struct ll_file_data {
 	 */
 	u32 fd_layout_version;
 	struct pcc_file fd_pcc_file;
+	/* striped directory may read partially if some stripe inaccessible,
+	 * -errno is saved here, and will return to user in close().
+	 */
+	int fd_partial_readdir_rc;
 };
 
 void llite_tunables_unregister(void);
@@ -1043,11 +1047,11 @@ enum {
 extern const struct file_operations ll_dir_operations;
 extern const struct inode_operations ll_dir_inode_operations;
 int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
-		struct dir_context *ctx);
+		struct dir_context *ctx, int *partial_readdir_rc);
 int ll_get_mdt_idx(struct inode *inode);
 int ll_get_mdt_idx_by_fid(struct ll_sb_info *sbi, const struct lu_fid *fid);
 struct page *ll_get_dir_page(struct inode *dir, struct md_op_data *op_data,
-			     u64 offset);
+			     u64 offset, int *partial_readdir_rc);
 void ll_release_page(struct inode *inode, struct page *page, bool remove);
 int quotactl_ioctl(struct super_block *sb, struct if_quotactl *qctl);
 

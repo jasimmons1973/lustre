@@ -140,16 +140,20 @@
  *
  */
 struct page *ll_get_dir_page(struct inode *dir, struct md_op_data *op_data,
-			     u64 offset)
+			     u64 offset, int *partial_readdir_rc)
 {
-	struct md_callback cb_op;
+	struct md_readdir_info mrinfo = {
+		.mr_blocking_ast = ll_md_blocking_ast
+	};
 	struct page *page;
 	int rc;
 
-	cb_op.md_blocking_ast = ll_md_blocking_ast;
-	rc = md_read_page(ll_i2mdexp(dir), op_data, &cb_op, offset, &page);
+	rc = md_read_page(ll_i2mdexp(dir), op_data, &mrinfo, offset, &page);
 	if (rc)
 		return ERR_PTR(rc);
+
+	if (partial_readdir_rc && mrinfo.mr_partial_readdir_rc)
+		*partial_readdir_rc = mrinfo.mr_partial_readdir_rc;
 
 	return page;
 }
@@ -177,7 +181,7 @@ void ll_release_page(struct inode *inode, struct page *page, bool remove)
 }
 
 int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
-		struct dir_context *ctx)
+		struct dir_context *ctx, int *partial_readdir_rc)
 {
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	u64 pos = *ppos;
@@ -194,7 +198,7 @@ int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
 			return rc;
 	}
 
-	page = ll_get_dir_page(inode, op_data, pos);
+	page = ll_get_dir_page(inode, op_data, pos, partial_readdir_rc);
 
 	while (rc == 0 && !done) {
 		struct lu_dirpage *dp;
@@ -285,7 +289,8 @@ int ll_dir_read(struct inode *inode, u64 *ppos, struct md_op_data *op_data,
 					le32_to_cpu(dp->ldp_flags) &
 					LDF_COLLIDE);
 			next = pos;
-			page = ll_get_dir_page(inode, op_data, pos);
+			page = ll_get_dir_page(inode, op_data, pos,
+					       partial_readdir_rc);
 		}
 	}
 
@@ -305,7 +310,12 @@ static int ll_readdir(struct file *filp, struct dir_context *ctx)
 	struct md_op_data *op_data;
 	struct lu_fid pfid = { 0 };
 	ktime_t kstart = ktime_get();
+	/* result of possible partial readdir */
+	int partial_readdir_rc = 0;
 	int rc;
+
+	LASSERT(lfd);
+	pos = lfd->lfd_pos;
 
 	CDEBUG(D_VFSTRACE,
 	       "VFS Op:inode=" DFID "(%p) pos/size %lu/%llu 32bit_api %d\n",
@@ -369,10 +379,11 @@ static int ll_readdir(struct file *filp, struct dir_context *ctx)
 	op_data->op_fid3 = pfid;
 
 	ctx->pos = pos;
-	rc = ll_dir_read(inode, &pos, op_data, ctx);
+	rc = ll_dir_read(inode, &pos, op_data, ctx, &partial_readdir_rc);
 	pos = ctx->pos;
-	if (lfd)
-		lfd->lfd_pos = pos;
+	lfd->lfd_pos = pos;
+	if (!lfd->fd_partial_readdir_rc)
+		lfd->fd_partial_readdir_rc = partial_readdir_rc;
 
 	if (pos == MDS_DIR_END_OFF) {
 		if (api32)
@@ -2294,6 +2305,17 @@ static int ll_dir_release(struct inode *inode, struct file *file)
 	return ll_file_release(inode, file);
 }
 
+/* notify error if partially read striped directory */
+static int ll_dir_flush(struct file *file, fl_owner_t id)
+{
+	struct ll_file_data *lfd = file->private_data;
+	int rc = lfd->fd_partial_readdir_rc;
+
+	lfd->fd_partial_readdir_rc = 0;
+
+	return rc;
+}
+
 const struct file_operations ll_dir_operations = {
 	.llseek			= ll_dir_seek,
 	.open			= ll_dir_open,
@@ -2302,4 +2324,5 @@ const struct file_operations ll_dir_operations = {
 	.iterate_shared		= ll_readdir,
 	.unlocked_ioctl		= ll_dir_ioctl,
 	.fsync			= ll_fsync,
+	.flush			= ll_dir_flush,
 };

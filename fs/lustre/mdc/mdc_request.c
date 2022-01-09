@@ -1294,7 +1294,6 @@ struct readpage_param {
 	u64			rp_off;
 	int			rp_hash64;
 	struct obd_export	*rp_exp;
-	struct md_callback	*rp_cb;
 };
 
 /**
@@ -1410,7 +1409,7 @@ static int mdc_read_page_remote(void *data, struct page *page0)
  * @exp:		MDC export
  * @op_data:		client MD stack parameters, transferring parameters
  *			between different layers on client MD stack.
- * @cb_op:		callback required for ldlm lock enqueue during
+ * @mrinfo:		callback required for ldlm lock enqueue during
  *			read page
  * @hash_offset:	the hash offset of the page to be read
  * @ppage		the page to be read
@@ -1419,7 +1418,7 @@ static int mdc_read_page_remote(void *data, struct page *page0)
  *			errno(<0) get the page failed
  */
 static int mdc_read_page(struct obd_export *exp, struct md_op_data *op_data,
-			 struct md_callback *cb_op, u64 hash_offset,
+			 struct md_readdir_info *mrinfo, u64 hash_offset,
 			 struct page **ppage)
 {
 	struct lookup_intent it = { .it_op = IT_READDIR };
@@ -1440,7 +1439,7 @@ static int mdc_read_page(struct obd_export *exp, struct md_op_data *op_data,
 	mapping = dir->i_mapping;
 
 	rc = mdc_intent_lock(exp, op_data, &it, &enq_req,
-			     cb_op->md_blocking_ast, 0);
+			     mrinfo->mr_blocking_ast, 0);
 	if (enq_req)
 		ptlrpc_req_finished(enq_req);
 

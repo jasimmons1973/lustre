@@ -2574,7 +2574,7 @@ struct stripe_dirent {
 struct lmv_dir_ctxt {
 	struct lmv_obd		*ldc_lmv;
 	struct md_op_data	*ldc_op_data;
-	struct md_callback	*ldc_cb_op;
+	struct md_readdir_info  *ldc_mrinfo;
 	u64			 ldc_hash;
 	int			 ldc_count;
 	struct stripe_dirent	 ldc_stripes[0];
@@ -2675,7 +2675,7 @@ static struct lu_dirent *stripe_dirent_load(struct lmv_dir_ctxt *ctxt,
 		op_data->op_fid2 = oinfo->lmo_fid;
 		op_data->op_data = oinfo->lmo_root;
 
-		rc = md_read_page(tgt->ltd_exp, op_data, ctxt->ldc_cb_op, hash,
+		rc = md_read_page(tgt->ltd_exp, op_data, ctxt->ldc_mrinfo, hash,
 				  &stripe->sd_page);
 
 		op_data->op_fid1 = fid;
@@ -2696,6 +2696,7 @@ static struct lu_dirent *stripe_dirent_load(struct lmv_dir_ctxt *ctxt,
 		LASSERT(!ent);
 		/* treat error as eof, so dir can be partially accessed */
 		stripe->sd_eof = true;
+		ctxt->ldc_mrinfo->mr_partial_readdir_rc = rc;
 		LCONSOLE_WARN("dir " DFID " stripe %d readdir failed: %d, directory is partially accessed!\n",
 			      PFID(&ctxt->ldc_op_data->op_fid1), stripe_index,
 			      rc);
@@ -2793,7 +2794,8 @@ static struct lu_dirent *lmv_dirent_next(struct lmv_dir_ctxt *ctxt)
  *
  * @exp:	obd export refer to LMV
  * @op_data:	hold those MD parameters of read_entry
- * @cb_op:	ldlm callback being used in enqueue in mdc_read_entry
+ * @mrinfo:	ldlm callback being used in enqueue in mdc_read_entry,
+ *		and partial readdir results will be stored in it.
  * @offset:	the entry being read
  * @ppage:	the page holding the entry. Note: because the entry
  *		will be accessed in upper layer, so we need hold the
@@ -2805,8 +2807,8 @@ static struct lu_dirent *lmv_dirent_next(struct lmv_dir_ctxt *ctxt)
  */
 static int lmv_striped_read_page(struct obd_export *exp,
 				 struct md_op_data *op_data,
-				 struct md_callback *cb_op,
-				 u64 offset, struct page **ppage)
+				 struct md_readdir_info *mrinfo, u64 offset,
+				 struct page **ppage)
 {
 	struct page *page = NULL;
 	struct lu_dirpage *dp;
@@ -2848,7 +2850,7 @@ static int lmv_striped_read_page(struct obd_export *exp,
 	}
 	ctxt->ldc_lmv = &exp->exp_obd->u.lmv;
 	ctxt->ldc_op_data = op_data;
-	ctxt->ldc_cb_op = cb_op;
+	ctxt->ldc_mrinfo = mrinfo;
 	ctxt->ldc_hash = offset;
 	ctxt->ldc_count = stripe_count;
 
@@ -2925,7 +2927,7 @@ free_page:
 }
 
 static int lmv_read_page(struct obd_export *exp, struct md_op_data *op_data,
-			 struct md_callback *cb_op, u64 offset,
+			 struct md_readdir_info *mrinfo, u64 offset,
 			 struct page **ppage)
 {
 	struct obd_device *obd = exp->exp_obd;
@@ -2936,15 +2938,15 @@ static int lmv_read_page(struct obd_export *exp, struct md_op_data *op_data,
 		return -ENODATA;
 
 	if (unlikely(lmv_dir_striped(op_data->op_mea1))) {
-		return lmv_striped_read_page(exp, op_data, cb_op,
-					     offset, ppage);
+		return lmv_striped_read_page(exp, op_data, mrinfo, offset,
+					     ppage);
 	}
 
 	tgt = lmv_fid2tgt(lmv, &op_data->op_fid1);
 	if (IS_ERR(tgt))
 		return PTR_ERR(tgt);
 
-	return md_read_page(tgt->ltd_exp, op_data, cb_op, offset, ppage);
+	return md_read_page(tgt->ltd_exp, op_data, mrinfo, offset, ppage);
 }
 
 /**
