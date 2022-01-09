@@ -453,8 +453,6 @@ struct lov_lock {
 
 struct lov_page {
 	struct cl_page_slice	lps_cl;
-	/* the layout gen when this page was created */
-	u32			lps_layout_gen;
 };
 
 /*
@@ -524,6 +522,7 @@ struct lov_io_sub {
 /**
  * IO state private for LOV.
  */
+#define LIS_CACHE_ENTRY_NONE	-ENOENT
 struct lov_io {
 	/** super-class */
 	struct cl_io_slice	lis_cl;
@@ -590,6 +589,12 @@ struct lov_io {
 	 * All sub-io's created in this lov_io.
 	 */
 	struct list_head	lis_subios;
+	/* Cached results from stripe & offset calculations for page init */
+	int			lis_cached_entry;
+	int			lis_cached_stripe;
+	loff_t			lis_cached_off;
+	loff_t			lis_cached_suboff;
+	struct lov_io_sub	*lis_cached_sub;
 };
 
 struct lov_session {

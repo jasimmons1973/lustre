@@ -467,6 +467,7 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 
 	io->ci_result = 0;
 	lio->lis_object = obj;
+	lio->lis_cached_entry = LIS_CACHE_ENTRY_NONE;
 
 	switch (io->ci_type) {
 	case CIT_READ:
@@ -1052,6 +1053,11 @@ static int lov_io_unlock_wrapper(const struct lu_env *env, struct cl_io *io)
 static void lov_io_end(const struct lu_env *env, const struct cl_io_slice *ios)
 {
 	int rc;
+
+	/* Before ending each i/o, we must set lis_cached_entry to tell the
+	 * next i/o not to use stale cached lis information.
+	 */
+	cl2lov_io(env, ios)->lis_cached_entry = LIS_CACHE_ENTRY_NONE;
 
 	rc = lov_io_call(env, cl2lov_io(env, ios), lov_io_end_wrapper);
 	LASSERT(rc == 0);
