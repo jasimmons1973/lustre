@@ -937,7 +937,10 @@ static int mgc_target_register(struct obd_export *exp,
 	if (!rc) {
 		rep_mti = req_capsule_server_get(&req->rq_pill,
 						 &RMF_MGS_TARGET_INFO);
-		memcpy(mti, rep_mti, sizeof(*rep_mti));
+		if (rep_mti)
+			memcpy(mti, rep_mti, sizeof(*rep_mti));
+	}
+	if (!rc) {
 		CDEBUG(D_MGC, "register %s got index = %d\n",
 		       mti->mti_svname, mti->mti_stripe_index);
 	}
