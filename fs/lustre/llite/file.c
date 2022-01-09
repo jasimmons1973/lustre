@@ -1954,6 +1954,11 @@ static ssize_t ll_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 	ktime_t kstart = ktime_get();
 	bool cached;
 
+	CDEBUG(D_VFSTRACE|D_IOTRACE, "file %s:"DFID", ppos: %lld, count: %zu\n",
+	       file_dentry(file)->d_name.name,
+	       PFID(ll_inode2fid(file_inode(file))), iocb->ki_pos,
+	       iov_iter_count(to));
+
 	if (!iov_iter_count(to))
 		return 0;
 
@@ -2074,6 +2079,11 @@ static ssize_t ll_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	bool cached;
 	ktime_t kstart = ktime_get();
 	int result;
+
+	CDEBUG(D_VFSTRACE|D_IOTRACE, "file %s:"DFID", ppos: %lld, count: %zu\n",
+	       file_dentry(file)->d_name.name,
+	       PFID(ll_inode2fid(file_inode(file))), iocb->ki_pos,
+	       iov_iter_count(from));
 
 	if (!iov_iter_count(from)) {
 		rc_normal = 0;
