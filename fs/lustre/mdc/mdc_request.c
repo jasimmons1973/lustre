@@ -224,6 +224,9 @@ static int mdc_getattr(struct obd_export *exp, struct md_op_data *op_data,
 		return rc;
 	}
 
+	/* LU-15245: avoid deadlock with modifying RPCs on MDS_REQUEST_PORTAL */
+	req->rq_request_portal = MDS_READPAGE_PORTAL;
+
 again:
 	mdc_pack_body(&req->rq_pill, &op_data->op_fid1, op_data->op_valid,
 		      op_data->op_mode, -1, 0);
@@ -402,6 +405,10 @@ static int mdc_xattr_common(struct obd_export *exp,
 	} else {
 		mdc_pack_body(&req->rq_pill, fid, valid, output_size,
 			      suppgid, flags);
+		/* Avoid deadlock with modifying RPCs on MDS_REQUEST_PORTAL.
+		 * See LU-15245.
+		 */
+		req->rq_request_portal = MDS_READPAGE_PORTAL;
 	}
 
 	if (xattr_name) {
