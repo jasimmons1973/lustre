@@ -200,15 +200,30 @@ void ll_prune_aliases(struct inode *inode)
 
 int ll_revalidate_it_finish(struct ptlrpc_request *request,
 			    struct lookup_intent *it,
-			    struct inode *inode)
+			    struct dentry *de)
 {
+	struct inode *inode = d_inode(de);
+	u64 bits = 0;
+	int rc;
+
 	if (!request)
 		return 0;
 
 	if (it_disposition(it, DISP_LOOKUP_NEG))
 		return -ENOENT;
 
-	return ll_prep_inode(&inode, &request->rq_pill, NULL, it);
+	rc = ll_prep_inode(&inode, &request->rq_pill, NULL, it);
+	if (rc)
+		return rc;
+
+	ll_set_lock_data(ll_i2sbi(inode)->ll_md_exp, inode, it,
+			 &bits);
+	if (bits & MDS_INODELOCK_LOOKUP) {
+		ll_update_dir_depth(de->d_parent->d_inode, inode);
+		d_lustre_revalidate(de);
+	}
+
+	return rc;
 }
 
 void ll_lookup_finish_locks(struct lookup_intent *it, struct inode *inode)

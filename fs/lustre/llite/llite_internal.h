@@ -1177,7 +1177,7 @@ void ll_intent_release(struct lookup_intent *it);
 void ll_prune_aliases(struct inode *inode);
 void ll_lookup_finish_locks(struct lookup_intent *it, struct inode *inode);
 int ll_revalidate_it_finish(struct ptlrpc_request *request,
-			    struct lookup_intent *it, struct inode *inode);
+			    struct lookup_intent *it, struct dentry *de);
 
 /* llite/llite_lib.c */
 extern const struct super_operations lustre_super_operations;

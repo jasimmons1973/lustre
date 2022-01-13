@@ -5033,7 +5033,7 @@ static int ll_inode_revalidate(struct dentry *dentry, enum ldlm_intent_flags op)
 		goto out;
 	}
 
-	rc = ll_revalidate_it_finish(req, &oit, inode);
+	rc = ll_revalidate_it_finish(req, &oit, dentry);
 	if (rc != 0) {
 		ll_intent_release(&oit);
 		goto out;
