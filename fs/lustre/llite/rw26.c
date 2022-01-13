@@ -330,7 +330,8 @@ static ssize_t ll_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	struct cl_io *io;
 	struct file *file = iocb->ki_filp;
 	struct inode *inode = file->f_mapping->host;
-	struct cl_dio_aio *aio;
+	struct cl_dio_aio *ll_aio;
+	struct cl_dio_aio *ldp_aio;
 	size_t count = iov_iter_count(iter);
 	ssize_t tot_bytes = 0, result = 0;
 	loff_t file_offset = iocb->ki_pos;
@@ -365,12 +366,12 @@ static ssize_t ll_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	io = lcc->lcc_io;
 	LASSERT(io);
 
-	aio = io->ci_aio;
-	LASSERT(aio);
-	LASSERT(aio->cda_iocb == iocb);
+	ll_aio = io->ci_aio;
+	LASSERT(ll_aio);
+	LASSERT(ll_aio->cda_iocb == iocb);
 
 	while (iov_iter_count(iter)) {
-		struct ll_dio_pages pvec = { .ldp_aio = aio };
+		struct ll_dio_pages pvec = {};
 		struct page **pages;
 
 		count = min_t(size_t, iov_iter_count(iter), MAX_DIO_SIZE);
@@ -382,10 +383,23 @@ static ssize_t ll_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 				count = i_size_read(inode) - file_offset;
 		}
 
+		/* this aio is freed on completion from cl_sync_io_note, so we
+		 * do not need to directly free the memory here
+		 */
+		ldp_aio = cl_aio_alloc(iocb, ll_i2info(inode)->lli_clob,
+				       ll_aio);
+		if (!ldp_aio) {
+			result = -ENOMEM;
+			goto out;
+		}
+		pvec.ldp_aio = ldp_aio;
+
 		result = ll_get_user_pages(rw, iter, &pages,
 					   &pvec.ldp_count, count);
-		if (unlikely(result <= 0))
+		if (unlikely(result <= 0)) {
+			cl_sync_io_note(env, &ldp_aio->cda_sync, result);
 			goto out;
+		}
 
 		count = result;
 		pvec.ldp_file_offset = file_offset;
@@ -393,6 +407,10 @@ static ssize_t ll_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 
 		result = ll_direct_rw_pages(env, io, count,
 					    rw, inode, &pvec);
+		/* We've submitted pages and can now remove the extra
+		 * reference for that
+		 */
+		cl_sync_io_note(env, &ldp_aio->cda_sync, result);
 		ll_free_user_pages(pages, pvec.ldp_count);
 
 		if (unlikely(result < 0))
@@ -404,7 +422,7 @@ static ssize_t ll_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	}
 
 out:
-	aio->cda_bytes += tot_bytes;
+	ll_aio->cda_bytes += tot_bytes;
 
 	if (rw == WRITE)
 		vio->u.readwrite.vui_written += tot_bytes;
@@ -424,7 +442,7 @@ out:
 		ssize_t rc2;
 
 		/* Wait here rather than doing async submission */
-		rc2 = cl_sync_io_wait_recycle(env, &aio->cda_sync, 0, 0);
+		rc2 = cl_sync_io_wait_recycle(env, &ll_aio->cda_sync, 0, 0);
 		if (result == 0 && rc2)
 			result = rc2;
 
