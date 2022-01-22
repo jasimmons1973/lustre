@@ -1899,7 +1899,7 @@ static void dump_all_bulk_pages(struct obdo *oa, u32 page_count,
 }
 
 static int check_write_checksum(struct obdo *oa,
-				const struct lnet_process_id *peer,
+				const struct lnet_processid *peer,
 				u32 client_cksum, u32 server_cksum,
 				struct osc_brw_async_args *aa)
 {
@@ -1967,7 +1967,7 @@ static int check_write_checksum(struct obdo *oa,
 
 	LCONSOLE_ERROR_MSG(0x132,
 			   "%s: BAD WRITE CHECKSUM: %s: from %s inode " DFID " object " DOSTID " extent [%llu-%llu], original client csum %x (type %x), server csum %x (type %x), client csum now %x\n",
-			   obd_name, msg, libcfs_nid2str(peer->nid),
+			   obd_name, msg, libcfs_nidstr(&peer->nid),
 			   oa->o_valid & OBD_MD_FLFID ? oa->o_parent_seq : (u64)0,
 			   oa->o_valid & OBD_MD_FLFID ? oa->o_parent_oid : 0,
 			   oa->o_valid & OBD_MD_FLFID ? oa->o_parent_ver : 0,
@@ -1985,8 +1985,8 @@ static int check_write_checksum(struct obdo *oa,
 static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 {
 	struct osc_brw_async_args *aa = (void *)&req->rq_async_args;
-	const struct lnet_process_id *peer =
-			&req->rq_import->imp_connection->c_peer;
+	const struct lnet_processid *peer =
+		&req->rq_import->imp_connection->c_peer;
 	struct client_obd *cli = aa->aa_cli;
 	const char *obd_name = cli->cl_import->imp_obd->obd_name;
 	struct ost_body *body;
@@ -2129,7 +2129,7 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 			goto out;
 
 		if (req->rq_bulk &&
-		    peer->nid != req->rq_bulk->bd_sender) {
+		    lnet_nid_to_nid4(&peer->nid) != req->rq_bulk->bd_sender) {
 			via = " via ";
 			router = libcfs_nid2str(req->rq_bulk->bd_sender);
 		}
@@ -2152,7 +2152,7 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 			LCONSOLE_ERROR_MSG(0x133,
 					   "%s: BAD READ CHECKSUM: from %s%s%s inode "DFID" object "DOSTID" extent [%llu-%llu], client %x/%x, server %x, cksum_type %x\n",
 					   obd_name,
-					   libcfs_nid2str(peer->nid),
+					   libcfs_nidstr(&peer->nid),
 					   via, router,
 					   clbody->oa.o_valid & OBD_MD_FLFID ?
 					   clbody->oa.o_parent_seq : (u64)0,
@@ -2181,7 +2181,7 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 		if ((cksum_missed & (-cksum_missed)) == cksum_missed)
 			CERROR("%s: checksum %u requested from %s but not sent\n",
 			       obd_name, cksum_missed,
-			       libcfs_nid2str(peer->nid));
+			       libcfs_nidstr(&peer->nid));
 	} else {
 		rc = 0;
 	}

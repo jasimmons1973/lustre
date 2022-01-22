@@ -1303,7 +1303,7 @@ static int ptlrpc_check_status(struct ptlrpc_request *req)
 	rc = lustre_msg_get_status(req->rq_repmsg);
 	if (lustre_msg_get_type(req->rq_repmsg) == PTL_RPC_MSG_ERR) {
 		struct obd_import *imp = req->rq_import;
-		lnet_nid_t nid = imp->imp_connection->c_peer.nid;
+		struct lnet_nid *nid = &imp->imp_connection->c_peer.nid;
 		u32 opc = lustre_msg_get_opc(req->rq_reqmsg);
 
 		/* -EAGAIN is normal when using POSIX flocks */
@@ -1313,7 +1313,7 @@ static int ptlrpc_check_status(struct ptlrpc_request *req)
 					   "%s: operation %s to node %s failed: rc = %d\n",
 					   imp->imp_obd->obd_name,
 					   ll_opcode2str(opc),
-					   libcfs_nid2str(nid), rc);
+					   libcfs_nidstr(nid), rc);
 		return rc < 0 ? rc : -EINVAL;
 	}
 
@@ -2199,7 +2199,7 @@ int ptlrpc_expire_one_request(struct ptlrpc_request *req, int async_unlink)
 		  req->rq_sent, req->rq_real_sent);
 
 	if (imp && obd_debug_peer_on_timeout)
-		LNetDebugPeer(imp->imp_connection->c_peer);
+		LNetDebugPeer(&imp->imp_connection->c_peer);
 
 	ptlrpc_unregister_reply(req, async_unlink);
 	ptlrpc_unregister_bulk(req, async_unlink);

@@ -67,7 +67,7 @@ static int import_set_conn(struct obd_import *imp, struct obd_uuid *uuid,
 	if (imp->imp_connection &&
 	    imp->imp_connection->c_remote_uuid.uuid[0] == 0)
 		/* nid4refnet is used to restrict network connections */
-		nid4refnet = imp->imp_connection->c_self;
+		nid4refnet = lnet_nid_to_nid4(&imp->imp_connection->c_self);
 
 	ptlrpc_conn = ptlrpc_uuid_to_connection(uuid, nid4refnet);
 	if (!ptlrpc_conn) {
@@ -297,7 +297,7 @@ int client_obd_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 	const char *name = obd->obd_type->typ_name;
 	enum ldlm_ns_type ns_type = LDLM_NS_TYPE_UNKNOWN;
 	struct ptlrpc_connection fake_conn = {
-		.c_self = 0,
+		.c_self = {},
 		.c_remote_uuid.uuid[0] = 0
 	};
 	int rc;
@@ -494,7 +494,7 @@ int client_obd_setup(struct obd_device *obd, struct lustre_cfg *lcfg)
 			       rc);
 			goto err_import;
 		}
-		fake_conn.c_self = LNET_MKNID(refnet, 0);
+		lnet_nid4_to_nid(LNET_MKNID(refnet, 0), &fake_conn.c_self);
 		imp->imp_connection = &fake_conn;
 	}
 

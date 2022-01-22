@@ -213,7 +213,7 @@ void client_bulk_callback(struct lnet_event *ev)
 
 	if (ev->type != LNET_EVENT_UNLINK && ev->status == 0) {
 		desc->bd_nob_transferred += ev->mlength;
-		desc->bd_sender = ev->sender;
+		desc->bd_sender = lnet_nid_to_nid4(&ev->sender);
 	} else {
 		/* start reconnect and resend if network error hit */
 		spin_lock(&req->rq_lock);
@@ -330,7 +330,7 @@ void request_in_callback(struct lnet_event *ev)
 		if (!req) {
 			CERROR("Can't allocate incoming request descriptor: Dropping %s RPC from %s\n",
 			       service->srv_name,
-			       libcfs_id2str(ev->initiator));
+			       libcfs_idstr(&ev->initiator));
 			return;
 		}
 	}
@@ -346,9 +346,9 @@ void request_in_callback(struct lnet_event *ev)
 		req->rq_reqdata_len = ev->mlength;
 	ktime_get_real_ts64(&req->rq_arrival_time);
 	/* Multi-Rail: keep track of both initiator and source NID. */
-	req->rq_peer = ev->initiator;
-	req->rq_source = ev->source;
-	req->rq_self = ev->target.nid;
+	req->rq_peer = lnet_pid_to_pid4(&ev->initiator);
+	req->rq_source = lnet_pid_to_pid4(&ev->source);
+	req->rq_self = lnet_nid_to_nid4(&ev->target.nid);
 	req->rq_rqbd = rqbd;
 	req->rq_phase = RQ_PHASE_NEW;
 	if (ev->type == LNET_EVENT_PUT)

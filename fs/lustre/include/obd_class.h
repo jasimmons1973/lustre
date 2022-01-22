@@ -98,13 +98,13 @@ int obd_connect_flags2str(char *page, int count, u64 flags, u64 flags2,
 static inline char *obd_export_nid2str(struct obd_export *exp)
 {
 	return exp->exp_connection ?
-		libcfs_nid2str(exp->exp_connection->c_peer.nid) : "<unknown>";
+		libcfs_nidstr(&exp->exp_connection->c_peer.nid) : "<unknown>";
 }
 
 static inline char *obd_import_nid2str(struct obd_import *imp)
 {
 	return imp->imp_connection ?
-		libcfs_nid2str(imp->imp_connection->c_peer.nid) : "<unknown>";
+		libcfs_nidstr(&imp->imp_connection->c_peer.nid) : "<unknown>";
 }
 
 int obd_zombie_impexp_init(void);

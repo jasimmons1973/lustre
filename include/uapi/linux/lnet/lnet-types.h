@@ -518,17 +518,17 @@ enum lnet_event_kind {
  */
 struct lnet_event {
 	/** The identifier (nid, pid) of the target. */
-	struct lnet_process_id	target;
+	struct lnet_processid	target;
 	/** The identifier (nid, pid) of the initiator. */
-	struct lnet_process_id	initiator;
+	struct lnet_processid	initiator;
 	/** The source NID on the initiator. */
-	struct lnet_process_id	source;
+	struct lnet_processid	source;
 	/**
 	 * The NID of the immediate sender. If the request has been forwarded
 	 * by routers, this is the NID of the last hop; otherwise it's the
 	 * same as the source.
 	 */
-	lnet_nid_t		sender;
+	struct lnet_nid		sender;
 	/** Indicates the type of the event. */
 	enum lnet_event_kind	type;
 	/** The portal table index specified in the request */

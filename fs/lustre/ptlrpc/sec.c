@@ -1396,7 +1396,7 @@ int sptlrpc_import_sec_adapt(struct obd_import *imp,
 			sptlrpc_conf_choose_flavor(cliobd->cl_sp_me,
 						   cliobd->cl_sp_to,
 						   &cliobd->cl_target_uuid,
-						   conn->c_self, &sf);
+						   &conn->c_self, &sf);
 
 		sp = imp->imp_obd->u.cli.cl_sp_me;
 	} else {
@@ -1435,7 +1435,7 @@ int sptlrpc_import_sec_adapt(struct obd_import *imp,
 		CDEBUG(D_SEC, "import %s->%s netid %x: select flavor %s\n",
 		       imp->imp_obd->obd_name,
 		       obd_uuid2str(&conn->c_remote_uuid),
-		       LNET_NIDNET(conn->c_self),
+		       LNET_NID_NET(&conn->c_self),
 		       sptlrpc_flavor2name(&sf, str, sizeof(str)));
 	}
 

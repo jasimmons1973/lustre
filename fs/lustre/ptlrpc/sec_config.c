@@ -786,7 +786,7 @@ static inline void flavor_set_flags(struct sptlrpc_flavor *sf,
 void sptlrpc_conf_choose_flavor(enum lustre_sec_part from,
 				enum lustre_sec_part to,
 				struct obd_uuid *target,
-				lnet_nid_t nid,
+				struct lnet_nid *nid,
 				struct sptlrpc_flavor *sf)
 {
 	struct sptlrpc_conf *conf;
@@ -810,13 +810,14 @@ void sptlrpc_conf_choose_flavor(enum lustre_sec_part from,
 
 	conf_tgt = sptlrpc_conf_get_tgt(conf, name, 0);
 	if (conf_tgt) {
-		rc = sptlrpc_rule_set_choose(&conf_tgt->sct_rset,
-					     from, to, nid, sf);
+		rc = sptlrpc_rule_set_choose(&conf_tgt->sct_rset, from, to,
+					     lnet_nid_to_nid4(nid), sf);
 		if (rc)
 			goto out;
 	}
 
-	rc = sptlrpc_rule_set_choose(&conf->sc_rset, from, to, nid, sf);
+	rc = sptlrpc_rule_set_choose(&conf->sc_rset, from, to,
+				     lnet_nid_to_nid4(nid), sf);
 out:
 	mutex_unlock(&sptlrpc_conf_lock);
 

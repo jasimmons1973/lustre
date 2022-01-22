@@ -4310,7 +4310,7 @@ LNetCtl(unsigned int cmd, void *arg)
 			return rc;
 
 		mutex_lock(&the_lnet.ln_api_mutex);
-		lp = lnet_find_peer(ping->ping_id.nid);
+		lp = lnet_find_peer4(ping->ping_id.nid);
 		if (lp) {
 			ping->ping_id.nid =
 				lnet_nid_to_nid4(&lp->lp_primary_nid);
@@ -4334,7 +4334,7 @@ LNetCtl(unsigned int cmd, void *arg)
 			return rc;
 
 		mutex_lock(&the_lnet.ln_api_mutex);
-		lp = lnet_find_peer(discover->ping_id.nid);
+		lp = lnet_find_peer4(discover->ping_id.nid);
 		if (lp) {
 			discover->ping_id.nid =
 				lnet_nid_to_nid4(&lp->lp_primary_nid);
@@ -4464,9 +4464,9 @@ LNetCtl(unsigned int cmd, void *arg)
 }
 EXPORT_SYMBOL(LNetCtl);
 
-void LNetDebugPeer(struct lnet_process_id id)
+void LNetDebugPeer(struct lnet_processid *id)
 {
-	lnet_debug_peer(id.nid);
+	lnet_debug_peer(lnet_nid_to_nid4(&id->nid));
 }
 EXPORT_SYMBOL(LNetDebugPeer);
 
