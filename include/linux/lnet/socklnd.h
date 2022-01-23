@@ -52,33 +52,31 @@ struct ksock_hello_msg {
 	u32		kshm_ips[0];	/* IP addrs */
 } __packed;
 
-struct ksock_lnet_msg {
-	struct lnet_hdr	ksnm_hdr;	/* lnet hdr */
-
-	/*
-	 * ksnm_payload is removed because of winnt compiler's limitation:
-	 * zero-sized array can only be placed at the tail of [nested]
-	 * structure definitions. lnet payload will be stored just after
-	 * the body of structure ksock_lnet_msg_t
-	 */
+struct ksock_msg_hdr {
+	u32		ksh_type;		/* type of socklnd message */
+	u32		ksh_csum;		/* checksum if != 0 */
+	u64		ksh_zc_cookies[2];	/* Zero-Copy request/ACK
+						 * cookie
+						 */
 } __packed;
 
-struct ksock_msg {
-	u32		ksm_type;		/* type of socklnd message */
-	u32		ksm_csum;		/* checksum if != 0 */
-	u64		ksm_zc_cookies[2];	/* Zero-Copy request/ACK cookie */
-	union {
-		struct ksock_lnet_msg lnetmsg; /* lnet message, it's empty if
-						* it's NOOP
-						*/
-	} __packed ksm_u;
-} __packed;
-
-#define KSOCK_MSG_NOOP	0xC0	/* ksm_u empty */
+#define KSOCK_MSG_NOOP	0xC0	/* empty */
 #define KSOCK_MSG_LNET	0xC1	/* lnet msg */
 
-/*
- * We need to know this number to parse hello msg from ksocklnd in
+struct ksock_msg {
+	struct ksock_msg_hdr	ksm_kh;
+	union {
+		/* case ksm_kh.ksh_type == KSOCK_MSG_NOOP */
+		/* - nothing */
+		/* case ksm_kh.ksh_type == KSOCK_MSG_LNET */
+		struct lnet_hdr lnetmsg;
+	} __packed ksm_u;
+} __packed;
+#define ksm_type ksm_kh.ksh_type
+#define ksm_csum ksm_kh.ksh_csum
+#define ksm_zc_cookies ksm_kh.ksh_zc_cookies
+
+/* We need to know this number to parse hello msg from ksocklnd in
  * other LND (usocklnd, for example)
  */
 #define KSOCK_PROTO_V2	2
