@@ -1246,7 +1246,7 @@ u32 lustre_msg_calc_cksum(struct lustre_msg *msg, u32 buf)
 
 #if IS_ENABLED(CONFIG_CRC32)
 		/* about 10x faster than crypto_hash for small buffers */
-		crc = crc32_le(~(__u32)0, (unsigned char *)pb, len);
+		crc = crc32_le(~(u32)0, (unsigned char *)pb, len);
 #elif IS_ENABLED(CONFIG_CRYPTO_CRC32)
 		unsigned int hsize = 4;
 

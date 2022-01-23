@@ -1810,7 +1810,7 @@ int lu_context_refill(struct lu_context *ctx)
 u32 lu_context_tags_default = LCT_CL_THREAD;
 u32 lu_session_tags_default = LCT_SESSION;
 
-void lu_context_tags_update(__u32 tags)
+void lu_context_tags_update(u32 tags)
 {
 	spin_lock(&lu_context_remembered_guard);
 	lu_context_tags_default |= tags;
@@ -1819,7 +1819,7 @@ void lu_context_tags_update(__u32 tags)
 }
 EXPORT_SYMBOL(lu_context_tags_update);
 
-void lu_context_tags_clear(__u32 tags)
+void lu_context_tags_clear(u32 tags)
 {
 	spin_lock(&lu_context_remembered_guard);
 	lu_context_tags_default &= ~tags;
@@ -1828,7 +1828,7 @@ void lu_context_tags_clear(__u32 tags)
 }
 EXPORT_SYMBOL(lu_context_tags_clear);
 
-void lu_session_tags_update(__u32 tags)
+void lu_session_tags_update(u32 tags)
 {
 	spin_lock(&lu_context_remembered_guard);
 	lu_session_tags_default |= tags;
@@ -1837,7 +1837,7 @@ void lu_session_tags_update(__u32 tags)
 }
 EXPORT_SYMBOL(lu_session_tags_update);
 
-void lu_session_tags_clear(__u32 tags)
+void lu_session_tags_clear(u32 tags)
 {
 	spin_lock(&lu_context_remembered_guard);
 	lu_session_tags_default &= ~tags;

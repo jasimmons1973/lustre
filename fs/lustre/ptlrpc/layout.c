@@ -854,7 +854,7 @@ struct req_capsule;
 	.rmf_name	= (name),				\
 	.rmf_flags	= (flags),				\
 	.rmf_size	= (size),				\
-	.rmf_swab_len	= (int (*)(void *, __u32))(swab_len),	\
+	.rmf_swab_len	= (int (*)(void *, u32))(swab_len),	\
 	.rmf_dumper	= (void (*)(void *))(dumper)		\
 }
 

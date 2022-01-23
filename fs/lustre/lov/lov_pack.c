@@ -195,10 +195,8 @@ ssize_t lov_lsm_pack(const struct lov_stripe_md *lsm, void *buf,
 	if (lsm->lsm_magic == LOV_MAGIC_V1 || lsm->lsm_magic == LOV_MAGIC_V3)
 		return lov_lsm_pack_v1v3(lsm, buf, buf_size);
 
-	if (lsm->lsm_magic == LOV_MAGIC_FOREIGN) {
-		pr_info("calling lov_lsm_pack_foreign\n");
+	if (lsm->lsm_magic == LOV_MAGIC_FOREIGN)
 		return lov_lsm_pack_foreign(lsm, buf, buf_size);
-	}
 
 	lmm_size = lov_comp_md_size(lsm);
 	if (buf_size == 0)
@@ -378,7 +376,6 @@ int lov_getstripe(const struct lu_env *env, struct lov_object *obj,
 
 	lmm_size = lov_lsm_pack(lsm, lmmk, lmmk_size);
 	if (lmm_size < 0) {
-		pr_info("lov_lsm_pack return rc = %zd\n", lmm_size);
 		rc = lmm_size;
 		goto out_free;
 	}
