@@ -356,10 +356,10 @@ ksocknal_txlist_done(struct lnet_ni *ni, struct list_head *txlist, int error)
 
 		if (error && tx->tx_lnetmsg) {
 			CNETERR("Deleting packet type %d len %d %s->%s\n",
-				le32_to_cpu(tx->tx_lnetmsg->msg_hdr.type),
-				le32_to_cpu(tx->tx_lnetmsg->msg_hdr.payload_length),
-				libcfs_nid2str(le64_to_cpu(tx->tx_lnetmsg->msg_hdr.src_nid)),
-				libcfs_nid2str(le64_to_cpu(tx->tx_lnetmsg->msg_hdr.dest_nid)));
+				tx->tx_lnetmsg->msg_type,
+				tx->tx_lnetmsg->msg_len,
+				libcfs_nidstr(&tx->tx_lnetmsg->msg_initiator),
+				libcfs_nidstr(&tx->tx_lnetmsg->msg_target.nid));
 		} else if (error) {
 			CNETERR("Deleting noop packet\n");
 		}
@@ -697,8 +697,8 @@ ksocknal_queue_tx_locked(struct ksock_tx *tx, struct ksock_conn *conn)
 	LASSERT(tx->tx_resid == tx->tx_nob);
 
 	CDEBUG(D_NET, "Packet %p type %d, nob %d niov %d nkiov %d\n",
-	       tx, (tx->tx_lnetmsg) ? tx->tx_lnetmsg->msg_hdr.type :
-					      KSOCK_MSG_NOOP,
+	       tx, tx->tx_lnetmsg ? tx->tx_lnetmsg->msg_hdr.type :
+				    KSOCK_MSG_NOOP,
 	       tx->tx_nob, tx->tx_niov, tx->tx_nkiov);
 
 	bufnob = conn->ksnc_sock->sk->sk_wmem_queued;
