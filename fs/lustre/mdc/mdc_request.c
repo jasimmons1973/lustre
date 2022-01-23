@@ -158,7 +158,8 @@ out:
  * layouts.  --umka
  */
 static int mdc_getattr_common(struct obd_export *exp,
-			      struct ptlrpc_request *req)
+			      struct ptlrpc_request *req,
+			      struct md_op_data *op_data)
 {
 	struct req_capsule *pill = &req->rq_pill;
 	struct mdt_body *body;
@@ -185,6 +186,18 @@ static int mdc_getattr_common(struct obd_export *exp,
 			return -EPROTO;
 	}
 
+	/* If encryption context was returned by MDT, put it in op_data
+	 * so that caller can set it on inode and save an extra getxattr.
+	 */
+	if (op_data && op_data->op_valid & OBD_MD_ENCCTX &&
+	    body->mbo_valid & OBD_MD_ENCCTX) {
+		op_data->op_file_encctx =
+			req_capsule_server_get(pill, &RMF_FILE_ENCCTX);
+		op_data->op_file_encctx_size =
+			req_capsule_get_size(pill, &RMF_FILE_ENCCTX,
+					     RCL_SERVER);
+	}
+
 	return 0;
 }
 
@@ -203,6 +216,7 @@ static int mdc_getattr(struct obd_export *exp, struct md_op_data *op_data,
 		       struct ptlrpc_request **request)
 {
 	struct ptlrpc_request *req;
+	struct obd_device *obd = class_exp2obd(exp);
 	struct obd_import *imp = class_exp2cliimp(exp);
 	u32 acl_bufsize = LUSTRE_POSIX_ACL_MAX_SIZE_OLD;
 	int rc;
@@ -233,9 +247,16 @@ again:
 	req_capsule_set_size(&req->rq_pill, &RMF_ACL, RCL_SERVER, acl_bufsize);
 	req_capsule_set_size(&req->rq_pill, &RMF_MDT_MD, RCL_SERVER,
 			     op_data->op_mode);
+	if (exp_connect_encrypt(exp) && op_data->op_valid & OBD_MD_ENCCTX)
+		req_capsule_set_size(&req->rq_pill, &RMF_FILE_ENCCTX,
+				     RCL_SERVER,
+				     obd->u.cli.cl_max_mds_easize);
+	else
+		req_capsule_set_size(&req->rq_pill, &RMF_FILE_ENCCTX,
+				     RCL_SERVER, 0);
 	ptlrpc_request_set_replen(req);
 
-	rc = mdc_getattr_common(exp, req);
+	rc = mdc_getattr_common(exp, req, op_data);
 	if (rc) {
 		if (rc == -ERANGE) {
 			acl_bufsize = min_t(u32,
@@ -289,6 +310,7 @@ again:
 	req_capsule_set_size(&req->rq_pill, &RMF_MDT_MD, RCL_SERVER,
 			     op_data->op_mode);
 	req_capsule_set_size(&req->rq_pill, &RMF_ACL, RCL_SERVER, acl_bufsize);
+	req_capsule_set_size(&req->rq_pill, &RMF_FILE_ENCCTX, RCL_SERVER, 0);
 	ptlrpc_request_set_replen(req);
 	if (op_data->op_bias & MDS_FID_OP) {
 		struct mdt_body *b = req_capsule_client_get(&req->rq_pill,
@@ -300,7 +322,7 @@ again:
 		}
 	}
 
-	rc = mdc_getattr_common(exp, req);
+	rc = mdc_getattr_common(exp, req, NULL);
 	if (rc) {
 		if (rc == -ERANGE) {
 			acl_bufsize = min_t(u32,
