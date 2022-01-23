@@ -39,7 +39,8 @@
 #define DEBUG_SUBSYSTEM S_FLD
 
 #include <linux/module.h>
-#include <asm/div64.h>
+#include <linux/math64.h>
+#include <linux/delay.h>
 
 #include <obd.h>
 #include <obd_class.h>
@@ -314,6 +315,7 @@ int fld_client_rpc(struct obd_export *exp,
 	LASSERT(exp);
 
 	imp = class_exp2cliimp(exp);
+again:
 	switch (fld_op) {
 	case FLD_QUERY:
 		req = ptlrpc_request_alloc_pack(imp, &RQF_FLD_QUERY,
@@ -361,7 +363,7 @@ int fld_client_rpc(struct obd_export *exp,
 	req->rq_reply_portal = MDC_REPLY_PORTAL;
 	ptlrpc_at_set_req_timeout(req);
 
-	if (OBD_FAIL_CHECK(OBD_FAIL_FLD_QUERY_REQ && req->rq_no_delay)) {
+	if (OBD_FAIL_CHECK(OBD_FAIL_FLD_QUERY_REQ) && req->rq_no_delay) {
 		/* the same error returned by ptlrpc_import_delay_req */
 		rc = -EAGAIN;
 		req->rq_status = rc;
@@ -373,11 +375,17 @@ int fld_client_rpc(struct obd_export *exp,
 
 	if (rc != 0) {
 		if (imp->imp_state != LUSTRE_IMP_CLOSED && !imp->imp_deactive) {
-			/*
-			 * Since LWP is not replayable, so notify the caller
-			 * to retry if needed after a while.
-			 */
+			/* LWP is not replayable, retry after a while. */
 			rc = -EAGAIN;
+		}
+		if (rc == -EAGAIN) {
+			ptlrpc_req_finished(req);
+			if (msleep_interruptible(2 * MSEC_PER_SEC)) {
+				rc = -EINTR;
+				goto out_req;
+			}
+			rc = 0;
+			goto again;
 		}
 		goto out_req;
 	}
