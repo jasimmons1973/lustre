@@ -109,8 +109,6 @@ enum ll_file_flags {
 	LLIF_UPDATE_ATIME	= 4,
 	/* foreign file/dir can be unlinked unconditionnaly */
 	LLIF_FOREIGN_REMOVABLE	= 5,
-	/* setting encryption context in progress */
-	LLIF_SET_ENC_CTX	= 6,
 	/* Xattr cache is filled */
 	LLIF_XATTR_CACHE_FILLED	= 7,
 };
@@ -1285,16 +1283,11 @@ enum lcc_type {
 
 struct ll_cl_context {
 	struct list_head	 lcc_list;
-	void	   *lcc_cookie;
+	void			*lcc_cookie;
 	const struct lu_env	*lcc_env;
-	struct cl_io   *lcc_io;
-	struct cl_page *lcc_page;
+	struct cl_io		*lcc_io;
+	struct cl_page		*lcc_page;
 	enum lcc_type		 lcc_type;
-	/**
-	 * Get encryption context operation in progress,
-	 * allow getxattr of LL_XATTR_NAME_ENCRYPTION_CONTEXT xattr
-	 */
-	unsigned int		 lcc_getencctx:1;
 };
 
 struct ll_thread_info {
@@ -1405,6 +1398,7 @@ extern const struct xattr_handler *ll_xattr_handlers[];
 #define XATTR_ACL_DEFAULT_T	5
 #define XATTR_LUSTRE_T		6
 #define XATTR_OTHER_T		7
+#define XATTR_ENCRYPTION_T	9
 
 ssize_t ll_listxattr(struct dentry *dentry, char *buffer, size_t size);
 int ll_xattr_list(struct inode *inode, const char *name, int type,
