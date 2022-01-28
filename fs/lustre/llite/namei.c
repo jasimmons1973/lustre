@@ -1643,11 +1643,11 @@ again:
 
 		ptlrpc_req_finished(request);
 		request = NULL;
+		ll_finish_md_op_data(op_data);
+		op_data = NULL;
 
 		err2 = ll_dir_getstripe(dir, (void **)&lum, &lumsize, &request,
 					OBD_MD_DEFAULT_MEA);
-		ll_finish_md_op_data(op_data);
-		op_data = NULL;
 		if (!err2) {
 			struct lustre_md md = { NULL };
 
