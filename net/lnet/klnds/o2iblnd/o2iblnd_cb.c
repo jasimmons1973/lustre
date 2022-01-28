@@ -1002,32 +1002,44 @@ kiblnd_tx_complete(struct kib_tx *tx, int status)
 }
 
 static void
+kiblnd_init_tx_sge(struct kib_tx *tx, u64 addr, unsigned int len)
+{
+	struct ib_sge *sge = &tx->tx_sge[tx->tx_nsge];
+	struct kib_hca_dev *hdev = tx->tx_pool->tpo_hdev;
+
+	*sge = (struct ib_sge) {
+		.lkey = hdev->ibh_pd->local_dma_lkey,
+		.addr = addr,
+		.length = len,
+	};
+
+	tx->tx_nsge++;
+}
+
+static void
 kiblnd_init_tx_msg(struct lnet_ni *ni, struct kib_tx *tx, int type,
 		   int body_nob)
 {
-	struct kib_hca_dev *hdev = tx->tx_pool->tpo_hdev;
-	struct ib_sge *sge = &tx->tx_msgsge;
 	struct ib_rdma_wr *wrq = &tx->tx_wrq[tx->tx_nwrq];
 	int nob = offsetof(struct kib_msg, ibm_u) + body_nob;
 
 	LASSERT(tx->tx_nwrq >= 0);
-	LASSERT(tx->tx_nwrq <= IBLND_MAX_RDMA_FRAGS);
+	LASSERT(tx->tx_nwrq < IBLND_MAX_RDMA_FRAGS + 1);
 	LASSERT(nob <= IBLND_MSG_SIZE);
 
 	kiblnd_init_msg(tx->tx_msg, type, body_nob);
 
-	sge->lkey = hdev->ibh_pd->local_dma_lkey;
-	sge->addr = tx->tx_msgaddr;
-	sge->length = nob;
+	*wrq = (struct ib_rdma_wr) {
+		.wr = {
+			.wr_id	= kiblnd_ptr2wreqid(tx, IBLND_WID_TX),
+			.num_sge = 1,
+			.sg_list = &tx->tx_sge[tx->tx_nsge],
+			.opcode = IB_WR_SEND,
+			.send_flags = IB_SEND_SIGNALED,
+		},
+	};
 
-	memset(wrq, 0, sizeof(*wrq));
-
-	wrq->wr.next = NULL;
-	wrq->wr.wr_id = kiblnd_ptr2wreqid(tx, IBLND_WID_TX);
-	wrq->wr.sg_list = sge;
-	wrq->wr.num_sge = 1;
-	wrq->wr.opcode = IB_WR_SEND;
-	wrq->wr.send_flags = IB_SEND_SIGNALED;
+	kiblnd_init_tx_sge(tx, tx->tx_msgaddr, nob);
 
 	tx->tx_nwrq++;
 }

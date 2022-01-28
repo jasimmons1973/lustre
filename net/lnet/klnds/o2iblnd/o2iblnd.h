@@ -408,8 +408,6 @@ struct kib_tx {					/* transmit message */
 	struct kib_msg	       *tx_msg;		/* message buffer (host vaddr) */
 	u64			tx_msgaddr;	/* message buffer (I/O addr) */
 	DEFINE_DMA_UNMAP_ADDR(tx_msgunmap);	/* for dma_unmap_single() */
-	/** sge for tx_msgaddr */
-	struct ib_sge		tx_msgsge;
 	int			tx_nwrq;	/* # send work items */
 	/* # used scatter/gather elements */
 	int			tx_nsge;

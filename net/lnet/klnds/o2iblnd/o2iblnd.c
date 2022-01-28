@@ -2010,8 +2010,9 @@ static int kiblnd_create_tx_pool(struct kib_poolset *ps, int size,
 		if (!tx->tx_wrq)
 			break;
 
-		tx->tx_sge = kzalloc_cpt((1 + IBLND_MAX_RDMA_FRAGS) *
-					 wrq_sge * sizeof(*tx->tx_sge),
+		/* +1 is for the lnet header/message itself */
+		tx->tx_sge = kzalloc_cpt((1 + IBLND_MAX_RDMA_FRAGS * wrq_sge) *
+					 sizeof(*tx->tx_sge),
 					 GFP_KERNEL, ps->ps_cpt);
 		if (!tx->tx_sge)
 			break;
