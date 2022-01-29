@@ -1184,7 +1184,7 @@ again:
 
 			/* Substitute process ID assigned at connection time */
 			hdr.src_pid = id->pid;
-			hdr.src_nid = lnet_nid_to_nid4(&id->nid);
+			hdr.src_nid = id->nid;
 		}
 
 		conn->ksnc_rx_state = SOCKNAL_RX_PARSE;
