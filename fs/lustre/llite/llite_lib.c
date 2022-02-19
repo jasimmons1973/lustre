@@ -3400,7 +3400,7 @@ no_kbuf:
 void ll_compute_rootsquash_state(struct ll_sb_info *sbi)
 {
 	struct root_squash_info *squash = &sbi->ll_squash;
-	struct lnet_process_id id;
+	struct lnet_processid id;
 	bool matched;
 	int i;
 
@@ -3416,9 +3416,10 @@ void ll_compute_rootsquash_state(struct ll_sb_info *sbi)
 		i = 0;
 
 		while (LNetGetId(i++, &id) != -ENOENT) {
-			if (id.nid == LNET_NID_LO_0)
+			if (nid_is_lo0(&id.nid))
 				continue;
-			if (cfs_match_nid(id.nid, &squash->rsi_nosquash_nids)) {
+			if (cfs_match_nid(lnet_nid_to_nid4(&id.nid),
+					  &squash->rsi_nosquash_nids)) {
 				matched = true;
 				break;
 			}
