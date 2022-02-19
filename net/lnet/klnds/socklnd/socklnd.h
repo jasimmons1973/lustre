@@ -473,7 +473,7 @@ struct ksock_proto {
 	void	(*pro_pack)(struct ksock_tx *);
 
 	/* message unpack */
-	void	(*pro_unpack)(struct ksock_msg *);
+	void	(*pro_unpack)(struct ksock_msg *msg, struct lnet_hdr *hdr);
 
 	/* queue tx on the connection */
 	struct ksock_tx *(*pro_queue_tx_msg)(struct ksock_conn *, struct ksock_tx *);

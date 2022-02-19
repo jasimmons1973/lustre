@@ -1174,9 +1174,7 @@ again:
 
 	case SOCKNAL_RX_LNET_HEADER:
 		/* unpack message header */
-		conn->ksnc_proto->pro_unpack(&conn->ksnc_msg);
-
-		lnet_hdr_from_nid4(&hdr, &conn->ksnc_msg.ksm_u.lnetmsg_nid4);
+		conn->ksnc_proto->pro_unpack(&conn->ksnc_msg, &hdr);
 
 		if (conn->ksnc_peer->ksnp_id.pid & LNET_PID_USERFLAG) {
 			/* Userspace peer_ni */
