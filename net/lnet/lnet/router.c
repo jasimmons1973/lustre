@@ -1681,7 +1681,7 @@ lnet_rtrpools_disable(void)
 }
 
 static inline void
-lnet_notify_peer_down(struct lnet_ni *ni, lnet_nid_t nid)
+lnet_notify_peer_down(struct lnet_ni *ni, struct lnet_nid *nid)
 {
 	if (ni->ni_net->net_lnd->lnd_notify_peer_down)
 		ni->ni_net->net_lnd->lnd_notify_peer_down(nid);
@@ -1796,7 +1796,7 @@ lnet_notify(struct lnet_ni *ni, lnet_nid_t nid, bool alive, bool reset,
 	lnet_net_unlock(0);
 
 	if (ni && !alive)
-		lnet_notify_peer_down(ni, lnet_nid_to_nid4(&lpni->lpni_nid));
+		lnet_notify_peer_down(ni, &lpni->lpni_nid);
 
 	cpt = lpni->lpni_cpt;
 	lnet_net_lock(cpt);
