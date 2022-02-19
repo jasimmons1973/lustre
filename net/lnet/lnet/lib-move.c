@@ -4046,7 +4046,7 @@ lnet_parse_reply(struct lnet_ni *ni, struct lnet_msg *msg)
 {
 	void *private = msg->msg_private;
 	struct lnet_hdr *hdr = &msg->msg_hdr;
-	struct lnet_process_id src = { 0 };
+	struct lnet_processid src = {};
 	struct lnet_libmd *md;
 	int rlength;
 	int mlength;
@@ -4055,14 +4055,14 @@ lnet_parse_reply(struct lnet_ni *ni, struct lnet_msg *msg)
 	cpt = lnet_cpt_of_cookie(hdr->msg.reply.dst_wmd.wh_object_cookie);
 	lnet_res_lock(cpt);
 
-	src.nid = lnet_nid_to_nid4(&hdr->src_nid);
+	src.nid = hdr->src_nid;
 	src.pid = hdr->src_pid;
 
 	/* NB handles only looked up by creator (no flips) */
 	md = lnet_wire_handle2md(&hdr->msg.reply.dst_wmd);
 	if (!md || !md->md_threshold || md->md_me) {
 		CNETERR("%s: Dropping REPLY from %s for %s MD %#llx.%#llx\n",
-			libcfs_nidstr(&ni->ni_nid), libcfs_id2str(src),
+			libcfs_nidstr(&ni->ni_nid), libcfs_idstr(&src),
 			!md ? "invalid" : "inactive",
 			hdr->msg.reply.dst_wmd.wh_interface_cookie,
 			hdr->msg.reply.dst_wmd.wh_object_cookie);
@@ -4082,7 +4082,7 @@ lnet_parse_reply(struct lnet_ni *ni, struct lnet_msg *msg)
 	if (mlength < rlength &&
 	    !(md->md_options & LNET_MD_TRUNCATE)) {
 		CNETERR("%s: Dropping REPLY from %s length %d for MD %#llx would overflow (%d)\n",
-			libcfs_nidstr(&ni->ni_nid), libcfs_id2str(src),
+			libcfs_nidstr(&ni->ni_nid), libcfs_idstr(&src),
 			rlength, hdr->msg.reply.dst_wmd.wh_object_cookie,
 			mlength);
 		lnet_res_unlock(cpt);
@@ -4090,7 +4090,7 @@ lnet_parse_reply(struct lnet_ni *ni, struct lnet_msg *msg)
 	}
 
 	CDEBUG(D_NET, "%s: Reply from %s of length %d/%d into md %#llx\n",
-	       libcfs_nidstr(&ni->ni_nid), libcfs_id2str(src),
+	       libcfs_nidstr(&ni->ni_nid), libcfs_idstr(&src),
 	       mlength, rlength, hdr->msg.reply.dst_wmd.wh_object_cookie);
 
 	lnet_msg_attach_md(msg, md, 0, mlength);
@@ -4110,11 +4110,11 @@ static int
 lnet_parse_ack(struct lnet_ni *ni, struct lnet_msg *msg)
 {
 	struct lnet_hdr *hdr = &msg->msg_hdr;
-	struct lnet_process_id src = { 0 };
+	struct lnet_processid src = {};
 	struct lnet_libmd *md;
 	int cpt;
 
-	src.nid = lnet_nid_to_nid4(&hdr->src_nid);
+	src.nid = hdr->src_nid;
 	src.pid = hdr->src_pid;
 
 	/* Convert ack fields to host byte order */
@@ -4130,7 +4130,7 @@ lnet_parse_ack(struct lnet_ni *ni, struct lnet_msg *msg)
 		/* Don't moan; this is expected */
 		CDEBUG(D_NET,
 		       "%s: Dropping ACK from %s to %s MD %#llx.%#llx\n",
-		       libcfs_nidstr(&ni->ni_nid), libcfs_id2str(src),
+		       libcfs_nidstr(&ni->ni_nid), libcfs_idstr(&src),
 		       !md ? "invalid" : "inactive",
 		       hdr->msg.ack.dst_wmd.wh_interface_cookie,
 		       hdr->msg.ack.dst_wmd.wh_object_cookie);
@@ -4143,7 +4143,7 @@ lnet_parse_ack(struct lnet_ni *ni, struct lnet_msg *msg)
 	}
 
 	CDEBUG(D_NET, "%s: ACK from %s into md %#llx\n",
-	       libcfs_nidstr(&ni->ni_nid), libcfs_id2str(src),
+	       libcfs_nidstr(&ni->ni_nid), libcfs_idstr(&src),
 	       hdr->msg.ack.dst_wmd.wh_object_cookie);
 
 	lnet_msg_attach_md(msg, md, 0, 0);
@@ -4543,11 +4543,11 @@ lnet_drop_delayed_msg_list(struct list_head *head, char *reason)
 
 	while ((msg = list_first_entry_or_null(head, struct lnet_msg,
 					       msg_list)) != NULL) {
-		struct lnet_process_id id = { 0 };
+		struct lnet_processid id = {};
 
 		list_del(&msg->msg_list);
 
-		id.nid = lnet_nid_to_nid4(&msg->msg_hdr.src_nid);
+		id.nid = msg->msg_hdr.src_nid;
 		id.pid = msg->msg_hdr.src_pid;
 
 		LASSERT(!msg->msg_md);
@@ -4556,7 +4556,7 @@ lnet_drop_delayed_msg_list(struct list_head *head, char *reason)
 		LASSERT(msg->msg_hdr.type == LNET_MSG_PUT);
 
 		CWARN("Dropping delayed PUT from %s portal %d match %llu offset %d length %d: %s\n",
-		      libcfs_id2str(id),
+		      libcfs_idstr(&id),
 		      msg->msg_hdr.msg.put.ptl_index,
 		      msg->msg_hdr.msg.put.match_bits,
 		      msg->msg_hdr.msg.put.offset,
@@ -4588,14 +4588,14 @@ lnet_recv_delayed_msg_list(struct list_head *head)
 
 	while ((msg = list_first_entry_or_null(head, struct lnet_msg,
 					       msg_list)) != NULL) {
-		struct lnet_process_id id;
+		struct lnet_processid id;
 
 		list_del(&msg->msg_list);
 
 		/* md won't disappear under me, since each msg
 		 * holds a ref on it
 		 */
-		id.nid = lnet_nid_to_nid4(&msg->msg_hdr.src_nid);
+		id.nid = msg->msg_hdr.src_nid;
 		id.pid = msg->msg_hdr.src_pid;
 
 		LASSERT(msg->msg_rx_delayed);
@@ -4605,7 +4605,7 @@ lnet_recv_delayed_msg_list(struct list_head *head)
 		LASSERT(msg->msg_hdr.type == LNET_MSG_PUT);
 
 		CDEBUG(D_NET, "Resuming delayed PUT from %s portal %d match %llu offset %d length %d.\n",
-		       libcfs_id2str(id), msg->msg_hdr.msg.put.ptl_index,
+		       libcfs_idstr(&id), msg->msg_hdr.msg.put.ptl_index,
 		       msg->msg_hdr.msg.put.match_bits,
 		       msg->msg_hdr.msg.put.offset,
 		       msg->msg_hdr.payload_length);
