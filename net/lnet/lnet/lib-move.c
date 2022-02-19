@@ -513,12 +513,11 @@ lnet_setpayloadbuffer(struct lnet_msg *msg)
 }
 
 void
-lnet_prep_send(struct lnet_msg *msg, int type, struct lnet_process_id target,
+lnet_prep_send(struct lnet_msg *msg, int type, struct lnet_processid *target,
 	       unsigned int offset, unsigned int len)
 {
 	msg->msg_type = type;
-	msg->msg_target.pid = target.pid;
-	lnet_nid4_to_nid(target.nid, &msg->msg_target.nid);
+	msg->msg_target = *target;
 	msg->msg_len = len;
 	msg->msg_offset = offset;
 
@@ -528,8 +527,8 @@ lnet_prep_send(struct lnet_msg *msg, int type, struct lnet_process_id target,
 	memset(&msg->msg_hdr, 0, sizeof(msg->msg_hdr));
 	msg->msg_hdr.type = type;
 	/* dest_nid will be overwritten by lnet_select_pathway() */
-	lnet_nid4_to_nid(target.nid, &msg->msg_hdr.dest_nid);
-	msg->msg_hdr.dest_pid = target.pid;
+	msg->msg_hdr.dest_nid = target->nid;
+	msg->msg_hdr.dest_pid = target->pid;
 	/* src_nid will be set later */
 	msg->msg_hdr.src_pid = the_lnet.ln_pid;
 	msg->msg_hdr.payload_length = len;
@@ -3978,7 +3977,7 @@ lnet_parse_get(struct lnet_ni *ni, struct lnet_msg *msg, int rdma_get)
 {
 	struct lnet_match_info info;
 	struct lnet_hdr *hdr = &msg->msg_hdr;
-	struct lnet_process_id source_id;
+	struct lnet_processid source_id;
 	struct lnet_handle_wire reply_wmd;
 	int rc;
 
@@ -3988,7 +3987,7 @@ lnet_parse_get(struct lnet_ni *ni, struct lnet_msg *msg, int rdma_get)
 	le32_to_cpus(&hdr->msg.get.sink_length);
 	le32_to_cpus(&hdr->msg.get.src_offset);
 
-	source_id.nid = lnet_nid_to_nid4(&hdr->src_nid);
+	source_id.nid = hdr->src_nid;
 	source_id.pid = hdr->src_pid;
 	/* Primary peer NID */
 	info.mi_id.nid = msg->msg_initiator;
@@ -4014,7 +4013,7 @@ lnet_parse_get(struct lnet_ni *ni, struct lnet_msg *msg, int rdma_get)
 
 	reply_wmd = hdr->msg.get.return_wmd;
 
-	lnet_prep_send(msg, LNET_MSG_REPLY, source_id,
+	lnet_prep_send(msg, LNET_MSG_REPLY, &source_id,
 		       msg->msg_offset, msg->msg_wanted);
 
 	msg->msg_hdr.msg.reply.dst_wmd = reply_wmd;
@@ -4702,11 +4701,12 @@ lnet_attach_rsp_tracker(struct lnet_rsp_tracker *rspt, int cpt,
  */
 int
 LNetPut(lnet_nid_t self4, struct lnet_handle_md mdh, enum lnet_ack_req ack,
-	struct lnet_process_id target, unsigned int portal,
+	struct lnet_process_id target4, unsigned int portal,
 	u64 match_bits, unsigned int offset,
 	u64 hdr_data)
 {
 	struct lnet_rsp_tracker *rspt = NULL;
+	struct lnet_processid target;
 	struct lnet_msg *msg;
 	struct lnet_libmd *md;
 	struct lnet_nid self;
@@ -4716,18 +4716,20 @@ LNetPut(lnet_nid_t self4, struct lnet_handle_md mdh, enum lnet_ack_req ack,
 	LASSERT(the_lnet.ln_refcount > 0);
 
 	lnet_nid4_to_nid(self4, &self);
+	lnet_nid4_to_nid(target4.nid, &target.nid);
+	target.pid = target4.pid;
 
-	if (!list_empty(&the_lnet.ln_test_peers) && /* normally we don't */
-	    fail_peer(target.nid, 1)) { /* shall we now? */
+	if (!list_empty(&the_lnet.ln_test_peers) &&	/* normally we don't */
+	    fail_peer(target4.nid, 1)) {		/* shall we now? */
 		CERROR("Dropping PUT to %s: simulated failure\n",
-		       libcfs_id2str(target));
+		       libcfs_id2str(target4));
 		return -EIO;
 	}
 
 	msg = kmem_cache_zalloc(lnet_msg_cachep, GFP_NOFS);
 	if (!msg) {
 		CERROR("Dropping PUT to %s: ENOMEM on struct lnet_msg\n",
-		       libcfs_id2str(target));
+		       libcfs_id2str(target4));
 		return -ENOMEM;
 	}
 	msg->msg_vmflush = !!(current->flags & PF_MEMALLOC);
@@ -4738,7 +4740,7 @@ LNetPut(lnet_nid_t self4, struct lnet_handle_md mdh, enum lnet_ack_req ack,
 		rspt = lnet_rspt_alloc(cpt);
 		if (!rspt) {
 			CERROR("Dropping PUT to %s: ENOMEM on response tracker\n",
-			       libcfs_id2str(target));
+			       libcfs_id2str(target4));
 			return -ENOMEM;
 		}
 		INIT_LIST_HEAD(&rspt->rspt_on_list);
@@ -4749,7 +4751,7 @@ LNetPut(lnet_nid_t self4, struct lnet_handle_md mdh, enum lnet_ack_req ack,
 	md = lnet_handle2md(&mdh);
 	if (!md || !md->md_threshold || md->md_me) {
 		CERROR("Dropping PUT (%llu:%d:%s): MD (%d) invalid\n",
-		       match_bits, portal, libcfs_id2str(target),
+		       match_bits, portal, libcfs_id2str(target4),
 		       !md ? -1 : md->md_threshold);
 		if (md && md->md_me)
 			CERROR("Source MD also attached to portal %d\n",
@@ -4763,11 +4765,11 @@ LNetPut(lnet_nid_t self4, struct lnet_handle_md mdh, enum lnet_ack_req ack,
 		return -ENOENT;
 	}
 
-	CDEBUG(D_NET, "%s -> %s\n", __func__, libcfs_id2str(target));
+	CDEBUG(D_NET, "%s -> %s\n", __func__, libcfs_id2str(target4));
 
 	lnet_msg_attach_md(msg, md, 0, 0);
 
-	lnet_prep_send(msg, LNET_MSG_PUT, target, 0, md->md_length);
+	lnet_prep_send(msg, LNET_MSG_PUT, &target, 0, md->md_length);
 
 	msg->msg_hdr.msg.put.match_bits = cpu_to_le64(match_bits);
 	msg->msg_hdr.msg.put.ptl_index = cpu_to_le32(portal);
@@ -4804,7 +4806,7 @@ LNetPut(lnet_nid_t self4, struct lnet_handle_md mdh, enum lnet_ack_req ack,
 		rc = lnet_send(&self, msg, NULL);
 	if (rc) {
 		CNETERR("Error sending PUT to %s: %d\n",
-			libcfs_id2str(target), rc);
+			libcfs_id2str(target4), rc);
 		msg->msg_no_resend = true;
 		lnet_finalize(msg, rc);
 	}
@@ -4946,10 +4948,11 @@ EXPORT_SYMBOL(lnet_set_reply_msg_len);
  */
 int
 LNetGet(lnet_nid_t self4, struct lnet_handle_md mdh,
-	struct lnet_process_id target, unsigned int portal,
+	struct lnet_process_id target4, unsigned int portal,
 	u64 match_bits, unsigned int offset, bool recovery)
 {
 	struct lnet_rsp_tracker *rspt;
+	struct lnet_processid target;
 	struct lnet_msg *msg;
 	struct lnet_libmd *md;
 	struct lnet_nid self;
@@ -4959,18 +4962,20 @@ LNetGet(lnet_nid_t self4, struct lnet_handle_md mdh,
 	LASSERT(the_lnet.ln_refcount > 0);
 
 	lnet_nid4_to_nid(self4, &self);
+	lnet_nid4_to_nid(target4.nid, &target.nid);
+	target.pid = target4.pid;
 
-	if (!list_empty(&the_lnet.ln_test_peers) && /* normally we don't */
-	    fail_peer(target.nid, 1)) {		/* shall we now? */
+	if (!list_empty(&the_lnet.ln_test_peers) &&	/* normally we don't */
+	    fail_peer(target4.nid, 1)) {		/* shall we now? */
 		CERROR("Dropping GET to %s: simulated failure\n",
-		       libcfs_id2str(target));
+		       libcfs_id2str(target4));
 		return -EIO;
 	}
 
 	msg = kmem_cache_zalloc(lnet_msg_cachep, GFP_NOFS);
 	if (!msg) {
 		CERROR("Dropping GET to %s: ENOMEM on struct lnet_msg\n",
-		       libcfs_id2str(target));
+		       libcfs_id2str(target4));
 		return -ENOMEM;
 	}
 
@@ -4979,7 +4984,7 @@ LNetGet(lnet_nid_t self4, struct lnet_handle_md mdh,
 	rspt = lnet_rspt_alloc(cpt);
 	if (!rspt) {
 		CERROR("Dropping GET to %s: ENOMEM on response tracker\n",
-		       libcfs_id2str(target));
+		       libcfs_id2str(target4));
 		return -ENOMEM;
 	}
 	INIT_LIST_HEAD(&rspt->rspt_on_list);
@@ -4991,7 +4996,7 @@ LNetGet(lnet_nid_t self4, struct lnet_handle_md mdh,
 	md = lnet_handle2md(&mdh);
 	if (!md || !md->md_threshold || md->md_me) {
 		CERROR("Dropping GET (%llu:%d:%s): MD (%d) invalid\n",
-		       match_bits, portal, libcfs_id2str(target),
+		       match_bits, portal, libcfs_id2str(target4),
 		       !md ? -1 : md->md_threshold);
 		if (md && md->md_me)
 			CERROR("REPLY MD also attached to portal %d\n",
@@ -5004,11 +5009,11 @@ LNetGet(lnet_nid_t self4, struct lnet_handle_md mdh,
 		return -ENOENT;
 	}
 
-	CDEBUG(D_NET, "%s -> %s\n", __func__, libcfs_id2str(target));
+	CDEBUG(D_NET, "%s -> %s\n", __func__, libcfs_id2str(target4));
 
 	lnet_msg_attach_md(msg, md, 0, 0);
 
-	lnet_prep_send(msg, LNET_MSG_GET, target, 0, 0);
+	lnet_prep_send(msg, LNET_MSG_GET, &target, 0, 0);
 
 	msg->msg_hdr.msg.get.match_bits = cpu_to_le64(match_bits);
 	msg->msg_hdr.msg.get.ptl_index = cpu_to_le32(portal);
@@ -5033,7 +5038,7 @@ LNetGet(lnet_nid_t self4, struct lnet_handle_md mdh,
 	rc = lnet_send(&self, msg, NULL);
 	if (rc < 0) {
 		CNETERR("Error sending GET to %s: %d\n",
-			libcfs_id2str(target), rc);
+			libcfs_id2str(target4), rc);
 		msg->msg_no_resend = true;
 		lnet_finalize(msg, rc);
 	}
