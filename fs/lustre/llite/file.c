@@ -2771,8 +2771,8 @@ int ll_hsm_release(struct inode *inode)
 	struct lu_env *env;
 	struct obd_client_handle *och = NULL;
 	u64 data_version = 0;
-	int rc;
 	u16 refcheck;
+	int rc;
 
 	CDEBUG(D_INODE, "%s: Releasing file " DFID ".\n",
 	       ll_i2sbi(inode)->ll_fsname,
@@ -2785,7 +2785,8 @@ int ll_hsm_release(struct inode *inode)
 	}
 
 	/* Grab latest data_version and [am]time values */
-	rc = ll_data_version(inode, &data_version, LL_DV_WR_FLUSH);
+	rc = ll_data_version(inode, &data_version,
+			     LL_DV_WR_FLUSH | LL_DV_SZ_UPDATE);
 	if (rc != 0)
 		goto out;
 
