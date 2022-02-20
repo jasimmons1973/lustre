@@ -493,7 +493,7 @@ ksocknal_send_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 			hmv->magic = LNET_PROTO_MAGIC;
 	}
 
-	hdr->src_nid = cpu_to_le64(hello->kshm_src_nid);
+	hdr->src_nid = cpu_to_le64(lnet_nid_to_nid4(&hello->kshm_src_nid));
 	hdr->src_pid = cpu_to_le32(hello->kshm_src_pid);
 	hdr->type = cpu_to_le32(LNET_MSG_HELLO);
 	hdr->payload_length = cpu_to_le32(hello->kshm_nips * sizeof(u32));
@@ -531,10 +531,28 @@ static int
 ksocknal_send_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 {
 	struct socket *sock = conn->ksnc_sock;
+	struct ksock_hello_msg_nid4 *hello4;
 	int rc;
+
+	hello4 = kzalloc(sizeof(*hello4), GFP_NOFS);
+	if (!hello4) {
+		CERROR("Can't allocate struct ksock_hello_msg_nid4\n");
+		return -ENOMEM;
+	}
 
 	hello->kshm_magic = LNET_PROTO_MAGIC;
 	hello->kshm_version = conn->ksnc_proto->pro_version;
+
+	hello4->kshm_magic = LNET_PROTO_MAGIC;
+	hello4->kshm_version = conn->ksnc_proto->pro_version;
+	hello4->kshm_src_nid = lnet_nid_to_nid4(&hello->kshm_src_nid);
+	hello4->kshm_dst_nid = lnet_nid_to_nid4(&hello->kshm_dst_nid);
+	hello4->kshm_src_pid = hello->kshm_src_pid;
+	hello4->kshm_dst_pid = hello->kshm_dst_pid;
+	hello4->kshm_src_incarnation = hello->kshm_src_incarnation;
+	hello4->kshm_dst_incarnation = hello->kshm_dst_incarnation;
+	hello4->kshm_ctype = hello->kshm_ctype;
+	hello4->kshm_nips = hello->kshm_nips;
 
 	if (the_lnet.ln_testprotocompat) {
 		/* single-shot proto check */
@@ -542,8 +560,20 @@ ksocknal_send_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 			hello->kshm_version++;   /* just different! */
 	}
 
-	rc = lnet_sock_write(sock, hello, offsetof(struct ksock_hello_msg, kshm_ips),
+	hello4->kshm_magic = LNET_PROTO_MAGIC;
+	hello4->kshm_version = hello->kshm_version;
+	hello4->kshm_src_nid = lnet_nid_to_nid4(&hello->kshm_src_nid);
+	hello4->kshm_dst_nid = lnet_nid_to_nid4(&hello->kshm_dst_nid);
+	hello4->kshm_src_pid = hello->kshm_src_pid;
+	hello4->kshm_dst_pid = hello->kshm_dst_pid;
+	hello4->kshm_src_incarnation = hello->kshm_src_incarnation;
+	hello4->kshm_dst_incarnation = hello->kshm_dst_incarnation;
+	hello4->kshm_ctype = hello->kshm_ctype;
+	hello4->kshm_nips = hello->kshm_nips;
+
+	rc = lnet_sock_write(sock, hello4, sizeof(*hello4),
 			     lnet_acceptor_timeout());
+	kfree(hello4);
 	if (rc) {
 		CNETERR("Error %d sending HELLO hdr to %pISp\n",
 			rc, &conn->ksnc_peeraddr);
@@ -600,7 +630,7 @@ ksocknal_recv_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 		goto out;
 	}
 
-	hello->kshm_src_nid = le64_to_cpu(hdr->src_nid);
+	lnet_nid4_to_nid(le64_to_cpu(hdr->src_nid), &hello->kshm_src_nid);
 	hello->kshm_src_pid = le32_to_cpu(hdr->src_pid);
 	hello->kshm_src_incarnation = le64_to_cpu(hdr->msg.hello.incarnation);
 	hello->kshm_ctype = le32_to_cpu(hdr->msg.hello.type);
@@ -646,6 +676,7 @@ ksocknal_recv_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 		       int timeout)
 {
 	struct socket *sock = conn->ksnc_sock;
+	struct ksock_hello_msg_nid4 *hello4 = (void *)hello;
 	int rc;
 	int i;
 
@@ -654,9 +685,9 @@ ksocknal_recv_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 	else
 		conn->ksnc_flip = 1;
 
-	rc = lnet_sock_read(sock, &hello->kshm_src_nid,
-			    offsetof(struct ksock_hello_msg, kshm_ips) -
-				     offsetof(struct ksock_hello_msg, kshm_src_nid),
+	rc = lnet_sock_read(sock, &hello4->kshm_src_nid,
+			    offsetof(struct ksock_hello_msg_nid4, kshm_ips) -
+			    offsetof(struct ksock_hello_msg_nid4, kshm_src_nid),
 			    timeout);
 	if (rc) {
 		CERROR("Error %d reading HELLO from %pIS\n",
@@ -666,14 +697,25 @@ ksocknal_recv_hello_v2(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 	}
 
 	if (conn->ksnc_flip) {
-		__swab32s(&hello->kshm_src_pid);
-		__swab64s(&hello->kshm_src_nid);
-		__swab32s(&hello->kshm_dst_pid);
-		__swab64s(&hello->kshm_dst_nid);
-		__swab64s(&hello->kshm_src_incarnation);
-		__swab64s(&hello->kshm_dst_incarnation);
-		__swab32s(&hello->kshm_ctype);
-		__swab32s(&hello->kshm_nips);
+		/* These must be copied in reverse order to avoid corruption. */
+		hello->kshm_nips = __swab32(hello4->kshm_nips);
+		hello->kshm_ctype = __swab32(hello4->kshm_ctype);
+		hello->kshm_dst_incarnation = __swab64(hello4->kshm_dst_incarnation);
+		hello->kshm_src_incarnation = __swab64(hello4->kshm_src_incarnation);
+		hello->kshm_dst_pid = __swab32(hello4->kshm_dst_pid);
+		hello->kshm_src_pid = __swab32(hello4->kshm_src_pid);
+		lnet_nid4_to_nid(hello4->kshm_dst_nid, &hello->kshm_dst_nid);
+		lnet_nid4_to_nid(hello4->kshm_src_nid, &hello->kshm_src_nid);
+	} else {
+		/* These must be copied in reverse order to avoid corruption. */
+		hello->kshm_nips = hello4->kshm_nips;
+		hello->kshm_ctype = hello4->kshm_ctype;
+		hello->kshm_dst_incarnation = hello4->kshm_dst_incarnation;
+		hello->kshm_src_incarnation = hello4->kshm_src_incarnation;
+		hello->kshm_dst_pid = hello4->kshm_dst_pid;
+		hello->kshm_src_pid = hello4->kshm_src_pid;
+		lnet_nid4_to_nid(hello4->kshm_dst_nid, &hello->kshm_dst_nid);
+		lnet_nid4_to_nid(hello4->kshm_src_nid, &hello->kshm_src_nid);
 	}
 
 	if (hello->kshm_nips > LNET_INTERFACES_NUM) {

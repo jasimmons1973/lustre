@@ -854,7 +854,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_conn_cb *conn_cb,
 {
 	rwlock_t *global_lock = &ksocknal_data.ksnd_global_lock;
 	LIST_HEAD(zombies);
-	struct lnet_process_id peerid4;
+	struct lnet_processid peerid;
 	u64 incarnation;
 	struct ksock_conn *conn;
 	struct ksock_conn *conn2;
@@ -928,7 +928,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_conn_cb *conn_cb,
 
 		/* Active connection sends HELLO eagerly */
 		hello->kshm_nips =  0;
-		peerid4 = lnet_pid_to_pid4(&peer_ni->ksnp_id);
+		peerid = peer_ni->ksnp_id;
 
 		write_lock_bh(global_lock);
 		conn->ksnc_proto = peer_ni->ksnp_proto;
@@ -944,34 +944,31 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_conn_cb *conn_cb,
 #endif
 		}
 
-		rc = ksocknal_send_hello(ni, conn, peerid4.nid, hello);
+		rc = ksocknal_send_hello(ni, conn, &peerid.nid, hello);
 		if (rc)
 			goto failed_1;
 	} else {
-		peerid4.nid = LNET_NID_ANY;
-		peerid4.pid = LNET_PID_ANY;
+		peerid.nid = LNET_ANY_NID;
+		peerid.pid = LNET_PID_ANY;
 
 		/* Passive, get protocol from peer_ni */
 		conn->ksnc_proto = NULL;
 	}
 
-	rc = ksocknal_recv_hello(ni, conn, hello, &peerid4, &incarnation);
+	rc = ksocknal_recv_hello(ni, conn, hello, &peerid, &incarnation);
 	if (rc < 0)
 		goto failed_1;
 
 	LASSERT(!rc || active);
 	LASSERT(conn->ksnc_proto);
-	LASSERT(peerid4.nid != LNET_NID_ANY);
+	LASSERT(!LNET_NID_IS_ANY(&peerid.nid));
 
-	cpt = lnet_cpt_of_nid(peerid4.nid, ni);
+	cpt = lnet_nid2cpt(&peerid.nid, ni);
 
 	if (active) {
 		ksocknal_peer_addref(peer_ni);
 		write_lock_bh(global_lock);
 	} else {
-		struct lnet_processid peerid;
-
-		lnet_pid4_to_pid(peerid4, &peerid);
 		peer_ni = ksocknal_create_peer(ni, &peerid);
 		if (IS_ERR(peer_ni)) {
 			rc = PTR_ERR(peer_ni);
@@ -1004,7 +1001,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_conn_cb *conn_cb,
 		 * Am I already connecting to this guy?  Resolve in
 		 * favour of higher NID...
 		 */
-		if (peerid4.nid < lnet_nid_to_nid4(&ni->ni_nid) &&
+		if (memcmp(&peerid.nid, &ni->ni_nid, sizeof(peerid.nid)) < 0 &&
 		    ksocknal_connecting(peer_ni->ksnp_conn_cb,
 					((struct sockaddr *)&conn->ksnc_peeraddr))) {
 			rc = EALREADY;
@@ -1164,9 +1161,7 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_conn_cb *conn_cb,
 	}
 
 	write_unlock_bh(global_lock);
-
-	/*
-	 * We've now got a new connection.  Any errors from here on are just
+	/* We've now got a new connection.  Any errors from here on are just
 	 * like "normal" comms errors and we close the connection normally.
 	 * NB (a) we still have to send the reply HELLO for passive
 	 *	connections,
@@ -1175,13 +1170,13 @@ ksocknal_create_conn(struct lnet_ni *ni, struct ksock_conn_cb *conn_cb,
 	 */
 	CDEBUG(D_NET,
 	       "New conn %s p %d.x %pIS -> %pISp incarnation:%lld sched[%d]\n",
-	       libcfs_id2str(peerid4), conn->ksnc_proto->pro_version,
+	       libcfs_idstr(&peerid), conn->ksnc_proto->pro_version,
 	       &conn->ksnc_myaddr, &conn->ksnc_peeraddr,
 	       incarnation, cpt);
 
 	if (!active) {
 		hello->kshm_nips = 0;
-		rc = ksocknal_send_hello(ni, conn, peerid4.nid, hello);
+		rc = ksocknal_send_hello(ni, conn, &peerid.nid, hello);
 	}
 
 	kvfree(hello);
@@ -1237,10 +1232,10 @@ failed_2:
 	if (warn) {
 		if (rc < 0)
 			CERROR("Not creating conn %s type %d: %s\n",
-			       libcfs_id2str(peerid4), conn->ksnc_type, warn);
+			       libcfs_idstr(&peerid), conn->ksnc_type, warn);
 		else
 			CDEBUG(D_NET, "Not creating conn %s type %d: %s\n",
-			       libcfs_id2str(peerid4), conn->ksnc_type, warn);
+			       libcfs_idstr(&peerid), conn->ksnc_type, warn);
 	}
 
 	if (!active) {
@@ -1251,7 +1246,7 @@ failed_2:
 			 */
 			conn->ksnc_type = SOCKLND_CONN_NONE;
 			hello->kshm_nips = 0;
-			ksocknal_send_hello(ni, conn, peerid4.nid, hello);
+			ksocknal_send_hello(ni, conn, &peerid.nid, hello);
 		}
 
 		write_lock_bh(global_lock);

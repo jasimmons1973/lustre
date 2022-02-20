@@ -674,10 +674,11 @@ int ksocknal_scheduler(void *arg);
 int ksocknal_connd(void *arg);
 int ksocknal_reaper(void *arg);
 int ksocknal_send_hello(struct lnet_ni *ni, struct ksock_conn *conn,
-			lnet_nid_t peer_nid, struct ksock_hello_msg *hello);
+			struct lnet_nid *peer_nid,
+			struct ksock_hello_msg *hello);
 int ksocknal_recv_hello(struct lnet_ni *ni, struct ksock_conn *conn,
 			struct ksock_hello_msg *hello,
-			struct lnet_process_id *id,
+			struct lnet_processid *id,
 			u64 *incarnation);
 void ksocknal_read_callback(struct ksock_conn *conn);
 void ksocknal_write_callback(struct ksock_conn *conn);
