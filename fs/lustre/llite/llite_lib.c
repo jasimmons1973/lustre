@@ -3334,18 +3334,36 @@ int ll_get_obd_name(struct inode *inode, unsigned int cmd, unsigned long arg)
 	return 0;
 }
 
-void ll_dirty_page_discard_warn(struct page *page, int ioret)
+struct dname_buf {
+	struct work_struct db_work;
+	struct dentry *db_dentry;
+	/* Let's hope the path is not too long, 32 bytes for the work struct
+	 * on my kernel
+	 */
+	char buf[PAGE_SIZE - sizeof(struct work_struct) - sizeof(void *)];
+};
+
+static void ll_dput_later(struct work_struct *work)
 {
-	char *buf, *path = NULL;
+	struct dname_buf *db = container_of(work, struct dname_buf, db_work);
+
+	dput(db->db_dentry);
+	free_page((unsigned long)db);
+}
+
+void ll_dirty_page_discard_warn(struct inode *inode, int ioret)
+{
+	struct dname_buf *db;
+	char *path = NULL;
 	struct dentry *dentry = NULL;
-	struct inode *inode = page->mapping->host;
 
 	/* this can be called inside spin lock so use GFP_ATOMIC. */
-	buf = (char *)__get_free_page(GFP_ATOMIC);
-	if (buf) {
+	db = (struct dname_buf *)__get_free_page(GFP_ATOMIC);
+	if (db) {
 		dentry = d_find_alias(inode);
 		if (dentry)
-			path = dentry_path_raw(dentry, buf, PAGE_SIZE);
+			path = dentry_path_raw(dentry, db->buf,
+					       sizeof(db->buf));
 	}
 
 	/* The below message is checked in recovery-small.sh test_24b */
@@ -3356,11 +3374,20 @@ void ll_dirty_page_discard_warn(struct page *page, int ioret)
 	       PFID(ll_inode2fid(inode)),
 	       (path && !IS_ERR(path)) ? path : "", ioret);
 
-	if (dentry)
-		dput(dentry);
-
-	if (buf)
-		free_page((unsigned long)buf);
+	if (dentry) {
+		/* We cannot dput here since if we happen to be the last holder
+		 * then we can end up waiting for page evictions that
+		 * in turn wait for RPCs that need this instance of ptlrpcd
+		 * (callng brw_interpret->*page_completion*->vmpage_error->here)
+		 * LU-15340
+		 */
+		INIT_WORK(&db->db_work, ll_dput_later);
+		db->db_dentry = dentry;
+		schedule_work(&db->db_work);
+	} else {
+		if (db)
+			free_page((unsigned long)db);
+	}
 }
 
 ssize_t ll_copy_user_md(const struct lov_user_md __user *md,
