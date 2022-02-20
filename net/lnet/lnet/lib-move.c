@@ -2891,8 +2891,8 @@ enum lnet_mt_event_type {
 };
 
 struct lnet_mt_event_info {
-	enum lnet_mt_event_type mt_type;
-	lnet_nid_t mt_nid;
+	enum lnet_mt_event_type	mt_type;
+	struct lnet_nid		mt_nid;
 };
 
 /* called with res_lock held */
@@ -3176,7 +3176,7 @@ lnet_recover_local_nis(void)
 	struct lnet_handle_md mdh;
 	struct lnet_ni *tmp;
 	struct lnet_ni *ni;
-	lnet_nid_t nid;
+	struct lnet_nid nid;
 	int healthv;
 	int rc;
 	time64_t now;
@@ -3258,8 +3258,7 @@ lnet_recover_local_nis(void)
 			 * We'll unlink the mdh in this case below.
 			 */
 			LNetInvalidateMDHandle(&ni->ni_ping_mdh);
-			/* FIXME need to handle large-addr nid */
-			nid = lnet_nid_to_nid4(&ni->ni_nid);
+			nid = ni->ni_nid;
 
 			/* remove the NI from the local queue and drop the
 			 * reference count to it while we're recovering
@@ -3284,12 +3283,12 @@ lnet_recover_local_nis(void)
 
 			ev_info->mt_type = MT_TYPE_LOCAL_NI;
 			ev_info->mt_nid = nid;
-			rc = lnet_send_ping(nid, &mdh, LNET_INTERFACES_MIN,
+			rc = lnet_send_ping(&nid, &mdh, LNET_INTERFACES_MIN,
 					    ev_info, the_lnet.ln_mt_handler,
 					    true);
 			/* lookup the nid again */
 			lnet_net_lock(0);
-			ni = lnet_nid2ni_locked(nid, 0);
+			ni = lnet_nid_to_ni_locked(&nid, 0);
 			if (!ni) {
 				/* the NI has been deleted when we dropped
 				 * the ref count
@@ -3430,7 +3429,7 @@ lnet_recover_peer_nis(void)
 	struct lnet_handle_md mdh;
 	struct lnet_peer_ni *lpni;
 	struct lnet_peer_ni *tmp;
-	lnet_nid_t nid;
+	struct lnet_nid nid;
 	time64_t now;
 	int healthv;
 	int rc;
@@ -3504,9 +3503,8 @@ lnet_recover_peer_nis(void)
 
 			/* look at the comments in lnet_recover_local_nis() */
 			mdh = lpni->lpni_recovery_ping_mdh;
+			nid = lpni->lpni_nid;
 			LNetInvalidateMDHandle(&lpni->lpni_recovery_ping_mdh);
-			/* FIXME handle large-addr nid */
-			nid = lnet_nid_to_nid4(&lpni->lpni_nid);
 			lnet_net_lock(0);
 			list_del_init(&lpni->lpni_recovery);
 			lnet_peer_ni_decref_locked(lpni);
@@ -3514,14 +3512,14 @@ lnet_recover_peer_nis(void)
 
 			ev_info->mt_type = MT_TYPE_PEER_NI;
 			ev_info->mt_nid = nid;
-			rc = lnet_send_ping(nid, &mdh, LNET_INTERFACES_MIN,
+			rc = lnet_send_ping(&nid, &mdh, LNET_INTERFACES_MIN,
 					    ev_info, the_lnet.ln_mt_handler,
 					    true);
 			lnet_net_lock(0);
 			/* lnet_find_peer_ni_locked() grabs a refcount for
 			 * us. No need to take it explicitly.
 			 */
-			lpni = lnet_find_peer_ni_locked(nid);
+			lpni = lnet_peer_ni_find_locked(&nid);
 			if (!lpni) {
 				lnet_net_unlock(0);
 				LNetMDUnlink(mdh);
@@ -3622,7 +3620,7 @@ lnet_monitor_thread(void *arg)
  * Returns < 0 if LNetGet fails
  */
 int
-lnet_send_ping(lnet_nid_t dest_nid,
+lnet_send_ping(struct lnet_nid *dest_nid,
 	       struct lnet_handle_md *mdh, int nnis,
 	       void *user_data, lnet_handler_t handler, bool recovery)
 {
@@ -3631,7 +3629,7 @@ lnet_send_ping(lnet_nid_t dest_nid,
 	struct lnet_ping_buffer *pbuf;
 	int rc;
 
-	if (dest_nid == LNET_NID_ANY) {
+	if (LNET_NID_IS_ANY(dest_nid)) {
 		rc = -EHOSTUNREACH;
 		goto fail_error;
 	}
@@ -3659,7 +3657,7 @@ lnet_send_ping(lnet_nid_t dest_nid,
 		goto fail_error;
 	}
 	id.pid = LNET_PID_LUSTRE;
-	id.nid = dest_nid;
+	id.nid = lnet_nid_to_nid4(dest_nid);
 
 	rc = LNetGet(LNET_NID_ANY, *mdh, id,
 		     LNET_RESERVED_PORTAL,
@@ -3680,13 +3678,13 @@ static void
 lnet_handle_recovery_reply(struct lnet_mt_event_info *ev_info,
 			   int status, bool send, bool unlink_event)
 {
-	lnet_nid_t nid = ev_info->mt_nid;
+	struct lnet_nid *nid = &ev_info->mt_nid;
 
 	if (ev_info->mt_type == MT_TYPE_LOCAL_NI) {
 		struct lnet_ni *ni;
 
 		lnet_net_lock(0);
-		ni = lnet_nid2ni_locked(nid, 0);
+		ni = lnet_nid_to_ni_locked(nid, 0);
 		if (!ni) {
 			lnet_net_unlock(0);
 			return;
@@ -3701,7 +3699,7 @@ lnet_handle_recovery_reply(struct lnet_mt_event_info *ev_info,
 
 		if (status != 0) {
 			CERROR("local NI (%s) recovery failed with %d\n",
-			       libcfs_nid2str(nid), status);
+			       libcfs_nidstr(nid), status);
 			return;
 		}
 		/* need to increment healthv for the ni here, because in
@@ -3718,7 +3716,7 @@ lnet_handle_recovery_reply(struct lnet_mt_event_info *ev_info,
 		int cpt;
 
 		cpt = lnet_net_lock_current();
-		lpni = lnet_find_peer_ni_locked(nid);
+		lpni = lnet_peer_ni_find_locked(nid);
 		if (!lpni) {
 			lnet_net_unlock(cpt);
 			return;
@@ -3733,7 +3731,7 @@ lnet_handle_recovery_reply(struct lnet_mt_event_info *ev_info,
 
 		if (status != 0)
 			CERROR("peer NI (%s) recovery failed with %d\n",
-			       libcfs_nid2str(nid), status);
+			       libcfs_nidstr(nid), status);
 	}
 }
 
@@ -3754,7 +3752,7 @@ lnet_mt_event_handler(struct lnet_event *event)
 	switch (event->type) {
 	case LNET_EVENT_UNLINK:
 		CDEBUG(D_NET, "%s recovery ping unlinked\n",
-		       libcfs_nid2str(ev_info->mt_nid));
+		       libcfs_nidstr(&ev_info->mt_nid));
 		/* fall-through */
 	case LNET_EVENT_REPLY:
 		lnet_handle_recovery_reply(ev_info, event->status, false,
@@ -3762,7 +3760,7 @@ lnet_mt_event_handler(struct lnet_event *event)
 		break;
 	case LNET_EVENT_SEND:
 		CDEBUG(D_NET, "%s recovery message sent %s:%d\n",
-		       libcfs_nid2str(ev_info->mt_nid),
+		       libcfs_nidstr(&ev_info->mt_nid),
 		       (event->status) ? "unsuccessfully" :
 		       "successfully", event->status);
 		lnet_handle_recovery_reply(ev_info, event->status, true, false);
