@@ -1189,7 +1189,7 @@ again:
 		ksocknal_conn_addref(conn);     /* ++ref while parsing */
 
 		rc = lnet_parse(conn->ksnc_peer->ksnp_ni, &hdr,
-				lnet_nid_to_nid4(&conn->ksnc_peer->ksnp_id.nid),
+				&conn->ksnc_peer->ksnp_id.nid,
 				conn, 0);
 		if (rc < 0) {
 			/* I just received garbage: give up on this conn */

@@ -323,6 +323,7 @@ kiblnd_handle_rx(struct kib_rx *rx)
 	int rc2;
 	int post_credit;
 	struct lnet_hdr hdr;
+	struct lnet_nid srcnid;
 
 	LASSERT(conn->ibc_state >= IBLND_CONN_ESTABLISHED);
 
@@ -382,7 +383,8 @@ kiblnd_handle_rx(struct kib_rx *rx)
 	case IBLND_MSG_IMMEDIATE:
 		post_credit = IBLND_POSTRX_DONT_POST;
 		lnet_hdr_from_nid4(&hdr, &msg->ibm_u.immediate.ibim_hdr);
-		rc = lnet_parse(ni, &hdr, msg->ibm_srcnid, rx, 0);
+		lnet_nid4_to_nid(msg->ibm_srcnid, &srcnid);
+		rc = lnet_parse(ni, &hdr, &srcnid, rx, 0);
 		if (rc < 0)		/* repost on error */
 			post_credit = IBLND_POSTRX_PEER_CREDIT;
 		break;
@@ -390,7 +392,8 @@ kiblnd_handle_rx(struct kib_rx *rx)
 	case IBLND_MSG_PUT_REQ:
 		post_credit = IBLND_POSTRX_DONT_POST;
 		lnet_hdr_from_nid4(&hdr, &msg->ibm_u.putreq.ibprm_hdr);
-		rc = lnet_parse(ni, &hdr, msg->ibm_srcnid, rx, 1);
+		lnet_nid4_to_nid(msg->ibm_srcnid, &srcnid);
+		rc = lnet_parse(ni, &hdr, &srcnid, rx, 1);
 		if (rc < 0)		/* repost on error */
 			post_credit = IBLND_POSTRX_PEER_CREDIT;
 		break;
@@ -454,7 +457,8 @@ kiblnd_handle_rx(struct kib_rx *rx)
 	case IBLND_MSG_GET_REQ:
 		post_credit = IBLND_POSTRX_DONT_POST;
 		lnet_hdr_from_nid4(&hdr, &msg->ibm_u.get.ibgm_hdr);
-		rc = lnet_parse(ni, &hdr, msg->ibm_srcnid, rx, 1);
+		lnet_nid4_to_nid(msg->ibm_srcnid, &srcnid);
+		rc = lnet_parse(ni, &hdr, &srcnid, rx, 1);
 		if (rc < 0)		/* repost on error */
 			post_credit = IBLND_POSTRX_PEER_CREDIT;
 		break;
