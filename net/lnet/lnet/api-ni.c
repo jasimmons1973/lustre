@@ -1447,19 +1447,20 @@ static unsigned int
 lnet_nid4_cpt_hash(lnet_nid_t nid, unsigned int number)
 {
 	u64 key = nid;
-	unsigned int val;
+	u64 pair_bits = 0x0001000100010001LLU;
+	u64 mask = pair_bits * 0xFF;
+	u64 pair_sum;
 
-	LASSERT(number >= 1 && number <= LNET_CPT_NUMBER);
+	/* Use (sum-by-multiplication of nid bytes) mod (number of CPTs)
+	 * to match nid to a CPT.
+	 */
+	pair_sum = (key & mask) + ((key >> 8) & mask);
+	pair_sum = (pair_sum * pair_bits) >> 48;
 
-	if (number == 1)
-		return 0;
+	CDEBUG(D_NET, "Match nid %s to cpt %u\n",
+	       libcfs_nid2str(nid), (unsigned int)(pair_sum) % number);
 
-	val = hash_long(key, LNET_CPT_BITS);
-	/* NB: LNET_CP_NUMBER doesn't have to be PO2 */
-	if (val < number)
-		return val;
-
-	return (unsigned int)(key + val + (val >> 1)) % number;
+	return (unsigned int)(pair_sum) % number;
 }
 
 unsigned int
