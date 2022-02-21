@@ -233,8 +233,13 @@ int ll_setup_filename(struct inode *dir, const struct qstr *iname,
 	}
 	rc = fscrypt_setup_filename(dir, &dname, lookup, fname);
 	if (rc == -ENOENT && lookup &&
-	    !fscrypt_has_encryption_key(dir) &&
-	    unlikely(filename_is_volatile(iname->name, iname->len, NULL))) {
+	    ((is_root_inode(dir) && iname->len == strlen(dot_fscrypt_name) &&
+	      strncmp(iname->name, dot_fscrypt_name, iname->len) == 0) ||
+	     (!fscrypt_has_encryption_key(dir) &&
+	      unlikely(filename_is_volatile(iname->name, iname->len, NULL))))) {
+		/* In case of subdir mount of an encrypted directory, we allow
+		 * lookup of /.fscrypt directory.
+		 */
 		/* For purpose of migration or mirroring without enc key, we
 		 * allow lookup of volatile file without enc context.
 		 */
