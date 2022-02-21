@@ -3222,18 +3222,21 @@ static int osc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 					   data->ioc_inlbuf1, 0);
 		if (rc > 0)
 			rc = 0;
-		goto out;
+		break;
+	case OBD_IOC_GETATTR:
+		rc = obd_getattr(NULL, exp, &data->ioc_obdo1);
+		break;
 	case IOC_OSC_SET_ACTIVE:
 		rc = ptlrpc_set_import_active(obd->u.cli.cl_import,
 					      data->ioc_offset);
-		goto out;
+		break;
 	default:
 		CDEBUG(D_INODE, "%s: unrecognised ioctl %#x by %s\n",
 		       obd->obd_name, cmd, current->comm);
 		rc = -ENOTTY;
-		goto out;
+		break;
 	}
-out:
+
 	module_put(THIS_MODULE);
 	return rc;
 }
