@@ -524,6 +524,7 @@ extern char obd_jobid_var[];
 /* Assign references to moved code to reduce code changes */
 #define OBD_FAIL_PRECHECK(id)			CFS_FAIL_PRECHECK(id)
 #define OBD_FAIL_CHECK(id)			CFS_FAIL_CHECK(id)
+#define OBD_FILE_CHECK_QUIET(id)		CFS_FILE_CHECK_QUIET(id)
 #define OBD_FAIL_CHECK_VALUE(id, value)		CFS_FAIL_CHECK_VALUE(id, value)
 #define OBD_FAIL_CHECK_ORSET(id, value)		CFS_FAIL_CHECK_ORSET(id, value)
 #define OBD_FAIL_CHECK_RESET(id, value)		CFS_FAIL_CHECK_RESET(id, value)
