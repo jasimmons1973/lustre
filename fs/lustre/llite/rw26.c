@@ -150,22 +150,6 @@ static int ll_releasepage(struct page *vmpage, gfp_t gfp_mask)
 	return result;
 }
 
-/*
- * ll_free_user_pages - tear down page struct array
- * @pages: array of page struct pointers underlying target buffer
- */
-static void ll_free_user_pages(struct page **pages, int npages)
-{
-	int i;
-
-	for (i = 0; i < npages; i++) {
-		if (!pages[i])
-			break;
-		put_page(pages[i]);
-	}
-	kvfree(pages);
-}
-
 static ssize_t ll_get_user_pages(int rw, struct iov_iter *iter,
 				struct page ***pages, ssize_t *npages,
 				size_t maxsize)
@@ -209,28 +193,15 @@ static unsigned long ll_iov_iter_alignment(struct iov_iter *i)
 	return res;
 }
 
-/* direct IO pages */
-struct ll_dio_pages {
-	struct cl_dio_aio	*ldp_aio;
-	/*
-	 * page array to be written. we don't support
-	 * partial pages except the last one.
-	 */
-	struct page		**ldp_pages;
-	/* # of pages in the array. */
-	size_t			ldp_count;
-	/* the file offset of the first page. */
-	loff_t			ldp_file_offset;
-};
-
 static int
 ll_direct_rw_pages(const struct lu_env *env, struct cl_io *io, size_t size,
-		   int rw, struct inode *inode, struct ll_dio_pages *pv)
+		   int rw, struct inode *inode, struct cl_dio_aio *aio)
 {
+	struct ll_dio_pages *pv = &aio->cda_dio_pages;
 	struct cl_page *page;
 	struct cl_2queue *queue = &io->ci_queue;
 	struct cl_object *obj = io->ci_obj;
-	struct cl_sync_io *anchor = &pv->ldp_aio->cda_sync;
+	struct cl_sync_io *anchor = &aio->cda_sync;
 	loff_t offset = pv->ldp_file_offset;
 	int io_pages = 0;
 	size_t page_size = cl_page_size(obj);
@@ -290,8 +261,7 @@ ll_direct_rw_pages(const struct lu_env *env, struct cl_io *io, size_t size,
 		smp_mb();
 		rc = cl_io_submit_rw(env, io, iot, queue);
 		if (rc == 0) {
-			cl_page_list_splice(&queue->c2_qout,
-					&pv->ldp_aio->cda_pages);
+			cl_page_list_splice(&queue->c2_qout, &aio->cda_pages);
 		} else {
 			atomic_add(-queue->c2_qin.pl_nr,
 				   &anchor->csi_sync_nr);
@@ -371,7 +341,7 @@ static ssize_t ll_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	LASSERT(ll_aio->cda_iocb == iocb);
 
 	while (iov_iter_count(iter)) {
-		struct ll_dio_pages pvec = {};
+		struct ll_dio_pages *pvec;
 		struct page **pages;
 
 		count = min_t(size_t, iov_iter_count(iter), MAX_DIO_SIZE);
@@ -392,26 +362,26 @@ static ssize_t ll_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 			result = -ENOMEM;
 			goto out;
 		}
-		pvec.ldp_aio = ldp_aio;
+
+		pvec = &ldp_aio->cda_dio_pages;
 
 		result = ll_get_user_pages(rw, iter, &pages,
-					   &pvec.ldp_count, count);
+					   &pvec->ldp_count, count);
 		if (unlikely(result <= 0)) {
 			cl_sync_io_note(env, &ldp_aio->cda_sync, result);
 			goto out;
 		}
 
 		count = result;
-		pvec.ldp_file_offset = file_offset;
-		pvec.ldp_pages = pages;
+		pvec->ldp_file_offset = file_offset;
+		pvec->ldp_pages = pages;
 
 		result = ll_direct_rw_pages(env, io, count,
-					    rw, inode, &pvec);
+					    rw, inode, ldp_aio);
 		/* We've submitted pages and can now remove the extra
 		 * reference for that
 		 */
 		cl_sync_io_note(env, &ldp_aio->cda_sync, result);
-		ll_free_user_pages(pages, pvec.ldp_count);
 
 		if (unlikely(result < 0))
 			goto out;
