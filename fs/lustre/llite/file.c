@@ -440,6 +440,9 @@ out:
 
 static inline int ll_dom_readpage(void *data, struct page *page)
 {
+	/* since ll_dom_readpage is a page cache helper, it is safe to assume
+	 * mapping and host pointers are set here
+	 */
 	struct inode *inode = page2inode(page);
 	struct niobuf_local *lnb = data;
 	void *kaddr;
