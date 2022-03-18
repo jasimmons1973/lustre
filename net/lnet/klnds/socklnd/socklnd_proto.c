@@ -292,7 +292,7 @@ ksocknal_match_tx(struct ksock_conn *conn, struct ksock_tx *tx, int nonblk)
 		nob = tx->tx_lnetmsg->msg_len +
 		      ((conn->ksnc_proto == &ksocknal_protocol_v1x) ?
 		       0 : sizeof(struct ksock_msg_hdr) +
-			   sizeof(struct lnet_hdr));
+			   sizeof(struct lnet_hdr_nid4));
 	}
 
 	/* default checking for typed connection */
@@ -328,7 +328,8 @@ ksocknal_match_tx_v3(struct ksock_conn *conn, struct ksock_tx *tx, int nonblk)
 	if (!tx || !tx->tx_lnetmsg)
 		nob = sizeof(struct ksock_msg_hdr);
 	else
-		nob = sizeof(struct ksock_msg_hdr) + sizeof(struct lnet_hdr) +
+		nob = sizeof(struct ksock_msg_hdr) +
+		      sizeof(struct lnet_hdr_nid4) +
 		      tx->tx_lnetmsg->msg_len;
 
 	switch (conn->ksnc_type) {
@@ -460,23 +461,23 @@ static int
 ksocknal_send_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello)
 {
 	struct socket *sock = conn->ksnc_sock;
-	struct lnet_hdr *hdr;
+	struct _lnet_hdr_nid4 *hdr;
 	struct lnet_magicversion *hmv;
 	int rc;
 	int i;
 
-	BUILD_BUG_ON(sizeof(struct lnet_magicversion) != offsetof(struct lnet_hdr, src_nid));
+	BUILD_BUG_ON(sizeof(struct lnet_magicversion) !=
+		     offsetof(struct _lnet_hdr_nid4, src_nid));
 
 	hdr = kzalloc(sizeof(*hdr), GFP_NOFS);
 	if (!hdr) {
-		CERROR("Can't allocate struct lnet_hdr\n");
+		CERROR("Can't allocate struct lnet_hdr_nid4\n");
 		return -ENOMEM;
 	}
 
 	hmv = (struct lnet_magicversion *)&hdr->dest_nid;
 
-	/*
-	 * Re-organize V2.x message header to V1.x (struct lnet_hdr)
+	/* Re-organize V2.x message header to V1.x (struct lnet_hdr)
 	 * header and send out
 	 */
 	hmv->magic = cpu_to_le32(LNET_PROTO_TCP_MAGIC);
@@ -569,18 +570,19 @@ ksocknal_recv_hello_v1(struct ksock_conn *conn, struct ksock_hello_msg *hello,
 		       int timeout)
 {
 	struct socket *sock = conn->ksnc_sock;
-	struct lnet_hdr *hdr;
+	struct _lnet_hdr_nid4 *hdr;
 	int rc;
 	int i;
 
 	hdr = kzalloc(sizeof(*hdr), GFP_NOFS);
 	if (!hdr) {
-		CERROR("Can't allocate struct lnet_hdr\n");
+		CERROR("Can't allocate struct lnet_hdr_nid4\n");
 		return -ENOMEM;
 	}
 
 	rc = lnet_sock_read(sock, &hdr->src_nid,
-			    sizeof(*hdr) - offsetof(struct lnet_hdr, src_nid),
+			    sizeof(*hdr) - offsetof(struct _lnet_hdr_nid4,
+						    src_nid),
 			    timeout);
 	if (rc) {
 		CERROR("Error %d reading rest of HELLO hdr from %pIS\n",
@@ -713,11 +715,13 @@ ksocknal_pack_msg_v1(struct ksock_tx *tx)
 	LASSERT(tx->tx_msg.ksm_type != KSOCK_MSG_NOOP);
 	LASSERT(tx->tx_lnetmsg);
 
-	tx->tx_hdr.iov_base = &tx->tx_lnetmsg->msg_hdr;
-	tx->tx_hdr.iov_len = sizeof(struct lnet_hdr);
+	lnet_hdr_to_nid4(&tx->tx_lnetmsg->msg_hdr,
+			 &tx->tx_msg.ksm_u.lnetmsg_nid4);
+	tx->tx_hdr.iov_base = (void *)&tx->tx_msg.ksm_u.lnetmsg_nid4;
+	tx->tx_hdr.iov_len = sizeof(struct lnet_hdr_nid4);
 
-	tx->tx_nob = tx->tx_lnetmsg->msg_len + sizeof(struct lnet_hdr);
-	tx->tx_resid = tx->tx_lnetmsg->msg_len + sizeof(struct lnet_hdr);
+	tx->tx_nob = tx->tx_lnetmsg->msg_len + sizeof(struct lnet_hdr_nid4);
+	tx->tx_resid = tx->tx_nob;
 }
 
 static void
@@ -731,9 +735,10 @@ ksocknal_pack_msg_v2(struct ksock_tx *tx)
 	case KSOCK_MSG_LNET:
 		LASSERT(tx->tx_lnetmsg);
 		hdr_size = sizeof(struct ksock_msg_hdr) +
-			   sizeof(struct lnet_hdr);
+			   sizeof(struct lnet_hdr_nid4);
 
-		tx->tx_msg.ksm_u.lnetmsg = tx->tx_lnetmsg->msg_hdr;
+		lnet_hdr_to_nid4(&tx->tx_lnetmsg->msg_hdr,
+				 &tx->tx_msg.ksm_u.lnetmsg_nid4);
 		tx->tx_hdr.iov_len = hdr_size;
 		tx->tx_nob = hdr_size + tx->tx_lnetmsg->msg_len;
 		tx->tx_resid = hdr_size + tx->tx_lnetmsg->msg_len;

@@ -1006,21 +1006,23 @@ ksocknal_new_packet(struct ksock_conn *conn, int nob_to_skip)
 		case  KSOCK_PROTO_V2:
 		case  KSOCK_PROTO_V3:
 			conn->ksnc_rx_state = SOCKNAL_RX_KSM_HEADER;
-			kvec->iov_base = &conn->ksnc_msg;
-			kvec->iov_len = sizeof(struct ksock_msg_hdr);
 			conn->ksnc_rx_nob_left = sizeof(struct ksock_msg_hdr);
+
+			kvec->iov_base = &conn->ksnc_msg;
+			kvec->iov_len = conn->ksnc_rx_nob_left;
 			iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec, 1,
-				      sizeof(struct ksock_msg_hdr));
+				      kvec->iov_len);
 			break;
 
 		case KSOCK_PROTO_V1:
-			/* Receiving bare struct lnet_hdr */
+			/* Receiving bare struct lnet_hdr_nid4 */
 			conn->ksnc_rx_state = SOCKNAL_RX_LNET_HEADER;
-			kvec->iov_base = &conn->ksnc_msg.ksm_u.lnetmsg;
-			kvec->iov_len = sizeof(struct lnet_hdr);
-			conn->ksnc_rx_nob_left = sizeof(struct lnet_hdr);
+			conn->ksnc_rx_nob_left = sizeof(struct lnet_hdr_nid4);
+
+			kvec->iov_base = &conn->ksnc_msg.ksm_u.lnetmsg_nid4;
+			kvec->iov_len = conn->ksnc_rx_nob_left;
 			iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec, 1,
-				      sizeof(struct lnet_hdr));
+				      kvec->iov_len);
 			break;
 
 		default:
@@ -1059,8 +1061,9 @@ static int
 ksocknal_process_receive(struct ksock_conn *conn)
 {
 	struct kvec *kvec = conn->ksnc_rx_iov_space;
-	struct lnet_hdr *lhdr;
+	struct _lnet_hdr_nid4 *lhdr;
 	struct lnet_processid *id;
+	struct lnet_hdr hdr;
 	int rc;
 
 	LASSERT(refcount_read(&conn->ksnc_conn_refcount) > 0);
@@ -1151,13 +1154,12 @@ again:
 
 		case KSOCK_MSG_LNET:
 			conn->ksnc_rx_state = SOCKNAL_RX_LNET_HEADER;
-			conn->ksnc_rx_nob_left = sizeof(struct lnet_hdr);
+			conn->ksnc_rx_nob_left = sizeof(struct lnet_hdr_nid4);
 
-			kvec->iov_base = &conn->ksnc_msg.ksm_u.lnetmsg;
-			kvec->iov_len = sizeof(struct lnet_hdr);
-
+			kvec->iov_base = &conn->ksnc_msg.ksm_u.lnetmsg_nid4;
+			kvec->iov_len = conn->ksnc_rx_nob_left;
 			iov_iter_kvec(&conn->ksnc_rx_to, READ, kvec, 1,
-				      sizeof(struct lnet_hdr));
+				      kvec->iov_len);
 
 			goto again;     /* read lnet header now */
 
@@ -1174,21 +1176,21 @@ again:
 		/* unpack message header */
 		conn->ksnc_proto->pro_unpack(&conn->ksnc_msg);
 
+		lnet_hdr_from_nid4(&hdr, &conn->ksnc_msg.ksm_u.lnetmsg_nid4);
+
 		if (conn->ksnc_peer->ksnp_id.pid & LNET_PID_USERFLAG) {
 			/* Userspace peer_ni */
-			lhdr = &conn->ksnc_msg.ksm_u.lnetmsg;
 			id = &conn->ksnc_peer->ksnp_id;
 
 			/* Substitute process ID assigned at connection time */
-			lhdr->src_pid = cpu_to_le32(id->pid);
-			lhdr->src_nid = cpu_to_le64(lnet_nid_to_nid4(&id->nid));
+			hdr.src_pid = id->pid;
+			hdr.src_nid = lnet_nid_to_nid4(&id->nid);
 		}
 
 		conn->ksnc_rx_state = SOCKNAL_RX_PARSE;
 		ksocknal_conn_addref(conn);     /* ++ref while parsing */
 
-		rc = lnet_parse(conn->ksnc_peer->ksnp_ni,
-				&conn->ksnc_msg.ksm_u.lnetmsg,
+		rc = lnet_parse(conn->ksnc_peer->ksnp_ni, &hdr,
 				lnet_nid_to_nid4(&conn->ksnc_peer->ksnp_id.nid),
 				conn, 0);
 		if (rc < 0) {
@@ -1225,7 +1227,7 @@ again:
 		if (!rc && conn->ksnc_msg.ksm_zc_cookies[0]) {
 			LASSERT(conn->ksnc_proto != &ksocknal_protocol_v1x);
 
-			lhdr = &conn->ksnc_msg.ksm_u.lnetmsg;
+			lhdr = (void *)&conn->ksnc_msg.ksm_u.lnetmsg_nid4;
 			id = &conn->ksnc_peer->ksnp_id;
 
 			rc = conn->ksnc_proto->pro_handle_zcreq(conn,
