@@ -119,10 +119,12 @@ try_again:
 				msleep(20);
 				goto try_again;
 			}
-			return NULL;
+			conn2 = NULL;
 		}
+		kfree(conn);
 		conn = conn2;
-		ptlrpc_connection_addref(conn);
+		if (conn)
+			ptlrpc_connection_addref(conn);
 	}
 out:
 	CDEBUG(D_INFO, "conn=%p refcount %d to %s\n",
