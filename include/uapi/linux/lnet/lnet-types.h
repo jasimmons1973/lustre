@@ -308,6 +308,10 @@ enum lnet_ins_pos {
  * @{
  */
 
+struct lnet_hdr_nid16 {
+	char	_bytes[sizeof(struct lnet_hdr)];
+} __attribute__((packed));
+
 /**
  * Event queue handler function type.
  *

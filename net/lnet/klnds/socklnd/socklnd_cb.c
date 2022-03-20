@@ -1925,11 +1925,11 @@ failed:
 		if (!list_empty(&peer_ni->ksnp_conns)) {
 			conn = list_first_entry(&peer_ni->ksnp_conns,
 						struct ksock_conn, ksnc_list);
-			LASSERT(conn->ksnc_proto == &ksocknal_protocol_v3x);
+			LASSERT(conn->ksnc_proto == &ksocknal_protocol_v3x ||
+				conn->ksnc_proto == &ksocknal_protocol_v4x);
 		}
 
-		/*
-		 * take all the blocked packets while I've got the lock and
+		/* take all the blocked packets while I've got the lock and
 		 * complete below...
 		 */
 		list_splice_init(&peer_ni->ksnp_tx_queue, &zombies);
@@ -2297,7 +2297,8 @@ ksocknal_send_keepalive_locked(struct ksock_peer_ni *peer_ni)
 	if (list_empty(&peer_ni->ksnp_conns))
 		return 0;
 
-	if (peer_ni->ksnp_proto != &ksocknal_protocol_v3x)
+	if (peer_ni->ksnp_proto != &ksocknal_protocol_v3x &&
+	    peer_ni->ksnp_proto != &ksocknal_protocol_v4x)
 		return 0;
 
 	if (*ksocknal_tunables.ksnd_keepalive <= 0 ||
