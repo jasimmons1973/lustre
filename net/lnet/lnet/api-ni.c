@@ -2244,14 +2244,16 @@ lnet_clear_zombies_nis_locked(struct lnet_net *net)
 		islo = ni->ni_net->net_lnd->lnd_type == LOLND;
 
 		LASSERT(!in_interrupt());
-		/* Holding the mutex makes it safe for lnd_shutdown
+		/* Holding the LND mutex makes it safe for lnd_shutdown
 		 * to call module_put(). Module unload cannot finish
 		 * until lnet_unregister_lnd() completes, and that
-		 * requires the mutex.
+		 * requires the LND mutex.
 		 */
+		mutex_unlock(&the_lnet.ln_api_mutex);
 		mutex_lock(&the_lnet.ln_lnd_mutex);
 		net->net_lnd->lnd_shutdown(ni);
 		mutex_unlock(&the_lnet.ln_lnd_mutex);
+		mutex_lock(&the_lnet.ln_api_mutex);
 
 		if (!islo)
 			CDEBUG(D_LNI, "Removed LNI %s\n",
@@ -2323,7 +2325,8 @@ lnet_shutdown_lndnets(void)
 	/* NB called holding the global mutex */
 
 	/* All quiet on the API front */
-	LASSERT(the_lnet.ln_state == LNET_STATE_RUNNING);
+	LASSERT(the_lnet.ln_state == LNET_STATE_RUNNING ||
+		the_lnet.ln_state == LNET_STATE_STOPPING);
 	LASSERT(!the_lnet.ln_refcount);
 
 	lnet_net_lock(LNET_LOCK_EX);
@@ -2823,6 +2826,11 @@ LNetNIInit(lnet_pid_t requested_pid)
 
 	CDEBUG(D_OTHER, "refs %d\n", the_lnet.ln_refcount);
 
+	if (the_lnet.ln_state == LNET_STATE_STOPPING) {
+		mutex_unlock(&the_lnet.ln_api_mutex);
+		return -ESHUTDOWN;
+	}
+
 	if (the_lnet.ln_refcount > 0) {
 		rc = the_lnet.ln_refcount++;
 		mutex_unlock(&the_lnet.ln_api_mutex);
@@ -2967,6 +2975,10 @@ LNetNIFini(void)
 		the_lnet.ln_refcount--;
 	} else {
 		LASSERT(!the_lnet.ln_niinit_self);
+
+		lnet_net_lock(LNET_LOCK_EX);
+		the_lnet.ln_state = LNET_STATE_STOPPING;
+		lnet_net_unlock(LNET_LOCK_EX);
 
 		lnet_fault_fini();
 		lnet_router_debugfs_fini();
@@ -3433,6 +3445,10 @@ static int lnet_handle_legacy_ip2nets(char *ip2nets,
 	lnet_set_tune_defaults(tun);
 
 	mutex_lock(&the_lnet.ln_api_mutex);
+	if (the_lnet.ln_state != LNET_STATE_RUNNING) {
+		rc = -ESHUTDOWN;
+		goto out;
+	}
 	while ((net = list_first_entry_or_null(&net_head,
 					       struct lnet_net,
 					       net_list)) != NULL) {
@@ -3498,8 +3514,10 @@ int lnet_dyn_add_ni(struct lnet_ioctl_config_ni *conf)
 	lnet_set_tune_defaults(tun);
 
 	mutex_lock(&the_lnet.ln_api_mutex);
-
-	rc = lnet_add_net_common(net, tun);
+	if (the_lnet.ln_state != LNET_STATE_RUNNING)
+		rc = -ESHUTDOWN;
+	else
+		rc = lnet_add_net_common(net, tun);
 
 	mutex_unlock(&the_lnet.ln_api_mutex);
 
@@ -3522,6 +3540,10 @@ int lnet_dyn_del_ni(struct lnet_ioctl_config_ni *conf)
 		return -EINVAL;
 
 	mutex_lock(&the_lnet.ln_api_mutex);
+	if (the_lnet.ln_state != LNET_STATE_RUNNING) {
+		rc = -ESHUTDOWN;
+		goto unlock_api_mutex;
+	}
 
 	lnet_net_lock(0);
 
@@ -3615,6 +3637,10 @@ lnet_dyn_add_net(struct lnet_ioctl_config_data *conf)
 		return rc == 0 ? -EINVAL : rc;
 
 	mutex_lock(&the_lnet.ln_api_mutex);
+	if (the_lnet.ln_state != LNET_STATE_RUNNING) {
+		rc = -ESHUTDOWN;
+		goto out_unlock_clean;
+	}
 
 	if (rc > 1) {
 		rc = -EINVAL; /* only add one network per call */
@@ -3668,6 +3694,10 @@ lnet_dyn_del_net(u32 net_id)
 		return -EINVAL;
 
 	mutex_lock(&the_lnet.ln_api_mutex);
+	if (the_lnet.ln_state != LNET_STATE_RUNNING) {
+		rc = -ESHUTDOWN;
+		goto out;
+	}
 
 	lnet_net_lock(0);
 
