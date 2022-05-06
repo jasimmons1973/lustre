@@ -1630,17 +1630,23 @@ int ll_io_read_page(const struct lu_env *env, struct cl_io *io,
 	struct vvp_io *vio = vvp_env_io(env);
 	bool mmap = !vio->vui_ra_valid;
 	struct cl_sync_io *anchor = NULL;
+	bool unlockpage = true, uptodate;
 	pgoff_t ra_start_index = 0;
 	pgoff_t io_start_index;
 	pgoff_t io_end_index;
 	int rc = 0, rc2 = 0;
 	struct vvp_page *vpg;
-	bool uptodate;
 
 	if (file) {
 		fd = file->private_data;
 		ras = &fd->fd_ras;
 	}
+
+	/* PagePrivate2 is set in ll_io_zero_page() to tell us the vmpage
+	 * must not be unlocked after processing.
+	 */
+	if (page->cp_vmpage && PagePrivate2(page->cp_vmpage))
+		unlockpage = false;
 
 	vpg = cl2vvp_page(cl_object_page_slice(page->cp_obj, page));
 	uptodate = vpg->vpg_defer_uptodate;
@@ -1721,7 +1727,8 @@ int ll_io_read_page(const struct lu_env *env, struct cl_io *io,
 			 */
 			cl_page_discard(env, io, page);
 		}
-		cl_page_disown(env, io, page);
+		if (unlockpage)
+			cl_page_disown(env, io, page);
 	}
 
 	/* TODO: discard all pages until page reinit route is implemented */

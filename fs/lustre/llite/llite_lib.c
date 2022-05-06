@@ -1831,7 +1831,6 @@ int ll_io_zero_page(struct inode *inode, pgoff_t index, pgoff_t offset,
 	struct cl_2queue *queue = NULL;
 	struct cl_sync_io *anchor = NULL;
 	bool holdinglock = false;
-	bool lockedbymyself = true;
 	int rc;
 
 	env = cl_env_get(&refcheck);
@@ -1888,8 +1887,10 @@ int ll_io_zero_page(struct inode *inode, pgoff_t index, pgoff_t offset,
 	if (!PageUptodate(vmpage) && !PageDirty(vmpage) &&
 	    !PageWriteback(vmpage)) {
 		/* read page */
-		/* set PagePrivate2 to detect special case of empty page
-		 * in osc_brw_fini_request()
+		/* Set PagePrivate2 to detect special case of empty page
+		 * in osc_brw_fini_request().
+		 * It is also used to tell ll_io_read_page() that we do not
+		 * want the vmpage to be unlocked.
 		 */
 		SetPagePrivate2(vmpage);
 		rc = ll_io_read_page(env, io, clpage, NULL);
@@ -1900,17 +1901,18 @@ int ll_io_zero_page(struct inode *inode, pgoff_t index, pgoff_t offset,
 			 * file, we must not zero and write as below. Subsequent
 			 * server-side truncate will handle things correctly.
 			 */
+			cl_page_unassume(env, io, clpage);
 			rc = 0;
 			goto clpfini;
 		}
 		ClearPagePrivate2(vmpage);
 		if (rc)
 			goto clpfini;
-		lockedbymyself = trylock_page(vmpage);
-		cl_page_assume(env, io, clpage);
 	}
 
-	/* zero range in page */
+	/* Thanks to PagePrivate2 flag, ll_io_read_page() did not unlock
+	 * the vmpage, so we are good to proceed and zero range in page.
+	 */
 	zero_user(vmpage, offset, len);
 
 	if (holdinglock && clpage) {
@@ -1940,10 +1942,8 @@ clpfini:
 	if (clpage)
 		cl_page_put(env, clpage);
 pagefini:
-	if (lockedbymyself) {
-		unlock_page(vmpage);
-		put_page(vmpage);
-	}
+	unlock_page(vmpage);
+	put_page(vmpage);
 rellock:
 	if (holdinglock)
 		cl_lock_release(env, lock);
