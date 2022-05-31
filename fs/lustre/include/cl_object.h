@@ -91,6 +91,7 @@
 #include <linux/uio.h>
 #include <lu_object.h>
 #include <linux/atomic.h>
+#include <linux/mm.h>
 #include <linux/mutex.h>
 #include <linux/radix-tree.h>
 #include <linux/spinlock.h>
@@ -1070,6 +1071,14 @@ static inline bool __page_in_use(const struct cl_page *page, int refc)
  * Caller doesn't hold a refcount.
  */
 #define cl_page_in_use_noref(pg) __page_in_use(pg, 0)
+
+/* references: cl_page, page cache, optional + refcount for caller reference
+ * (always 0 or 1 currently)
+ */
+static inline int vmpage_in_use(struct page *vmpage, int refcount)
+{
+	return (page_count(vmpage) - page_mapcount(vmpage) > 2 + refcount);
+}
 
 /** @} cl_page */
 
