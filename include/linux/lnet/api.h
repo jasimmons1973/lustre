@@ -76,7 +76,7 @@ int LNetNIFini(void);
  * @{
  */
 int LNetGetId(unsigned int index, struct lnet_processid *id);
-int LNetDist(lnet_nid_t nid, lnet_nid_t *srcnid, u32 *order);
+int LNetDist(struct lnet_nid *nid, struct lnet_nid *srcnid, u32 *order);
 void LNetPrimaryNID(struct lnet_nid *nid);
 
 /** @} lnet_addr */
