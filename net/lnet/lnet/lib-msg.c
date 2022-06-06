@@ -1115,8 +1115,7 @@ lnet_send_error_simulation(struct lnet_msg *msg,
 		return false;
 
 	/* match only health rules */
-	if (!lnet_drop_rule_match(&msg->msg_hdr, LNET_NID_ANY,
-				  hstatus))
+	if (!lnet_drop_rule_match(&msg->msg_hdr, NULL, hstatus))
 		return false;
 
 	CDEBUG(D_NET,
