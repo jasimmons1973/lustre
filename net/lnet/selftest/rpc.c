@@ -434,7 +434,7 @@ srpc_post_active_rdma(int portal, u64 matchbits, void *buf, int len,
 	} else {
 		LASSERT(options & LNET_MD_OP_GET);
 
-		rc = LNetGet(self4, *mdh, peer4, portal, matchbits, 0, false);
+		rc = LNetGet(&self, *mdh, &peer, portal, matchbits, 0, false);
 	}
 
 	if (rc) {
