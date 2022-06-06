@@ -256,6 +256,15 @@ int llog_verify_record(const struct llog_handle *llh, struct llog_rec_hdr *rec)
 	return 0;
 }
 
+static inline bool llog_is_index_skipable(int idx, struct llog_log_hdr *llh,
+					  struct llog_process_cat_data *cd)
+{
+	if (cd && (cd->lpcd_read_mode & LLOG_READ_MODE_RAW))
+		return false;
+
+	return !test_bit_le(idx, LLOG_HDR_BITMAP(llh));
+}
+
 static int llog_process_thread(void *arg)
 {
 	struct llog_process_info *lpi = arg;
@@ -291,6 +300,8 @@ static int llog_process_thread(void *arg)
 	}
 	if (cd && cd->lpcd_last_idx)
 		last_index = cd->lpcd_last_idx;
+	else if (cd && (cd->lpcd_read_mode & LLOG_READ_MODE_RAW))
+		last_index = loghandle->lgh_last_idx;
 	else
 		last_index = LLOG_HDR_BITMAP_SIZE(llh) - 1;
 
@@ -303,7 +314,7 @@ static int llog_process_thread(void *arg)
 
 		/* skip records not set in bitmap */
 		while (index <= last_index &&
-		       !test_bit_le(index, LLOG_HDR_BITMAP(llh)))
+		       llog_is_index_skipable(index, llh, cd))
 			++index;
 
 		if (index > last_index)
@@ -451,8 +462,8 @@ repeat:
 			loghandle->lgh_cur_offset = (char *)rec - (char *)buf +
 						    chunk_offset;
 
-			/* if set, process the callback on this record */
-			if (test_bit_le(index, LLOG_HDR_BITMAP(llh))) {
+			/* if needed, process the callback on this record */
+			if (!llog_is_index_skipable(index, llh, cd)) {
 				rc = lpi->lpi_cb(lpi->lpi_env, loghandle, rec,
 						 lpi->lpi_cbdata);
 				last_called_index = index;
@@ -522,11 +533,12 @@ int llog_process_or_fork(const struct lu_env *env,
 	lpi->lpi_catdata = catdata;
 
 	CDEBUG(D_OTHER,
-	       "Processing " DFID " flags 0x%03x startcat %d startidx %d first_idx %d last_idx %d\n",
+	       "Processing " DFID " flags 0x%03x startcat %d startidx %d first_idx %d last_idx %d read_mode %d\n",
 	       PFID(&loghandle->lgh_id.lgl_oi.oi_fid), flags,
 	       (flags & LLOG_F_IS_CAT) && d ? d->lpd_startcat : -1,
 	       (flags & LLOG_F_IS_CAT) && d ? d->lpd_startidx : -1,
-	       cd ? cd->lpcd_first_idx : -1, cd ? cd->lpcd_last_idx : -1);
+	       cd ? cd->lpcd_first_idx : -1, cd ? cd->lpcd_last_idx : -1,
+	       cd ? cd->lpcd_read_mode : -1);
 
 	if (fork) {
 		struct task_struct *task;

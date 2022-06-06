@@ -94,6 +94,13 @@ int llog_close(const struct lu_env *env, struct llog_handle *cathandle);
 /* llog_process flags */
 #define LLOG_FLAG_NODEAMON 0x0001
 
+/* llog read mode, LLOG_READ_MODE_RAW will process llog canceled records */
+enum llog_read_mode {
+	LLOG_READ_MODE_NORMAL	= 0x0000,
+	LLOG_READ_MODE_RAW	= 0x0001,
+};
+
+
 /* llog_cat.c - catalog api */
 struct llog_process_data {
 	/**
@@ -122,6 +129,10 @@ struct llog_process_cat_data {
 	 * Temporary stored last_idx while scanning log.
 	 */
 	int			lpcd_last_idx;
+	/**
+	 * llog read mode
+	 */
+	enum llog_read_mode	lpcd_read_mode;
 };
 
 struct thandle;
