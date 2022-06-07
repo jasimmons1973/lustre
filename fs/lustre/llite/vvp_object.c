@@ -190,7 +190,8 @@ static int vvp_object_glimpse(const struct lu_env *env,
 static void vvp_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 			     struct cl_req_attr *attr)
 {
-	u64 valid_flags = OBD_MD_FLTYPE | OBD_MD_FLUID | OBD_MD_FLGID;
+	u64 valid_flags = OBD_MD_FLTYPE | OBD_MD_FLUID | OBD_MD_FLGID |
+			  OBD_MD_FLPROJID;
 	struct inode *inode;
 	struct obdo *oa;
 

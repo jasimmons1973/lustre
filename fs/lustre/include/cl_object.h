@@ -1889,6 +1889,7 @@ struct cl_io {
 			loff_t			sa_falloc_end;
 			uid_t			sa_falloc_uid;
 			gid_t			sa_falloc_gid;
+			u32			sa_falloc_projid;
 		} ci_setattr;
 		struct cl_data_version_io {
 			u64			dv_data_version;
