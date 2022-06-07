@@ -137,10 +137,10 @@ void lnet_assert_handler_unused(lnet_handler_t handler);
  * and LNetGet().
  * @{
  */
-int LNetPut(lnet_nid_t self,
+int LNetPut(struct lnet_nid *self,
 	    struct lnet_handle_md md_in,
 	    enum lnet_ack_req ack_req_in,
-	    struct lnet_process_id target_in,
+	    struct lnet_processid *target_in,
 	    unsigned int portal_in,
 	    u64 match_bits_in,
 	    unsigned int offset_in,

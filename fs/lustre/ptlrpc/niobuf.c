@@ -46,15 +46,20 @@
  */
 static int ptl_send_buf(struct lnet_handle_md *mdh, void *base, int len,
 			enum lnet_ack_req ack, struct ptlrpc_cb_id *cbid,
-			lnet_nid_t self, struct lnet_process_id peer_id,
+			lnet_nid_t self4, struct lnet_process_id peer_id4,
 			int portal, u64 xid, unsigned int offset,
 			struct lnet_handle_md *bulk_cookie)
 {
 	int rc;
 	struct lnet_md md;
+	struct lnet_nid self;
+	struct lnet_processid peer_id;
+
+	lnet_nid4_to_nid(self4, &self);
+	lnet_pid4_to_pid(peer_id4, &peer_id);
 
 	LASSERT(portal != 0);
-	CDEBUG(D_INFO, "peer_id %s\n", libcfs_id2str(peer_id));
+	CDEBUG(D_INFO, "peer_id %s\n", libcfs_id2str(peer_id4));
 	md.start = base;
 	md.length = len;
 	md.threshold = (ack == LNET_ACK_REQ) ? 2 : 1;
@@ -85,8 +90,8 @@ static int ptl_send_buf(struct lnet_handle_md *mdh, void *base, int len,
 
 	percpu_ref_get(&ptlrpc_pending);
 
-	rc = LNetPut(self, *mdh, ack,
-		     peer_id, portal, xid, offset, 0);
+	rc = LNetPut(&self, *mdh, ack,
+		     &peer_id, portal, xid, offset, 0);
 	if (unlikely(rc != 0)) {
 		int rc2;
 		/* We're going to get an UNLINK event when I unlink below,
@@ -94,7 +99,7 @@ static int ptl_send_buf(struct lnet_handle_md *mdh, void *base, int len,
 		 * I fall through and return success here!
 		 */
 		CERROR("LNetPut(%s, %d, %lld) failed: %d\n",
-		       libcfs_id2str(peer_id), portal, xid, rc);
+		       libcfs_id2str(peer_id4), portal, xid, rc);
 		rc2 = LNetMDUnlink(*mdh);
 		LASSERTF(rc2 == 0, "rc2 = %d\n", rc2);
 	}

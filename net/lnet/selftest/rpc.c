@@ -397,12 +397,17 @@ srpc_post_passive_rdma(int portal, int local, u64 matchbits, void *buf,
 
 static int
 srpc_post_active_rdma(int portal, u64 matchbits, void *buf, int len,
-		      int options, struct lnet_process_id peer,
-		      lnet_nid_t self, struct lnet_handle_md *mdh,
+		      int options, struct lnet_process_id peer4,
+		      lnet_nid_t self4, struct lnet_handle_md *mdh,
 		      struct srpc_event *ev)
 {
 	int rc;
 	struct lnet_md md;
+	struct lnet_nid self;
+	struct lnet_processid peer;
+
+	lnet_nid4_to_nid(self4, &self);
+	lnet_pid4_to_pid(peer4, &peer);
 
 	md.user_ptr = ev;
 	md.start = buf;
@@ -424,18 +429,18 @@ srpc_post_active_rdma(int portal, u64 matchbits, void *buf, int len,
 	 * buffers...
 	 */
 	if (options & LNET_MD_OP_PUT) {
-		rc = LNetPut(self, *mdh, LNET_NOACK_REQ, peer,
+		rc = LNetPut(&self, *mdh, LNET_NOACK_REQ, &peer,
 			     portal, matchbits, 0, 0);
 	} else {
 		LASSERT(options & LNET_MD_OP_GET);
 
-		rc = LNetGet(self, *mdh, peer, portal, matchbits, 0, false);
+		rc = LNetGet(self4, *mdh, peer4, portal, matchbits, 0, false);
 	}
 
 	if (rc) {
 		CERROR("LNet%s(%s, %d, %lld) failed: %d\n",
 		       options & LNET_MD_OP_PUT ? "Put" : "Get",
-		       libcfs_id2str(peer), portal, matchbits, rc);
+		       libcfs_id2str(peer4), portal, matchbits, rc);
 
 		/*
 		 * The forthcoming unlink event will complete this operation
@@ -446,7 +451,7 @@ srpc_post_active_rdma(int portal, u64 matchbits, void *buf, int len,
 	} else {
 		CDEBUG(D_NET,
 		       "Posted active RDMA: peer %s, portal %u, matchbits %#llx\n",
-		       libcfs_id2str(peer), portal, matchbits);
+		       libcfs_id2str(peer4), portal, matchbits);
 	}
 	return 0;
 }
