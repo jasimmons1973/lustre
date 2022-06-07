@@ -702,7 +702,7 @@ lnet_add_route(u32 net, u32 hops, struct lnet_nid *gateway,
 	/* lnet_nid2peerni_ex() grabs a ref on the lpni. We will need to
 	 * lose that once we're done
 	 */
-	lpni = lnet_nid2peerni_ex(gateway, LNET_LOCK_EX);
+	lpni = lnet_nid2peerni_ex(gateway);
 	if (IS_ERR(lpni)) {
 		lnet_net_unlock(LNET_LOCK_EX);
 
@@ -716,7 +716,9 @@ lnet_add_route(u32 net, u32 hops, struct lnet_nid *gateway,
 		return rc;
 	}
 
-	LASSERT(lpni->lpni_peer_net && lpni->lpni_peer_net->lpn_peer);
+	LASSERT(lpni);
+	LASSERT(lpni->lpni_peer_net);
+	LASSERT(lpni->lpni_peer_net->lpn_peer);
 	gw = lpni->lpni_peer_net->lpn_peer;
 
 	route->lr_gateway = gw;
