@@ -3654,7 +3654,8 @@ lmv_get_fid_from_lsm(struct obd_export *exp,
 {
 	const struct lmv_oinfo *oinfo;
 
-	LASSERT(lmv_dir_striped(lsm));
+	if (!lmv_dir_striped(lsm))
+		return -ESTALE;
 
 	oinfo = lsm_name_to_stripe_info(lsm, name, namelen, false);
 	if (IS_ERR(oinfo))
