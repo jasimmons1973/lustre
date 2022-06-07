@@ -452,7 +452,6 @@ int srpc_finish_service(struct srpc_service *sv);
 int srpc_service_add_buffers(struct srpc_service *sv, int nbuffer);
 void srpc_service_remove_buffers(struct srpc_service *sv, int nbuffer);
 void srpc_get_counters(struct srpc_counters *cnt);
-void srpc_set_counters(const struct srpc_counters *cnt);
 
 extern struct workqueue_struct *lst_serial_wq;
 extern struct workqueue_struct **lst_test_wq;
