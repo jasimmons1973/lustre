@@ -1233,6 +1233,7 @@ static int lmv_statfs(const struct lu_env *env, struct obd_export *exp,
 	u32 i;
 	u32 idx;
 	int rc = 0;
+	int err = 0;
 
 	temp = kzalloc(sizeof(*temp), GFP_NOFS);
 	if (!temp)
@@ -1252,6 +1253,10 @@ static int lmv_statfs(const struct lu_env *env, struct obd_export *exp,
 		if (rc) {
 			CERROR("%s: can't stat MDS #%d: rc = %d\n",
 			       tgt->ltd_exp->exp_obd->obd_name, i, rc);
+			err = rc;
+			/* Try another MDT */
+			if (flags & OBD_STATFS_SUM)
+				continue;
 			goto out_free_temp;
 		}
 
@@ -1266,7 +1271,7 @@ static int lmv_statfs(const struct lu_env *env, struct obd_export *exp,
 			 * service
 			 */
 			*osfs = *temp;
-			break;
+			goto out_free_temp;
 		}
 
 		if (i == 0) {
@@ -1279,7 +1284,9 @@ static int lmv_statfs(const struct lu_env *env, struct obd_export *exp,
 			osfs->os_granted += temp->os_granted;
 		}
 	}
-
+	/* There is no stats from some MDTs, data incomplete */
+	if (err)
+		rc = err;
 out_free_temp:
 	kfree(temp);
 	return rc;
