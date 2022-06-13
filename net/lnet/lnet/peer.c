@@ -3317,8 +3317,10 @@ __must_hold(&lp->lp_lock)
 	 * down, and our reference count may be all that is keeping it
 	 * alive. Don't do any work on it.
 	 */
-	if (list_empty(&lp->lp_peer_list))
+	if (list_empty(&lp->lp_peer_list)) {
+		lnet_ping_buffer_decref(pbuf);
 		goto out;
+	}
 
 	flags = LNET_PEER_DISCOVERED;
 	if (pbuf->pb_info.pi_features & LNET_PING_FEAT_MULTI_RAIL)
@@ -3345,7 +3347,9 @@ __must_hold(&lp->lp_lock)
 	nid = pbuf->pb_info.pi_ni[1].ns_nid;
 	if (nid_is_lo0(&lp->lp_primary_nid)) {
 		rc = lnet_peer_set_primary_nid(lp, nid, flags);
-		if (!rc)
+		if (rc)
+			lnet_ping_buffer_decref(pbuf);
+		else
 			rc = lnet_peer_merge_data(lp, pbuf);
 	/* if the primary nid of the peer is present in the ping info returned
 	 * from the peer, but it's not the local primary peer we have
@@ -3367,6 +3371,7 @@ __must_hold(&lp->lp_lock)
 				CERROR("Primary NID error %s versus %s: %d\n",
 				       libcfs_nidstr(&lp->lp_primary_nid),
 				       libcfs_nid2str(nid), rc);
+				lnet_ping_buffer_decref(pbuf);
 			} else {
 				rc = lnet_peer_merge_data(lp, pbuf);
 			}
