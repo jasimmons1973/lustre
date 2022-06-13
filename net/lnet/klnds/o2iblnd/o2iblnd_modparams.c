@@ -261,6 +261,9 @@ int kiblnd_tunables_setup(struct lnet_ni *ni)
 		net_tunables->lct_peer_tx_credits =
 			net_tunables->lct_max_tx_credits;
 
+	if (tunables->lnd_map_on_demand == UINT_MAX)
+		tunables->lnd_map_on_demand = map_on_demand;
+
 	/*
 	 * For kernels which do not support global memory regions, always
 	 * enable map_on_demand
