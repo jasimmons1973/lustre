@@ -46,7 +46,7 @@
 
 /* Convert a text string to a bitmask */
 int cfs_str2mask(const char *str, const char *(*bit2str)(int bit),
-		 int *oldmask, int minmask, int allmask)
+		 int *oldmask, int minmask, int allmask, int defmask)
 {
 	const char *debugstr;
 	char op = '\0';
@@ -100,6 +100,15 @@ int cfs_str2mask(const char *str, const char *(*bit2str)(int bit),
 				newmask = minmask;
 			else
 				newmask = allmask;
+			found = 1;
+		}
+		if (!found && strcasecmp(str, "DEFAULT") == 0) {
+			if (op == '-')
+				newmask = (newmask & ~defmask) | minmask;
+			else if (op == '+')
+				newmask |= defmask;
+			else
+				newmask = defmask;
 			found = 1;
 		}
 		if (!found) {

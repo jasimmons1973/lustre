@@ -44,7 +44,8 @@
 /* libcfs_string.c */
 /* Convert a text string to a bitmask */
 int cfs_str2mask(const char *str, const char *(*bit2str)(int bit),
-		 int *oldmask, int minmask, int allmask);
+		 int *oldmask, int minmask, int allmask, int defmask);
+
 /* trim leading and trailing space characters */
 char *cfs_firststr(char *str, size_t size);
 
