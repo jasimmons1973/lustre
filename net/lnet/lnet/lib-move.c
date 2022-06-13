@@ -4425,7 +4425,7 @@ lnet_parse(struct lnet_ni *ni, struct lnet_hdr *hdr,
 		kfree(msg);
 		if (rc == -ESHUTDOWN)
 			/* We are shutting down. Don't do anything more */
-			return 0;
+			return rc;
 		goto drop;
 	}
 
