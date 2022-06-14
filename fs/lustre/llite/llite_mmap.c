@@ -63,8 +63,8 @@ struct vm_area_struct *our_vma(struct mm_struct *mm, unsigned long addr,
 {
 	struct vm_area_struct *vma, *ret = NULL;
 
-	/* mmap_sem must have been held by caller. */
-	LASSERT(!down_write_trylock(&mm->mmap_sem));
+	/* mmap_lock must have been held by caller. */
+	LASSERT(!mmap_write_trylock(mm));
 
 	for (vma = find_vma(mm, addr);
 	    vma && vma->vm_start < (addr + count); vma = vma->vm_next) {
@@ -288,11 +288,11 @@ static vm_fault_t __ll_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 		bool allow_retry = vmf->flags & FAULT_FLAG_ALLOW_RETRY;
 		bool has_retry = vmf->flags & FAULT_FLAG_RETRY_NOWAIT;
 
-		/* To avoid loops, instruct downstream to not drop mmap_sem */
+		/* To avoid loops, instruct downstream to not drop mmap_lock */
 		/**
 		 * only need FAULT_FLAG_ALLOW_RETRY prior to Linux 5.1
 		 * (6b4c9f4469819), where FAULT_FLAG_RETRY_NOWAIT is enough
-		 * to not drop mmap_sem when failed to lock the page.
+		 * to not drop mmap_lock when failed to lock the page.
 		 */
 		vmf->flags |= FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_RETRY_NOWAIT;
 		ll_cl_add(inode, env, NULL, LCC_MMAP);

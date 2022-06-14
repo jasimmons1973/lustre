@@ -1906,7 +1906,7 @@ vm_fault_t pcc_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf,
 		       "%s: PCC backend fs not support ->page_mkwrite()\n",
 		       ll_i2sbi(inode)->ll_fsname);
 		pcc_ioctl_detach(inode, PCC_DETACH_OPT_UNCACHE);
-		up_read(&mm->mmap_sem);
+		mmap_read_unlock(mm);
 		*cached = true;
 		return VM_FAULT_RETRY | VM_FAULT_NOPAGE;
 	}
@@ -1933,7 +1933,7 @@ vm_fault_t pcc_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf,
 		 */
 		if (page->mapping == pcc_file->f_mapping) {
 			*cached = true;
-			up_read(&mm->mmap_sem);
+			mmap_read_unlock(mm);
 			return VM_FAULT_RETRY | VM_FAULT_NOPAGE;
 		}
 
@@ -1947,7 +1947,7 @@ vm_fault_t pcc_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf,
 	if (OBD_FAIL_CHECK(OBD_FAIL_LLITE_PCC_DETACH_MKWRITE)) {
 		pcc_io_fini(inode);
 		pcc_ioctl_detach(inode, PCC_DETACH_OPT_UNCACHE);
-		up_read(&mm->mmap_sem);
+		mmap_read_unlock(mm);
 		return VM_FAULT_RETRY | VM_FAULT_NOPAGE;
 	}
 
