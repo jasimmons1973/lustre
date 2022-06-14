@@ -40,25 +40,26 @@
  *
  * @{
  */
-
-#include <linux/fs.h>
-#include <linux/limits.h>
-#include <linux/kernel.h>
-#include <linux/stat.h>
 #include <linux/string.h>
-#include <linux/quota.h>
-#include <linux/types.h>
-#include <linux/unistd.h>
-#include <linux/lustre/lustre_fiemap.h>
-#include <linux/lustre/lustre_ver.h>
-
 #ifndef __KERNEL__
 # define __USE_ISOC99  1
 # include <stdbool.h>
 # include <stdio.h> /* snprintf() */
 # include <sys/stat.h>
+
+# define __USE_GNU	1
 # define FILEID_LUSTRE 0x97 /* for name_to_handle_at() (and llapi_fd2fid()) */
-#endif /* __KERNEL__ */
+#endif /* !__KERNEL__ */
+
+#include <linux/fs.h>
+#include <linux/limits.h>
+#include <linux/kernel.h>
+#include <linux/stat.h>
+#include <linux/quota.h>
+#include <linux/types.h>
+#include <linux/unistd.h>
+#include <linux/lustre/lustre_fiemap.h>
+#include <linux/lustre/lustre_ver.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -937,10 +938,11 @@ static inline char *obd_uuid2str(const struct obd_uuid *uuid)
 		/* Obviously not safe, but for printfs, no real harm done...
 		 * we're always null-terminated, even in a race.
 		 */
-		static char temp[sizeof(*uuid)];
+		static char temp[sizeof(*uuid->uuid)];
 
-		memcpy(temp, uuid->uuid, sizeof(*uuid) - 1);
-		temp[sizeof(*uuid) - 1] = '\0';
+		memcpy(temp, uuid->uuid, sizeof(*uuid->uuid) - 1);
+		temp[sizeof(*uuid->uuid) - 1] = '\0';
+
 		return temp;
 	}
 	return (char *)(uuid->uuid);
