@@ -39,6 +39,8 @@
 
 #include <linux/highmem.h>
 #include "lov_cl_internal.h"
+#include <linux/bug.h>
+#include <linux/compiler.h>
 
 /** \addtogroup lov
  *  @{
@@ -49,20 +51,6 @@
  * Lov page operations.
  *
  */
-static int lov_comp_page_print(const struct lu_env *env,
-			       const struct cl_page_slice *slice,
-			       void *cookie, lu_printer_t printer)
-{
-	struct lov_page *lp = cl2lov_page(slice);
-
-	return (*printer)(env, cookie,
-			  LUSTRE_LOV_NAME"-page@%p\n", lp);
-}
-
-static const struct cl_page_operations lov_comp_page_ops = {
-	.cpo_print	= lov_comp_page_print
-};
-
 int lov_page_init_composite(const struct lu_env *env, struct cl_object *obj,
 			    struct cl_page *page, pgoff_t index)
 {
@@ -72,7 +60,6 @@ int lov_page_init_composite(const struct lu_env *env, struct cl_object *obj,
 	struct cl_object *subobj;
 	struct cl_object *o;
 	struct lov_io_sub *sub;
-	struct lov_page *lpg = cl_object_page_slice(obj, page);
 	bool stripe_cached = false;
 	u64 offset;
 	u64 suboff;
@@ -118,7 +105,7 @@ int lov_page_init_composite(const struct lu_env *env, struct cl_object *obj,
 	       offset, entry, stripe, suboff);
 
 	page->cp_lov_index = lov_comp_index(entry, stripe);
-	cl_page_slice_add(page, &lpg->lps_cl, obj, &lov_comp_page_ops);
+	LASSERT(page->cp_lov_index != CP_LOV_INDEX_EMPTY);
 
 	if (!stripe_cached) {
 		sub = lov_sub_get(env, lio, page->cp_lov_index);
@@ -146,28 +133,14 @@ int lov_page_init_composite(const struct lu_env *env, struct cl_object *obj,
 	return rc;
 }
 
-static int lov_empty_page_print(const struct lu_env *env,
-				const struct cl_page_slice *slice,
-				void *cookie, lu_printer_t printer)
-{
-	struct lov_page *lp = cl2lov_page(slice);
-
-	return (*printer)(env, cookie, LUSTRE_LOV_NAME "-page@%p, empty.\n",
-			  lp);
-}
-
-static const struct cl_page_operations lov_empty_page_ops = {
-	.cpo_print	= lov_empty_page_print
-};
-
 int lov_page_init_empty(const struct lu_env *env, struct cl_object *obj,
 			struct cl_page *page, pgoff_t index)
 {
-	struct lov_page *lpg = cl_object_page_slice(obj, page);
 	void *addr;
 
-	page->cp_lov_index = ~0;
-	cl_page_slice_add(page, &lpg->lps_cl, obj, &lov_empty_page_ops);
+	BUILD_BUG_ON(!__same_type(page->cp_lov_index, CP_LOV_INDEX_EMPTY));
+	page->cp_lov_index = CP_LOV_INDEX_EMPTY;
+
 	addr = kmap(page->cp_vmpage);
 	memset(addr, 0, cl_page_size(obj));
 	kunmap(page->cp_vmpage);
@@ -182,11 +155,4 @@ int lov_page_init_foreign(const struct lu_env *env, struct cl_object *obj,
 	return -ENODATA;
 }
 
-bool lov_page_is_empty(const struct cl_page *page)
-{
-	const struct cl_page_slice *slice = cl_page_at(page, &lov_device_type);
-
-	LASSERT(slice);
-	return slice->cpl_ops == &lov_empty_page_ops;
-}
 /** @} lov */
