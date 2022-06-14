@@ -495,7 +495,7 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 
 	if (ll_sbi_has_encrypt(sbi) &&
 	    (IS_ENCRYPTED(parent) ||
-	     unlikely(fscrypt_dummy_context_enabled(parent)))) {
+	     unlikely(ll_sb_has_test_dummy_encryption(parent->i_sb)))) {
 		err = fscrypt_get_encryption_info(parent);
 		if (err)
 			goto out_op_data;

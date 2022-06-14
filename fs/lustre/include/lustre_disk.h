@@ -47,6 +47,7 @@
 #include <asm/byteorder.h>
 #include <linux/types.h>
 #include <linux/backing-dev.h>
+#include <lustre_crypto.h>
 
 /****************** persistent mount data *********************/
 
@@ -131,6 +132,8 @@ struct lustre_sb_info {
 	struct obd_export	 *lsi_osd_exp;
 	char			  lsi_osd_type[16];
 	char			  lsi_fstype[16];
+	/* Encryption context for '-o test_dummy_encryption' */
+	struct fscrypt_dummy_context lsi_dummy_enc_ctx;
 };
 
 #define LSI_UMOUNT_FAILOVER	0x00200000

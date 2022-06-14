@@ -1581,7 +1581,8 @@ again:
 	if (ll_sbi_has_encrypt(sbi) &&
 	    ((IS_ENCRYPTED(dir) &&
 	    (S_ISREG(mode) || S_ISDIR(mode) || S_ISLNK(mode))) ||
-	    (unlikely(fscrypt_dummy_context_enabled(dir)) && S_ISDIR(mode)))) {
+	    (unlikely(ll_sb_has_test_dummy_encryption(dir->i_sb)) &&
+	     S_ISDIR(mode)))) {
 		err = fscrypt_get_encryption_info(dir);
 		if (err)
 			goto err_exit;

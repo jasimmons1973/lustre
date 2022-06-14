@@ -32,11 +32,16 @@
 
 #include <linux/fscrypt.h>
 
+/* Macro to extract digest from Lustre specific structures */
+#define LLCRYPT_EXTRACT_DIGEST(name, len)			\
+	((name) + round_down((len) - FS_CRYPTO_BLOCK_SIZE - 1,	\
+			     FS_CRYPTO_BLOCK_SIZE))
+
 struct ll_sb_info;
 #ifdef CONFIG_FS_ENCRYPTION
 int ll_set_encflags(struct inode *inode, void *encctx, u32 encctxlen,
 		    bool preload);
-bool ll_sbi_has_test_dummy_encryption(struct ll_sb_info *sbi);
+bool ll_sb_has_test_dummy_encryption(struct super_block *sb);
 bool ll_sbi_has_encrypt(struct ll_sb_info *sbi);
 void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set);
 #else
@@ -46,7 +51,7 @@ static inline int ll_set_encflags(struct inode *inode, void *encctx,
 	return 0;
 }
 
-static inline bool ll_sbi_has_test_dummy_encryption(struct ll_sb_info *sbi)
+static inline bool ll_sb_has_test_dummy_encryption(struct super_block *sb)
 {
 	return false;
 }
@@ -122,11 +127,5 @@ static inline int critical_decode(const u8 *src, int len, char *dst)
 
 	return (char *)q - dst;
 }
-
-/* Extracts the second-to-last ciphertext block */
-#define LLCRYPT_FNAME_DIGEST(name, len)					\
-	((name) + round_down((len) - FS_CRYPTO_BLOCK_SIZE - 1,		\
-			     FS_CRYPTO_BLOCK_SIZE))
-#define LLCRYPT_FNAME_DIGEST_SIZE	FS_CRYPTO_BLOCK_SIZE
 
 #endif /* _LUSTRE_CRYPTO_H_ */

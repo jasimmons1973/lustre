@@ -145,16 +145,17 @@ int ll_file_open_encrypt(struct inode *inode, struct file *filp)
 	return rc;
 }
 
-bool ll_sbi_has_test_dummy_encryption(struct ll_sb_info *sbi)
+static const union fscrypt_context *
+ll_get_dummy_context(struct super_block *sb)
 {
-	return unlikely(test_bit(LL_SBI_TEST_DUMMY_ENCRYPTION, sbi->ll_flags));
+	struct lustre_sb_info *lsi = s2lsi(sb);
+
+	return lsi ? lsi->lsi_dummy_enc_ctx.ctx : NULL;
 }
 
-static bool ll_dummy_context(struct inode *inode)
+bool ll_sb_has_test_dummy_encryption(struct super_block *sb)
 {
-	struct ll_sb_info *sbi = ll_i2sbi(inode);
-
-	return sbi ? ll_sbi_has_test_dummy_encryption(sbi) : false;
+	return ll_get_dummy_context(sb) != NULL;
 }
 
 bool ll_sbi_has_encrypt(struct ll_sb_info *sbi)
@@ -263,14 +264,14 @@ int ll_setup_filename(struct inode *dir, const struct qstr *iname,
 			rc = -EINVAL;
 			goto out_free;
 		}
-		digest = (struct ll_digest_filename *)fname->crypto_buf.name;
+		digest = (struct ll_digest_filename *)fname->disk_name.name;
 		*fid = digest->ldf_fid;
 		if (!fid_is_sane(fid)) {
 			rc = -EINVAL;
 			goto out_free;
 		}
 		fname->disk_name.name = digest->ldf_excerpt;
-		fname->disk_name.len = LLCRYPT_FNAME_DIGEST_SIZE;
+		fname->disk_name.len = sizeof(digest->ldf_excerpt);
 	}
 	if (IS_ENCRYPTED(dir) &&
 	    !name_is_dot_or_dotdot(fname->disk_name.name,
@@ -304,11 +305,6 @@ out_free:
 	fscrypt_free_filename(fname);
 	return rc;
 }
-
-#define LLCRYPT_FNAME_DIGEST(name, len) \
-	((name) + round_down((len) - FS_CRYPTO_BLOCK_SIZE - 1, \
-			     FS_CRYPTO_BLOCK_SIZE))
-#define LLCRYPT_FNAME_MAX_UNDIGESTED_SIZE	32
 
 /**
  * ll_fname_disk_to_usr() - overlay to fscrypt_fname_disk_to_usr
@@ -359,7 +355,7 @@ int ll_fname_disk_to_usr(struct inode *inode,
 			lltr.name = buf;
 			lltr.len = len;
 		}
-		if (lltr.len > LLCRYPT_FNAME_MAX_UNDIGESTED_SIZE &&
+		if (lltr.len > FS_CRYPTO_BLOCK_SIZE * 2 &&
 		    !fscrypt_has_encryption_key(inode)) {
 			digested = 1;
 			/* Without the key for long names, set the dentry name
@@ -371,8 +367,8 @@ int ll_fname_disk_to_usr(struct inode *inode,
 				return -EINVAL;
 			digest.ldf_fid = *fid;
 			memcpy(digest.ldf_excerpt,
-			       LLCRYPT_FNAME_DIGEST(lltr.name, lltr.len),
-			       LLCRYPT_FNAME_DIGEST_SIZE);
+			       LLCRYPT_EXTRACT_DIGEST(lltr.name, lltr.len),
+			       sizeof(digest.ldf_excerpt));
 
 			lltr.name = (char *)&digest;
 			lltr.len = sizeof(digest);
@@ -440,7 +436,7 @@ const struct fscrypt_operations lustre_cryptops = {
 	.key_prefix		= "lustre:",
 	.get_context		= ll_get_context,
 	.set_context		= ll_set_context,
-	.dummy_context		= ll_dummy_context,
+	.get_dummy_context	= ll_get_dummy_context,
 	.empty_dir		= ll_empty_dir,
 	.max_namelen		= NAME_MAX,
 };
