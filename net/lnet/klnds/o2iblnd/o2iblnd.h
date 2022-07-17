@@ -401,8 +401,9 @@ struct kib_tx {					/* transmit message */
 	struct kib_tx_pool     *tx_pool;	/* pool I'm from */
 	struct kib_conn	       *tx_conn;	/* owning conn */
 	short			tx_sending;	/* # tx callbacks outstanding */
-	short			tx_queued;	/* queued for sending */
-	short			tx_waiting;	/* waiting for peer_ni */
+	unsigned long		tx_queued:1,	/* queued for sending */
+				tx_waiting:1,	/* waiting for peer_ni */
+				tx_gpu:1;	/* force DMA */
 	int			tx_status;	/* LNET completion status */
 	enum lnet_msg_hstatus	tx_hstatus;	/* health status of the transmit */
 	ktime_t			tx_deadline;	/* completion deadline */
@@ -861,17 +862,23 @@ static inline void kiblnd_dma_unmap_single(struct ib_device *dev,
 #define KIBLND_UNMAP_ADDR_SET(p, m, a)	do {} while (0)
 #define KIBLND_UNMAP_ADDR(p, m, a)	(a)
 
-static inline int kiblnd_dma_map_sg(struct kib_hca_dev *hdev,
-				    struct scatterlist *sg, int nents,
-				    enum dma_data_direction direction)
+static inline
+int kiblnd_dma_map_sg(struct kib_hca_dev *hdev, struct kib_tx *tx)
 {
+	struct scatterlist *sg = tx->tx_frags;
+	int nents = tx->tx_nfrags;
+	enum dma_data_direction direction = tx->tx_dmadir;
+
 	return ib_dma_map_sg(hdev->ibh_ibdev, sg, nents, direction);
 }
 
-static inline void kiblnd_dma_unmap_sg(struct kib_hca_dev *hdev,
-				       struct scatterlist *sg, int nents,
-				       enum dma_data_direction direction)
+static inline
+void kiblnd_dma_unmap_sg(struct kib_hca_dev *hdev, struct kib_tx *tx)
 {
+	struct scatterlist *sg = tx->tx_frags;
+	int nents = tx->tx_nfrags;
+	enum dma_data_direction direction = tx->tx_dmadir;
+
 	ib_dma_unmap_sg(hdev->ibh_ibdev, sg, nents, direction);
 }
 

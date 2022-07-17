@@ -192,6 +192,9 @@ lnet_md_build(const struct lnet_md *umd, int unlink)
 	lmd->md_flags = (unlink == LNET_UNLINK) ? LNET_MD_FLAG_AUTO_UNLINK : 0;
 	lmd->md_bulk_handle = umd->bulk_handle;
 
+	if (umd->options & LNET_MD_GPU_ADDR)
+		lmd->md_flags |= LNET_MD_FLAG_GPU;
+
 	if (umd->options & LNET_MD_KIOV) {
 		niov = umd->length;
 		lmd->md_niov = umd->length;
