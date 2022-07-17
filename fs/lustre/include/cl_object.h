@@ -838,25 +838,6 @@ struct cl_page_operations {
 	 */
 
 	/**
-	 * Called for a page that is already "owned" by @io from VM point of
-	 * view. Optional.
-	 *
-	 * \see cl_page_assume()
-	 * \see vvp_page_assume(), lov_page_assume()
-	 */
-	void (*cpo_assume)(const struct lu_env *env,
-			   const struct cl_page_slice *slice, struct cl_io *io);
-	/** Dual to cl_page_operations::cpo_assume(). Optional. Called
-	 * bottom-to-top when IO releases a page without actually unlocking
-	 * it.
-	 *
-	 * \see cl_page_unassume()
-	 * \see vvp_page_unassume()
-	 */
-	void (*cpo_unassume)(const struct lu_env *env,
-			     const struct cl_page_slice *slice,
-			     struct cl_io *io);
-	/**
 	 * Update file attributes when all we have is this page.  Used for tiny
 	 * writes to update attributes when we don't have a full cl_io.
 	 */
@@ -884,10 +865,6 @@ struct cl_page_operations {
 	 */
 	void (*cpo_delete)(const struct lu_env *env,
 			   const struct cl_page_slice *slice);
-	/** Destructor. Frees resources and slice itself. */
-	void (*cpo_fini)(const struct lu_env *env,
-			 struct cl_page_slice *slice,
-			 struct pagevec *pvec);
 	/**
 	 * Optional debugging helper. Prints given page slice.
 	 *
