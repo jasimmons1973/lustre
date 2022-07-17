@@ -195,10 +195,9 @@ static int ll_read_ahead_page(const struct lu_env *env, struct cl_io *io,
 	enum ra_stat which = _NR_RA_STAT; /* keep gcc happy */
 	struct cl_object *clob = io->ci_obj;
 	struct inode *inode = vvp_object_inode(clob);
-	const char *msg = NULL;
-	struct cl_page *page;
-	struct vvp_page *vpg;
 	struct page *vmpage = NULL;
+	const char *msg = NULL;
+	struct cl_page *cp;
 	int rc = 0;
 
 	switch (hint) {
@@ -233,34 +232,35 @@ static int ll_read_ahead_page(const struct lu_env *env, struct cl_io *io,
 		goto out;
 	}
 
-	page = cl_page_find(env, clob, vmpage->index, vmpage, CPT_CACHEABLE);
-	if (IS_ERR(page)) {
+	cp = cl_page_find(env, clob, vmpage->index, vmpage, CPT_CACHEABLE);
+	if (IS_ERR(cp)) {
 		which = RA_STAT_FAILED_GRAB_PAGE;
 		msg = "cl_page_find failed";
-		rc = PTR_ERR(page);
+		rc = PTR_ERR(cp);
 		goto out;
 	}
 
-	lu_ref_add(&page->cp_reference, "ra", current);
-	cl_page_assume(env, io, page);
-	vpg = cl2vvp_page(cl_object_page_slice(clob, page));
-	if (!vpg->vpg_defer_uptodate && !PageUptodate(vmpage)) {
+	lu_ref_add(&cp->cp_reference, "ra", current);
+	cl_page_assume(env, io, cp);
+
+	if (!cp->cp_defer_uptodate && !PageUptodate(vmpage)) {
 		if (hint == MAYNEED) {
-			vpg->vpg_defer_uptodate = 1;
-			vpg->vpg_ra_used = 0;
+			cp->cp_defer_uptodate = 1;
+			cp->cp_ra_used = 0;
 		}
-		cl_page_list_add(queue, page, true);
+
+		cl_page_list_add(queue, cp, true);
 	} else {
 		/* skip completed pages */
-		cl_page_unassume(env, io, page);
+		cl_page_unassume(env, io, cp);
 		/* This page is already uptodate, returning a positive number
 		 * to tell the callers about this
 		 */
 		rc = 1;
 	}
 
-	lu_ref_del(&page->cp_reference, "ra", current);
-	cl_page_put(env, page);
+	lu_ref_del(&cp->cp_reference, "ra", current);
+	cl_page_put(env, cp);
 out:
 	if (vmpage) {
 		if (rc)
@@ -695,7 +695,7 @@ static void ll_readahead_handle_work(struct work_struct *wq)
 	cl_page_list_discard(env, io, &queue->c2_qin);
 
 	/* Unlock unsent read pages in case of error. */
-	cl_page_list_disown(env, io, &queue->c2_qin);
+	cl_page_list_disown(env, &queue->c2_qin);
 
 	cl_2queue_fini(env, queue);
 out_io_fini:
@@ -1649,9 +1649,9 @@ int ll_io_read_page(const struct lu_env *env, struct cl_io *io,
 		unlockpage = false;
 
 	vpg = cl2vvp_page(cl_object_page_slice(page->cp_obj, page));
-	uptodate = vpg->vpg_defer_uptodate;
+	uptodate = page->cp_defer_uptodate;
 
-	if (ll_readahead_enabled(sbi) && !vpg->vpg_ra_updated && ras) {
+	if (ll_readahead_enabled(sbi) && !page->cp_ra_updated && ras) {
 		enum ras_update_flags flags = 0;
 
 		if (uptodate)
@@ -1663,7 +1663,7 @@ int ll_io_read_page(const struct lu_env *env, struct cl_io *io,
 
 	cl_2queue_init(queue);
 	if (uptodate) {
-		vpg->vpg_ra_used = 1;
+		page->cp_ra_used = 1;
 		SetPageUptodate(page->cp_vmpage);
 		cl_page_disown(env, io, page);
 	} else {
@@ -1740,7 +1740,7 @@ int ll_io_read_page(const struct lu_env *env, struct cl_io *io,
 	cl_page_list_discard(env, io, &queue->c2_qin);
 
 	/* Unlock unsent read pages in case of error. */
-	cl_page_list_disown(env, io, &queue->c2_qin);
+	cl_page_list_disown(env, &queue->c2_qin);
 
 	cl_2queue_fini(env, queue);
 
@@ -1881,7 +1881,7 @@ int ll_readpage(struct file *file, struct page *vmpage)
 		}
 
 		vpg = cl2vvp_page(cl_object_page_slice(page->cp_obj, page));
-		if (vpg->vpg_defer_uptodate) {
+		if (page->cp_defer_uptodate) {
 			enum ras_update_flags flags = LL_RAS_HIT;
 
 			if (lcc && lcc->lcc_type == LCC_MMAP)
@@ -1894,7 +1894,7 @@ int ll_readpage(struct file *file, struct page *vmpage)
 			 */
 			ras_update(sbi, inode, ras, vvp_index(vpg), flags, io);
 			/* avoid duplicate ras_update() call */
-			vpg->vpg_ra_updated = 1;
+			page->cp_ra_updated = 1;
 
 			if (ll_use_fast_io(file, ras, vvp_index(vpg)))
 				result = 0;
@@ -1907,11 +1907,12 @@ int ll_readpage(struct file *file, struct page *vmpage)
 
 		/* export the page and skip io stack */
 		if (result == 0) {
-			vpg->vpg_ra_used = 1;
+			page->cp_ra_used = 1;
 			SetPageUptodate(vmpage);
 		} else {
 			ll_ra_stats_inc_sbi(sbi, RA_STAT_FAILED_FAST_READ);
 		}
+
 		/* release page refcount before unlocking the page to ensure
 		 * the object won't be destroyed in the calling path of
 		 * cl_page_put(). Please see comment in ll_releasepage().
