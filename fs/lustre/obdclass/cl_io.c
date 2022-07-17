@@ -849,7 +849,6 @@ void cl_page_list_del(const struct lu_env *env, struct cl_page_list *plist,
 		      struct cl_page *page)
 {
 	LASSERT(plist->pl_nr > 0);
-	LASSERT(cl_page_is_vmlocked(env, page));
 
 	list_del_init(&page->cp_batch);
 	--plist->pl_nr;

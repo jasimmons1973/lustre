@@ -144,7 +144,7 @@ int lov_page_init_empty(const struct lu_env *env, struct cl_object *obj,
 	addr = kmap(page->cp_vmpage);
 	memset(addr, 0, cl_page_size(obj));
 	kunmap(page->cp_vmpage);
-	cl_page_export(env, page, 1);
+	SetPageUptodate(page->cp_vmpage);
 	return 0;
 }
 

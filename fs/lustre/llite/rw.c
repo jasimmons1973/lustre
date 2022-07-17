@@ -1664,7 +1664,7 @@ int ll_io_read_page(const struct lu_env *env, struct cl_io *io,
 	cl_2queue_init(queue);
 	if (uptodate) {
 		vpg->vpg_ra_used = 1;
-		cl_page_export(env, page, 1);
+		SetPageUptodate(page->cp_vmpage);
 		cl_page_disown(env, io, page);
 	} else {
 		anchor = &vvp_env_info(env)->vti_anchor;
@@ -1908,7 +1908,7 @@ int ll_readpage(struct file *file, struct page *vmpage)
 		/* export the page and skip io stack */
 		if (result == 0) {
 			vpg->vpg_ra_used = 1;
-			cl_page_export(env, page, 1);
+			SetPageUptodate(vmpage);
 		} else {
 			ll_ra_stats_inc_sbi(sbi, RA_STAT_FAILED_FAST_READ);
 		}
