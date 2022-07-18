@@ -1960,7 +1960,11 @@ struct cl_io {
 	/**
 	 * Bypass quota check
 	 */
-	unsigned int		ci_noquota:1;
+	unsigned int		ci_noquota:1,
+	/**
+	 * io_uring direct IO with flags IOCB_NOWAIT.
+	 */
+				ci_iocb_nowait:1;
 	/**
 	 * How many times the read has retried before this one.
 	 * Set by the top level and consumed by the LOV.
