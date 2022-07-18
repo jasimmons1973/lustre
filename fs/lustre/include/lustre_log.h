@@ -264,7 +264,7 @@ struct llog_ctxt {
 };
 
 #define LLOG_PROC_BREAK 0x0001
-#define LLOG_DEL_RECORD 0x0002
+#define LLOG_SKIP_PLAIN 0x0004
 
 static inline int llog_handle2ops(struct llog_handle *loghandle,
 				  const struct llog_operations **lop)
@@ -373,6 +373,22 @@ static inline int llog_next_block(const struct lu_env *env,
 	rc = lop->lop_next_block(env, loghandle, cur_idx, next_idx,
 				 cur_offset, buf, len);
 	return rc;
+}
+
+/* Determine if a llog plain of a catalog could be skiped based on record
+ * custom indexes.
+ * This assumes that indexes follow each other. The number of records to skip
+ * can be computed base on a starting offset and the index of the current
+ * record (in llog catalog callback).
+ */
+static inline int llog_is_plain_skipable(struct llog_log_hdr *lh,
+					 struct llog_rec_hdr *rec,
+					 u64 curr, u64 start)
+{
+	if (start == 0 || curr >= start)
+		return 0;
+
+	return (LLOG_HDR_BITMAP_SIZE(lh) - rec->lrh_index) < (start - curr);
 }
 
 /* llog.c */
