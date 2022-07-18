@@ -3417,6 +3417,8 @@ static int ll_set_project(struct inode *inode, u32 xflags, u32 projid)
 	unsigned int inode_flags;
 	int rc = 0;
 
+	CDEBUG(D_QUOTA, DFID" xflags=%x projid=%u\n",
+	       PFID(ll_inode2fid(inode)), xflags, projid);
 	rc = ll_ioctl_check_project(inode, xflags, projid);
 	if (rc)
 		return rc;
