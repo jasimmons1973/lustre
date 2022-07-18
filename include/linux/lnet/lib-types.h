@@ -765,6 +765,11 @@ struct lnet_peer {
 
 	/* cached peer aliveness */
 	bool			lp_alive;
+
+	/* sequence number used to round robin traffic to this peer's
+	 * nets/NIs
+	 */
+	u32			lp_send_seq;
 };
 
 /*
@@ -1205,10 +1210,12 @@ struct lnet {
 
 	/* LND instances */
 	struct list_head		ln_nets;
-	/* network zombie list */
-	struct list_head		ln_net_zombie;
+	/* Sequence number used to round robin sends across all nets */
+	u32				ln_net_seq;
 	/* the loopback NI */
 	struct lnet_ni		       *ln_loni;
+	/* network zombie list */
+	struct list_head		ln_net_zombie;
 	/* resend messages list */
 	struct list_head		ln_msg_resend;
 	/* spin lock to protect the msg resend list */
