@@ -520,7 +520,6 @@ static int lmv_disconnect(struct obd_export *exp)
 	struct obd_device *obd = class_exp2obd(exp);
 	struct lmv_obd *lmv = &obd->u.lmv;
 	struct lmv_tgt_desc *tgt;
-	int rc;
 
 	lmv_foreach_connected_tgt(lmv, tgt)
 		lmv_disconnect_mdc(obd, tgt);
@@ -528,11 +527,8 @@ static int lmv_disconnect(struct obd_export *exp)
 	if (lmv->lmv_tgts_kobj)
 		kobject_put(lmv->lmv_tgts_kobj);
 
-	if (!lmv->connected)
-		class_export_put(exp);
-	rc = class_disconnect(exp);
 	lmv->connected = 0;
-	return rc;
+	return class_disconnect(exp);
 }
 
 static int lmv_fid2path(struct obd_export *exp, int len, void *karg,
@@ -1147,6 +1143,11 @@ static int lmv_cleanup(struct obd_device *obd)
 	struct lu_tgt_desc *tmp;
 
 	fld_client_fini(&lmv->lmv_fld);
+	fld_client_debugfs_fini(&lmv->lmv_fld);
+
+	lprocfs_obd_cleanup(obd);
+	ldebugfs_free_md_stats(obd);
+
 	lmv_foreach_tgt_safe(lmv, tgt, tmp)
 		lmv_del_target(lmv, tgt);
 	lu_tgt_descs_fini(&lmv->lmv_mdt_descs);
@@ -3063,9 +3064,6 @@ retry:
 static int lmv_precleanup(struct obd_device *obd)
 {
 	libcfs_kkuc_group_rem(&obd->obd_uuid, 0, KUC_GRP_HSM);
-	fld_client_debugfs_fini(&obd->u.lmv.lmv_fld);
-	lprocfs_obd_cleanup(obd);
-	ldebugfs_free_md_stats(obd);
 	return 0;
 }
 

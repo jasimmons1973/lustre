@@ -2959,11 +2959,10 @@ static int mdc_precleanup(struct obd_device *obd)
 	osc_precleanup_common(obd);
 
 	mdc_changelog_cdev_finish(obd);
-
-	obd_cleanup_client_import(obd);
-	ptlrpc_lprocfs_unregister_obd(obd);
-	ldebugfs_free_md_stats(obd);
 	mdc_llog_finish(obd);
+	ldebugfs_free_md_stats(obd);
+	ptlrpc_lprocfs_unregister_obd(obd);
+
 	return 0;
 }
 
