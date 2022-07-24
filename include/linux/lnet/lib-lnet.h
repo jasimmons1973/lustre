@@ -569,6 +569,7 @@ extern int portal_rotor;
 
 int lnet_lib_init(void);
 void lnet_lib_exit(void);
+void lnet_router_exit(void);
 
 void lnet_mt_event_handler(struct lnet_event *event);
 

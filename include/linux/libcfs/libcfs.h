@@ -57,8 +57,10 @@ int libcfs_setup(void);
 
 extern struct workqueue_struct *cfs_rehash_wq;
 
-void lnet_insert_debugfs(struct ctl_table *table);
+void lnet_insert_debugfs(struct ctl_table *table, struct module *mod,
+			 void **statep);
 void lnet_remove_debugfs(struct ctl_table *table);
+void lnet_debugfs_fini(void **statep);
 
 int debugfs_doint(struct ctl_table *table, int write,
 		  void __user *buffer, size_t *lenp, loff_t *ppos);

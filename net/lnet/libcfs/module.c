@@ -746,25 +746,42 @@ static const struct file_operations lnet_debugfs_file_operations_wo = {
 	.llseek		= default_llseek,
 };
 
-static const struct file_operations *lnet_debugfs_fops_select(umode_t mode)
+static const struct file_operations *
+lnet_debugfs_fops_select(umode_t mode, const struct file_operations state[3])
 {
 	if (!(mode & 0222))
-		return &lnet_debugfs_file_operations_ro;
+		return &state[0];
 
 	if (!(mode & 0444))
-		return &lnet_debugfs_file_operations_wo;
+		return &state[1];
 
-	return &lnet_debugfs_file_operations_rw;
+	return &state[2];
 }
 
-void lnet_insert_debugfs(struct ctl_table *table)
+void lnet_insert_debugfs(struct ctl_table *table, struct module *mod,
+			 void **statep)
 {
+	struct file_operations *state = *statep;
+
 	if (!lnet_debugfs_root)
 		lnet_debugfs_root = debugfs_create_dir("lnet", NULL);
 
 	/* Even if we cannot create, just ignore it altogether) */
 	if (IS_ERR_OR_NULL(lnet_debugfs_root))
 		return;
+
+	if (!state) {
+		state = kmalloc(3 * sizeof(*state), GFP_KERNEL);
+		if (!state)
+			return;
+		state[0] = lnet_debugfs_file_operations_ro;
+		state[0].owner = mod;
+		state[1] = lnet_debugfs_file_operations_wo;
+		state[1].owner = mod;
+		state[2] = lnet_debugfs_file_operations_rw;
+		state[2].owner = mod;
+		*statep = state;
+	}
 
 	/*
 	 * We don't save the dentry returned because we don't call
@@ -773,9 +790,17 @@ void lnet_insert_debugfs(struct ctl_table *table)
 	for (; table && table->procname; table++)
 		debugfs_create_file(table->procname, table->mode,
 				    lnet_debugfs_root, table,
-				    lnet_debugfs_fops_select(table->mode));
+				    lnet_debugfs_fops_select(table->mode,
+							     (const struct file_operations *)state));
 }
 EXPORT_SYMBOL_GPL(lnet_insert_debugfs);
+
+void lnet_debugfs_fini(void **state)
+{
+	kfree(*state);
+	*state = NULL;
+}
+EXPORT_SYMBOL_GPL(lnet_debugfs_fini);
 
 static void lnet_insert_debugfs_links(
 	const struct lnet_debugfs_symlink_def *symlinks)
@@ -800,6 +825,8 @@ EXPORT_SYMBOL_GPL(lnet_remove_debugfs);
 
 static DEFINE_MUTEX(libcfs_startup);
 static int libcfs_active;
+
+static void *debugfs_state;
 
 int libcfs_setup(void)
 {
@@ -855,7 +882,7 @@ static int libcfs_init(void)
 {
 	int rc;
 
-	lnet_insert_debugfs(lnet_table);
+	lnet_insert_debugfs(lnet_table, THIS_MODULE, &debugfs_state);
 	if (!IS_ERR_OR_NULL(lnet_debugfs_root))
 		lnet_insert_debugfs_links(lnet_debugfs_symlinks);
 
@@ -874,6 +901,8 @@ static void libcfs_exit(void)
 	/* Remove everthing */
 	debugfs_remove_recursive(lnet_debugfs_root);
 	lnet_debugfs_root = NULL;
+
+	lnet_debugfs_fini(&debugfs_state);
 
 	if (cfs_rehash_wq)
 		destroy_workqueue(cfs_rehash_wq);
