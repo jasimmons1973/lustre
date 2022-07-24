@@ -276,6 +276,13 @@ kiblnd_handle_completion(struct kib_conn *conn, int txtype, int status, u64 cook
 
 	if (!tx->tx_status) {		/* success so far */
 		if (status < 0) {	/* failed? */
+			if (status == -ECONNABORTED) {
+				CDEBUG(D_NET,
+				       "bad status for connection to %s with completion type %x\n",
+				       libcfs_nid2str(conn->ibc_peer->ibp_nid),
+				       txtype);
+			}
+
 			tx->tx_status = status;
 			tx->tx_hstatus = LNET_MSG_STATUS_REMOTE_ERROR;
 		} else if (txtype == IBLND_MSG_GET_REQ) {
@@ -812,6 +819,8 @@ kiblnd_post_tx_locked(struct kib_conn *conn, struct kib_tx *tx, int credit)
 
 	/* I'm still holding ibc_lock! */
 	if (conn->ibc_state != IBLND_CONN_ESTABLISHED) {
+		CDEBUG(D_NET, "connection to %s is not established\n",
+		       conn->ibc_peer ? libcfs_nid2str(conn->ibc_peer->ibp_nid) : "NULL");
 		rc = -ECONNABORTED;
 	} else if (tx->tx_pool->tpo_pool.po_failed ||
 		 conn->ibc_hdev != tx->tx_pool->tpo_hdev) {
@@ -1153,6 +1162,9 @@ kiblnd_queue_tx_locked(struct kib_tx *tx, struct kib_conn *conn)
 	LASSERT(conn->ibc_state >= IBLND_CONN_ESTABLISHED);
 
 	if (conn->ibc_state >= IBLND_CONN_DISCONNECTED) {
+		CDEBUG(D_NET, "connection with %s is disconnected\n",
+		       conn->ibc_peer ? libcfs_nid2str(conn->ibc_peer->ibp_nid) : "NULL");
+
 		tx->tx_status = -ECONNABORTED;
 		tx->tx_waiting = 0;
 		if (tx->tx_conn) {
@@ -2141,10 +2153,12 @@ kiblnd_finalise_conn(struct kib_conn *conn)
 
 	kiblnd_set_conn_state(conn, IBLND_CONN_DISCONNECTED);
 
-	/*
-	 * Complete all tx descs not waiting for sends to complete.
+	/* Complete all tx descs not waiting for sends to complete.
 	 * NB we should be safe from RDMA now that the QP has changed state
 	 */
+	CDEBUG(D_NET, "abort connection with %s\n",
+	       libcfs_nid2str(conn->ibc_peer->ibp_nid));
+
 	kiblnd_abort_txs(conn, &conn->ibc_tx_noops);
 	kiblnd_abort_txs(conn, &conn->ibc_tx_queue);
 	kiblnd_abort_txs(conn, &conn->ibc_tx_queue_rsrvd);
