@@ -51,8 +51,6 @@ struct lmv_stripe_md {
 	u32	lsm_md_layout_version;
 	u32	lsm_md_migrate_offset;
 	u32	lsm_md_migrate_hash;
-	u32	lsm_md_default_count;
-	u32	lsm_md_default_index;
 	char	lsm_md_pool_name[LOV_MAXPOOLNAME + 1];
 	struct lmv_oinfo lsm_md_oinfo[0];
 };
@@ -511,6 +509,27 @@ static inline bool lmv_is_layout_changing(const struct lmv_mds_md_v1 *lmv)
 	return lmv_hash_is_splitting(cpu_to_le32(lmv->lmv_hash_type)) ||
 	       lmv_hash_is_merging(cpu_to_le32(lmv->lmv_hash_type)) ||
 	       lmv_hash_is_migrating(cpu_to_le32(lmv->lmv_hash_type));
+}
+
+static inline u8 lmv_inherit_next(u8 inherit)
+{
+	if (inherit == LMV_INHERIT_END || inherit == LMV_INHERIT_NONE)
+		return LMV_INHERIT_NONE;
+
+	if (inherit == LMV_INHERIT_UNLIMITED || inherit > LMV_INHERIT_MAX)
+		return inherit;
+
+	return inherit - 1;
+}
+
+static inline u8 lmv_inherit_rr_next(u8 inherit_rr)
+{
+	if (inherit_rr == LMV_INHERIT_RR_NONE ||
+	    inherit_rr == LMV_INHERIT_RR_UNLIMITED ||
+	    inherit_rr > LMV_INHERIT_RR_MAX)
+		return inherit_rr;
+
+	return inherit_rr - 1;
 }
 
 #endif

@@ -1496,7 +1496,7 @@ static void ll_qos_mkdir_prep(struct md_op_data *op_data, struct inode *dir)
 	struct ll_inode_info *lli = ll_i2info(dir);
 	struct lmv_stripe_md *lsm;
 
-	op_data->op_dir_depth = lli->lli_dir_depth;
+	op_data->op_dir_depth = lli->lli_inherit_depth ?: lli->lli_dir_depth;
 
 	/* parent directory is striped */
 	if (unlikely(lli->lli_lsm_md))
@@ -1635,7 +1635,7 @@ again:
 			from_kuid(&init_user_ns, current_fsuid()),
 			from_kgid(&init_user_ns, current_fsgid()),
 			current_cap(), rdev, &request);
-#if OBD_OCD_VERSION(2, 14, 58, 0) > LUSTRE_VERSION_CODE
+#if OBD_OCD_VERSION(2, 14, 58, 0) < LUSTRE_VERSION_CODE
 	/*
 	 * server < 2.12.58 doesn't pack default LMV in intent_getattr reply,
 	 * fetch default LMV here.
