@@ -1215,10 +1215,9 @@ int quotactl_ioctl(struct super_block *sb, struct if_quotactl *qctl)
 			break;
 		}
 
+		qctl->qc_cmd = cmd;
 		if (rc)
 			return rc;
-
-		qctl->qc_cmd = cmd;
 	} else {
 		struct obd_quotactl *oqctl;
 		int oqctl_len = sizeof(*oqctl);
@@ -2009,10 +2008,9 @@ out_req:
 		}
 
 		rc = quotactl_ioctl(inode->i_sb, qctl);
-		if (rc == 0 && copy_to_user((void __user *)arg, qctl,
-					    sizeof(*qctl)))
+		if ((rc == 0 || rc == -ENODATA) &&
+		    copy_to_user((void __user *)arg, qctl, sizeof(*qctl)))
 			rc = -EFAULT;
-
 out_quotactl:
 		kfree(qctl);
 		return rc;

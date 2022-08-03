@@ -1021,13 +1021,17 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 		struct if_quotactl *qctl = karg;
 		struct lov_tgt_desc *tgt = NULL;
 		struct obd_quotactl *oqctl;
+		struct obd_import *imp;
 
 		if (qctl->qc_valid == QC_OSTIDX) {
 			if (count <= qctl->qc_idx)
 				return -EINVAL;
 
 			tgt = lov->lov_tgts[qctl->qc_idx];
-			if (!tgt || !tgt->ltd_exp)
+			if (!tgt)
+				return -ENODEV;
+
+			if (!tgt->ltd_exp)
 				return -EINVAL;
 		} else if (qctl->qc_valid == QC_UUID) {
 			for (i = 0; i < count; i++) {
@@ -1050,6 +1054,13 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 			return -EAGAIN;
 
 		LASSERT(tgt && tgt->ltd_exp);
+		imp = class_exp2cliimp(tgt->ltd_exp);
+		if (!tgt->ltd_active && imp->imp_state != LUSTRE_IMP_IDLE) {
+			qctl->qc_valid = QC_OSTIDX;
+			qctl->obd_uuid = tgt->ltd_uuid;
+			return -ENODATA;
+		}
+
 		oqctl = kzalloc(sizeof(*oqctl), GFP_NOFS);
 		if (!oqctl)
 			return -ENOMEM;
