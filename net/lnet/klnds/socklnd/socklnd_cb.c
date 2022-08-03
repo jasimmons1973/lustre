@@ -936,7 +936,6 @@ ksocknal_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 	       payload_nob, payload_niov, libcfs_idstr(target));
 
 	LASSERT(!payload_nob || payload_niov > 0);
-	LASSERT(payload_niov <= LNET_MAX_IOV);
 	LASSERT(!in_interrupt());
 
 	desc_size = offsetof(struct ksock_tx,
@@ -961,6 +960,8 @@ ksocknal_send(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg)
 	tx->tx_nkiov = lnet_extract_kiov(payload_niov, tx->tx_kiov,
 					 payload_niov, payload_kiov,
 					 payload_offset, payload_nob);
+
+	LASSERT(tx->tx_nkiov <= LNET_MAX_IOV);
 
 	if (payload_nob >= *ksocknal_tunables.ksnd_zc_min_payload)
 		tx->tx_zc_capable = 1;
@@ -1278,13 +1279,13 @@ ksocknal_recv(struct lnet_ni *ni, void *private, struct lnet_msg *msg,
 	struct ksock_sched *sched = conn->ksnc_scheduler;
 
 	LASSERT(iov_iter_count(to) <= rlen);
-	LASSERT(to->nr_segs <= LNET_MAX_IOV);
 
 	conn->ksnc_lnet_msg = msg;
 	conn->ksnc_rx_nob_left = rlen;
 
 	conn->ksnc_rx_to = *to;
 
+	LASSERT(conn->ksnc_rx_to.nr_segs <= LNET_MAX_IOV);
 	LASSERT(conn->ksnc_rx_scheduled);
 
 	spin_lock_bh(&sched->kss_lock);
