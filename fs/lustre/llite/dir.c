@@ -2292,7 +2292,10 @@ out_detach:
 	case FS_IOC_ADD_ENCRYPTION_KEY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_add_key(file, (void __user *)arg);
+		rc = fscrypt_ioctl_add_key(file, (void __user *)arg);
+		if (!rc)
+			sptlrpc_enc_pool_add_user();
+		return rc;
 	case FS_IOC_REMOVE_ENCRYPTION_KEY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;

@@ -297,14 +297,190 @@ static unsigned long enc_pools_cleanup(struct page ***pools, int npools)
 	return cleaned;
 }
 
+/*
+ * merge @npools pointed by @pools which contains @npages new pages
+ * into current pools.
+ *
+ * we have options to avoid most memory copy with some tricks. but we choose
+ * the simplest way to avoid complexity. It's not frequently called.
+ */
+static void enc_pools_insert(struct page ***pools, int npools, int npages)
+{
+	int freeslot;
+	int op_idx, np_idx, og_idx, ng_idx;
+	int cur_npools, end_npools;
+
+	LASSERT(npages > 0);
+	LASSERT(page_pools.epp_total_pages+npages <= page_pools.epp_max_pages);
+	LASSERT(npages_to_npools(npages) == npools);
+	LASSERT(page_pools.epp_growing);
+
+	spin_lock(&page_pools.epp_lock);
+
+	/*
+	 * (1) fill all the free slots of current pools.
+	 */
+	/*
+	 * free slots are those left by rent pages, and the extra ones with
+	 * index >= total_pages, locate at the tail of last pool.
+	 */
+	freeslot = page_pools.epp_total_pages % PAGES_PER_POOL;
+	if (freeslot != 0)
+		freeslot = PAGES_PER_POOL - freeslot;
+	freeslot += page_pools.epp_total_pages - page_pools.epp_free_pages;
+
+	op_idx = page_pools.epp_free_pages / PAGES_PER_POOL;
+	og_idx = page_pools.epp_free_pages % PAGES_PER_POOL;
+	np_idx = npools - 1;
+	ng_idx = (npages - 1) % PAGES_PER_POOL;
+
+	while (freeslot) {
+		LASSERT(!page_pools.epp_pools[op_idx][og_idx]);
+		LASSERT(!pools[np_idx][ng_idx]);
+
+		page_pools.epp_pools[op_idx][og_idx] = pools[np_idx][ng_idx];
+		pools[np_idx][ng_idx] = NULL;
+
+		freeslot--;
+
+		if (++og_idx == PAGES_PER_POOL) {
+			op_idx++;
+			og_idx = 0;
+		}
+		if (--ng_idx < 0) {
+			if (np_idx == 0)
+				break;
+			np_idx--;
+			ng_idx = PAGES_PER_POOL - 1;
+		}
+	}
+
+	/*
+	 * (2) add pools if needed.
+	 */
+	cur_npools = (page_pools.epp_total_pages + PAGES_PER_POOL - 1) /
+		      PAGES_PER_POOL;
+	end_npools = (page_pools.epp_total_pages + npages +
+		      PAGES_PER_POOL - 1) / PAGES_PER_POOL;
+	LASSERT(end_npools <= page_pools.epp_max_pools);
+
+	np_idx = 0;
+	while (cur_npools < end_npools) {
+		LASSERT(page_pools.epp_pools[cur_npools] == NULL);
+		LASSERT(np_idx < npools);
+		LASSERT(pools[np_idx] != NULL);
+
+		page_pools.epp_pools[cur_npools++] = pools[np_idx];
+		pools[np_idx++] = NULL;
+	}
+
+	page_pools.epp_total_pages += npages;
+	page_pools.epp_free_pages += npages;
+	page_pools.epp_st_lowfree = page_pools.epp_free_pages;
+
+	if (page_pools.epp_total_pages > page_pools.epp_st_max_pages)
+		page_pools.epp_st_max_pages = page_pools.epp_total_pages;
+
+	CDEBUG(D_SEC, "add %d pages to total %lu\n", npages,
+	       page_pools.epp_total_pages);
+
+	spin_unlock(&page_pools.epp_lock);
+}
+
+static int enc_pools_add_pages(int npages)
+{
+	static DEFINE_MUTEX(add_pages_mutex);
+	struct page ***pools;
+	int npools, alloced = 0;
+	int i, j, rc = -ENOMEM;
+
+	if (npages < PTLRPC_MAX_BRW_PAGES)
+		npages = PTLRPC_MAX_BRW_PAGES;
+
+	mutex_lock(&add_pages_mutex);
+
+	if (npages + page_pools.epp_total_pages > page_pools.epp_max_pages)
+		npages = page_pools.epp_max_pages - page_pools.epp_total_pages;
+	LASSERT(npages > 0);
+
+	page_pools.epp_st_grows++;
+
+	npools = npages_to_npools(npages);
+
+	pools = kvmalloc_array(npools, sizeof(*pools),
+			       GFP_KERNEL | __GFP_ZERO);
+	if (!pools)
+		goto out;
+
+	for (i = 0; i < npools; i++) {
+		pools[i] = kzalloc(PAGE_SIZE, GFP_NOFS);
+		if (!pools[i])
+			goto out_pools;
+
+		for (j = 0; j < PAGES_PER_POOL && alloced < npages; j++) {
+			pools[i][j] = alloc_page(GFP_NOFS |
+						 __GFP_HIGHMEM);
+			if (!pools[i][j])
+				goto out_pools;
+
+			alloced++;
+		}
+	}
+	LASSERT(alloced == npages);
+
+	enc_pools_insert(pools, npools, npages);
+	CDEBUG(D_SEC, "added %d pages into pools\n", npages);
+	rc = 0;
+
+out_pools:
+	enc_pools_cleanup(pools, npools);
+	kvfree(pools);
+out:
+	if (rc) {
+		page_pools.epp_st_grow_fails++;
+		CERROR("Failed to allocate %d enc pages\n", npages);
+	}
+
+	mutex_unlock(&add_pages_mutex);
+	return rc;
+}
+
 static inline void enc_pools_wakeup(void)
 {
 	assert_spin_locked(&page_pools.epp_lock);
 
-	if (unlikely(page_pools.epp_waitqlen)) {
-		LASSERT(waitqueue_active(&page_pools.epp_waitq));
+	/* waitqueue_active */
+	if (unlikely(waitqueue_active(&page_pools.epp_waitq)))
 		wake_up(&page_pools.epp_waitq);
-	}
+}
+
+static int enc_pools_should_grow(int page_needed, time64_t now)
+{
+	/*
+	 * don't grow if someone else is growing the pools right now,
+	 * or the pools has reached its full capacity
+	 */
+	if (page_pools.epp_growing ||
+	    page_pools.epp_total_pages == page_pools.epp_max_pages)
+		return 0;
+
+	/* if total pages is not enough, we need to grow */
+	if (page_pools.epp_total_pages < page_needed)
+		return 1;
+
+	/*
+	 * we wanted to return 0 here if there was a shrink just
+	 * happened a moment ago, but this may cause deadlock if both
+	 * client and ost live on single node.
+	 */
+
+	/*
+	 * here we perhaps need consider other factors like wait queue
+	 * length, idle index, etc. ?
+	 */
+
+	/* grow the pools in any other cases */
+	return 1;
 }
 
 /*
@@ -323,32 +499,123 @@ int pool_is_at_full_capacity(void)
 	return (page_pools.epp_total_pages == page_pools.epp_max_pages);
 }
 
-void sptlrpc_enc_pool_put_pages(struct ptlrpc_bulk_desc *desc)
+static inline struct page **page_from_bulkdesc(void *array, int index)
 {
+	struct ptlrpc_bulk_desc *desc = (struct ptlrpc_bulk_desc *)array;
+
+	return &desc->bd_enc_vec[index].bv_page;
+}
+
+static inline struct page **page_from_pagearray(void *array, int index)
+{
+	struct page **pa = (struct page **)array;
+
+	return &pa[index];
+}
+
+/*
+ * we allocate the requested pages atomically.
+ */
+static inline int __sptlrpc_enc_pool_get_pages(void *array, unsigned int count,
+					       struct page **(*page_from)(void *, int))
+{
+	wait_queue_entry_t waitlink;
+	unsigned long this_idle = -1;
+	u64 tick_ns = 0;
+	time64_t now;
 	int p_idx, g_idx;
-	int i;
+	int i, rc = 0;
 
-	if (!desc->bd_enc_vec)
-		return;
-
-	LASSERT(desc->bd_iov_count > 0);
+	if (!array || count <= 0 || count > page_pools.epp_max_pages)
+		return -EINVAL;
 
 	spin_lock(&page_pools.epp_lock);
+
+	page_pools.epp_st_access++;
+again:
+	if (unlikely(page_pools.epp_free_pages < count)) {
+		if (tick_ns == 0)
+			tick_ns = ktime_get_ns();
+
+		now = ktime_get_real_seconds();
+
+		page_pools.epp_st_missings++;
+		page_pools.epp_pages_short += count;
+
+		if (enc_pools_should_grow(count, now)) {
+			page_pools.epp_growing = 1;
+
+			spin_unlock(&page_pools.epp_lock);
+			enc_pools_add_pages(page_pools.epp_pages_short / 2);
+			spin_lock(&page_pools.epp_lock);
+
+			page_pools.epp_growing = 0;
+
+			enc_pools_wakeup();
+		} else {
+			if (page_pools.epp_growing) {
+				if (++page_pools.epp_waitqlen >
+				    page_pools.epp_st_max_wqlen)
+					page_pools.epp_st_max_wqlen =
+						page_pools.epp_waitqlen;
+
+				set_current_state(TASK_UNINTERRUPTIBLE);
+				init_wait(&waitlink);
+				add_wait_queue(&page_pools.epp_waitq,
+					       &waitlink);
+
+				spin_unlock(&page_pools.epp_lock);
+				schedule();
+				remove_wait_queue(&page_pools.epp_waitq,
+						  &waitlink);
+				spin_lock(&page_pools.epp_lock);
+				page_pools.epp_waitqlen--;
+			} else {
+				/*
+				 * ptlrpcd thread should not sleep in that case,
+				 * or deadlock may occur!
+				 * Instead, return -ENOMEM so that upper layers
+				 * will put request back in queue.
+				 */
+				page_pools.epp_st_outofmem++;
+				rc = -ENOMEM;
+				goto out_unlock;
+			}
+		}
+
+		if (page_pools.epp_pages_short < count) {
+			rc = -EPROTO;
+			goto out_unlock;
+		}
+		page_pools.epp_pages_short -= count;
+
+		this_idle = 0;
+		goto again;
+	}
+
+	/* record max wait time */
+	if (unlikely(tick_ns)) {
+		ktime_t tick = ktime_sub_ns(ktime_get(), tick_ns);
+
+		if (ktime_after(tick, page_pools.epp_st_max_wait))
+			page_pools.epp_st_max_wait = tick;
+	}
+
+	/* proceed with rest of allocation */
+	page_pools.epp_free_pages -= count;
 
 	p_idx = page_pools.epp_free_pages / PAGES_PER_POOL;
 	g_idx = page_pools.epp_free_pages % PAGES_PER_POOL;
 
-	LASSERT(page_pools.epp_free_pages + desc->bd_iov_count <=
-		page_pools.epp_total_pages);
-	LASSERT(page_pools.epp_pools[p_idx]);
+	for (i = 0; i < count; i++) {
+		struct page **pagep = page_from(array, i);
 
-	for (i = 0; i < desc->bd_iov_count; i++) {
-		LASSERT(desc->bd_enc_vec[i].bv_page);
-		LASSERT(g_idx != 0 || page_pools.epp_pools[p_idx]);
-		LASSERT(!page_pools.epp_pools[p_idx][g_idx]);
-
-		page_pools.epp_pools[p_idx][g_idx] =
-			desc->bd_enc_vec[i].bv_page;
+		if (!page_pools.epp_pools[p_idx][g_idx]) {
+			rc = -EPROTO;
+			goto out_unlock;
+		}
+		*pagep = page_pools.epp_pools[p_idx][g_idx];
+		page_pools.epp_pools[p_idx][g_idx] = NULL;
 
 		if (++g_idx == PAGES_PER_POOL) {
 			p_idx++;
@@ -356,15 +623,162 @@ void sptlrpc_enc_pool_put_pages(struct ptlrpc_bulk_desc *desc)
 		}
 	}
 
-	page_pools.epp_free_pages += desc->bd_iov_count;
+	if (page_pools.epp_free_pages < page_pools.epp_st_lowfree)
+		page_pools.epp_st_lowfree = page_pools.epp_free_pages;
 
+	/*
+	 * new idle index = (old * weight + new) / (weight + 1)
+	 */
+	if (this_idle == -1) {
+		this_idle = page_pools.epp_free_pages * IDLE_IDX_MAX /
+			    page_pools.epp_total_pages;
+	}
+	page_pools.epp_idle_idx = (page_pools.epp_idle_idx * IDLE_IDX_WEIGHT +
+				   this_idle) / (IDLE_IDX_WEIGHT + 1);
+
+	page_pools.epp_last_access = ktime_get_seconds();
+
+out_unlock:
+	spin_unlock(&page_pools.epp_lock);
+	return rc;
+}
+
+int sptlrpc_enc_pool_get_pages(struct ptlrpc_bulk_desc *desc)
+{
+	int rc;
+
+	LASSERT(desc->bd_iov_count > 0);
+	LASSERT(desc->bd_iov_count <= page_pools.epp_max_pages);
+
+	/* resent bulk, enc iov might have been allocated previously */
+	if (desc->bd_enc_vec)
+		return 0;
+
+	desc->bd_enc_vec = kvmalloc_array(desc->bd_iov_count,
+					  sizeof(*desc->bd_enc_vec),
+					  GFP_KERNEL | __GFP_ZERO);
+	if (!desc->bd_enc_vec)
+		return -ENOMEM;
+
+	rc = __sptlrpc_enc_pool_get_pages((void *)desc, desc->bd_iov_count,
+					  page_from_bulkdesc);
+	if (rc) {
+		kvfree(desc->bd_enc_vec);
+		desc->bd_enc_vec = NULL;
+	}
+	return rc;
+}
+EXPORT_SYMBOL(sptlrpc_enc_pool_get_pages);
+
+int sptlrpc_enc_pool_get_pages_array(struct page **pa, unsigned int count)
+{
+	return __sptlrpc_enc_pool_get_pages((void *)pa, count,
+					    page_from_pagearray);
+}
+EXPORT_SYMBOL(sptlrpc_enc_pool_get_pages_array);
+
+static int __sptlrpc_enc_pool_put_pages(void *array, unsigned int count,
+					struct page **(*page_from)(void *, int))
+{
+	int p_idx, g_idx;
+	int i, rc = 0;
+
+	if (!array || count <= 0)
+		return -EINVAL;
+
+	spin_lock(&page_pools.epp_lock);
+
+	p_idx = page_pools.epp_free_pages / PAGES_PER_POOL;
+	g_idx = page_pools.epp_free_pages % PAGES_PER_POOL;
+
+	if (page_pools.epp_free_pages + count > page_pools.epp_total_pages) {
+		rc = -EPROTO;
+		goto out_unlock;
+	}
+	if (!page_pools.epp_pools[p_idx]) {
+		rc = -EPROTO;
+		goto out_unlock;
+	}
+
+	for (i = 0; i < count; i++) {
+		struct page **pagep = page_from(array, i);
+
+		if (!*pagep ||
+		    page_pools.epp_pools[p_idx][g_idx]) {
+			rc = -EPROTO;
+			goto out_unlock;
+		}
+
+		page_pools.epp_pools[p_idx][g_idx] = *pagep;
+		if (++g_idx == PAGES_PER_POOL) {
+			p_idx++;
+			g_idx = 0;
+		}
+	}
+
+	page_pools.epp_free_pages += count;
 	enc_pools_wakeup();
 
+out_unlock:
 	spin_unlock(&page_pools.epp_lock);
+	return rc;
+}
 
-	kfree(desc->bd_enc_vec);
+void sptlrpc_enc_pool_put_pages(struct ptlrpc_bulk_desc *desc)
+{
+	int rc;
+
+	if (!desc->bd_enc_vec)
+		return;
+
+	rc = __sptlrpc_enc_pool_put_pages((void *)desc, desc->bd_iov_count,
+					  page_from_bulkdesc);
+	if (rc)
+		CDEBUG(D_SEC, "error putting pages in enc pool: %d\n", rc);
+
+	kvfree(desc->bd_enc_vec);
 	desc->bd_enc_vec = NULL;
 }
+
+void sptlrpc_enc_pool_put_pages_array(struct page **pa, unsigned int count)
+{
+	int rc;
+
+	rc = __sptlrpc_enc_pool_put_pages((void *)pa, count,
+					  page_from_pagearray);
+	if (rc)
+		CDEBUG(D_SEC, "error putting pages in enc pool: %d\n", rc);
+}
+EXPORT_SYMBOL(sptlrpc_enc_pool_put_pages_array);
+
+/*
+ * we don't do much stuff for add_user/del_user anymore, except adding some
+ * initial pages in add_user() if current pools are empty, rest would be
+ * handled by the pools's self-adaption.
+ */
+int sptlrpc_enc_pool_add_user(void)
+{
+	int need_grow = 0;
+
+	spin_lock(&page_pools.epp_lock);
+	if (page_pools.epp_growing == 0 && page_pools.epp_total_pages == 0) {
+		page_pools.epp_growing = 1;
+		need_grow = 1;
+	}
+	spin_unlock(&page_pools.epp_lock);
+
+	if (need_grow) {
+		enc_pools_add_pages(PTLRPC_MAX_BRW_PAGES +
+				    PTLRPC_MAX_BRW_PAGES);
+
+		spin_lock(&page_pools.epp_lock);
+		page_pools.epp_growing = 0;
+		enc_pools_wakeup();
+		spin_unlock(&page_pools.epp_lock);
+	}
+	return 0;
+}
+EXPORT_SYMBOL(sptlrpc_enc_pool_add_user);
 
 static inline void enc_pools_alloc(void)
 {

@@ -202,9 +202,10 @@ struct page *fscrypt_encrypt_pagecache_blocks(struct page *page,
 EXPORT_SYMBOL(fscrypt_encrypt_pagecache_blocks);
 
 /**
- * fscrypt_encrypt_block_inplace() - Encrypt a filesystem block in-place
+ * fscrypt_encrypt_block() - Cache an encrypted filesystem block in a page
  * @inode:     The inode to which this block belongs
- * @page:      The page containing the block to encrypt
+ * @src:       The page containing the block to encrypt
+ * @dst:       The page which will contain the encrypted data
  * @len:       Size of block to encrypt.  Doesn't need to be a multiple of the
  *		fs block size, but must be a multiple of FS_CRYPTO_BLOCK_SIZE.
  * @offs:      Byte offset within @page at which the block to encrypt begins
@@ -215,17 +216,18 @@ EXPORT_SYMBOL(fscrypt_encrypt_pagecache_blocks);
  * Encrypt a possibly-compressed filesystem block that is located in an
  * arbitrary page, not necessarily in the original pagecache page.  The @inode
  * and @lblk_num must be specified, as they can't be determined from @page.
+ * The decrypted data will be stored in @dst.
  *
  * Return: 0 on success; -errno on failure
  */
-int fscrypt_encrypt_block_inplace(const struct inode *inode, struct page *page,
-				  unsigned int len, unsigned int offs,
-				  u64 lblk_num, gfp_t gfp_flags)
+int fscrypt_encrypt_block(const struct inode *inode, struct page *src,
+			   struct page *dst, unsigned int len, unsigned int offs,
+			   u64 lblk_num, gfp_t gfp_flags)
 {
-	return fscrypt_crypt_block(inode, FS_ENCRYPT, lblk_num, page, page,
+	return fscrypt_crypt_block(inode, FS_ENCRYPT, lblk_num, src, dst,
 				   len, offs, gfp_flags);
 }
-EXPORT_SYMBOL(fscrypt_encrypt_block_inplace);
+EXPORT_SYMBOL(fscrypt_encrypt_block);
 
 /**
  * fscrypt_decrypt_pagecache_blocks() - Decrypt filesystem blocks in a
@@ -272,9 +274,10 @@ int fscrypt_decrypt_pagecache_blocks(struct page *page, unsigned int len,
 EXPORT_SYMBOL(fscrypt_decrypt_pagecache_blocks);
 
 /**
- * fscrypt_decrypt_block_inplace() - Decrypt a filesystem block in-place
+ * fscrypt_decrypt_block() - Cache a decrypted a filesystem block in a page
  * @inode:     The inode to which this block belongs
- * @page:      The page containing the block to decrypt
+ * @src:       The page containing the block to decrypt
+ * @dst:       The page which will contain the plain data
  * @len:       Size of block to decrypt.  Doesn't need to be a multiple of the
  *		fs block size, but must be a multiple of FS_CRYPTO_BLOCK_SIZE.
  * @offs:      Byte offset within @page at which the block to decrypt begins
@@ -284,17 +287,18 @@ EXPORT_SYMBOL(fscrypt_decrypt_pagecache_blocks);
  * Decrypt a possibly-compressed filesystem block that is located in an
  * arbitrary page, not necessarily in the original pagecache page.  The @inode
  * and @lblk_num must be specified, as they can't be determined from @page.
+ * The encrypted data will be stored in @dst.
  *
  * Return: 0 on success; -errno on failure
  */
-int fscrypt_decrypt_block_inplace(const struct inode *inode, struct page *page,
-				  unsigned int len, unsigned int offs,
-				  u64 lblk_num)
+int fscrypt_decrypt_block(const struct inode *inode, struct page *src,
+			   struct page *dst, unsigned int len, unsigned int offs,
+			   u64 lblk_num, gfp_t gfp_flags)
 {
-	return fscrypt_crypt_block(inode, FS_DECRYPT, lblk_num, page, page,
-				   len, offs, GFP_NOFS);
+	return fscrypt_crypt_block(inode, FS_DECRYPT, lblk_num, src, dst,
+				   len, offs, gfp_flags);
 }
-EXPORT_SYMBOL(fscrypt_decrypt_block_inplace);
+EXPORT_SYMBOL(fscrypt_decrypt_block);
 
 /**
  * fscrypt_initialize() - allocate major buffers for fs encryption.
