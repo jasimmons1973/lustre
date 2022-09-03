@@ -55,6 +55,7 @@
 #include "lmv_internal.h"
 
 static int lmv_check_connect(struct obd_device *obd);
+static inline bool lmv_op_default_rr_mkdir(const struct md_op_data *op_data);
 
 void lmv_activate_target(struct lmv_obd *lmv, struct lmv_tgt_desc *tgt,
 			 int activate)
@@ -1446,8 +1447,8 @@ static int lmv_close(struct obd_export *exp, struct md_op_data *op_data,
 	return md_close(tgt->ltd_exp, op_data, mod, request);
 }
 
-static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 mdt,
-					      unsigned short dir_depth)
+static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv,
+					      struct md_op_data *op_data)
 {
 	struct lu_tgt_desc *tgt, *cur = NULL;
 	u64 total_avail = 0;
@@ -1481,23 +1482,31 @@ static struct lu_tgt_desc *lmv_locate_tgt_qos(struct lmv_obd *lmv, u32 mdt,
 
 		tgt->ltd_qos.ltq_usable = 1;
 		lu_tgt_qos_weight_calc(tgt);
-		if (tgt->ltd_index == mdt)
+		if (tgt->ltd_index == op_data->op_mds)
 			cur = tgt;
 		total_avail += tgt->ltd_qos.ltq_avail;
 		total_weight += tgt->ltd_qos.ltq_weight;
 		total_usable++;
 	}
 
-	/* if current MDT has above-average space, within range of the QOS
-	 * threshold, stay on the same MDT to avoid creating needless remote
-	 * MDT directories. It's more likely for low level directories
-	 * "16 / (dir_depth + 10)" is the factor to make it more unlikely for
-	 * top level directories, while more likely for low levels.
+	/* If current MDT has above-average space and dir is not aleady using
+	 * round-robin to spread across more MDTs, stay on the parent MDT
+	 * to avoid creating needless remote MDT directories.  Remote dirs
+	 * close to the root balance space more effectively than bottom dirs,
+	 * so prefer to create remote dirs at top level of directory tree.
+	 * "16 / (dir_depth + 10)" is the factor to make it less likely
+	 * for top-level directories to stay local unless they have more than
+	 * average free space, while deep dirs prefer local until more full.
+	 *    depth=0 -> 160%, depth=3 -> 123%, depth=6 -> 100%,
+	 *    depth=9 -> 84%, depth=12 -> 73%, depth=15 -> 64%
 	 */
-	rand = total_avail * 16 / (total_usable * (dir_depth + 10));
-	if (cur && cur->ltd_qos.ltq_avail >= rand) {
-		tgt = cur;
-		goto unlock;
+	if (!lmv_op_default_rr_mkdir(op_data)) {
+		rand = total_avail * 16 /
+			(total_usable * (op_data->op_dir_depth + 10));
+		if (cur && cur->ltd_qos.ltq_avail >= rand) {
+			tgt = cur;
+			goto unlock;
+		}
 	}
 
 	rand = lu_prandom_u64_max(total_weight);
@@ -1836,9 +1845,6 @@ static inline bool lmv_op_default_rr_mkdir(const struct md_op_data *op_data)
 {
 	const struct lmv_stripe_md *lsm = op_data->op_default_mea1;
 
-	if (!lmv_op_default_qos_mkdir(op_data))
-		return false;
-
 	return (op_data->op_flags & MF_RR_MKDIR) ||
 	       (lsm && lsm->lsm_md_max_inherit_rr != LMV_INHERIT_RR_NONE) ||
 	       fid_is_root(&op_data->op_fid1);
@@ -1873,7 +1879,7 @@ static struct lu_tgt_desc *lmv_locate_tgt_by_space(struct lmv_obd *lmv,
 {
 	struct lmv_tgt_desc *tmp = tgt;
 
-	tgt = lmv_locate_tgt_qos(lmv, op_data->op_mds, op_data->op_dir_depth);
+	tgt = lmv_locate_tgt_qos(lmv, op_data);
 	if (tgt == ERR_PTR(-EAGAIN)) {
 		if (ltd_qos_is_balanced(&lmv->lmv_mdt_descs) &&
 		    !lmv_op_default_rr_mkdir(op_data) &&
