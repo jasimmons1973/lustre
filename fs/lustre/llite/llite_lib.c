@@ -3080,6 +3080,14 @@ int ll_prep_inode(struct inode **inode, struct req_capsule *pill,
 	if (rc)
 		goto out;
 
+	if (S_ISDIR(md.body->mbo_mode) && md.lmv && lmv_dir_striped(md.lmv) &&
+	    it && it->it_extra_rpc_check) {
+		/* TODO: Check @lsm unchanged via @lsm_md_eq. */
+		it->it_extra_rpc_need = 1;
+		rc = -EAGAIN;
+		goto out;
+	}
+
 	/*
 	 * clear default_lmv only if intent_getattr reply doesn't contain it.
 	 * but it needs to be done after iget, check this early because

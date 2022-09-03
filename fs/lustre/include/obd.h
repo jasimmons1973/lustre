@@ -834,18 +834,19 @@ struct md_readdir_info {
 	int mr_partial_readdir_rc;
 };
 
-struct md_enqueue_info;
-/* metadata stat-ahead */
+struct md_op_item;
+typedef int (*md_op_item_cb_t)(struct req_capsule *pill,
+			       struct md_op_item *item,
+			       int rc);
 
-struct md_enqueue_info {
-	struct md_op_data		mi_data;
-	struct lookup_intent		mi_it;
-	struct lustre_handle		mi_lockh;
-	struct inode		       *mi_dir;
-	struct ldlm_enqueue_info	mi_einfo;
-	int (*mi_cb)(struct ptlrpc_request *req,
-		     struct md_enqueue_info *minfo, int rc);
-	void			       *mi_cbdata;
+struct md_op_item {
+	struct md_op_data		 mop_data;
+	struct lookup_intent		 mop_it;
+	struct lustre_handle		 mop_lockh;
+	struct ldlm_enqueue_info	 mop_einfo;
+	md_op_item_cb_t                  mop_cb;
+	void				*mop_cbdata;
+	struct inode			*mop_dir;
 };
 
 struct obd_ops {
@@ -1078,7 +1079,7 @@ struct md_ops {
 				struct lu_fid *fid);
 
 	int (*intent_getattr_async)(struct obd_export *exp,
-				    struct md_enqueue_info *minfo);
+				    struct md_op_item *item);
 
 	int (*revalidate_lock)(struct obd_export *, struct lookup_intent *,
 			       struct lu_fid *, u64 *bits);
