@@ -522,6 +522,8 @@ struct kib_peer_ni {
 	u16			ibp_queue_depth;
 	/* reduced value which allows conn to be created if max fails */
 	u16			ibp_queue_depth_mod;
+	/* Number of connections allocated. */
+	atomic_t		ibp_nconns;
 };
 
 extern struct kib_data kiblnd_data;
