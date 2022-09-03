@@ -389,6 +389,7 @@ static void osc_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 		lock = osc_dlmlock_at_pgoff(env, cl2osc(obj), osc_index(opg),
 					    OSC_DAP_FL_TEST_LOCK | OSC_DAP_FL_CANCELING);
 		if (!lock && !opg->ops_srvlock) {
+			struct ldlm_namespace *ns;
 			struct ldlm_resource *res;
 			struct ldlm_res_id *resname;
 
@@ -397,9 +398,8 @@ static void osc_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 
 			resname = &osc_env_info(env)->oti_resname;
 			ostid_build_res_name(&oinfo->loi_oi, resname);
-			res = ldlm_resource_get(
-				osc_export(cl2osc(obj))->exp_obd->obd_namespace,
-				NULL, resname, LDLM_EXTENT, 0);
+			ns = osc_export(cl2osc(obj))->exp_obd->obd_namespace;
+			res = ldlm_resource_get(ns, resname, LDLM_EXTENT, 0);
 			ldlm_resource_dump(D_ERROR, res);
 			libcfs_debug_dumpstack(NULL);
 			LBUG();

@@ -81,7 +81,7 @@ int mdc_resource_get_unused_res(struct obd_export *exp,
 	if (exp_connect_cancelset(exp) && !ns_connect_cancelset(ns))
 		return 0;
 
-	res = ldlm_resource_get(ns, NULL, res_id, 0, 0);
+	res = ldlm_resource_get(ns, res_id, 0, 0);
 	if (IS_ERR(res))
 		return 0;
 	LDLM_RESOURCE_ADDREF(res);

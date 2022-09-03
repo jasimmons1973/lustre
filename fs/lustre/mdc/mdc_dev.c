@@ -998,13 +998,14 @@ static int mdc_get_lock_handle(const struct lu_env *env, struct osc_object *osc,
 				    OSC_DAP_FL_TEST_LOCK |
 				    OSC_DAP_FL_CANCELING);
 	if (!lock) {
+		struct ldlm_namespace *ns;
 		struct ldlm_resource *res;
 		struct ldlm_res_id *resname;
 
 		resname = &osc_env_info(env)->oti_resname;
 		fid_build_reg_res_name(lu_object_fid(osc2lu(osc)), resname);
-		res = ldlm_resource_get(osc_export(osc)->exp_obd->obd_namespace,
-					NULL, resname, LDLM_IBITS, 0);
+		ns = osc_export(osc)->exp_obd->obd_namespace;
+		res = ldlm_resource_get(ns, resname, LDLM_IBITS, 0);
 		ldlm_resource_dump(D_ERROR, res);
 		libcfs_debug_dumpstack(NULL);
 		rc = -ENOENT;

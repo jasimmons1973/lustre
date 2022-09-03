@@ -587,7 +587,7 @@ static int osc_resource_get_unused(struct obd_export *exp, struct obdo *oa,
 		return 0;
 
 	ostid_build_res_name(&oa->o_oi, &res_id);
-	res = ldlm_resource_get(ns, NULL, &res_id, 0, 0);
+	res = ldlm_resource_get(ns, &res_id, 0, 0);
 	if (IS_ERR(res))
 		return 0;
 

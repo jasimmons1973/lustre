@@ -447,7 +447,7 @@ int ldlm_lock_change_resource(struct ldlm_namespace *ns, struct ldlm_lock *lock,
 	type = oldres->lr_type;
 	unlock_res_and_lock(lock);
 
-	newres = ldlm_resource_get(ns, NULL, new_resid, type, 1);
+	newres = ldlm_resource_get(ns, new_resid, type, 1);
 	if (IS_ERR(newres))
 		return PTR_ERR(newres);
 
@@ -1308,7 +1308,7 @@ enum ldlm_mode ldlm_lock_match_with_skip(struct ldlm_namespace *ns,
 		*data.lmd_mode = data.lmd_old->l_req_mode;
 	}
 
-	res = ldlm_resource_get(ns, NULL, res_id, type, 0);
+	res = ldlm_resource_get(ns, res_id, type, 0);
 	if (IS_ERR(res)) {
 		LASSERT(!data.lmd_old);
 		return 0;
@@ -1537,7 +1537,7 @@ struct ldlm_lock *ldlm_lock_create(struct ldlm_namespace *ns,
 	struct ldlm_resource *res;
 	int rc;
 
-	res = ldlm_resource_get(ns, NULL, res_id, type, 1);
+	res = ldlm_resource_get(ns, res_id, type, 1);
 	if (IS_ERR(res))
 		return ERR_CAST(res);
 
