@@ -38,7 +38,7 @@
 #include "llite_internal.h"
 
 /* Must be called with lli_size_mutex locked */
-/* HAVE_IOP_GET_LINK is defined from kernel 4.5, whereas
+/* iop->get_link is defined from kernel 4.5, whereas
  * IS_ENCRYPTED is brought by kernel 4.14.
  * So there is no need to handle encryption case otherwise.
  */

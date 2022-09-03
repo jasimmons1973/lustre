@@ -468,8 +468,25 @@ static inline bool obd_connect_has_enc(struct obd_connect_data *data)
 
 static inline void obd_connect_set_enc(struct obd_connect_data *data)
 {
-#ifdef HAVE_LUSTRE_CRYPTO
+#ifdef CONFIG_FS_ENCRYPTION
 	data->ocd_connect_flags2 |= OBD_CONNECT2_ENCRYPT;
+#endif
+}
+
+static inline bool obd_connect_has_name_enc(struct obd_connect_data *data)
+{
+#ifdef CONFIG_FS_ENCRYPTION
+	return data->ocd_connect_flags & OBD_CONNECT_FLAGS2 &&
+		data->ocd_connect_flags2 & OBD_CONNECT2_ENCRYPT_NAME;
+#else
+	return false;
+#endif
+}
+
+static inline void obd_connect_set_name_enc(struct obd_connect_data *data)
+{
+#ifdef CONFIG_FS_ENCRYPTION
+	data->ocd_connect_flags2 |= OBD_CONNECT2_ENCRYPT_NAME;
 #endif
 }
 
@@ -639,6 +656,7 @@ enum ll_sbi_flags {
 	LL_SBI_TINY_WRITE,		/* tiny write support */
 	LL_SBI_FILE_HEAT,		/* file heat support */
 	LL_SBI_PARALLEL_DIO,		/* parallel (async) O_DIRECT RPCs */
+	LL_SBI_ENCRYPT_NAME,		/* name encryption */
 	LL_SBI_NUM_FLAGS
 };
 
@@ -1727,7 +1745,6 @@ static inline struct pcc_super *ll_info2pccs(struct ll_inode_info *lli)
 }
 
 /* crypto.c */
-#ifdef CONFIG_FS_ENCRYPTION
 /* The digested form is made of a FID (16 bytes) followed by the second-to-last
  * ciphertext block (16 bytes), so a total length of 32 bytes.
  * That way, fscrypt does not compute a digested form of this digest.
@@ -1737,6 +1754,14 @@ struct ll_digest_filename {
 	char ldf_excerpt[FS_CRYPTO_BLOCK_SIZE];
 };
 
+static inline char *xattr_for_enc(struct inode *inode)
+{
+	if (ll_sbi_has_name_encrypt(ll_i2sbi(inode)))
+		return LL_XATTR_NAME_ENCRYPTION_CONTEXT;
+
+	return LL_XATTR_NAME_ENCRYPTION_CONTEXT_OLD;
+}
+#ifdef CONFIG_FS_ENCRYPTION
 int ll_setup_filename(struct inode *dir, const struct qstr *iname,
 		      int lookup, struct fscrypt_name *fname,
 		      struct lu_fid *fid);
@@ -1752,7 +1777,6 @@ int ll_setup_filename(struct inode *dir, const struct qstr *iname,
 {
 	return fscrypt_setup_filename(dir, iname, lookup, fname);
 }
-
 int ll_fname_disk_to_usr(struct inode *inode,
 			 u32 hash, u32 minor_hash,
 			 struct fscrypt_str *iname, struct fscrypt_str *oname)

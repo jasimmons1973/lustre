@@ -44,6 +44,8 @@ int ll_set_encflags(struct inode *inode, void *encctx, u32 encctxlen,
 bool ll_sb_has_test_dummy_encryption(struct super_block *sb);
 bool ll_sbi_has_encrypt(struct ll_sb_info *sbi);
 void ll_sbi_set_encrypt(struct ll_sb_info *sbi, bool set);
+bool ll_sbi_has_name_encrypt(struct ll_sb_info *sbi);
+void ll_sbi_set_name_encrypt(struct ll_sb_info *sbi, bool set);
 #else
 static inline int ll_set_encflags(struct inode *inode, void *encctx,
 				  u32 encctxlen, bool preload)

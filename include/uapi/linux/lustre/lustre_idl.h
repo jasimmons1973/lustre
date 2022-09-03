@@ -809,6 +809,7 @@ struct ptlrpc_body_v2 {
 #define OBD_CONNECT2_BATCH_RPC	     0x400000ULL /* Multi-RPC batch request */
 #define OBD_CONNECT2_PCCRO	     0x800000ULL /* Read-only PCC */
 #define OBD_CONNECT2_ATOMIC_OPEN_LOCK 0x4000000ULL/* request lock on 1st open */
+#define OBD_CONNECT2_ENCRYPT_NAME     0x8000000ULL /* name encrypt */
 /* XXX README XXX:
  * Please DO NOT add flag values here before first ensuring that this same
  * flag value is not in use on some other branch.  Please clear any such

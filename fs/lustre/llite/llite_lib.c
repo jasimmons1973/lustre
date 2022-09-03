@@ -173,6 +173,7 @@ static struct ll_sb_info *ll_init_sbi(void)
 	set_bit(LL_SBI_TINY_WRITE, sbi->ll_flags);
 	set_bit(LL_SBI_PARALLEL_DIO, sbi->ll_flags);
 	ll_sbi_set_encrypt(sbi, true);
+	ll_sbi_set_name_encrypt(sbi, true);
 
 	/* root squash */
 	sbi->ll_squash.rsi_uid = 0;
@@ -349,8 +350,10 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 		data->ocd_connect_flags &= ~OBD_CONNECT_PINGLESS;
 
 	obd_connect_set_secctx(data);
-	if (ll_sbi_has_encrypt(sbi))
+	if (ll_sbi_has_encrypt(sbi)) {
+		obd_connect_set_name_enc(data);
 		obd_connect_set_enc(data);
+	}
 
 #if defined(CONFIG_SECURITY)
 	data->ocd_connect_flags2 |= OBD_CONNECT2_SELINUX_POLICY;
@@ -480,6 +483,14 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 				      sbi->ll_fsname,
 				      sbi->ll_md_exp->exp_obd->obd_name);
 		ll_sbi_set_encrypt(sbi, false);
+	}
+
+	if (ll_sbi_has_name_encrypt(sbi) && !obd_connect_has_name_enc(data)) {
+		if (ll_sb_has_test_dummy_encryption(sb))
+			LCONSOLE_WARN("%s: server %s does not support name encryption, not using it.\n",
+				      sbi->ll_fsname,
+				      sbi->ll_md_exp->exp_obd->obd_name);
+		ll_sbi_set_name_encrypt(sbi, false);
 	}
 
 	if (data->ocd_ibits_known & MDS_INODELOCK_XATTR) {
@@ -928,6 +939,7 @@ static const match_table_t ll_sbi_flags_name = {
 	{LL_SBI_TINY_WRITE,		"tiny_write"},
 	{LL_SBI_FILE_HEAT,		"file_heat"},
 	{LL_SBI_PARALLEL_DIO,		"parallel_dio"},
+	{LL_SBI_ENCRYPT_NAME,		"name_encrypt"},
 };
 
 int ll_sbi_flags_seq_show(struct seq_file *m, void *v)
