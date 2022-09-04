@@ -5268,6 +5268,9 @@ fill_attr:
 	}
 
 	stat->attributes_mask = STATX_ATTR_IMMUTABLE | STATX_ATTR_APPEND;
+#ifdef CONFIG_FS_ENCRYPTION
+	stat->attributes_mask |= STATX_ATTR_ENCRYPTED;
+#endif
 	stat->attributes |= ll_inode_to_ext_flags(inode->i_flags);
 	stat->result_mask &= request_mask;
 
