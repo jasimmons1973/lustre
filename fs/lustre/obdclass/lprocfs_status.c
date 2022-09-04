@@ -1448,9 +1448,41 @@ const struct file_operations lprocfs_stats_seq_fops = {
 };
 EXPORT_SYMBOL_GPL(lprocfs_stats_seq_fops);
 
-void lprocfs_counter_init(struct lprocfs_stats *stats, int index,
-			  unsigned int conf, const char *name,
-			  const char *units)
+static const char *lprocfs_counter_config_units(const char *name,
+						enum lprocfs_counter_config config)
+{
+	const char *units;
+
+	switch (config & LPROCFS_TYPE_MASK) {
+	default:
+		units = "reqs";
+		break;
+	case LPROCFS_TYPE_BYTES:
+		units = "bytes";
+		break;
+	case LPROCFS_TYPE_PAGES:
+		units = "pages";
+		break;
+	case LPROCFS_TYPE_LOCKS:
+		units = "locks";
+		break;
+	case LPROCFS_TYPE_LOCKSPS:
+		units = "locks/s";
+		break;
+	case LPROCFS_TYPE_SECS:
+		units = "secs";
+		break;
+	case LPROCFS_TYPE_USECS:
+		units = "usecs";
+		break;
+	}
+
+	return units;
+}
+
+void lprocfs_counter_init_units(struct lprocfs_stats *stats, int index,
+				enum lprocfs_counter_config config,
+				const char *name, const char *units)
 {
 	struct lprocfs_counter_header *header;
 	struct lprocfs_counter *percpu_cntr;
@@ -1462,7 +1494,7 @@ void lprocfs_counter_init(struct lprocfs_stats *stats, int index,
 	LASSERTF(header, "Failed to allocate stats header:[%d]%s/%s\n",
 		 index, name, units);
 
-	header->lc_config = conf;
+	header->lc_config = config;
 	header->lc_name = name;
 	header->lc_units = units;
 
@@ -1480,6 +1512,15 @@ void lprocfs_counter_init(struct lprocfs_stats *stats, int index,
 			percpu_cntr->lc_sum_irq	= 0;
 	}
 	lprocfs_stats_unlock(stats, LPROCFS_GET_NUM_CPU, &flags);
+}
+EXPORT_SYMBOL(lprocfs_counter_init_units);
+
+void lprocfs_counter_init(struct lprocfs_stats *stats, int index,
+			  enum lprocfs_counter_config config,
+			  const char *name)
+{
+	lprocfs_counter_init_units(stats, index, config, name,
+				   lprocfs_counter_config_units(name, config));
 }
 EXPORT_SYMBOL(lprocfs_counter_init);
 
@@ -1524,7 +1565,8 @@ int ldebugfs_alloc_md_stats(struct obd_device *obd,
 		return -ENOMEM;
 
 	for (i = 0; i < ARRAY_SIZE(mps_stats); i++) {
-		lprocfs_counter_init(stats, i, 0, mps_stats[i], "reqs");
+		lprocfs_counter_init(stats, i, LPROCFS_TYPE_REQS,
+				     mps_stats[i]);
 		if (!stats->ls_cnt_header[i].lc_name) {
 			CERROR("Missing md_stat initializer md_op operation at offset %d. Aborting.\n",
 			       i);
@@ -1577,7 +1619,9 @@ s64 lprocfs_read_helper(struct lprocfs_counter *lc,
 		ret = lc->lc_max;
 		break;
 	case LPROCFS_FIELDS_FLAGS_AVG:
-		ret = (lc->lc_max - lc->lc_min) / 2;
+		ret = div64_u64((flags & LPROCFS_STATS_FLAG_IRQ_SAFE ?
+				 lc->lc_sum_irq : 0) + lc->lc_sum,
+				lc->lc_count);
 		break;
 	case LPROCFS_FIELDS_FLAGS_SUMSQUARE:
 		ret = lc->lc_sumsquare;
