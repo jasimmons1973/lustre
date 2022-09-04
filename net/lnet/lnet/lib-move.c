@@ -572,55 +572,37 @@ lnet_ni_eager_recv(struct lnet_ni *ni, struct lnet_msg *msg)
 	return rc;
 }
 
+/* returns true if this message should be dropped */
 static bool
-lnet_is_peer_deadline_passed(struct lnet_peer_ni *lpni, time64_t now)
+lnet_check_message_drop(struct lnet_ni *ni, struct lnet_peer_ni *lpni,
+			struct lnet_msg *msg)
 {
-	time64_t deadline;
+	if (msg->msg_target.pid & LNET_PID_USERFLAG)
+		return false;
 
-	deadline = lpni->lpni_last_alive +
-		   lpni->lpni_net->net_tunables.lct_peer_timeout;
+	if (!lnet_peer_aliveness_enabled(lpni))
+		return false;
+
+	/* If we're resending a message, let's attempt to send it even if
+	 * the peer is down to fulfill our resend quota on the message
+	 */
+	if (msg->msg_retry_count > 0)
+		return false;
+
+	/* try and send recovery messages irregardless */
+	if (msg->msg_recovery)
+		return false;
+
+	/* always send any responses */
+	if (lnet_msg_is_response(msg))
+		return false;
 
 	/* assume peer_ni is alive as long as we're within the configured
 	 * peer timeout
 	 */
-	if (deadline > now)
-		return false;
-
-	return true;
-}
-
-/*
- * NB: returns 1 when alive, 0 when dead, negative when error;
- *     may drop the lnet_net_lock
- */
-static int
-lnet_peer_alive_locked(struct lnet_ni *ni, struct lnet_peer_ni *lpni,
-		       struct lnet_msg *msg)
-{
-	time64_t now = ktime_get_seconds();
-
-	if (!lnet_peer_aliveness_enabled(lpni))
-		return -ENODEV;
-
-	/*
-	 * If we're resending a message, let's attempt to send it even if
-	 * the peer is down to fulfill our resend quota on the message
-	 */
-	if (msg->msg_retry_count > 0)
-		return 1;
-
-	/* try and send recovery messages irregardless */
-	if (msg->msg_recovery)
-		return 1;
-
-	/* always send any responses */
-	if (lnet_msg_is_response(msg))
-		return 1;
-
-	if (!lnet_is_peer_deadline_passed(lpni, now))
-		return true;
-
-	return lnet_is_peer_ni_alive(lpni);
+	return ktime_get_seconds() >=
+		(lpni->lpni_last_alive +
+		 lpni->lpni_net->net_tunables.lct_peer_timeout);
 }
 
 /**
@@ -653,8 +635,7 @@ lnet_post_send_locked(struct lnet_msg *msg, int do_send)
 		LASSERT(!nid_same(&lp->lpni_nid, &the_lnet.ln_loni->ni_nid));
 
 	/* NB 'lp' is always the next hop */
-	if (!(msg->msg_target.pid & LNET_PID_USERFLAG) &&
-	    !lnet_peer_alive_locked(ni, lp, msg)) {
+	if (lnet_check_message_drop(ni, lp, msg)) {
 		the_lnet.ln_counters[cpt]->lct_common.lcc_drop_count++;
 		the_lnet.ln_counters[cpt]->lct_common.lcc_drop_length +=
 			msg->msg_len;
