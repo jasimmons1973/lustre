@@ -1761,14 +1761,7 @@ lnet_notify(struct lnet_ni *ni, lnet_nid_t nid4, bool alive, bool reset,
 			lnet_set_lpni_healthv_locked(lpni,
 						     LNET_MAX_HEALTH_VALUE);
 		} else {
-			struct lnet_peer *lpn_peer;
-			u32 sensitivity;
-
-			lpn_peer = lpni->lpni_peer_net->lpn_peer;
-			sensitivity = lpn_peer->lp_health_sensitivity;
-			lnet_inc_lpni_healthv_locked(lpni,
-						     (sensitivity) ? sensitivity :
-						     lnet_health_sensitivity);
+			lnet_inc_lpni_healthv_locked(lpni);
 		}
 	} else if (reset) {
 		lpni->lpni_ns_status = LNET_NI_STATUS_DOWN;
