@@ -1750,20 +1750,12 @@ restart:
 		ll_cl_add(inode, env, io, LCC_RW);
 		rc = cl_io_loop(env, io);
 		ll_cl_remove(inode, env);
-
-		if (range_locked && !is_parallel_dio) {
-			CDEBUG(D_VFSTRACE, "Range unlock [%llu, %llu]\n",
-			       range.rl_start,
-			       range.rl_last);
-			range_unlock(&lli->lli_write_tree, &range);
-			range_locked = false;
-		}
 	} else {
 		/* cl_io_rw_init() handled IO */
 		rc = io->ci_result;
 	}
 
-	if (is_parallel_dio) {
+	if (io->ci_dio_aio && !is_aio) {
 		struct cl_sync_io *anchor = &io->ci_dio_aio->cda_sync;
 
 		/* for dio, EIOCBQUEUED is an implementation detail,
@@ -1780,11 +1772,14 @@ restart:
 		rc2 = cl_sync_io_wait_recycle(env, anchor, 0, 0);
 		if (rc2 < 0)
 			rc = rc2;
+	}
 
-		if (range_locked) {
-			range_unlock(&lli->lli_write_tree, &range);
-			range_locked = false;
-		}
+	if (range_locked) {
+		CDEBUG(D_VFSTRACE, "Range lock [%llu, %llu]\n",
+		       range.rl_start,
+		       range.rl_last);
+		range_unlock(&lli->lli_write_tree, &range);
+		range_locked = false;
 	}
 
 	/*
