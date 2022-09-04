@@ -513,7 +513,8 @@ static int ll_dir_setdirstripe(struct dentry *dparent, struct lmv_user_md *lump,
 		 * to determine the security context for the file. So our fake
 		 * dentry should be real enough for this purpose.
 		 */
-		err = ll_dentry_init_security(&dentry, mode, &dentry.d_name,
+		err = ll_dentry_init_security(parent,
+					      &dentry, mode, &dentry.d_name,
 					      &op_data->op_file_secctx_name,
 					      &op_data->op_file_secctx,
 					      &op_data->op_file_secctx_size);

@@ -38,7 +38,8 @@
 /*
  * Check for LL_SBI_FILE_SECCTX before calling.
  */
-int ll_dentry_init_security(struct dentry *dentry, int mode, struct qstr *name,
+int ll_dentry_init_security(struct inode *parent, struct dentry *dentry,
+			    int mode, struct qstr *name,
 			    const char **secctx_name, void **secctx,
 			    u32 *secctx_size)
 {
@@ -57,6 +58,15 @@ int ll_dentry_init_security(struct dentry *dentry, int mode, struct qstr *name,
 	 * calls it and assumes that if anything is returned then it must come
 	 * from SELinux.
 	 */
+
+	/* fetch length of security xattr name */
+	rc = security_inode_listsecurity(parent, NULL, 0);
+	/* xattr name length == 0 means SELinux is disabled */
+	if (rc == 0)
+		return 0;
+	/* we support SELinux only */
+	if (rc != strlen(XATTR_NAME_SELINUX) + 1)
+		return -EOPNOTSUPP;
 
 	rc = security_dentry_init_security(dentry, mode, name, secctx,
 					   secctx_size);
