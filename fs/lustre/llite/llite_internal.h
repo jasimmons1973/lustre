@@ -749,6 +749,8 @@ struct ll_sb_info {
 						 * count
 						 */
 	atomic_t		ll_agl_total;	/* AGL thread started count */
+	atomic_t		ll_sa_hit_total;  /* total hit count */
+	atomic_t		ll_sa_miss_total; /* total miss count */
 
 	dev_t			ll_sdev_orig;	/* save s_dev before assign for
 						 * clustered nfs
