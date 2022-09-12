@@ -943,7 +943,7 @@ struct ptlrpc_request {
 	/** our LNet NID */
 	struct lnet_nid		rq_self;
 	/** Peer description (the other side) */
-	struct lnet_process_id	rq_peer;
+	struct lnet_processid	rq_peer;
 	/** Descriptor for the NID from which the peer sent the request. */
 	struct lnet_process_id	rq_source;
 	/**
@@ -1706,7 +1706,7 @@ static inline bool nrs_policy_compat_one(const struct ptlrpc_service *svc,
 
 /* ptlrpc/events.c */
 int ptlrpc_uuid_to_peer(struct obd_uuid *uuid,
-			struct lnet_process_id *peer,
+			struct lnet_processid *peer,
 			struct lnet_nid *self,
 			u32 refnet);
 /**
@@ -1722,7 +1722,7 @@ void reply_out_callback(struct lnet_event *ev);
 /** @} */
 
 /* ptlrpc/connection.c */
-struct ptlrpc_connection *ptlrpc_connection_get(struct lnet_process_id peer,
+struct ptlrpc_connection *ptlrpc_connection_get(struct lnet_processid *peer,
 						struct lnet_nid *self,
 						struct obd_uuid *uuid);
 

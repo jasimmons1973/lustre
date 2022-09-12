@@ -2097,7 +2097,7 @@ int sptlrpc_svc_unwrap_request(struct ptlrpc_request *req)
 		break;
 	default:
 		CERROR("error unpacking request from %s x%llu\n",
-		       libcfs_id2str(req->rq_peer), req->rq_xid);
+		       libcfs_idstr(&req->rq_peer), req->rq_xid);
 		return SECSVC_DROP;
 	}
 

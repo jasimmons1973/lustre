@@ -106,7 +106,7 @@ struct ptlrpc_connection *ptlrpc_uuid_to_connection(struct obd_uuid *uuid,
 {
 	struct ptlrpc_connection *c;
 	struct lnet_nid self;
-	struct lnet_process_id peer;
+	struct lnet_processid peer;
 	int err;
 
 	/*
@@ -120,7 +120,7 @@ struct ptlrpc_connection *ptlrpc_uuid_to_connection(struct obd_uuid *uuid,
 		return NULL;
 	}
 
-	c = ptlrpc_connection_get(peer, &self, uuid);
+	c = ptlrpc_connection_get(&peer, &self, uuid);
 	if (c) {
 		memcpy(c->c_remote_uuid.uuid,
 		       uuid->uuid, sizeof(c->c_remote_uuid.uuid));
