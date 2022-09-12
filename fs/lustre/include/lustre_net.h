@@ -1707,7 +1707,8 @@ static inline bool nrs_policy_compat_one(const struct ptlrpc_service *svc,
 /* ptlrpc/events.c */
 int ptlrpc_uuid_to_peer(struct obd_uuid *uuid,
 			struct lnet_process_id *peer,
-			struct lnet_nid *self);
+			struct lnet_nid *self,
+			u32 refnet);
 /**
  * These callbacks are invoked by LNet when something happened to
  * underlying buffer
@@ -1811,7 +1812,7 @@ void ptlrpc_dec_ref(void);
 void ptlrpc_init_client(int req_portal, int rep_portal, const char *name,
 			struct ptlrpc_client *);
 struct ptlrpc_connection *ptlrpc_uuid_to_connection(struct obd_uuid *uuid,
-						    lnet_nid_t nid4refnet);
+						    u32 refnet);
 
 int ptlrpc_queue_wait(struct ptlrpc_request *req);
 int ptlrpc_replay_req(struct ptlrpc_request *req);
