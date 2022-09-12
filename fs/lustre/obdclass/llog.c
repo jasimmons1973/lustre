@@ -341,8 +341,8 @@ repeat:
 		/* we`ve tried to reread the chunk, but there is no
 		 * new records
 		 */
-		if (rc == -EIO && repeated && (chunk_offset + buf_offset) ==
-		    cur_offset) {
+		if (repeated && (chunk_offset + buf_offset) == cur_offset &&
+		    (rc == -EBADR || rc == -EIO)) {
 			rc = 0;
 			goto out;
 		}
