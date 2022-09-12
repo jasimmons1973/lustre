@@ -416,7 +416,7 @@ int ptlrpc_send_reply(struct ptlrpc_request *req, int flags)
 	ptlrpc_at_set_reply(req, flags);
 
 	if (!req->rq_export || !req->rq_export->exp_connection)
-		conn = ptlrpc_connection_get(req->rq_peer, req->rq_self, NULL);
+		conn = ptlrpc_connection_get(req->rq_peer, &req->rq_self, NULL);
 	else
 		conn = ptlrpc_connection_addref(req->rq_export->exp_connection);
 
@@ -435,7 +435,8 @@ int ptlrpc_send_reply(struct ptlrpc_request *req, int flags)
 	rc = ptl_send_buf(&rs->rs_md_h, rs->rs_repbuf, rs->rs_repdata_len,
 			  (rs->rs_difficult && !rs->rs_no_ack) ?
 			  LNET_ACK_REQ : LNET_NOACK_REQ,
-			  &rs->rs_cb_id, req->rq_self, req->rq_source,
+			  &rs->rs_cb_id, lnet_nid_to_nid4(&req->rq_self),
+			  req->rq_source,
 			  ptlrpc_req2svc(req)->srv_rep_portal,
 			  req->rq_rep_mbits ? req->rq_rep_mbits : req->rq_xid,
 			  req->rq_reply_off, NULL);

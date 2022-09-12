@@ -348,7 +348,7 @@ void request_in_callback(struct lnet_event *ev)
 	/* Multi-Rail: keep track of both initiator and source NID. */
 	req->rq_peer = lnet_pid_to_pid4(&ev->initiator);
 	req->rq_source = lnet_pid_to_pid4(&ev->source);
-	req->rq_self = lnet_nid_to_nid4(&ev->target.nid);
+	req->rq_self = ev->target.nid;
 	req->rq_rqbd = rqbd;
 	req->rq_phase = RQ_PHASE_NEW;
 	if (ev->type == LNET_EVENT_PUT)
@@ -468,7 +468,8 @@ static void ptlrpc_master_callback(struct lnet_event *ev)
 }
 
 int ptlrpc_uuid_to_peer(struct obd_uuid *uuid,
-			struct lnet_process_id *peer, lnet_nid_t *self)
+			struct lnet_process_id *peer,
+			struct lnet_nid *self)
 {
 	int best_dist = 0;
 	u32 best_order = 0;
@@ -492,7 +493,8 @@ int ptlrpc_uuid_to_peer(struct obd_uuid *uuid,
 			continue;
 
 		if (dist == 0) {		/* local! use loopback LND */
-			peer->nid = *self = LNET_NID_LO_0;
+			peer->nid = LNET_NID_LO_0;
+			lnet_nid4_to_nid(peer->nid, self);
 			rc = 0;
 			break;
 		}
@@ -504,7 +506,7 @@ int ptlrpc_uuid_to_peer(struct obd_uuid *uuid,
 			best_order = order;
 
 			peer->nid = lnet_nid_to_nid4(&dst_nid);
-			*self = lnet_nid_to_nid4(&src_nid);
+			*self = src_nid;
 			rc = 0;
 		}
 	}

@@ -941,7 +941,7 @@ struct ptlrpc_request {
 	/** import where request is being sent */
 	struct obd_import	*rq_import;
 	/** our LNet NID */
-	lnet_nid_t		rq_self;
+	struct lnet_nid		rq_self;
 	/** Peer description (the other side) */
 	struct lnet_process_id	rq_peer;
 	/** Descriptor for the NID from which the peer sent the request. */
@@ -1706,7 +1706,8 @@ static inline bool nrs_policy_compat_one(const struct ptlrpc_service *svc,
 
 /* ptlrpc/events.c */
 int ptlrpc_uuid_to_peer(struct obd_uuid *uuid,
-			struct lnet_process_id *peer, lnet_nid_t *self);
+			struct lnet_process_id *peer,
+			struct lnet_nid *self);
 /**
  * These callbacks are invoked by LNet when something happened to
  * underlying buffer
@@ -1721,7 +1722,7 @@ void reply_out_callback(struct lnet_event *ev);
 
 /* ptlrpc/connection.c */
 struct ptlrpc_connection *ptlrpc_connection_get(struct lnet_process_id peer,
-						lnet_nid_t self,
+						struct lnet_nid *self,
 						struct obd_uuid *uuid);
 
 static inline void  ptlrpc_connection_put(struct ptlrpc_connection *conn)
