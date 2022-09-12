@@ -1637,7 +1637,6 @@ again:
 			from_kuid(&init_user_ns, current_fsuid()),
 			from_kgid(&init_user_ns, current_fsgid()),
 			current_cap(), rdev, &request);
-#if OBD_OCD_VERSION(2, 14, 58, 0) < LUSTRE_VERSION_CODE
 	/*
 	 * server < 2.12.58 doesn't pack default LMV in intent_getattr reply,
 	 * fetch default LMV here.
@@ -1704,7 +1703,6 @@ again:
 		request = NULL;
 		goto again;
 	}
-#endif
 
 	if (err < 0)
 		goto err_exit;

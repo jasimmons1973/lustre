@@ -513,7 +513,7 @@ extern char obd_jobid_var[];
 #define OBD_FAIL_UPDATE_OBJ_NET_REP			0x1701
 
 /* LMV */
-#define OBD_FAIL_UNKNOWN_LMV_STRIPE			0x1901
+#define OBD_FAIL_LMV_UNKNOWN_STRIPE			0x1901
 
 /* FLR */
 #define OBD_FAIL_FLR_LV_DELAY				0x1A01
