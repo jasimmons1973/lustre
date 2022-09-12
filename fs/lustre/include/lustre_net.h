@@ -1211,7 +1211,7 @@ struct ptlrpc_bulk_desc {
 	u64				bd_last_mbits;
 
 	struct ptlrpc_cb_id		bd_cbid;	/* network callback info */
-	lnet_nid_t			bd_sender;	/* stash event::sender */
+	struct lnet_nid			bd_sender;	/* stash event::sender */
 	int				bd_md_count;	/* # valid entries in bd_mds */
 	int				bd_md_max_brw;	/* max entries in bd_mds */
 

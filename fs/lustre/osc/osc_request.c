@@ -2253,9 +2253,9 @@ static int osc_brw_fini_request(struct ptlrpc_request *req, int rc)
 			goto out;
 
 		if (req->rq_bulk &&
-		    lnet_nid_to_nid4(&peer->nid) != req->rq_bulk->bd_sender) {
+		    !nid_same(&peer->nid, &req->rq_bulk->bd_sender)) {
 			via = " via ";
-			router = libcfs_nid2str(req->rq_bulk->bd_sender);
+			router = libcfs_nidstr(&req->rq_bulk->bd_sender);
 		}
 
 		if (server_cksum != client_cksum) {
