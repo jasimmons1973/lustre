@@ -340,6 +340,7 @@ static ssize_t max_rpcs_in_flight_store(struct kobject *kobj,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
+	struct obd_import *imp;
 	unsigned int val;
 	int rc;
 
@@ -347,11 +348,10 @@ static ssize_t max_rpcs_in_flight_store(struct kobject *kobj,
 	if (rc)
 		return rc;
 
-	rc = obd_set_max_rpcs_in_flight(&obd->u.cli, val);
-	if (rc)
-		count = rc;
+	with_imp_locked(obd, imp, rc)
+		rc = obd_set_max_rpcs_in_flight(&obd->u.cli, val);
 
-	return count;
+	return rc ? rc : count;
 }
 LUSTRE_RW_ATTR(max_rpcs_in_flight);
 
@@ -372,6 +372,7 @@ static ssize_t max_mod_rpcs_in_flight_store(struct kobject *kobj,
 {
 	struct obd_device *obd = container_of(kobj, struct obd_device,
 					      obd_kset.kobj);
+	struct obd_import *imp;
 	u16 val;
 	int rc;
 
@@ -379,11 +380,10 @@ static ssize_t max_mod_rpcs_in_flight_store(struct kobject *kobj,
 	if (rc)
 		return rc;
 
-	rc = obd_set_max_mod_rpcs_in_flight(&obd->u.cli, val);
-	if (rc)
-		count = rc;
+	with_imp_locked(obd, imp, rc)
+		rc = obd_set_max_mod_rpcs_in_flight(&obd->u.cli, val);
 
-	return count;
+	return rc ? rc : count;
 }
 LUSTRE_RW_ATTR(max_mod_rpcs_in_flight);
 
