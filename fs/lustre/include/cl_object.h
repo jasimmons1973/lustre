@@ -963,10 +963,15 @@ do {									\
 	}								\
 } while (0)
 
-static inline struct page *cl_page_vmpage(struct cl_page *page)
+static inline struct page *cl_page_vmpage(const struct cl_page *page)
 {
 	LASSERT(page->cp_vmpage);
 	return page->cp_vmpage;
+}
+
+static inline pgoff_t cl_page_index(const struct cl_page *cp)
+{
+	return cl_page_vmpage(cp)->index;
 }
 
 /**

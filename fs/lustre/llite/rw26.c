@@ -452,8 +452,7 @@ static int ll_prepare_partial_page(const struct lu_env *env, struct cl_io *io,
 {
 	struct cl_attr *attr = vvp_env_thread_attr(env);
 	struct cl_object *obj = io->ci_obj;
-	struct vvp_page *vpg = cl_object_page_slice(obj, pg);
-	loff_t offset = cl_offset(obj, vvp_index(vpg));
+	loff_t offset = cl_offset(obj, cl_page_index(pg));
 	int result;
 
 	cl_object_attr_lock(obj);
@@ -470,7 +469,7 @@ static int ll_prepare_partial_page(const struct lu_env *env, struct cl_io *io,
 	 * purposes here we can treat it like i_size.
 	 */
 	if (attr->cat_kms <= offset) {
-		char *kaddr = kmap_atomic(vpg->vpg_page);
+		char *kaddr = kmap_atomic(pg->cp_vmpage);
 
 		memset(kaddr, 0, cl_page_size(obj));
 		kunmap_atomic(kaddr);

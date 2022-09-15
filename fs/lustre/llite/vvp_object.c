@@ -228,7 +228,7 @@ static int __vvp_object_init(const struct lu_env *env,
 			     const struct cl_object_conf *conf)
 {
 	vob->vob_inode = conf->coc_inode;
-	cl_object_page_init(&vob->vob_cl, sizeof(struct vvp_page));
+	cl_object_page_init(&vob->vob_cl, sizeof(struct cl_page_slice));
 	return 0;
 }
 
