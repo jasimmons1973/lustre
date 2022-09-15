@@ -290,10 +290,8 @@ sfw_server_rpc_done(struct srpc_server_rpc *rpc)
 	       swi_state2str(rpc->srpc_wi.swi_state),
 	       status);
 
-	if (rpc->srpc_bulk) {
-		srpc_free_bulk(rpc->srpc_bulk);
-		rpc->srpc_bulk = NULL;
-	}
+	if (rpc->srpc_bulk)
+		sfw_free_pages(rpc);
 }
 
 static void
@@ -1090,6 +1088,13 @@ sfw_query_batch(struct sfw_batch *tsb, int testidx,
 	return -ENOENT;
 }
 
+void
+sfw_free_pages(struct srpc_server_rpc *rpc)
+{
+	srpc_free_bulk(rpc->srpc_bulk);
+	rpc->srpc_bulk = NULL;
+}
+
 int
 sfw_alloc_pages(struct srpc_server_rpc *rpc, int cpt, int npages, int len,
 		int sink)
@@ -1097,11 +1102,9 @@ sfw_alloc_pages(struct srpc_server_rpc *rpc, int cpt, int npages, int len,
 	LASSERT(!rpc->srpc_bulk);
 	LASSERT(npages > 0 && npages <= LNET_MAX_IOV);
 
-	rpc->srpc_bulk = srpc_alloc_bulk(cpt, npages);
+	rpc->srpc_bulk = srpc_alloc_bulk(cpt, 0, npages, len, sink);
 	if (!rpc->srpc_bulk)
 		return -ENOMEM;
-
-	srpc_init_bulk(rpc->srpc_bulk, 0, npages, len, sink);
 
 	return 0;
 }
@@ -1626,6 +1629,7 @@ sfw_startup(void)
 	INIT_LIST_HEAD(&sfw_data.fw_zombie_rpcs);
 	INIT_LIST_HEAD(&sfw_data.fw_zombie_sessions);
 
+	brw_init_test_client();
 	brw_init_test_service();
 	rc = sfw_register_test(&brw_test_service, &brw_test_client);
 	LASSERT(!rc);

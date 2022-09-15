@@ -109,12 +109,14 @@ void srpc_get_counters(struct srpc_counters *cnt)
 }
 
 static int
-srpc_init_bulk_page(struct srpc_bulk *bk, int i, int off, int nob)
+srpc_add_bulk_page(struct srpc_bulk *bk, struct page *pg, int i, int off,
+		   int nob)
 {
 	LASSERT(off < PAGE_SIZE);
 	LASSERT(nob > 0 && nob <= PAGE_SIZE);
 
 	bk->bk_iovs[i].bv_offset = off;
+	bk->bk_iovs[i].bv_page = pg;
 	bk->bk_iovs[i].bv_len = nob;
 	return nob;
 }
@@ -138,7 +140,9 @@ srpc_free_bulk(struct srpc_bulk *bk)
 	kfree(bk);
 }
 
-struct srpc_bulk *srpc_alloc_bulk(int cpt, unsigned int bulk_npg)
+struct srpc_bulk *
+srpc_alloc_bulk(int cpt, unsigned int bulk_off, unsigned int bulk_npg,
+		unsigned int bulk_len, int sink)
 {
 	struct srpc_bulk *bk;
 	int i;
@@ -153,10 +157,13 @@ struct srpc_bulk *srpc_alloc_bulk(int cpt, unsigned int bulk_npg)
 	}
 
 	memset(bk, 0, offsetof(struct srpc_bulk, bk_iovs[bulk_npg]));
+	bk->bk_sink = sink;
+	bk->bk_len = bulk_len;
 	bk->bk_niov = bulk_npg;
 
 	for (i = 0; i < bulk_npg; i++) {
 		struct page *pg;
+		int nob;
 
 		pg = alloc_pages_node(cfs_cpt_spread_node(lnet_cpt_table(),
 							  cpt),
@@ -166,37 +173,15 @@ struct srpc_bulk *srpc_alloc_bulk(int cpt, unsigned int bulk_npg)
 			srpc_free_bulk(bk);
 			return NULL;
 		}
-		bk->bk_iovs[i].bv_page   = pg;
-	}
-
-	return bk;
-}
-
-void
-srpc_init_bulk(struct srpc_bulk *bk, unsigned int bulk_off,
-	       unsigned int bulk_npg, unsigned int bulk_len, int sink)
-{
-	int i;
-
-	LASSERT(bk);
-	LASSERT(bulk_npg > 0 && bulk_npg <= LNET_MAX_IOV);
-
-	bk->bk_sink = sink;
-	bk->bk_len = bulk_len;
-	bk->bk_niov = bulk_npg;
-
-	for (i = 0; i < bulk_npg && bulk_len > 0; i++) {
-		int nob;
-
-		LASSERT(bk->bk_iovs[i].bv_page);
 
 		nob = min_t(unsigned int, bulk_off + bulk_len, PAGE_SIZE) -
 		      bulk_off;
-
-		srpc_init_bulk_page(bk, i, bulk_off, nob);
+		srpc_add_bulk_page(bk, pg, i, bulk_off, nob);
 		bulk_len -= nob;
 		bulk_off = 0;
 	}
+
+	return bk;
 }
 
 static inline u64
@@ -210,6 +195,7 @@ srpc_init_server_rpc(struct srpc_server_rpc *rpc,
 		     struct srpc_service_cd *scd,
 		     struct srpc_buffer *buffer)
 {
+	memset(rpc, 0, sizeof(*rpc));
 	swi_init_workitem(&rpc->srpc_wi, srpc_handle_rpc,
 			  srpc_serv_is_framework(scd->scd_svc) ?
 			  lst_serial_wq : lst_test_wq[scd->scd_cpt]);
@@ -221,9 +207,6 @@ srpc_init_server_rpc(struct srpc_server_rpc *rpc,
 	rpc->srpc_peer = buffer->buf_peer;
 	rpc->srpc_self = buffer->buf_self;
 	LNetInvalidateMDHandle(&rpc->srpc_replymdh);
-
-	rpc->srpc_aborted  = 0;
-	rpc->srpc_status   = 0;
 }
 
 static void
@@ -261,8 +244,6 @@ srpc_service_fini(struct srpc_service *svc)
 						       struct srpc_server_rpc,
 						       srpc_list)) != NULL) {
 			list_del(&rpc->srpc_list);
-			if (svc->sv_srpc_fini)
-				svc->sv_srpc_fini(rpc);
 			kfree(rpc);
 		}
 	}
@@ -333,8 +314,7 @@ srpc_service_init(struct srpc_service *svc)
 
 		for (j = 0; j < nrpcs; j++) {
 			rpc = kzalloc_cpt(sizeof(*rpc), GFP_NOFS, i);
-			if (!rpc ||
-			    (svc->sv_srpc_init && svc->sv_srpc_init(rpc, i))) {
+			if (!rpc) {
 				srpc_service_fini(svc);
 				return -ENOMEM;
 			}
@@ -966,7 +946,8 @@ srpc_server_rpc_done(struct srpc_server_rpc *rpc, int status)
 		atomic_inc(&RPC_STAT32(SRPC_RPC_DROP));
 
 	if (rpc->srpc_done)
-		(*rpc->srpc_done)(rpc);
+		(*rpc->srpc_done) (rpc);
+	LASSERT(!rpc->srpc_bulk);
 
 	spin_lock(&scd->scd_lock);
 
