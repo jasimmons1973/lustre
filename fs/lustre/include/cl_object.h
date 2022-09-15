@@ -795,11 +795,6 @@ struct cl_page {
  */
 struct cl_page_slice {
 	struct cl_page			*cpl_page;
-	/**
-	 * Object slice corresponding to this page slice. Immutable after
-	 * creation.
-	 */
-	struct cl_object		*cpl_obj;
 	const struct cl_page_operations *cpl_ops;
 };
 
