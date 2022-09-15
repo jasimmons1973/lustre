@@ -1310,17 +1310,11 @@ static inline int osc_is_ready(struct osc_object *osc)
 static int osc_make_ready(const struct lu_env *env, struct osc_async_page *oap,
 			  int cmd)
 {
-	struct osc_page *opg = oap2osc_page(oap);
 	struct cl_page *page = oap2cl_page(oap);
-	int result;
 
 	LASSERT(cmd == OBD_BRW_WRITE); /* no cached reads */
 
-	result = cl_page_make_ready(env, page, CRT_WRITE);
-	if (result == 0)
-		opg->ops_submit_time = ktime_get();
-
-	return result;
+	return cl_page_make_ready(env, page, CRT_WRITE);
 }
 
 static int osc_refresh_count(const struct lu_env *env,
@@ -1372,7 +1366,6 @@ static int osc_completion(const struct lu_env *env, struct osc_async_page *oap,
 	/* Clear opg->ops_transfer_pinned before VM lock is released. */
 	opg->ops_transfer_pinned = 0;
 
-	opg->ops_submit_time = ktime_set(0, 0);
 	srvlock = oap->oap_brw_flags & OBD_BRW_SRVLOCK;
 
 	/* statistic */
