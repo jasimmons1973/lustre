@@ -2314,7 +2314,6 @@ EXPORT_SYMBOL(__osc_io_unplug);
 int osc_prep_async_page(struct osc_object *osc, struct osc_page *ops,
 			struct cl_page *page, loff_t offset)
 {
-	struct obd_export *exp = osc_export(osc);
 	struct osc_async_page *oap = &ops->ops_oap;
 	struct page *vmpage = page->cp_vmpage;
 
@@ -2322,7 +2321,6 @@ int osc_prep_async_page(struct osc_object *osc, struct osc_page *ops,
 		return -EIO;
 
 	oap->oap_magic = OAP_MAGIC;
-	oap->oap_cli = &exp->exp_obd->u.cli;
 	oap->oap_obj = osc;
 
 	oap->oap_page = vmpage;
@@ -2353,9 +2351,9 @@ int osc_queue_async_io(const struct lu_env *env, struct cl_io *io,
 	struct osc_io *oio = osc_env_io(env);
 	struct osc_extent *ext = NULL;
 	struct osc_async_page *oap = &ops->ops_oap;
-	struct client_obd *cli = oap->oap_cli;
 	struct osc_object *osc = oap->oap_obj;
-	struct pagevec        *pvec = &osc_env_info(env)->oti_pagevec;
+	struct client_obd *cli = osc_cli(osc);
+	struct pagevec *pvec = &osc_env_info(env)->oti_pagevec;
 	pgoff_t index;
 	unsigned int grants = 0, tmp;
 	int brw_flags = OBD_BRW_ASYNC;
