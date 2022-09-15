@@ -826,45 +826,38 @@ static void cl_page_io_start(const struct lu_env *env,
 }
 
 /**
- * Prepares page for immediate transfer. cl_page_operations::cpo_prep() is
- * called top-to-bottom. Every layer either agrees to submit this page (by
- * returning 0), or requests to omit this page (by returning -EALREADY). Layer
- * handling interactions with the VM also has to inform VM that page is under
- * transfer now.
+ * Prepares page for immediate transfer. Return -EALREADY if this page
+ * should be omitted from transfer.
  */
 int cl_page_prep(const struct lu_env *env, struct cl_io *io,
-		 struct cl_page *cl_page, enum cl_req_type crt)
+		 struct cl_page *cp, enum cl_req_type crt)
 {
-	const struct cl_page_slice *slice;
-	int result = 0;
-	int i;
+	struct page *vmpage = cp->cp_vmpage;
+	int rc;
 
-	/*
-	 * this has to be called bottom-to-top, so that llite can set up
-	 * PG_writeback without risking other layers deciding to skip this
-	 * page.
-	 */
-	if (crt >= CRT_NR)
-		return -EINVAL;
-
-	if (cl_page->cp_type != CPT_TRANSIENT) {
-		cl_page_slice_for_each(cl_page, slice, i) {
-			if (slice->cpl_ops->io[crt].cpo_prep)
-				result = (*slice->cpl_ops->io[crt].cpo_prep)(env,
-									     slice,
-									     io);
-			if (result != 0)
-				break;
+	if (cp->cp_type == CPT_TRANSIENT) {
+		/* Nothing to do. */
+	} else if (crt == CRT_READ) {
+		if (PageUptodate(vmpage)) {
+			rc = -EALREADY;
+			goto out;
 		}
-	}
+	} else {
+		LASSERT(PageLocked(vmpage));
+		LASSERT(!PageDirty(vmpage));
 
-	if (result >= 0) {
-		result = 0;
-		cl_page_io_start(env, cl_page, crt);
+		/* ll_writepage path is not a sync write, so need to
+		 * set page writeback flag
+		 */
+		if (!cp->cp_sync_io)
+			set_page_writeback(vmpage);
 	}
+	cl_page_io_start(env, cp, crt);
+	rc = 0;
+out:
+	CL_PAGE_HEADER(D_TRACE, env, cp, "%d %d\n", crt, rc);
 
-	CL_PAGE_HEADER(D_TRACE, env, cl_page, "%d %d\n", crt, result);
-	return result;
+	return rc;
 }
 EXPORT_SYMBOL(cl_page_prep);
 
@@ -919,35 +912,49 @@ EXPORT_SYMBOL(cl_page_completion);
  *
  * \pre  cl_page->cp_state == CPS_CACHED
  * \post cl_page->cp_state == CPS_PAGEIN || cl_page->cp_state == CPS_PAGEOUT
- *
- * \see cl_page_operations::cpo_make_ready()
  */
-int cl_page_make_ready(const struct lu_env *env, struct cl_page *cl_page,
+int cl_page_make_ready(const struct lu_env *env, struct cl_page *cp,
 		       enum cl_req_type crt)
 {
-	const struct cl_page_slice *slice;
-	int result = 0;
-	int i;
+	struct page *vmpage = cp->cp_vmpage;
+	int rc = 0;
 
-	if (crt >= CRT_NR)
-		return -EINVAL;
+	PASSERT(env, cp, crt == CRT_WRITE);
 
-	cl_page_slice_for_each(cl_page, slice, i) {
-		if (slice->cpl_ops->io[crt].cpo_make_ready)
-			result = (*slice->cpl_ops->io[crt].cpo_make_ready)(env,
-									   slice);
-		if (result != 0)
-			break;
+	if (cp->cp_type == CPT_TRANSIENT)
+		goto out;
+
+	lock_page(vmpage);
+
+	if (clear_page_dirty_for_io(vmpage)) {
+		LASSERT(cp->cp_state == CPS_CACHED);
+		/* This actually clears the dirty bit in the
+		 * radix tree.
+		 */
+		set_page_writeback(vmpage);
+		CL_PAGE_HEADER(D_PAGE, env, cp, "readied\n");
+	} else if (cp->cp_state == CPS_PAGEOUT) {
+		/* is it possible for osc_flush_async_page()
+		 * to already make it ready?
+		 */
+		rc = -EALREADY;
+	} else {
+		CL_PAGE_DEBUG(D_ERROR, env, cp,
+			      "unexpecting page state %d\n",
+			      cp->cp_state);
+		LBUG();
 	}
 
-	if (result >= 0) {
-		PASSERT(env, cl_page, cl_page->cp_state == CPS_CACHED);
-		cl_page_io_start(env, cl_page, crt);
-		result = 0;
+	unlock_page(vmpage);
+out:
+	if (rc == 0) {
+		PASSERT(env, cp, cp->cp_state == CPS_CACHED);
+		cl_page_io_start(env, cp, crt);
 	}
-	CL_PAGE_HEADER(D_TRACE, env, cl_page, "%d %d\n", crt, result);
 
-	return result;
+	CL_PAGE_HEADER(D_TRACE, env, cp, "%d %d\n", crt, rc);
+
+	return rc;
 }
 EXPORT_SYMBOL(cl_page_make_ready);
 
