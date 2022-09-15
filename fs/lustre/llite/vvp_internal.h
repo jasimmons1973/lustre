@@ -250,11 +250,6 @@ static inline struct inode *vvp_object_inode(const struct cl_object *obj)
 int vvp_object_invariant(const struct cl_object *obj);
 struct vvp_object *cl_inode2vvp(struct inode *inode);
 
-static inline struct page *cl2vm_page(const struct cl_page_slice *slice)
-{
-	return slice->cpl_page->cp_vmpage;
-}
-
 # define CLOBINVRNT(env, clob, expr)					\
 	((void)sizeof(env), (void)sizeof(clob), (void)sizeof(!!(expr)))
 
