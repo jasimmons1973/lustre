@@ -517,7 +517,7 @@ extern char obd_jobid_var[];
 
 /* FLR */
 #define OBD_FAIL_FLR_LV_DELAY				0x1A01
-#define OBD_FAIL_FLR_LV_INC				0x1A02
+#define OBD_FAIL_FLR_LV_INC				0x1A02 /* unused since 2.15 */
 #define OBD_FAIL_FLR_RANDOM_PICK_MIRROR			0x1A03
 
 /* LNet is allocated failure locations 0xe000 to 0xffff */

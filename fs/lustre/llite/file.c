@@ -3553,6 +3553,7 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 	bool lease_broken = false;
 	fmode_t fmode = 0;
 	enum mds_op_bias bias = 0;
+	int fdv;
 	struct file *layout_file = NULL;
 	void *data = NULL;
 	size_t data_size = 0;
@@ -3592,21 +3593,19 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 
 		bias = MDS_CLOSE_RESYNC_DONE;
 		break;
-	case LL_LEASE_LAYOUT_MERGE: {
-		int fd;
-
+	case LL_LEASE_LAYOUT_MERGE:
 		if (ioc->lil_count != 1) {
 			rc = -EINVAL;
 			goto out_lease_close;
 		}
 
 		arg += sizeof(*ioc);
-		if (copy_from_user(&fd, (void __user *)arg, sizeof(u32))) {
+		if (copy_from_user(&fdv, (void __user *)arg, sizeof(u32))) {
 			rc = -EFAULT;
 			goto out_lease_close;
 		}
 
-		layout_file = fget(fd);
+		layout_file = fget(fdv);
 		if (!layout_file) {
 			rc = -EBADF;
 			goto out_lease_close;
@@ -3621,9 +3620,7 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 		data = file_inode(layout_file);
 		bias = MDS_CLOSE_LAYOUT_MERGE;
 		break;
-	}
 	case LL_LEASE_LAYOUT_SPLIT: {
-		int fdv;
 		int mirror_id;
 
 		if (ioc->lil_count != 2) {
@@ -3700,28 +3697,23 @@ out_lease_close:
 
 	if (lease_broken)
 		fmode = 0;
-
 out:
-	switch (ioc->lil_flags) {
-	case LL_LEASE_RESYNC_DONE:
+	if (ioc->lil_flags == LL_LEASE_RESYNC_DONE && data)
 		kfree(data);
-		break;
-	case LL_LEASE_LAYOUT_MERGE:
-	case LL_LEASE_LAYOUT_SPLIT:
-		if (layout_file)
-			fput(layout_file);
 
-		ll_layout_refresh(inode, &fd->fd_layout_version);
-		break;
-	case LL_LEASE_PCC_ATTACH:
+	if (layout_file)
+		fput(layout_file);
+
+	if (ioc->lil_flags == LL_LEASE_PCC_ATTACH) {
 		if (!rc)
 			rc = rc2;
 		rc = pcc_readwrite_attach_fini(file, inode,
 					       param.pa_layout_gen,
 					       lease_broken, rc,
 					       attached);
-		break;
 	}
+
+	ll_layout_refresh(inode, &fd->fd_layout_version);
 
 	if (!rc)
 		rc = ll_lease_type_from_fmode(fmode);
