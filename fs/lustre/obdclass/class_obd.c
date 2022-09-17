@@ -63,6 +63,11 @@ atomic_long_t obd_dirty_pages;
 EXPORT_SYMBOL(obd_dirty_pages);
 unsigned int obd_timeout = OBD_TIMEOUT_DEFAULT;   /* seconds */
 EXPORT_SYMBOL(obd_timeout);
+unsigned int ping_interval = (OBD_TIMEOUT_DEFAULT > 4) ?
+			     (OBD_TIMEOUT_DEFAULT / 4) : 1;
+EXPORT_SYMBOL(ping_interval);
+unsigned int ping_evict_timeout_multiplier = 6;
+EXPORT_SYMBOL(ping_evict_timeout_multiplier);
 unsigned int obd_timeout_set;
 EXPORT_SYMBOL(obd_timeout_set);
 /* Adaptive timeout defs here instead of ptlrpc module for /sys/fs/ access */
