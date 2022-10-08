@@ -123,9 +123,6 @@ EXPORT_SYMBOL(obdo_from_inode);
 void obdo_to_ioobj(const struct obdo *oa, struct obd_ioobj *ioobj)
 {
 	ioobj->ioo_oid = oa->o_oi;
-	if (unlikely(!(oa->o_valid & OBD_MD_FLGROUP)))
-		ostid_set_seq_mdt0(&ioobj->ioo_oid);
-
 	/* Since 2.4 this does not contain o_mode in the low 16 bits.
 	 * Instead, it holds (bd_md_max_brw - 1) for multi-bulk BRW RPCs
 	 */
