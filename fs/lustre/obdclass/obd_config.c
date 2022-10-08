@@ -1230,7 +1230,7 @@ int class_config_llog_handler(const struct lu_env *env,
 			       clli->cfg_flags);
 			rc = 0;
 			/* No processing! */
-			break;
+			goto out_inst;
 		}
 
 		/*
@@ -1352,7 +1352,7 @@ int class_config_llog_handler(const struct lu_env *env,
 		lcfg_new = kzalloc(lcfg_len, GFP_NOFS);
 		if (!lcfg_new) {
 			rc = -ENOMEM;
-			goto out;
+			goto out_inst;
 		}
 
 		lustre_cfg_init(lcfg_new, lcfg->lcfg_command, &bufs);
@@ -1379,6 +1379,7 @@ int class_config_llog_handler(const struct lu_env *env,
 
 		rc = class_process_config(lcfg_new);
 		kfree(lcfg_new);
+out_inst:
 		kfree(inst_name);
 		break;
 	}
