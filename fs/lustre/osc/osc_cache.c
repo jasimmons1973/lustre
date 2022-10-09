@@ -2313,7 +2313,6 @@ int osc_prep_async_page(struct osc_object *osc, struct osc_page *ops,
 	if (!page)
 		return -EIO;
 
-	oap->oap_magic = OAP_MAGIC;
 	oap->oap_obj = osc;
 
 	oap->oap_page = vmpage;
@@ -2353,9 +2352,6 @@ int osc_queue_async_io(const struct lu_env *env, struct cl_io *io,
 	int cmd = OBD_BRW_WRITE;
 	bool need_release = false;
 	int rc = 0;
-
-	if (oap->oap_magic != OAP_MAGIC)
-		return -EINVAL;
 
 	if (!cli->cl_import || cli->cl_import->imp_invalid)
 		return -EIO;
@@ -2536,8 +2532,6 @@ int osc_teardown_async_page(const struct lu_env *env,
 {
 	struct osc_async_page *oap = &ops->ops_oap;
 	int rc = 0;
-
-	LASSERT(oap->oap_magic == OAP_MAGIC);
 
 	CDEBUG(D_INFO, "teardown oap %p page %p at index %lu.\n",
 	       oap, ops, osc_index(oap2osc(oap)));
