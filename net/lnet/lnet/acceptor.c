@@ -91,37 +91,37 @@ lnet_connect_console_error(int rc, struct lnet_nid *peer_nid,
 	switch (rc) {
 	/* "normal" errors */
 	case -ECONNREFUSED:
-		CNETERR("Connection to %s at host %pISp was refused: check that Lustre is running on that node.\n",
+		CNETERR("Connection to %s at host %pIScp was refused: check that Lustre is running on that node.\n",
 			libcfs_nidstr(peer_nid), sa);
 		break;
 	case -EHOSTUNREACH:
 	case -ENETUNREACH:
-		CNETERR("Connection to %s at host %pIS was unreachable: the network or that node may be down, or Lustre may be misconfigured.\n",
+		CNETERR("Connection to %s at host %pISc was unreachable: the network or that node may be down, or Lustre may be misconfigured.\n",
 			libcfs_nidstr(peer_nid), sa);
 		break;
 	case -ETIMEDOUT:
-		CNETERR("Connection to %s at host %pISp took too long: that node may be hung or experiencing high load.\n",
+		CNETERR("Connection to %s at host %pIScp took too long: that node may be hung or experiencing high load.\n",
 			libcfs_nidstr(peer_nid), sa);
 		break;
 	case -ECONNRESET:
 		LCONSOLE_ERROR_MSG(0x11b,
-				   "Connection to %s at host %pISp was reset: is it running a compatible version of Lustre and is %s one of its NIDs?\n",
+				   "Connection to %s at host %pIScp was reset: is it running a compatible version of Lustre and is %s one of its NIDs?\n",
 				   libcfs_nidstr(peer_nid), sa,
 				   libcfs_nidstr(peer_nid));
 		break;
 	case -EPROTO:
 		LCONSOLE_ERROR_MSG(0x11c,
-				   "Protocol error connecting to %s at host %pISp: is it running a compatible version of Lustre?\n",
+				   "Protocol error connecting to %s at host %pIScp: is it running a compatible version of Lustre?\n",
 				   libcfs_nidstr(peer_nid), sa);
 		break;
 	case -EADDRINUSE:
 		LCONSOLE_ERROR_MSG(0x11d,
-				   "No privileged ports available to connect to %s at host %pISp\n",
+				   "No privileged ports available to connect to %s at host %pIScp\n",
 				   libcfs_nidstr(peer_nid), sa);
 		break;
 	default:
 		LCONSOLE_ERROR_MSG(0x11e,
-				   "Unexpected error %d connecting to %s at host %pISp\n",
+				   "Unexpected error %d connecting to %s at host %pIScp\n",
 				   rc, libcfs_nidstr(peer_nid), sa);
 		break;
 	}
@@ -237,7 +237,7 @@ lnet_accept(struct socket *sock, u32 magic)
 					     accept_timeout);
 
 			if (rc)
-				CERROR("Error sending magic+version in response to LNET magic from %pIS: %d\n",
+				CERROR("Error sending magic+version in response to LNET magic from %pISc: %d\n",
 				       &peer, rc);
 			return -EPROTO;
 		}
@@ -248,7 +248,7 @@ lnet_accept(struct socket *sock, u32 magic)
 			str = "unrecognised";
 
 		LCONSOLE_ERROR_MSG(0x11f,
-				   "Refusing connection from %pIS magic %08x: %s acceptor protocol\n",
+				   "Refusing connection from %pISc magic %08x: %s acceptor protocol\n",
 				   &peer, magic, str);
 		return -EPROTO;
 	}
@@ -258,7 +258,7 @@ lnet_accept(struct socket *sock, u32 magic)
 	rc = lnet_sock_read(sock, &cr.acr_version, sizeof(cr.acr_version),
 			    accept_timeout);
 	if (rc) {
-		CERROR("Error %d reading connection request version from %pIS\n",
+		CERROR("Error %d reading connection request version from %pISc\n",
 		       rc, &peer);
 		return -EIO;
 	}
@@ -281,7 +281,7 @@ lnet_accept(struct socket *sock, u32 magic)
 
 		rc = lnet_sock_write(sock, &cr, sizeof(cr), accept_timeout);
 		if (rc)
-			CERROR("Error sending magic+version in response to version %d from %pIS: %d\n",
+			CERROR("Error sending magic+version in response to version %d from %pISc: %d\n",
 			       peer_version, &peer, rc);
 		return -EPROTO;
 
@@ -311,7 +311,7 @@ lnet_accept(struct socket *sock, u32 magic)
 		break;
 	}
 	if (rc) {
-		CERROR("Error %d reading connection request from %pIS\n",
+		CERROR("Error %d reading connection request from %pISc\n",
 		       rc, &peer);
 		return -EIO;
 	}
@@ -323,7 +323,7 @@ lnet_accept(struct socket *sock, u32 magic)
 		if (ni)
 			lnet_ni_decref(ni);
 		LCONSOLE_ERROR_MSG(0x120,
-				   "Refusing connection from %pIS for %s: No matching NI\n",
+				   "Refusing connection from %pISc for %s: No matching NI\n",
 				   &peer, libcfs_nidstr(&nid));
 		return -EPERM;
 	}
@@ -332,12 +332,12 @@ lnet_accept(struct socket *sock, u32 magic)
 		/* This catches a request for the loopback LND */
 		lnet_ni_decref(ni);
 		LCONSOLE_ERROR_MSG(0x121,
-				   "Refusing connection from %pIS for %s: NI doesn not accept IP connections\n",
+				   "Refusing connection from %pISc for %s: NI doesn not accept IP connections\n",
 				   &peer, libcfs_nidstr(&nid));
 		return -EPERM;
 	}
 
-	CDEBUG(D_NET, "Accept %s from %pIS\n", libcfs_nidstr(&nid), &peer);
+	CDEBUG(D_NET, "Accept %s from %pISc\n", libcfs_nidstr(&nid), &peer);
 
 	rc = ni->ni_net->net_lnd->lnd_accept(ni, sock);
 
@@ -430,7 +430,7 @@ lnet_acceptor(void *arg)
 		if (secure &&
 		    rpc_get_port((struct sockaddr *)&peer) >
 		    LNET_ACCEPTOR_MAX_RESERVED_PORT) {
-			CERROR("Refusing connection from %pISp: insecure port\n",
+			CERROR("Refusing connection from %pIScp: insecure port\n",
 			       &peer);
 			goto failed;
 		}
@@ -438,7 +438,7 @@ lnet_acceptor(void *arg)
 		rc = lnet_sock_read(newsock, &magic, sizeof(magic),
 				    accept_timeout);
 		if (rc) {
-			CERROR("Error %d reading connection request from %pIS\n",
+			CERROR("Error %d reading connection request from %pISc\n",
 			       rc, &peer);
 			goto failed;
 		}
