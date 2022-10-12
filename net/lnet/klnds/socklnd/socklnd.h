@@ -438,10 +438,6 @@ struct ksock_peer_ni {
 							 */
 	time64_t		ksnp_send_keepalive;	/* time to send keepalive */
 	struct lnet_ni	       *ksnp_ni;		/* which network */
-	int			ksnp_n_passive_ips;	/* # of... */
-
-	/* preferred local interfaces */
-	u32			ksnp_passive_ips[LNET_INTERFACES_NUM];
 };
 
 struct ksock_connreq {
