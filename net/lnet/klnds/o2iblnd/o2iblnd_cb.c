@@ -1422,6 +1422,7 @@ kiblnd_launch_tx(struct lnet_ni *ni, struct kib_tx *tx, lnet_nid_t nid)
 	int rc;
 	int i;
 	struct lnet_ioctl_config_o2iblnd_tunables *tunables;
+	s64 timeout_ns;
 
 	/*
 	 * If I get here, I've committed to send, so I complete the tx with
@@ -1450,6 +1451,7 @@ kiblnd_launch_tx(struct lnet_ni *ni, struct kib_tx *tx, lnet_nid_t nid)
 		return;
 	}
 
+	timeout_ns = kiblnd_timeout() * NSEC_PER_SEC;
 	read_unlock(g_lock);
 	/* Re-try with a write lock */
 	write_lock(g_lock);
@@ -1459,9 +1461,12 @@ kiblnd_launch_tx(struct lnet_ni *ni, struct kib_tx *tx, lnet_nid_t nid)
 		if (list_empty(&peer_ni->ibp_conns)) {
 			/* found a peer_ni, but it's still connecting... */
 			LASSERT(kiblnd_peer_connecting(peer_ni));
-			if (tx)
+			if (tx) {
+				tx->tx_deadline = ktime_add_ns(ktime_get(),
+							       timeout_ns);
 				list_add_tail(&tx->tx_list,
 					      &peer_ni->ibp_tx_queue);
+			}
 			write_unlock_irqrestore(g_lock, flags);
 		} else {
 			conn = kiblnd_get_conn_locked(peer_ni);
@@ -1498,9 +1503,12 @@ kiblnd_launch_tx(struct lnet_ni *ni, struct kib_tx *tx, lnet_nid_t nid)
 		if (list_empty(&peer2->ibp_conns)) {
 			/* found a peer_ni, but it's still connecting... */
 			LASSERT(kiblnd_peer_connecting(peer2));
-			if (tx)
+			if (tx) {
+				tx->tx_deadline = ktime_add_ns(ktime_get(),
+							       timeout_ns);
 				list_add_tail(&tx->tx_list,
 					      &peer2->ibp_tx_queue);
+			}
 			write_unlock_irqrestore(g_lock, flags);
 		} else {
 			conn = kiblnd_get_conn_locked(peer2);
@@ -1525,8 +1533,10 @@ kiblnd_launch_tx(struct lnet_ni *ni, struct kib_tx *tx, lnet_nid_t nid)
 	/* always called with a ref on ni, which prevents ni being shutdown */
 	LASSERT(!((struct kib_net *)ni->ni_data)->ibn_shutdown);
 
-	if (tx)
+	if (tx) {
+		tx->tx_deadline = ktime_add_ns(ktime_get(), timeout_ns);
 		list_add_tail(&tx->tx_list, &peer_ni->ibp_tx_queue);
+	}
 
 	kiblnd_peer_addref(peer_ni);
 	hash_add(kiblnd_data.kib_peers, &peer_ni->ibp_list, nid);
