@@ -77,18 +77,11 @@ static int llog_cat_id2handle(const struct lu_env *env,
 
 		if (ostid_id(&cgl->lgl_oi) == ostid_id(&logid->lgl_oi) &&
 		    ostid_seq(&cgl->lgl_oi) == ostid_seq(&logid->lgl_oi)) {
-			if (cgl->lgl_ogen != logid->lgl_ogen) {
-				CWARN("%s: log " DFID " generation %x != %x\n",
-				      loghandle2name(loghandle),
-				      PFID(&logid->lgl_oi.oi_fid),
-				      cgl->lgl_ogen, logid->lgl_ogen);
-				continue;
-			}
 			*res = llog_handle_get(loghandle);
 			if (!*res) {
 				CERROR("%s: log "DFID" refcount is zero!\n",
 				       loghandle2name(loghandle),
-				       PFID(&logid->lgl_oi.oi_fid));
+				       PLOGID(logid));
 				continue;
 			}
 			loghandle->u.phd.phd_cat_handle = cathandle;
@@ -101,9 +94,8 @@ static int llog_cat_id2handle(const struct lu_env *env,
 	rc = llog_open(env, cathandle->lgh_ctxt, &loghandle, logid, NULL,
 		       LLOG_OPEN_EXISTS);
 	if (rc < 0) {
-		CERROR("%s: error opening log id " DFID ":%x: rc = %d\n",
-		       loghandle2name(cathandle), PFID(&logid->lgl_oi.oi_fid),
-		       logid->lgl_ogen, rc);
+		CERROR("%s: error opening log id "DFID": rc = %d\n",
+		       loghandle2name(cathandle), PLOGID(logid), rc);
 		return rc;
 	}
 
@@ -153,25 +145,20 @@ static int llog_cat_process_common(const struct lu_env *env,
 
 	if (rec->lrh_type != le32_to_cpu(LLOG_LOGID_MAGIC)) {
 		rc = -EINVAL;
-		CWARN("%s: invalid record in catalog " DFID ":%x: rc = %d\n",
-		      loghandle2name(cat_llh),
-		      PFID(&cat_llh->lgh_id.lgl_oi.oi_fid),
-		      cat_llh->lgh_id.lgl_ogen, rc);
-
+		CWARN("%s: invalid record in catalog "DFID": rc = %d\n",
+		      loghandle2name(cat_llh), PLOGID(&cat_llh->lgh_id), rc);
 		return rc;
 	}
 	CDEBUG(D_HA,
-	       "processing log " DFID ":%x at index %u of catalog " DFID "\n",
-	       PFID(&lir->lid_id.lgl_oi.oi_fid), lir->lid_id.lgl_ogen,
-	       le32_to_cpu(rec->lrh_index),
-	       PFID(&cat_llh->lgh_id.lgl_oi.oi_fid));
+	       "processing log "DFID" at index %u of catalog "DFID"\n",
+	       PLOGID(&lir->lid_id), le32_to_cpu(rec->lrh_index),
+	       PLOGID(&cat_llh->lgh_id));
 
 	rc = llog_cat_id2handle(env, cat_llh, llhp, &lir->lid_id);
 	if (rc) {
-		CWARN("%s: can't find llog handle " DFID ":%x: rc = %d\n",
-		      loghandle2name(cat_llh),
-		      PFID(&lir->lid_id.lgl_oi.oi_fid),
-		      lir->lid_id.lgl_ogen, rc);
+		CWARN("%s: can't find llog handle "DFID": rc = %d\n",
+		      loghandle2name(cat_llh), PLOGID(&lir->lid_id),
+		      rc);
 
 		return rc;
 	}
@@ -238,7 +225,7 @@ static int llog_cat_process_or_fork(const struct lu_env *env,
 
 		CWARN("%s: catlog " DFID " crosses index zero\n",
 		      loghandle2name(cat_llh),
-		      PFID(&cat_llh->lgh_id.lgl_oi.oi_fid));
+		      PLOGID(&cat_llh->lgh_id));
 		/*startcat = 0 is default value for general processing */
 		if ((startcat != LLOG_CAT_FIRST &&
 		    startcat >= llh->llh_cat_idx) || !startcat) {

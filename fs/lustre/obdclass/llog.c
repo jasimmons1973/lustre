@@ -422,7 +422,7 @@ repeat:
 			if (rc) {
 				CERROR("%s: invalid record in llog "DFID" record for index %d/%d: rc = %d\n",
 				       loghandle2name(loghandle),
-                                       PFID(&loghandle->lgh_id.lgl_oi.oi_fid),
+				       PLOGID(&loghandle->lgh_id),
 				       rec->lrh_len, index, rc);
 				/*
 				 * the block seem to be corrupted, let's try
@@ -448,7 +448,7 @@ repeat:
 				 */
 				CERROR("%s: "DFID" index %u, expected %u\n",
 				       loghandle2name(loghandle),
-				       PFID(&loghandle->lgh_id.lgl_oi.oi_fid),
+				       PLOGID(&loghandle->lgh_id),
 				       rec->lrh_index, index);
 				index = rec->lrh_index;
 			}
@@ -481,10 +481,9 @@ repeat:
 	}
 
 out:
-	CDEBUG(D_HA, "stop processing %s " DOSTID ":%x index %d count %d\n",
+	CDEBUG(D_HA, "stop processing %s "DFID" index %d count %d\n",
 	       ((llh->llh_flags & LLOG_F_IS_CAT) ? "catalog" : "plain"),
-	       POSTID(&loghandle->lgh_id.lgl_oi), loghandle->lgh_id.lgl_ogen,
-	       index, llh->llh_count);
+	       PLOGID(&loghandle->lgh_id), index, llh->llh_count);
 
 	if (cd)
 		cd->lpcd_last_idx = last_called_index;
@@ -534,7 +533,7 @@ int llog_process_or_fork(const struct lu_env *env,
 
 	CDEBUG(D_OTHER,
 	       "Processing " DFID " flags 0x%03x startcat %d startidx %d first_idx %d last_idx %d read_mode %d\n",
-	       PFID(&loghandle->lgh_id.lgl_oi.oi_fid), flags,
+	       PLOGID(&loghandle->lgh_id), flags,
 	       (flags & LLOG_F_IS_CAT) && d ? d->lpd_startcat : -1,
 	       (flags & LLOG_F_IS_CAT) && d ? d->lpd_startidx : -1,
 	       cd ? cd->lpcd_first_idx : -1, cd ? cd->lpcd_last_idx : -1,
