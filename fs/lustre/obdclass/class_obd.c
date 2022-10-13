@@ -671,15 +671,17 @@ static int __init obdclass_init(void)
 	if (err)
 		return err;
 
-	libcfs_kkuc_init();
-
-	err = obd_zombie_impexp_init();
+	err = obd_init_checks();
 	if (err)
 		return err;
 
-	err = obd_init_checks();
+	err = libcfs_kkuc_init();
 	if (err)
-		goto cleanup_zombie_impexp;
+		return err;
+
+	err = obd_zombie_impexp_init();
+	if (err)
+		goto cleanup_kkuc;
 
 	err = class_handle_init();
 	if (err)
@@ -754,6 +756,9 @@ cleanup_class_handle:
 cleanup_zombie_impexp:
 	obd_zombie_impexp_stop();
 
+cleanup_kkuc:
+	libcfs_kkuc_fini();
+
 	return err;
 }
 
@@ -771,6 +776,7 @@ static void obdclass_exit(void)
 	class_handle_cleanup();
 	class_del_uuid(NULL); /* Delete all UUIDs. */
 	obd_zombie_impexp_stop();
+	libcfs_kkuc_fini();
 }
 
 void obd_heat_clear(struct obd_heat_instance *instance, int count)
