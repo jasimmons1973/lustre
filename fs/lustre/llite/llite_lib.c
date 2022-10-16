@@ -363,6 +363,9 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 
 	data->ocd_brw_size = MD_MAX_BRW_SIZE;
 
+retry_connect:
+	if (sb_rdonly(sb))
+		data->ocd_connect_flags |= OBD_CONNECT_RDONLY;
 	err = obd_connect(NULL, &sbi->ll_md_exp, sbi->ll_md_obd,
 			  &sbi->ll_sb_uuid, data, sbi->ll_cache);
 	if (err == -EBUSY) {
@@ -405,8 +408,20 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 	err = obd_statfs(NULL, sbi->ll_md_exp, osfs,
 			 ktime_get_seconds() - sbi->ll_statfs_max_age,
 			 OBD_STATFS_FOR_MDT0);
-	if (err)
+	if (err == -EROFS && !sb_rdonly(sb)) {
+		/* We got -EROFS from the server, maybe it is imposing
+		 * read-only mount. So just retry like this.
+		 */
+		LCONSOLE_INFO("Forcing read-only mount.\n\r");
+		CERROR("%s: mount failed with %d, forcing read-only mount.\n",
+		       sbi->ll_md_exp->exp_obd->obd_name, err);
+		sb->s_flags |= SB_RDONLY;
+		obd_fid_fini(sbi->ll_md_exp->exp_obd);
+		obd_disconnect(sbi->ll_md_exp);
+		goto retry_connect;
+	} else if (err) {
 		goto out_md_fid;
+	}
 
 	/* This needs to be after statfs to ensure connect has finished.
 	 * Note that "data" does NOT contain the valid connect reply.
@@ -1329,8 +1344,8 @@ out_free:
 	if (err)
 		ll_put_super(sb);
 	else if (test_bit(LL_SBI_VERBOSE, sbi->ll_flags))
-		LCONSOLE_WARN("Mounted %s\n", profilenm);
-
+		LCONSOLE_WARN("Mounted %s%s\n", profilenm,
+			      sb_rdonly(sb) ? " read-only" : "");
 	return err;
 } /* ll_fill_super */
 

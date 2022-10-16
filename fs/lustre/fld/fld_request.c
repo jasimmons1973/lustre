@@ -224,6 +224,7 @@ static void fld_client_debugfs_init(struct lu_client_fld *fld)
 
 	ldebugfs_add_vars(fld->lcf_debugfs_entry, fld_client_debugfs_list, fld);
 }
+EXPORT_SYMBOL(fld_client_del_target);
 
 void fld_client_debugfs_fini(struct lu_client_fld *fld)
 {
