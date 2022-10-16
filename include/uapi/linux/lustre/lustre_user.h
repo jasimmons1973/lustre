@@ -987,7 +987,7 @@ static inline void obd_uuid2fsname(char *buf, char *uuid, int buflen)
  */
 #define SFID "0x%llx:0x%x:0x%x"
 #define RFID(fid) &((fid)->f_seq), &((fid)->f_oid), &((fid)->f_ver)
-#define PLOGID(logid) ((unsigned long long)(logid)->lgl_oi.oi.oi_seq, (__u32)(logid)->lgl_oi.oi.oi_id, 0)
+#define PLOGID(logid) (unsigned long long)(logid)->lgl_oi.oi.oi_seq, (__u32)(logid)->lgl_oi.oi.oi_id, 0
 
 /********* Quotas **********/
 
