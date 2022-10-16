@@ -1744,11 +1744,13 @@ ksocknal_ctl(struct lnet_ni *ni, unsigned int cmd, void *arg)
 			iface = &net->ksnn_interface;
 
 			sa = (void *)&iface->ksni_addr;
-			if (sa->sin_family == AF_INET)
+			if (sa->sin_family == AF_INET) {
 				data->ioc_u32[0] = ntohl(sa->sin_addr.s_addr);
-			else
+				data->ioc_u32[1] = iface->ksni_netmask;
+			} else {
 				data->ioc_u32[0] = 0xFFFFFFFF;
-			data->ioc_u32[1] = iface->ksni_netmask;
+				data->ioc_u32[1] = 0;
+			}
 			data->ioc_u32[2] = iface->ksni_npeers;
 			data->ioc_u32[3] = iface->ksni_nroutes;
 		}
@@ -2443,7 +2445,6 @@ ksocknal_startup(struct lnet_ni *ni)
 	struct ksock_net *net;
 	struct ksock_interface *ksi = NULL;
 	struct lnet_inetdev *ifaces = NULL;
-	struct sockaddr_in *sa;
 	int i = 0;
 	int rc;
 
@@ -2464,7 +2465,7 @@ ksocknal_startup(struct lnet_ni *ni)
 
 	ksocknal_tunables_setup(ni);
 
-	rc = lnet_inet_enumerate(&ifaces, ni->ni_net_ns);
+	rc = lnet_inet_enumerate(&ifaces, ni->ni_net_ns, true);
 	if (rc < 0)
 		goto fail_1;
 
@@ -2485,11 +2486,26 @@ ksocknal_startup(struct lnet_ni *ni)
 
 	ni->ni_dev_cpt = ifaces[i].li_cpt;
 	ksi->ksni_index = ifaces[i].li_index;
-	sa = (void *)&ksi->ksni_addr;
-	memset(sa, 0, sizeof(*sa));
-	sa->sin_family = AF_INET;
-	sa->sin_addr.s_addr = htonl(ifaces[i].li_ipaddr);
-	ksi->ksni_netmask = ifaces[i].li_netmask;
+	if (ifaces[i].li_ipv6) {
+		struct sockaddr_in6 *sa;
+		sa = (void *)&ksi->ksni_addr;
+		memset(sa, 0, sizeof(*sa));
+		sa->sin6_family = AF_INET6;
+		memcpy(&sa->sin6_addr, ifaces[i].li_ipv6addr,
+		       sizeof(struct in6_addr));
+		ni->ni_nid.nid_size = sizeof(struct in6_addr) - 4;
+		memcpy(&ni->ni_nid.nid_addr, ifaces[i].li_ipv6addr,
+		       sizeof(struct in6_addr));
+	} else {
+		struct sockaddr_in *sa;
+		sa = (void *)&ksi->ksni_addr;
+		memset(sa, 0, sizeof(*sa));
+		sa->sin_family = AF_INET;
+		sa->sin_addr.s_addr = htonl(ifaces[i].li_ipaddr);
+		ksi->ksni_netmask = ifaces[i].li_netmask;
+		ni->ni_nid.nid_size = 4 - 4;
+		ni->ni_nid.nid_addr[0] = sa->sin_addr.s_addr;
+	}
 	strlcpy(ksi->ksni_name, ifaces[i].li_name, sizeof(ksi->ksni_name));
 
 	/* call it before add it to ksocknal_data.ksnd_nets */
@@ -2497,9 +2513,6 @@ ksocknal_startup(struct lnet_ni *ni)
 	if (rc)
 		goto fail_1;
 
-	LASSERT(ksi);
-	LASSERT(ksi->ksni_addr.ss_family == AF_INET);
-	ni->ni_nid.nid_addr[0] = ((struct sockaddr_in *)&ksi->ksni_addr)->sin_addr.s_addr;
 	list_add(&net->ksnn_list, &ksocknal_data.ksnd_nets);
 	net->ksnn_ni = ni;
 	ksocknal_data.ksnd_nnets++;
