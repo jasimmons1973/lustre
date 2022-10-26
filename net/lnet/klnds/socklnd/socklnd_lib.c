@@ -374,7 +374,7 @@ ksocknal_write_space(struct sock *sk)
 
 	/* interleave correctly with closing sockets... */
 	LASSERT(!in_irq());
-	read_lock(&ksocknal_data.ksnd_global_lock);
+	read_lock_bh(&ksocknal_data.ksnd_global_lock);
 
 	conn = sk->sk_user_data;
 	wspace = sk_stream_wspace(sk);
@@ -408,7 +408,7 @@ ksocknal_write_space(struct sock *sk)
 		clear_bit(SOCK_NOSPACE, &sk->sk_socket->flags);
 	}
 
-	read_unlock(&ksocknal_data.ksnd_global_lock);
+	read_unlock_bh(&ksocknal_data.ksnd_global_lock);
 }
 
 void
