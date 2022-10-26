@@ -847,19 +847,17 @@ static int lov_delete_composite(const struct lu_env *env,
 				struct lov_object *lov,
 				union lov_layout_state *state)
 {
-	struct lov_layout_composite *comp = &state->composite;
 	struct lov_layout_entry *entry;
 
 	dump_lsm(D_INODE, lov->lo_lsm);
 
 	lov_layout_wait(env, lov);
-	if (comp->lo_entries)
-		lov_foreach_layout_entry(lov, entry) {
-			if (entry->lle_lsme && lsme_is_foreign(entry->lle_lsme))
-				continue;
+	lov_foreach_layout_entry(lov, entry) {
+		if (entry->lle_lsme && lsme_is_foreign(entry->lle_lsme))
+			continue;
 
-			lov_delete_raid0(env, lov, entry);
-		}
+		lov_delete_raid0(env, lov, entry);
+	}
 
 	return 0;
 }
@@ -997,6 +995,8 @@ static int lov_attr_get_composite(const struct lu_env *env,
 
 	attr->cat_size = 0;
 	attr->cat_blocks = 0;
+	attr->cat_kms = 0;
+
 	lov_foreach_layout_entry(lov, entry) {
 		int index = lov_layout_entry_index(lov, entry);
 		struct cl_attr *lov_attr = NULL;

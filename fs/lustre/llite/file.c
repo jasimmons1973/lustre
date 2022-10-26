@@ -1957,6 +1957,59 @@ ll_do_fast_read(struct kiocb *iocb, struct iov_iter *iter)
 	return result;
 }
 
+/**
+ * Confine read iter lest read beyond the EOF
+ *
+ * @iocb	kernel iocb
+ * @to		reader iov_iter
+ *
+ * RETURN	0	success
+ *		<0	failure
+ *		>0	@iocb->ki_pos has passed the EOF
+ */
+static int file_read_confine_iter(struct lu_env *env, struct kiocb *iocb,
+				  struct iov_iter *to)
+{
+	struct cl_attr *attr = vvp_env_thread_attr(env);
+	struct file *file = iocb->ki_filp;
+	struct inode *inode = file_inode(file);
+	struct ll_inode_info *lli = ll_i2info(inode);
+	loff_t read_end = iocb->ki_pos + iov_iter_count(to);
+	loff_t kms;
+	loff_t size;
+	int rc;
+
+	cl_object_attr_lock(lli->lli_clob);
+	rc = cl_object_attr_get(env, lli->lli_clob, attr);
+	cl_object_attr_unlock(lli->lli_clob);
+	if (rc != 0)
+		return rc;
+
+	kms = attr->cat_kms;
+	/* if read beyond end-of-file, adjust read count */
+	if (kms > 0 && (iocb->ki_pos >= kms || read_end > kms)) {
+		rc = ll_glimpse_size(inode);
+		if (rc != 0)
+			return rc;
+
+		size = i_size_read(inode);
+		if (iocb->ki_pos >= size || read_end > size) {
+			CDEBUG(D_VFSTRACE,
+			       "%s: read [%llu, %llu] over eof, kms %llu, file_size %llu.\n",
+			       file_dentry(file)->d_name.name,
+			       iocb->ki_pos, read_end, kms, size);
+
+			if (iocb->ki_pos >= size)
+				return 1;
+
+			if (read_end > size)
+				iov_iter_truncate(to, size - iocb->ki_pos);
+		}
+	}
+
+	return rc;
+}
+
 static ssize_t ll_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 {
 	struct lu_env *env;
@@ -1967,6 +2020,7 @@ static ssize_t ll_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 	ssize_t rc2;
 	ktime_t kstart = ktime_get();
 	bool cached;
+	bool stale_data = false;
 
 	CDEBUG(D_VFSTRACE|D_IOTRACE, "file %s:"DFID", ppos: %lld, count: %zu\n",
 	       file_dentry(file)->d_name.name,
@@ -1975,6 +2029,16 @@ static ssize_t ll_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 
 	if (!iov_iter_count(to))
 		return 0;
+
+	env = cl_env_get(&refcheck);
+	if (IS_ERR(env))
+		return PTR_ERR(env);
+
+	result = file_read_confine_iter(env, iocb, to);
+	if (result < 0)
+		goto out;
+	else if (result > 0)
+		stale_data = true;
 
 	/**
 	 * Currently when PCC read failed, we do not fall back to the
@@ -2012,8 +2076,18 @@ static ssize_t ll_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 	else if (result == 0)
 		result = rc2;
 
-	cl_env_put(env, &refcheck);
 out:
+	cl_env_put(env, &refcheck);
+
+	if (stale_data && result > 0) {
+		/**
+		 * we've reached EOF before the read, the data read are cached
+		 * stale data.
+		 */
+		iov_iter_truncate(to, 0);
+		result = 0;
+	}
+
 	if (result > 0) {
 		ll_rw_stats_tally(ll_i2sbi(file_inode(file)), current->pid,
 				  file->private_data, iocb->ki_pos, result,
