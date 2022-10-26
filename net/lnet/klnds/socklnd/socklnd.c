@@ -277,6 +277,52 @@ ksocknal_unlink_peer_locked(struct ksock_peer_ni *peer_ni)
 	ksocknal_peer_decref(peer_ni);
 }
 
+static void
+ksocknal_dump_peer_debug_info(struct ksock_peer_ni *peer_ni)
+{
+	struct ksock_conn *conn;
+	struct list_head *ctmp;
+	struct list_head *txtmp;
+	int ccount = 0;
+	int txcount = 0;
+
+	list_for_each(ctmp, &peer_ni->ksnp_conns) {
+		conn = list_entry(ctmp, struct ksock_conn, ksnc_list);
+
+		if (!list_empty(&conn->ksnc_tx_queue))
+			list_for_each(txtmp, &conn->ksnc_tx_queue) txcount++;
+
+		CDEBUG(D_CONSOLE, "Conn %d [type, closing, crefcnt, srefcnt]: %d, %d, %d, %d\n",
+		       ccount,
+		       conn->ksnc_type,
+		       conn->ksnc_closing,
+		       refcount_read(&conn->ksnc_conn_refcount),
+		       refcount_read(&conn->ksnc_sock_refcount));
+		CDEBUG(D_CONSOLE, "Conn %d rx [scheduled, ready, state]: %d, %d, %d\n",
+		       ccount,
+		       conn->ksnc_rx_scheduled,
+		       conn->ksnc_rx_ready,
+		       conn->ksnc_rx_state);
+		CDEBUG(D_CONSOLE,
+		       "Conn %d tx [txqcnt, scheduled, last_post, ready, deadline]: %d, %d, %lld, %d, %lld\n",
+		       ccount,
+		       txcount,
+		       conn->ksnc_tx_scheduled,
+		       conn->ksnc_tx_last_post,
+		       conn->ksnc_rx_ready,
+		       conn->ksnc_rx_deadline);
+
+		if (conn->ksnc_scheduler)
+			CDEBUG(D_CONSOLE, "Conn %d sched [nconns, cpt]: %d, %d\n",
+			       ccount,
+			       conn->ksnc_scheduler->kss_nconns,
+			       conn->ksnc_scheduler->kss_cpt);
+
+		txcount = 0;
+		ccount++;
+	}
+}
+
 static int
 ksocknal_get_peer_info(struct lnet_ni *ni, int index,
 		       struct lnet_processid *id, u32 *myip, u32 *peer_ip,
@@ -295,9 +341,9 @@ ksocknal_get_peer_info(struct lnet_ni *ni, int index,
 		if (index-- > 0)
 			continue;
 
+		*id = peer_ni->ksnp_id;
 		conn_cb = peer_ni->ksnp_conn_cb;
 		if (!conn_cb) {
-			*id = peer_ni->ksnp_id;
 			*myip = 0;
 			*peer_ip = 0;
 			*port = 0;
@@ -305,7 +351,8 @@ ksocknal_get_peer_info(struct lnet_ni *ni, int index,
 			*share_count = 0;
 			rc = 0;
 		} else {
-			*id = peer_ni->ksnp_id;
+			ksocknal_dump_peer_debug_info(peer_ni);
+
 			if (conn_cb->ksnr_addr.ss_family == AF_INET) {
 				struct sockaddr_in *sa;
 
