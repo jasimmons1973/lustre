@@ -135,23 +135,23 @@ cleanup:
 	switch (cleanup_phase) {
 	case 8:
 		ptlrpc_nrs_fini();
-		/* Fall through */
+		fallthrough;
 	case 7:
 		sptlrpc_fini();
-		/* Fall through */
+		fallthrough;
 	case 6:
 		ldlm_exit();
-		/* Fall through */
+		fallthrough;
 	case 5:
 		ptlrpc_connection_fini();
-		/* Fall through */
+		fallthrough;
 	case 3:
 		ptlrpc_request_cache_fini();
-		/* Fall through */
+		fallthrough;
 	case 1:
 		ptlrpc_hr_fini();
 		req_layout_fini();
-		/* Fall through */
+		fallthrough;
 	default:
 		break;
 	}

@@ -1072,7 +1072,7 @@ echo_client_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 		}
 
 		rw = OBD_BRW_WRITE;
-		/* fall through */
+		fallthrough;
 	case OBD_IOC_BRW_READ:
 		rc = echo_client_brw_ioctl(env, rw, exp, data);
 		goto out;

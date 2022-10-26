@@ -2308,7 +2308,7 @@ int lov_read_and_clear_async_rc(struct cl_object *clob)
 		}
 		case LLT_RELEASED:
 		case LLT_EMPTY:
-			/* fall through */
+			fallthrough;
 		case LLT_FOREIGN:
 			break;
 		default:

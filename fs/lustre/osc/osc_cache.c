@@ -230,7 +230,7 @@ static int __osc_extent_sanity_check(struct osc_extent *ext,
 			rc = 65;
 			goto out;
 		}
-		/* fall through */
+		fallthrough;
 	default:
 		if (atomic_read(&ext->oe_users) > 0) {
 			rc = 70;
