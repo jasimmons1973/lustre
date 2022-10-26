@@ -1821,9 +1821,8 @@ kiblnd_recv(struct lnet_ni *ni, void *private, struct lnet_msg *lntmsg,
 	switch (rxmsg->ibm_type) {
 	default:
 		LBUG();
-
+		fallthrough;
 	case IBLND_MSG_IMMEDIATE:
-		/* fallthrough */
 		nob = offsetof(struct kib_msg, ibm_u.immediate.ibim_payload[rlen]);
 		if (nob > rx->rx_nob) {
 			CERROR("Immediate message from %s too big: %d(%d)\n",
@@ -2918,7 +2917,7 @@ kiblnd_rejected(struct kib_conn *conn, int reason, void *priv, int priv_nob)
 			}
 			break;
 		}
-		/* fall through */
+		fallthrough;
 	default:
 		CNETERR("%s rejected: reason %d, size %d\n",
 			libcfs_nid2str(peer_ni->ibp_nid), reason, priv_nob);

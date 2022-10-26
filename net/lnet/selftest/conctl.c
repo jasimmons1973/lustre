@@ -136,7 +136,7 @@ lst_debug_ioctl(struct lstio_debug_args *args)
 
 	case LST_OPC_BATCHSRV:
 		client = 0;
-		/* fall through */
+		fallthrough;
 	case LST_OPC_BATCHCLI:
 		if (!args->lstio_dbg_namep)
 			goto out;

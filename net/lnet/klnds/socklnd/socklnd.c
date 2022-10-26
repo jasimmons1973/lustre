@@ -2135,7 +2135,8 @@ ksocknal_base_shutdown(void)
 	switch (ksocknal_data.ksnd_init) {
 	default:
 		LASSERT(0);
-		/* fall through */
+		fallthrough;
+
 	case SOCKNAL_INIT_ALL:
 	case SOCKNAL_INIT_DATA:
 		hash_for_each(ksocknal_data.ksnd_peers, i, peer_ni, ksnp_list)

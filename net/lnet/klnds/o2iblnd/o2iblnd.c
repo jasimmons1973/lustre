@@ -2841,7 +2841,7 @@ static void kiblnd_base_shutdown(void)
 				       !atomic_read(&kiblnd_data.kib_nthreads),
 				       "Waiting for %d threads to terminate\n",
 				       atomic_read(&kiblnd_data.kib_nthreads));
-		/* fall through */
+		fallthrough;
 
 	case IBLND_INIT_NOTHING:
 		break;
@@ -2898,7 +2898,7 @@ static void kiblnd_shutdown(struct lnet_ni *ni)
 				       "%s: waiting for %d conns to clean\n",
 				       libcfs_nidstr(&ni->ni_nid),
 				       atomic_read(&net->ibn_nconns));
-		/* fall through */
+		fallthrough;
 
 	case IBLND_INIT_NOTHING:
 		LASSERT(!atomic_read(&net->ibn_nconns));

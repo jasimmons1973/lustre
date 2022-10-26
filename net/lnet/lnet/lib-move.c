@@ -3804,7 +3804,7 @@ lnet_mt_event_handler(struct lnet_event *event)
 	case LNET_EVENT_UNLINK:
 		CDEBUG(D_NET, "%s recovery ping unlinked\n",
 		       libcfs_nidstr(&ev_info->mt_nid));
-		/* fall-through */
+		fallthrough;
 	case LNET_EVENT_REPLY:
 		lnet_handle_recovery_reply(ev_info, event->status, false,
 					   event->type == LNET_EVENT_UNLINK);
@@ -4012,7 +4012,7 @@ again:
 			ready_delay = true;
 			goto again;
 		}
-		/* fall through */
+		fallthrough;
 
 	case LNET_MATCHMD_DROP:
 		CNETERR("Dropping PUT from %s portal %d match %llu offset %d length %d: %d\n",
