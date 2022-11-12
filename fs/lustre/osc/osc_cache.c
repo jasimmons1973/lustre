@@ -1140,9 +1140,7 @@ static int osc_extent_make_ready(const struct lu_env *env,
 		rc = osc_make_ready(env, oap, OBD_BRW_WRITE);
 		switch (rc) {
 		case 0:
-			spin_lock(&oap->oap_lock);
 			oap->oap_async_flags |= ASYNC_READY;
-			spin_unlock(&oap->oap_lock);
 			break;
 		case -EALREADY:
 			LASSERT((oap->oap_async_flags & ASYNC_READY) != 0);
@@ -1165,9 +1163,7 @@ static int osc_extent_make_ready(const struct lu_env *env,
 			 "last_oap_count %d\n", last_oap_count);
 		LASSERT(last->oap_page_off + last_oap_count <= PAGE_SIZE);
 		last->oap_count = last_oap_count;
-		spin_lock(&last->oap_lock);
 		last->oap_async_flags |= ASYNC_COUNT_STABLE;
-		spin_unlock(&last->oap_lock);
 	}
 
 	/* for the rest of pages, we don't need to call osf_refresh_count()
@@ -1176,9 +1172,7 @@ static int osc_extent_make_ready(const struct lu_env *env,
 	list_for_each_entry(oap, &ext->oe_pages, oap_pending_item) {
 		if (!(oap->oap_async_flags & ASYNC_COUNT_STABLE)) {
 			oap->oap_count = PAGE_SIZE - oap->oap_page_off;
-			spin_lock(&last->oap_lock);
 			oap->oap_async_flags |= ASYNC_COUNT_STABLE;
-			spin_unlock(&last->oap_lock);
 		}
 	}
 
@@ -1866,9 +1860,7 @@ static void osc_ap_completion(const struct lu_env *env, struct client_obd *cli,
 	}
 
 	/* As the transfer for this page is being done, clear the flags */
-	spin_lock(&oap->oap_lock);
 	oap->oap_async_flags = 0;
-	spin_unlock(&oap->oap_lock);
 
 	if (oap->oap_cmd & OBD_BRW_WRITE && xid > 0) {
 		spin_lock(&cli->cl_loi_list_lock);
@@ -2330,7 +2322,6 @@ int osc_prep_async_page(struct osc_object *osc, struct osc_page *ops,
 	INIT_LIST_HEAD(&oap->oap_pending_item);
 	INIT_LIST_HEAD(&oap->oap_rpc_item);
 
-	spin_lock_init(&oap->oap_lock);
 	CDEBUG(D_INFO, "oap %p vmpage %p obj off %llu\n",
 	       oap, vmpage, oap->oap_obj_off);
 	return 0;
@@ -2619,9 +2610,7 @@ int osc_flush_async_page(const struct lu_env *env, struct cl_io *io,
 	if (rc)
 		goto out;
 
-	spin_lock(&oap->oap_lock);
 	oap->oap_async_flags |= ASYNC_READY | ASYNC_URGENT;
-	spin_unlock(&oap->oap_lock);
 
 	if (current->flags & PF_MEMALLOC)
 		ext->oe_memalloc = 1;
