@@ -367,8 +367,7 @@ lnet_net_alloc(u32 net_id, struct list_head *net_list)
 	return net;
 }
 
-static int
-lnet_ni_add_interface(struct lnet_ni *ni, char *iface)
+int lnet_ni_add_interface(struct lnet_ni *ni, char *iface)
 {
 	if (!ni)
 		return -ENOMEM;
@@ -395,6 +394,7 @@ lnet_ni_add_interface(struct lnet_ni *ni, char *iface)
 
 	return 0;
 }
+EXPORT_SYMBOL(lnet_ni_add_interface);
 
 static struct lnet_ni *
 lnet_ni_alloc_common(struct lnet_net *net, char *iface)
