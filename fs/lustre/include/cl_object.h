@@ -768,7 +768,15 @@ struct cl_page {
 	enum cl_page_type		 cp_type:CP_TYPE_BITS;
 	unsigned int			 cp_defer_uptodate:1,
 					 cp_ra_updated:1,
-					 cp_ra_used:1;
+					 cp_ra_used:1,
+					 /* fault page read grab extra referece */
+					 cp_fault_ref:1,
+					 /**
+					  * if fault page got delete before returned to
+					  * filemap_fault(), defer the vmpage detach/put
+					  * until filemap_fault() has been handled.
+					  */
+					 cp_defer_detach:1;
 
 	/* which slab kmem index this memory allocated from */
 	short int			 cp_kmem_index;
@@ -2392,6 +2400,11 @@ int cl_io_lru_reserve(const struct lu_env *env, struct cl_io *io,
 		      loff_t pos, size_t bytes);
 int cl_io_read_ahead(const struct lu_env *env, struct cl_io *io,
 		     pgoff_t start, struct cl_read_ahead *ra);
+
+static inline int cl_io_is_pagefault(const struct cl_io *io)
+{
+	return io->ci_type == CIT_FAULT && !io->u.ci_fault.ft_mkwrite;
+}
 
 /**
  * True, if @io is an O_APPEND write(2).
