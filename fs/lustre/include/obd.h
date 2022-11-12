@@ -326,7 +326,6 @@ struct client_obd {
 	/* modify rpcs in flight
 	 * currently used for metadata only
 	 */
-	spinlock_t		cl_mod_rpcs_lock;
 	u16			cl_max_mod_rpcs_in_flight;
 	u16			cl_mod_rpcs_in_flight;
 	u16			cl_close_rpcs_in_flight;
