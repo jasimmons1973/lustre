@@ -308,7 +308,8 @@ out:
  */
 int lustre_get_jobid(char *jobid, size_t joblen)
 {
-	char tmp_jobid[LUSTRE_JOBID_SIZE] = "";
+	char id[LUSTRE_JOBID_SIZE] = "";
+	int len = min_t(int, joblen, LUSTRE_JOBID_SIZE);
 
 	if (unlikely(joblen < 2)) {
 		if (joblen == 1)
@@ -324,14 +325,14 @@ int lustre_get_jobid(char *jobid, size_t joblen)
 	if (strcmp(obd_jobid_var, JOBSTATS_NODELOCAL) == 0 ||
 	    strnstr(obd_jobid_name, "%j", LUSTRE_JOBID_SIZE)) {
 		int rc2 = jobid_interpret_string(obd_jobid_name,
-						 tmp_jobid, joblen);
+						 id, len);
 		if (!rc2)
 			goto out_cache_jobid;
 	}
 
 	/* Use process name + fsuid as jobid */
 	if (strcmp(obd_jobid_var, JOBSTATS_PROCNAME_UID) == 0) {
-		snprintf(tmp_jobid, LUSTRE_JOBID_SIZE, "%s.%u",
+		snprintf(id, LUSTRE_JOBID_SIZE, "%s.%u",
 			 current->comm,
 			 from_kuid(&init_user_ns, current_fsuid()));
 		goto out_cache_jobid;
@@ -343,7 +344,7 @@ int lustre_get_jobid(char *jobid, size_t joblen)
 		rcu_read_lock();
 		jid = jobid_current();
 		if (jid)
-			strlcpy(tmp_jobid, jid, sizeof(tmp_jobid));
+			strlcpy(id, jid, sizeof(id));
 		rcu_read_unlock();
 		goto out_cache_jobid;
 	}
@@ -352,8 +353,8 @@ int lustre_get_jobid(char *jobid, size_t joblen)
 
 out_cache_jobid:
 	/* Only replace the job ID if it changed. */
-	if (strcmp(jobid, tmp_jobid) != 0)
-		strcpy(jobid, tmp_jobid);
+	if (strcmp(jobid, id) != 0)
+		strcpy(jobid, id);
 
 	return 0;
 }
