@@ -324,6 +324,7 @@ static int ldlm_lock_destroy_internal(struct ldlm_lock *lock)
 		return 0;
 	}
 	ldlm_set_destroyed(lock);
+	wake_up(&lock->l_waitq);
 
 	ldlm_lock_remove_from_lru(lock);
 	class_handle_unhash(&lock->l_handle);
@@ -1067,10 +1068,12 @@ static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 	 * can still happen.
 	 */
 	if (ldlm_is_cbpending(lock) &&
-	    !(data->lmd_flags & LDLM_FL_CBPENDING))
+	    !(data->lmd_flags & LDLM_FL_CBPENDING) &&
+	    !(data->lmd_match & LDLM_MATCH_GROUP))
 		return false;
 
-	if (!(data->lmd_match & LDLM_MATCH_UNREF) && ldlm_is_cbpending(lock) &&
+	if (!(data->lmd_match & (LDLM_MATCH_UNREF | LDLM_MATCH_GROUP)) &&
+	    ldlm_is_cbpending(lock) &&
 	    !lock->l_readers && !lock->l_writers)
 		return false;
 
@@ -1136,7 +1139,12 @@ static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 		return false;
 
 matched:
-	if (data->lmd_flags & LDLM_FL_TEST_LOCK) {
+	/**
+	 * In case the lock is a CBPENDING grouplock, just pin it and return,
+	 * we need to wait until it gets to DESTROYED.
+	 */
+	if ((data->lmd_flags & LDLM_FL_TEST_LOCK) ||
+	    (ldlm_is_cbpending(lock) && (data->lmd_match & LDLM_MATCH_GROUP))) {
 		LDLM_LOCK_GET(lock);
 		ldlm_lock_touch_in_lru(lock);
 	} else {
@@ -1296,6 +1304,7 @@ enum ldlm_mode ldlm_lock_match_with_skip(struct ldlm_namespace *ns,
 	};
 	struct ldlm_resource *res;
 	struct ldlm_lock *lock;
+	struct ldlm_lock *group_lock;
 	int matched;
 
 	if (!ns) {
@@ -1314,6 +1323,8 @@ enum ldlm_mode ldlm_lock_match_with_skip(struct ldlm_namespace *ns,
 		return 0;
 	}
 
+repeat:
+	group_lock = NULL;
 	LDLM_RESOURCE_ADDREF(res);
 	lock_res(res);
 	if (res->lr_type == LDLM_EXTENT)
@@ -1323,8 +1334,19 @@ enum ldlm_mode ldlm_lock_match_with_skip(struct ldlm_namespace *ns,
 	if (!lock && !(flags & LDLM_FL_BLOCK_GRANTED))
 		lock = search_queue(&res->lr_waiting, &data);
 	matched = lock ? mode : 0;
+
+	if (lock && ldlm_is_cbpending(lock) &&
+	    (data.lmd_match & LDLM_MATCH_GROUP))
+		group_lock = lock;
 	unlock_res(res);
 	LDLM_RESOURCE_DELREF(res);
+
+	if (group_lock) {
+		l_wait_event_abortable(group_lock->l_waitq,
+				       ldlm_is_destroyed(lock));
+		LDLM_LOCK_RELEASE(lock);
+		goto repeat;
+	}
 	ldlm_resource_putref(res);
 
 	if (lock) {

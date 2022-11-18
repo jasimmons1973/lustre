@@ -330,7 +330,6 @@ static int mdc_dlm_canceling(const struct lu_env *env,
 	 */
 	if (obj) {
 		struct cl_attr *attr = &osc_env_info(env)->oti_attr;
-		void *data;
 
 		/* Destroy pages covered by the extent of the DLM lock */
 		result = mdc_lock_flush(env, cl2osc(obj), cl_index(obj, 0),
@@ -340,17 +339,12 @@ static int mdc_dlm_canceling(const struct lu_env *env,
 		 */
 		/* losing a lock, update kms */
 		lock_res_and_lock(dlmlock);
-		data = dlmlock->l_ast_data;
 		dlmlock->l_ast_data = NULL;
 		cl_object_attr_lock(obj);
 		attr->cat_kms = 0;
 		cl_object_attr_update(env, obj, attr, CAT_KMS);
 		cl_object_attr_unlock(obj);
 		unlock_res_and_lock(dlmlock);
-
-		/* Skip dec in case mdc_object_ast_clear() did it */
-		if (data && dlmlock->l_req_mode == LCK_GROUP)
-			osc_grouplock_dec(cl2osc(obj), dlmlock);
 		cl_object_put(env, obj);
 	}
 	return result;
@@ -457,7 +451,7 @@ void mdc_lock_lvb_update(const struct lu_env *env, struct osc_object *osc,
 }
 
 static void mdc_lock_granted(const struct lu_env *env, struct osc_lock *oscl,
-			     struct lustre_handle *lockh, int errcode)
+			     struct lustre_handle *lockh)
 {
 	struct osc_object *osc = cl2osc(oscl->ols_cl.cls_obj);
 	struct ldlm_lock *dlmlock;
@@ -510,9 +504,6 @@ static void mdc_lock_granted(const struct lu_env *env, struct osc_lock *oscl,
 
 	LASSERT(oscl->ols_state != OLS_GRANTED);
 	oscl->ols_state = OLS_GRANTED;
-
-	if (errcode != ELDLM_LOCK_MATCHED && dlmlock->l_req_mode == LCK_GROUP)
-		osc_grouplock_inc_locked(osc, dlmlock);
 }
 
 /**
@@ -544,7 +535,7 @@ static int mdc_lock_upcall(void *cookie, struct lustre_handle *lockh,
 
 	CDEBUG(D_INODE, "rc %d, err %d\n", rc, errcode);
 	if (rc == 0)
-		mdc_lock_granted(env, oscl, lockh, errcode);
+		mdc_lock_granted(env, oscl, lockh);
 
 	/* Error handling, some errors are tolerable. */
 	if (oscl->ols_glimpse && rc == -ENAVAIL) {
@@ -706,7 +697,8 @@ int mdc_enqueue_send(const struct lu_env *env, struct obd_export *exp,
 	struct ldlm_intent *lit;
 	enum ldlm_mode mode;
 	bool glimpse = *flags & LDLM_FL_HAS_INTENT;
-	u64 match_flags = *flags;
+	u64 search_flags = *flags;
+	u64 match_flags = 0;
 	LIST_HEAD(cancels);
 	int rc, count;
 	int lvb_size;
@@ -716,11 +708,14 @@ int mdc_enqueue_send(const struct lu_env *env, struct obd_export *exp,
 	if (einfo->ei_mode == LCK_PR)
 		mode |= LCK_PW;
 
-	match_flags |= LDLM_FL_LVB_READY;
+	search_flags |= LDLM_FL_LVB_READY;
 	if (glimpse)
-		match_flags |= LDLM_FL_BLOCK_GRANTED;
-	mode = ldlm_lock_match(obd->obd_namespace, match_flags, res_id,
-			       einfo->ei_type, policy, mode, &lockh);
+		search_flags |= LDLM_FL_BLOCK_GRANTED;
+	if (mode == LCK_GROUP)
+		match_flags = LDLM_MATCH_GROUP;
+	mode = ldlm_lock_match_with_skip(obd->obd_namespace, search_flags, 0,
+					 res_id, einfo->ei_type, policy, mode,
+					 &lockh, match_flags);
 	if (mode) {
 		struct ldlm_lock *matched;
 
@@ -833,9 +828,9 @@ int mdc_enqueue_send(const struct lu_env *env, struct obd_export *exp,
  *
  * This function does not wait for the network communication to complete.
  */
-static int __mdc_lock_enqueue(const struct lu_env *env,
-			      const struct cl_lock_slice *slice,
-			      struct cl_io *unused, struct cl_sync_io *anchor)
+static int mdc_lock_enqueue(const struct lu_env *env,
+			    const struct cl_lock_slice *slice,
+			    struct cl_io *unused, struct cl_sync_io *anchor)
 {
 	struct osc_thread_info *info = osc_env_info(env);
 	struct osc_io *oio = osc_env_io(env);
@@ -919,28 +914,6 @@ out:
 			cl_sync_io_note(env, anchor, result);
 	}
 	return result;
-}
-
-static int mdc_lock_enqueue(const struct lu_env *env,
-			    const struct cl_lock_slice *slice,
-			    struct cl_io *unused, struct cl_sync_io *anchor)
-{
-	struct osc_object *obj = cl2osc(slice->cls_obj);
-	struct osc_lock	*oscl = cl2osc_lock(slice);
-	struct lustre_handle lh = { 0 };
-	int rc;
-
-	if (oscl->ols_cl.cls_lock->cll_descr.cld_mode == CLM_GROUP) {
-		rc = osc_grouplock_enqueue_init(env, obj, oscl, &lh);
-		if (rc < 0)
-			return rc;
-	}
-
-	rc = __mdc_lock_enqueue(env, slice, unused, anchor);
-
-	if (oscl->ols_cl.cls_lock->cll_descr.cld_mode == CLM_GROUP)
-		osc_grouplock_enqueue_fini(env, obj, oscl, &lh);
-	return rc;
 }
 
 static const struct cl_lock_operations mdc_lock_lockless_ops = {
@@ -1468,9 +1441,6 @@ static int mdc_object_ast_clear(struct ldlm_lock *lock, void *data)
 		memcpy(lvb, &oinfo->loi_lvb, sizeof(oinfo->loi_lvb));
 		cl_object_attr_unlock(&osc->oo_cl);
 		ldlm_clear_lvb_cached(lock);
-
-		if (lock->l_req_mode == LCK_GROUP)
-			osc_grouplock_dec(osc, lock);
 	}
 	return LDLM_ITER_CONTINUE;
 }
