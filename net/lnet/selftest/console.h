@@ -136,36 +136,34 @@ struct lstcon_test {
 #define LST_CONSOLE_TIMEOUT	300	/* default console timeout */
 
 struct lstcon_session {
-	struct mutex	   ses_mutex;		/* only 1 thread in session */
-	struct lst_sid	   ses_id;		/* global session id */
-	int		   ses_key;		/* local session key */
-	int		   ses_state;		/* state of session */
-	int		   ses_timeout;		/* timeout in seconds */
-	time64_t	   ses_laststamp;	/* last operation stamp (secs) */
-	unsigned int	   ses_features;	/* tests features of the session */
-	unsigned int	   ses_feats_updated:1; /* features are synced with
-						 * remote test nodes
-						 */
-	unsigned int	   ses_force:1;		/* force creating */
-	unsigned int	   ses_shutdown:1;	/* session is shutting down */
-	unsigned int	   ses_expired:1;	/* console is timedout */
-	u64		   ses_id_cookie;	/* batch id cookie */
-	char		   ses_name[LST_NAME_SIZE];/* session name */
-	struct lstcon_rpc_trans
-			   *ses_ping;		/* session pinger */
-	struct stt_timer   ses_ping_timer;	/* timer for pinger */
-	struct lstcon_trans_stat
-			   ses_trans_stat;	/* transaction stats */
+	struct mutex		ses_mutex;	/* only 1 thread in session */
+	struct lst_session_id	ses_id;		/* global session id */
+	u32			ses_key;	/* local session key */
+	int			ses_state;	/* state of session */
+	int			ses_timeout;	/* timeout in seconds */
+	time64_t		ses_laststamp;	/* last operation stamp (secs) */
+	unsigned int		ses_features;	/* tests features of the session */
+	unsigned int		ses_feats_updated:1; /* features are synced with
+						      * remote test nodes
+						      */
+	unsigned int		ses_force:1;	/* force creating */
+	unsigned int		ses_shutdown:1;	/* session is shutting down */
+	unsigned int		ses_expired:1;	/* console is timedout */
+	u64			ses_id_cookie;	/* batch id cookie */
+	char			ses_name[LST_NAME_SIZE];/* session name */
+	struct lstcon_rpc_trans *ses_ping;	/* session pinger */
+	struct stt_timer	ses_ping_timer;	/* timer for pinger */
+	struct lstcon_trans_stat ses_trans_stat;/* transaction stats */
 
-	struct list_head   ses_trans_list;	/* global list of transaction */
-	struct list_head   ses_grp_list;	/* global list of groups */
-	struct list_head   ses_bat_list;	/* global list of batches */
-	struct list_head   ses_ndl_list;	/* global list of nodes */
-	struct list_head   *ses_ndl_hash;	/* hash table of nodes */
+	struct list_head	ses_trans_list;	/* global list of transaction */
+	struct list_head	ses_grp_list;	/* global list of groups */
+	struct list_head	ses_bat_list;	/* global list of batches */
+	struct list_head	ses_ndl_list;	/* global list of nodes */
+	struct list_head	*ses_ndl_hash;	/* hash table of nodes */
 
-	spinlock_t	   ses_rpc_lock;	/* serialize */
-	atomic_t	   ses_rpc_counter;	/* # of initialized RPCs */
-	struct list_head   ses_rpc_freelist;	/* idle console rpc */
+	spinlock_t		ses_rpc_lock;	/* serialize */
+	atomic_t		ses_rpc_counter;/* # of initialized RPCs */
+	struct list_head	ses_rpc_freelist;/* idle console rpc */
 }; /* session descriptor */
 
 extern struct lstcon_session	console_session;
@@ -186,14 +184,16 @@ lstcon_id2hash(struct lnet_process_id id, struct list_head *hash)
 
 int lstcon_ioctl_entry(struct notifier_block *nb,
 		       unsigned long cmd, void *vdata);
+
+int lstcon_init_netlink(void);
+void lstcon_fini_netlink(void);
+
 int lstcon_console_init(void);
 int lstcon_console_fini(void);
+
 int lstcon_session_match(struct lst_sid sid);
 int lstcon_session_new(char *name, int key, unsigned int version,
-		       int timeout, int flags, struct lst_sid __user *sid_up);
-int lstcon_session_info(struct lst_sid __user *sid_up, int __user *key,
-			unsigned __user *verp, struct lstcon_ndlist_ent __user *entp,
-			char __user *name_up, int len);
+		       int timeout, int flags);
 int lstcon_session_end(void);
 int lstcon_session_debug(int timeout, struct list_head __user *result_up);
 int lstcon_session_feats_check(unsigned int feats);

@@ -84,8 +84,6 @@ struct lst_sid {
 	__s64		ses_stamp;	/* time stamp */
 };					/*** session id */
 
-extern struct lst_sid LST_INVALID_SID;
-
 struct lst_bid {
 	__u64	bat_id;		/* unique id in session */
 };				/*** batch id (group of tests) */
@@ -576,5 +574,24 @@ struct sfw_counters {
 	__u32 brw_errors;
 	__u32 ping_errors;
 } __packed;
+
+#define LNET_SELFTEST_GENL_NAME		"lnet_selftest"
+#define LNET_SELFTEST_GENL_VERSION	0x1
+
+/* enum lnet_selftest_commands	      - Supported core LNet Selftest Netlink
+ *					commands
+ *
+ * @LNET_SELFTEST_CMD_UNSPEC:		unspecified command to catch errors
+ * @LNET_SELFTEST_CMD_SESSIONS:		command to manage sessions
+ */
+enum lnet_selftest_commands {
+	LNET_SELFTEST_CMD_UNSPEC	= 0,
+
+	LNET_SELFTEST_CMD_SESSIONS	= 1,
+
+	__LNET_SELFTEST_CMD_MAX_PLUS_ONE,
+};
+
+#define LNET_SELFTEST_CMD_MAX (__LNET_SELFTEST_CMD_MAX_PLUS_ONE - 1)
 
 #endif

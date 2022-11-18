@@ -602,7 +602,9 @@ lstcon_sesrpc_prep(struct lstcon_node *nd, int transop,
 			return rc;
 
 		msrq = &(*crpc)->crp_rpc->crpc_reqstmsg.msg_body.mksn_reqst;
-		msrq->mksn_sid = console_session.ses_id;
+		msrq->mksn_sid.ses_stamp = console_session.ses_id.ses_stamp;
+		msrq->mksn_sid.ses_nid =
+			lnet_nid_to_nid4(&console_session.ses_id.ses_nid);
 		msrq->mksn_force = console_session.ses_force;
 		strlcpy(msrq->mksn_name, console_session.ses_name,
 			sizeof(msrq->mksn_name));
@@ -615,7 +617,9 @@ lstcon_sesrpc_prep(struct lstcon_node *nd, int transop,
 			return rc;
 
 		rsrq = &(*crpc)->crp_rpc->crpc_reqstmsg.msg_body.rmsn_reqst;
-		rsrq->rmsn_sid = console_session.ses_id;
+		rsrq->rmsn_sid.ses_stamp = console_session.ses_id.ses_stamp;
+		rsrq->rmsn_sid.ses_nid =
+			lnet_nid_to_nid4(&console_session.ses_id.ses_nid);
 		break;
 
 	default:
@@ -638,7 +642,9 @@ lstcon_dbgrpc_prep(struct lstcon_node *nd, unsigned int feats,
 
 	drq = &(*crpc)->crp_rpc->crpc_reqstmsg.msg_body.dbg_reqst;
 
-	drq->dbg_sid = console_session.ses_id;
+	drq->dbg_sid.ses_stamp = console_session.ses_id.ses_stamp;
+	drq->dbg_sid.ses_nid =
+		lnet_nid_to_nid4(&console_session.ses_id.ses_nid);
 	drq->dbg_flags = 0;
 
 	return rc;
@@ -658,7 +664,9 @@ lstcon_batrpc_prep(struct lstcon_node *nd, int transop, unsigned int feats,
 
 	brq = &(*crpc)->crp_rpc->crpc_reqstmsg.msg_body.bat_reqst;
 
-	brq->bar_sid = console_session.ses_id;
+	brq->bar_sid.ses_stamp = console_session.ses_id.ses_stamp;
+	brq->bar_sid.ses_nid =
+		lnet_nid_to_nid4(&console_session.ses_id.ses_nid);
 	brq->bar_bid = tsb->tsb_id;
 	brq->bar_testidx = tsb->tsb_index;
 	brq->bar_opc = transop == LST_TRANS_TSBRUN ? SRPC_BATCH_OPC_RUN :
@@ -690,7 +698,9 @@ lstcon_statrpc_prep(struct lstcon_node *nd, unsigned int feats,
 
 	srq = &(*crpc)->crp_rpc->crpc_reqstmsg.msg_body.stat_reqst;
 
-	srq->str_sid = console_session.ses_id;
+	srq->str_sid.ses_stamp = console_session.ses_id.ses_stamp;
+	srq->str_sid.ses_nid =
+		lnet_nid_to_nid4(&console_session.ses_id.ses_nid);
 	srq->str_type = 0; /* XXX remove it */
 
 	return 0;
@@ -877,7 +887,9 @@ lstcon_testrpc_prep(struct lstcon_node *nd, int transop, unsigned int feats,
 		trq->tsr_loop = test->tes_loop;
 	}
 
-	trq->tsr_sid = console_session.ses_id;
+	trq->tsr_sid.ses_stamp = console_session.ses_id.ses_stamp;
+	trq->tsr_sid.ses_nid =
+		lnet_nid_to_nid4(&console_session.ses_id.ses_nid);
 	trq->tsr_bid = test->tes_hdr.tsb_id;
 	trq->tsr_concur = test->tes_concur;
 	trq->tsr_is_client = (transop == LST_TRANS_TSBCLIADD) ? 1 : 0;
@@ -1259,7 +1271,9 @@ lstcon_rpc_pinger(void *arg)
 
 		drq = &crpc->crp_rpc->crpc_reqstmsg.msg_body.dbg_reqst;
 
-		drq->dbg_sid = console_session.ses_id;
+		drq->dbg_sid.ses_stamp = console_session.ses_id.ses_stamp;
+		drq->dbg_sid.ses_nid =
+			lnet_nid_to_nid4(&console_session.ses_id.ses_nid);
 		drq->dbg_flags = 0;
 
 		lstcon_rpc_trans_addreq(trans, crpc);
