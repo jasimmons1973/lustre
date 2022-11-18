@@ -1967,9 +1967,13 @@ kiblnd_peer_notify(struct kib_peer_ni *peer_ni)
 
 	read_unlock_irqrestore(&kiblnd_data.kib_global_lock, flags);
 
-	if (error)
-		lnet_notify(peer_ni->ibp_ni,
-			    peer_ni->ibp_nid, false, false, last_alive);
+	if (error != 0) {
+		struct lnet_nid nid;
+
+		lnet_nid4_to_nid(peer_ni->ibp_nid, &nid);
+		lnet_notify(peer_ni->ibp_ni, &nid,
+			    false, false, last_alive);
+	}
 }
 
 void

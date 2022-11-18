@@ -574,8 +574,8 @@ void lnet_router_exit(void);
 
 void lnet_mt_event_handler(struct lnet_event *event);
 
-int lnet_notify(struct lnet_ni *ni, lnet_nid_t peer, bool alive, bool reset,
-		time64_t when);
+int lnet_notify(struct lnet_ni *ni, struct lnet_nid *peer, bool alive,
+		bool reset, time64_t when);
 void lnet_notify_locked(struct lnet_peer_ni *lp, int notifylnd, int alive,
 			time64_t when);
 int lnet_add_route(u32 net, u32 hops, struct lnet_nid *gateway,
