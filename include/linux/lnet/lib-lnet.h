@@ -542,9 +542,7 @@ unsigned int lnet_nid_cpt_hash(struct lnet_nid *nid,
 int lnet_cpt_of_nid_locked(struct lnet_nid *nid, struct lnet_ni *ni);
 int lnet_cpt_of_nid(lnet_nid_t nid, struct lnet_ni *ni);
 int lnet_nid2cpt(struct lnet_nid *nid, struct lnet_ni *ni);
-struct lnet_ni *lnet_nid2ni_locked(lnet_nid_t nid, int cpt);
 struct lnet_ni *lnet_nid_to_ni_locked(struct lnet_nid *nid, int cpt);
-struct lnet_ni *lnet_nid2ni_addref(lnet_nid_t nid);
 struct lnet_ni *lnet_net2ni_locked(u32 net, int cpt);
 struct lnet_ni *lnet_net2ni_addref(u32 net);
 struct lnet_ni *lnet_nid_to_ni_addref(struct lnet_nid *nid);
