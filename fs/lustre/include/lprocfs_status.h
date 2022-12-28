@@ -461,7 +461,7 @@ int lprocfs_obd_setup(struct obd_device *obd, bool uuid_only);
 int lprocfs_obd_cleanup(struct obd_device *obd);
 void lprocfs_stats_header(struct seq_file *seq, ktime_t now,
 			  ktime_t ts_init, int width, const char *colon,
-			  bool show_units);
+			  bool show_units, const char *prefix);
 
 /* Generic callbacks */
 int ldebugfs_uint(struct seq_file *m, void *data);
