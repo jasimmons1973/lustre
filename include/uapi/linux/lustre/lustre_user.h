@@ -1715,9 +1715,11 @@ static inline __kernel_size_t changelog_rec_snamelen(struct changelog_rec *rec)
 
 static inline char *changelog_rec_sname(struct changelog_rec *rec)
 {
-	char *cr_name = changelog_rec_name(rec);
+	char *str = changelog_rec_name(rec);
 
-	return cr_name + strlen(cr_name) + 1;
+	while (*str != '\0')
+		str++;
+	return str + 1;
 }
 
 /**
