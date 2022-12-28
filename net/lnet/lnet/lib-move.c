@@ -1114,7 +1114,7 @@ routing_off:
 }
 
 static struct lnet_peer_ni *
-lnet_select_peer_ni(struct lnet_ni *best_ni, lnet_nid_t dst_nid,
+lnet_select_peer_ni(struct lnet_ni *best_ni, struct lnet_nid *dst_nid,
 		    struct lnet_peer *peer,
 		    struct lnet_peer_ni *best_lpni,
 		    struct lnet_peer_net *peer_net)
@@ -1220,7 +1220,7 @@ select_lpni:
 	/* if we still can't find a peer ni then we can't reach it */
 	if (!best_lpni) {
 		u32 net_id = (peer_net) ? peer_net->lpn_net_id :
-			     LNET_NIDNET(dst_nid);
+			     LNET_NID_NET(dst_nid);
 		CDEBUG(D_NET, "no peer_ni found on peer net %s\n",
 		       libcfs_net2str(net_id));
 		return NULL;
@@ -1242,7 +1242,7 @@ select_lpni:
  * ones.
  */
 static inline struct lnet_peer_ni *
-lnet_find_best_lpni(struct lnet_ni *lni, lnet_nid_t dst_nid,
+lnet_find_best_lpni(struct lnet_ni *lni, struct lnet_nid *dst_nid,
 		    struct lnet_peer *peer, u32 net_id)
 {
 	struct lnet_peer_net *peer_net;
@@ -1350,7 +1350,7 @@ lnet_find_route_locked(struct lnet_remotenet *rnet, u32 src_net,
 			 * src_net provided. If the src_net is LNET_NID_ANY,
 			 * then select the best interface available.
 			 */
-			lpni = lnet_find_best_lpni(NULL, LNET_NID_ANY,
+			lpni = lnet_find_best_lpni(NULL, NULL,
 						   route->lr_gateway,
 						   src_net);
 			if (!lpni) {
@@ -1395,8 +1395,7 @@ lnet_find_route_locked(struct lnet_remotenet *rnet, u32 src_net,
 		 * src_net provided. If the src_net is LNET_NID_ANY,
 		 * then select the best interface available.
 		 */
-		lpni = lnet_find_best_lpni(NULL, LNET_NID_ANY,
-					   route->lr_gateway,
+		lpni = lnet_find_best_lpni(NULL, NULL, route->lr_gateway,
 					   src_net);
 		if (!lpni) {
 			CDEBUG(D_NET,
@@ -2108,7 +2107,7 @@ use_lpn:
 			       libcfs_net2str(best_lpn->lpn_net_id));
 
 			sd->sd_best_lpni = lnet_find_best_lpni(sd->sd_best_ni,
-							       lnet_nid_to_nid4(&sd->sd_dst_nid),
+							       &sd->sd_dst_nid,
 							       lp,
 							       best_lpn->lpn_net_id);
 			if (!sd->sd_best_lpni) {
@@ -2540,8 +2539,7 @@ lnet_handle_any_mr_dsta(struct lnet_send_data *sd)
 					lnet_msg_discovery(sd->sd_msg));
 	if (sd->sd_best_ni) {
 		sd->sd_best_lpni =
-		  lnet_find_best_lpni(sd->sd_best_ni,
-				      lnet_nid_to_nid4(&sd->sd_dst_nid),
+		  lnet_find_best_lpni(sd->sd_best_ni, &sd->sd_dst_nid,
 				      sd->sd_peer,
 				      sd->sd_best_ni->ni_net->net_id);
 
