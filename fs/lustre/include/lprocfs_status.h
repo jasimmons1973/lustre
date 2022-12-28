@@ -124,12 +124,16 @@ struct rename_stats {
  * squares (for multi-valued counter samples only). This allows
  * external computation of standard deviation, but involves a 64-bit
  * multiply per counter increment.
+ *
+ * LPROCFS_CNTR_HISTOGRAM indicates that the counter should track a
+ * exponential histogram.
  */
 
 enum lprocfs_counter_config {
 	LPROCFS_CNTR_EXTERNALLOCK	= 0x0001,
 	LPROCFS_CNTR_AVGMINMAX		= 0x0002,
 	LPROCFS_CNTR_STDDEV		= 0x0004,
+	LPROCFS_CNTR_HISTOGRAM		= 0x0008,
 
 	/* counter unit type */
 	LPROCFS_TYPE_REQS		= 0x0000, /* default if config = 0 */
@@ -147,6 +151,8 @@ enum lprocfs_counter_config {
 	LPROCFS_TYPE_BYTES_FULL		= LPROCFS_TYPE_BYTES |
 					  LPROCFS_CNTR_AVGMINMAX |
 					  LPROCFS_CNTR_STDDEV,
+	LPROCFS_TYPE_BYTES_FULL_HISTOGRAM	= LPROCFS_TYPE_BYTES_FULL |
+						  LPROCFS_CNTR_HISTOGRAM,
 };
 
 #define LC_MIN_INIT ((~(u64)0) >> 1)
@@ -155,6 +161,7 @@ struct lprocfs_counter_header {
 	enum lprocfs_counter_config	lc_config;
 	const char			*lc_name;   /* must be static */
 	const char			*lc_units;  /* must be static */
+	struct obd_histogram		*lc_hist;
 };
 
 struct lprocfs_counter {
