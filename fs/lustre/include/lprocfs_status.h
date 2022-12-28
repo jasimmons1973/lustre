@@ -439,9 +439,9 @@ u64 lprocfs_stats_collector(struct lprocfs_stats *stats, int idx,
 			    enum lprocfs_fields_flags field);
 
 extern struct lprocfs_stats *
-lprocfs_alloc_stats(unsigned int num, enum lprocfs_stats_flags flags);
-void lprocfs_clear_stats(struct lprocfs_stats *stats);
-void lprocfs_free_stats(struct lprocfs_stats **stats);
+lprocfs_stats_alloc(unsigned int num, enum lprocfs_stats_flags flags);
+void lprocfs_stats_clear(struct lprocfs_stats *stats);
+void lprocfs_stats_free(struct lprocfs_stats **stats);
 int ldebugfs_alloc_md_stats(struct obd_device *obd,
 			    unsigned int num_private_stats);
 void ldebugfs_free_md_stats(struct obd_device *obd);

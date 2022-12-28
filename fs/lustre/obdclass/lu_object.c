@@ -1091,7 +1091,7 @@ int lu_site_init(struct lu_site *s, struct lu_device *top)
 		init_waitqueue_head(&bkt->lsb_waitq);
 	}
 
-	s->ls_stats = lprocfs_alloc_stats(LU_SS_LAST_STAT, 0);
+	s->ls_stats = lprocfs_stats_alloc(LU_SS_LAST_STAT, 0);
 	if (!s->ls_stats) {
 		kvfree(s->ls_bkts);
 		s->ls_bkts = NULL;
@@ -1147,7 +1147,7 @@ void lu_site_fini(struct lu_site *s)
 	}
 
 	if (s->ls_stats)
-		lprocfs_free_stats(&s->ls_stats);
+		lprocfs_stats_free(&s->ls_stats);
 }
 EXPORT_SYMBOL(lu_site_fini);
 
@@ -1163,6 +1163,7 @@ int lu_site_init_finish(struct lu_site *s)
 	if (result == 0)
 		list_add(&s->ls_linkage, &lu_sites);
 	up_write(&lu_sites_guard);
+
 	return result;
 }
 EXPORT_SYMBOL(lu_site_init_finish);

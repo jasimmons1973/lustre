@@ -1205,7 +1205,7 @@ int lprocfs_stats_alloc_one(struct lprocfs_stats *stats, unsigned int cpuid)
 	return rc;
 }
 
-struct lprocfs_stats *lprocfs_alloc_stats(unsigned int num,
+struct lprocfs_stats *lprocfs_stats_alloc(unsigned int num,
 					  enum lprocfs_stats_flags flags)
 {
 	struct lprocfs_stats *stats;
@@ -1259,12 +1259,12 @@ struct lprocfs_stats *lprocfs_alloc_stats(unsigned int num,
 	return stats;
 
 fail:
-	lprocfs_free_stats(&stats);
+	lprocfs_stats_free(&stats);
 	return NULL;
 }
-EXPORT_SYMBOL(lprocfs_alloc_stats);
+EXPORT_SYMBOL(lprocfs_stats_alloc);
 
-void lprocfs_free_stats(struct lprocfs_stats **statsh)
+void lprocfs_stats_free(struct lprocfs_stats **statsh)
 {
 	struct lprocfs_stats *stats = *statsh;
 	unsigned int num_entry;
@@ -1286,7 +1286,7 @@ void lprocfs_free_stats(struct lprocfs_stats **statsh)
 	kvfree(stats->ls_cnt_header);
 	kvfree(stats);
 }
-EXPORT_SYMBOL(lprocfs_free_stats);
+EXPORT_SYMBOL(lprocfs_stats_free);
 
 u64 lprocfs_stats_collector(struct lprocfs_stats *stats, int idx,
 			      enum lprocfs_fields_flags field)
@@ -1312,12 +1312,12 @@ u64 lprocfs_stats_collector(struct lprocfs_stats *stats, int idx,
 }
 EXPORT_SYMBOL(lprocfs_stats_collector);
 
-void lprocfs_clear_stats(struct lprocfs_stats *stats)
+void lprocfs_stats_clear(struct lprocfs_stats *stats)
 {
 	struct lprocfs_counter *percpu_cntr;
-	int i, j;
 	unsigned int num_entry;
 	unsigned long flags = 0;
+	int i, j;
 
 	num_entry = lprocfs_stats_lock(stats, LPROCFS_GET_NUM_CPU, &flags);
 
@@ -1347,7 +1347,7 @@ void lprocfs_clear_stats(struct lprocfs_stats *stats)
 
 	lprocfs_stats_unlock(stats, LPROCFS_GET_NUM_CPU, &flags);
 }
-EXPORT_SYMBOL(lprocfs_clear_stats);
+EXPORT_SYMBOL(lprocfs_stats_clear);
 
 static ssize_t lprocfs_stats_seq_write(struct file *file,
 				       const char __user *buf,
@@ -1356,7 +1356,7 @@ static ssize_t lprocfs_stats_seq_write(struct file *file,
 	struct seq_file *seq = file->private_data;
 	struct lprocfs_stats *stats = seq->private;
 
-	lprocfs_clear_stats(stats);
+	lprocfs_stats_clear(stats);
 
 	return len;
 }
@@ -1601,7 +1601,7 @@ int ldebugfs_alloc_md_stats(struct obd_device *obd,
 		return -EINVAL;
 
 	num_stats = ARRAY_SIZE(mps_stats) + num_private_stats;
-	stats = lprocfs_alloc_stats(num_stats, 0);
+	stats = lprocfs_stats_alloc(num_stats, 0);
 	if (!stats)
 		return -ENOMEM;
 
@@ -1630,7 +1630,7 @@ void ldebugfs_free_md_stats(struct obd_device *obd)
 		return;
 
 	obd->obd_md_stats = NULL;
-	lprocfs_free_stats(&stats);
+	lprocfs_stats_free(&stats);
 }
 EXPORT_SYMBOL(ldebugfs_free_md_stats);
 
