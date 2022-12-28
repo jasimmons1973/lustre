@@ -190,10 +190,10 @@ EXPORT_SYMBOL(osc_device_fini);
 struct lu_device *osc_device_free(const struct lu_env *env,
 				  struct lu_device *d)
 {
-	struct osc_device *od = lu2osc_dev(d);
+	struct osc_device *oc = lu2osc_dev(d);
 
 	cl_device_fini(lu2cl_dev(d));
-	kfree(od);
+	kfree(oc);
 	return NULL;
 }
 EXPORT_SYMBOL(osc_device_free);
@@ -203,16 +203,16 @@ static struct lu_device *osc_device_alloc(const struct lu_env *env,
 					  struct lustre_cfg *cfg)
 {
 	struct lu_device *d;
-	struct osc_device *od;
+	struct osc_device *osc;
 	struct obd_device *obd;
 	int rc;
 
-	od = kzalloc(sizeof(*od), GFP_NOFS);
-	if (!od)
+	osc = kzalloc(sizeof(*osc), GFP_NOFS);
+	if (!osc)
 		return ERR_PTR(-ENOMEM);
 
-	cl_device_init(&od->od_cl, t);
-	d = osc2lu_dev(od);
+	cl_device_init(&osc->osc_cl, t);
+	d = osc2lu_dev(osc);
 	d->ld_ops = &osc_lu_ops;
 
 	/* Setup OSC OBD */
@@ -223,7 +223,8 @@ static struct lu_device *osc_device_alloc(const struct lu_env *env,
 		osc_device_free(env, d);
 		return ERR_PTR(rc);
 	}
-	od->od_exp = obd->obd_self_export;
+	osc->osc_exp = obd->obd_self_export;
+	osc->osc_stats.os_init = ktime_get_real();
 	return d;
 }
 

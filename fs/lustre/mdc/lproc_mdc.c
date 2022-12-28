@@ -410,6 +410,7 @@ static ssize_t mdc_rpc_stats_seq_write(struct file *file,
 	lprocfs_oh_clear(&cli->cl_write_page_hist);
 	lprocfs_oh_clear(&cli->cl_read_offset_hist);
 	lprocfs_oh_clear(&cli->cl_write_offset_hist);
+	cli->cl_mod_rpcs_init = ktime_get_real();
 
 	return len;
 }
@@ -511,10 +512,10 @@ LDEBUGFS_SEQ_FOPS(mdc_rpc_stats);
 static int mdc_stats_seq_show(struct seq_file *seq, void *v)
 {
 	struct obd_device *obd = seq->private;
-	struct osc_stats *stats = &obd2osc_dev(obd)->od_stats;
+	struct osc_stats *stats = &obd2osc_dev(obd)->osc_stats;
 
-	lprocfs_stats_header(seq, ktime_get(), stats->os_init, 25, ":", true,
-			     "");
+	lprocfs_stats_header(seq, ktime_get_real(), stats->os_init, 25, ":",
+			     true, "");
 	seq_printf(seq, "lockless_write_bytes\t\t%llu\n",
 		   stats->os_lockless_writes);
 	seq_printf(seq, "lockless_read_bytes\t\t%llu\n",
@@ -528,10 +529,10 @@ static ssize_t mdc_stats_seq_write(struct file *file,
 {
 	struct seq_file *seq = file->private_data;
 	struct obd_device *obd = seq->private;
-	struct osc_stats *stats = &obd2osc_dev(obd)->od_stats;
+	struct osc_stats *stats = &obd2osc_dev(obd)->osc_stats;
 
 	memset(stats, 0, sizeof(*stats));
-	stats->os_init = ktime_get();
+	stats->os_init = ktime_get_real();
 
 	return len;
 }

@@ -1447,7 +1447,7 @@ int obd_mod_rpc_stats_seq_show(struct client_obd *cli, struct seq_file *seq)
 	int i;
 
 	spin_lock_irq(&cli->cl_mod_rpcs_waitq.lock);
-	lprocfs_stats_header(seq, ktime_get(), cli->cl_mod_rpcs_init, 25,
+	lprocfs_stats_header(seq, ktime_get_real(), cli->cl_mod_rpcs_init, 25,
 			     ":", true, "");
 	seq_printf(seq, "modify_RPCs_in_flight:  %hu\n",
 		   cli->cl_mod_rpcs_in_flight);
