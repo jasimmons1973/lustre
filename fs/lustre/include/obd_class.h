@@ -817,6 +817,10 @@ static inline int obd_pool_new(struct obd_device *obd, char *poolname)
 		return -EOPNOTSUPP;
 	}
 
+	/* Check poolname validity */
+	if (!poolname || poolname[0] == '\0' || lov_pool_is_reserved(poolname))
+		return -EINVAL;
+
 	rc = OBP(obd, pool_new)(obd, poolname);
 	return rc;
 }
