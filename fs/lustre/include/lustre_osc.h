@@ -60,7 +60,7 @@ struct osc_quota_info {
 	struct rcu_head		rcu;
 };
 
-enum async_flags {
+enum oap_async_flags {
 	ASYNC_READY		= 0x1,	/* osc_make_ready will not be called
 					 * before this page is added to an rpc
 					 */
@@ -71,24 +71,32 @@ enum async_flags {
 					 * to give the caller a chance to update
 					 * or cancel the size of the io
 					 */
-	ASYNC_HP = 0x10,
+	ASYNC_HP		= 0x8,
+	OAP_ASYNC_MAX,
+	OAP_ASYNC_BITS = 4
 };
 
+/* add explicit padding to keep fields aligned despite "packed",
+ * which is needed to pack with following field in osc_page
+ */
+#define OAP_PAD_BITS (16 - OBD_BRW_WRITE - OAP_ASYNC_BITS)
 struct osc_async_page {
-	unsigned short		oap_cmd;
+	unsigned short		oap_page_off;	/* :PAGE_SHIFT */
+	unsigned int		oap_cmd:OBD_BRW_WRITE;
+	enum oap_async_flags    oap_async_flags:OAP_ASYNC_BITS;
+	unsigned int		oap_padding1:OAP_PAD_BITS;	/* unused */
+	unsigned int		oap_padding2;			/* unused */
 
 	struct list_head        oap_pending_item;
 	struct list_head        oap_rpc_item;
 
 	u64			oap_obj_off;
-	unsigned int		oap_page_off;
-	enum async_flags	oap_async_flags;
-
-	struct brw_page		oap_brw_page;
 
 	struct ptlrpc_request	*oap_request;
 	struct osc_object	*oap_obj;
-};
+
+	struct brw_page         oap_brw_page;
+} __packed;
 
 #define oap_page	oap_brw_page.pg
 #define oap_count	oap_brw_page.count
@@ -96,6 +104,7 @@ struct osc_async_page {
 
 static inline struct osc_async_page *brw_page2oap(struct brw_page *pga)
 {
+	BUILD_BUG_ON(OAP_ASYNC_MAX - 1 >= (1 << OAP_ASYNC_BITS));
 	return container_of(pga, struct osc_async_page, oap_brw_page);
 }
 

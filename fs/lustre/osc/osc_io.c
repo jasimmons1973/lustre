@@ -514,9 +514,8 @@ static bool trunc_check_cb(const struct lu_env *env, struct cl_io *io,
 				      start, current->comm);
 
 		if (PageLocked(page->cp_vmpage))
-			CDEBUG(D_CACHE, "page %p index %lu locked for %d.\n",
-			       ops, osc_index(ops),
-			       oap->oap_cmd & OBD_BRW_RWMASK);
+			CDEBUG(D_CACHE, "page %p index %lu locked for cmd=%d\n",
+			       ops, osc_index(ops), oap->oap_cmd);
 	}
 	return true;
 }
