@@ -1792,6 +1792,16 @@ no_bulk:
 	else /* short i/o */
 		ioobj_max_brw_set(ioobj, 0);
 
+	if (inode && IS_ENCRYPTED(inode) &&
+	    fscrypt_has_encryption_key(inode) &&
+	    !OBD_FAIL_CHECK(OBD_FAIL_LFSCK_NO_ENCFLAG)) {
+		if ((body->oa.o_valid & OBD_MD_FLFLAGS) == 0) {
+			body->oa.o_valid |= OBD_MD_FLFLAGS;
+			body->oa.o_flags = 0;
+		}
+		body->oa.o_flags |= LUSTRE_ENCRYPT_FL;
+	}
+
 	if (short_io_size != 0) {
 		if ((body->oa.o_valid & OBD_MD_FLFLAGS) == 0) {
 			body->oa.o_valid |= OBD_MD_FLFLAGS;
