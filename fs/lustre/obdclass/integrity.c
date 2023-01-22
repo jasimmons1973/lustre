@@ -32,13 +32,13 @@
 #include <obd_class.h>
 #include <obd_cksum.h>
 
-u16 obd_dif_crc_fn(void *data, unsigned int len)
+__be16 obd_dif_crc_fn(void *data, unsigned int len)
 {
 	return cpu_to_be16(crc_t10dif(data, len));
 }
 EXPORT_SYMBOL(obd_dif_crc_fn);
 
-u16 obd_dif_ip_fn(void *data, unsigned int len)
+__be16 obd_dif_ip_fn(void *data, unsigned int len)
 {
 	return ip_compute_csum(data, len);
 }
@@ -46,14 +46,14 @@ EXPORT_SYMBOL(obd_dif_ip_fn);
 
 int obd_page_dif_generate_buffer(const char *obd_name, struct page *page,
 				 u32 offset, u32 length,
-				 u16 *guard_start, int guard_number,
+				 __be16 *guard_start, int guard_number,
 				 int *used_number, int sector_size,
 				 obd_dif_csum_fn *fn)
 {
 	unsigned int i = offset;
 	unsigned int end = offset + length;
 	char *data_buf;
-	u16 *guard_buf = guard_start;
+	__be16 *guard_buf = guard_start;
 	unsigned int data_size;
 	int used = 0;
 
@@ -90,7 +90,7 @@ static int __obd_t10_performance_test(const char *obd_name,
 	unsigned int bufsize;
 	unsigned char *buffer;
 	struct page *__page;
-	u16 *guard_start;
+	__be16 *guard_start;
 	int guard_number;
 	int used_number = 0;
 	int sector_size = 0;
@@ -117,7 +117,7 @@ static int __obd_t10_performance_test(const char *obd_name,
 	}
 
 	buffer = kmap(__page);
-	guard_start = (u16 *)buffer;
+	guard_start = (__be16 *)buffer;
 	guard_number = PAGE_SIZE / sizeof(*guard_start);
 	for (i = 0; i < repeat_number; i++) {
 		/*
