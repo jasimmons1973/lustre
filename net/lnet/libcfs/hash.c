@@ -1541,7 +1541,7 @@ EXPORT_SYMBOL(cfs_hash_size_get);
  */
 static int
 cfs_hash_for_each_relax(struct cfs_hash *hs, cfs_hash_for_each_cb_t func,
-			void *data, int start)
+			void *data, int *pstart)
 {
 	struct hlist_node *next = NULL;
 	struct hlist_node *hnode;
@@ -1564,7 +1564,7 @@ again:
 	cfs_hash_for_each_bucket(hs, &bd, i) {
 		struct hlist_head *hhead;
 
-		if (i < start)
+		if (pstart && i < *pstart)
 			continue;
 		else if (end > 0 && i >= end)
 			break;
@@ -1622,13 +1622,16 @@ again:
 		if (rc) /* callback wants to break iteration */
 			break;
 	}
-	if (start > 0 && !rc) {
-		end = start;
-		start = 0;
+
+	if (pstart && *pstart > 0 && rc == 0) {
+		end = *pstart;
+		*pstart = 0;
 		goto again;
 	}
 
 	cfs_hash_unlock(hs, 0);
+	if (pstart)
+		*pstart = i;
 	return count;
 }
 
@@ -1646,7 +1649,7 @@ cfs_hash_for_each_nolock(struct cfs_hash *hs, cfs_hash_for_each_cb_t func,
 		return -EOPNOTSUPP;
 
 	cfs_hash_for_each_enter(hs);
-	cfs_hash_for_each_relax(hs, func, data, start);
+	cfs_hash_for_each_relax(hs, func, data, &start);
 	cfs_hash_for_each_exit(hs);
 
 	return 0;
@@ -1669,6 +1672,7 @@ cfs_hash_for_each_empty(struct cfs_hash *hs, cfs_hash_for_each_cb_t func,
 			void *data)
 {
 	unsigned int i = 0;
+	int start = 0;
 
 	if (cfs_hash_with_no_lock(hs))
 		return -EOPNOTSUPP;
@@ -1678,11 +1682,12 @@ cfs_hash_for_each_empty(struct cfs_hash *hs, cfs_hash_for_each_cb_t func,
 		return -EOPNOTSUPP;
 
 	cfs_hash_for_each_enter(hs);
-	while (cfs_hash_for_each_relax(hs, func, data, 0)) {
+	while (cfs_hash_for_each_relax(hs, func, data, &start)) {
 		CDEBUG(D_INFO, "Try to empty hash: %s, loop: %u\n",
 		       hs->hs_name, i++);
 	}
 	cfs_hash_for_each_exit(hs);
+	LASSERT(atomic_read(&hs->hs_count) == 0);
 	return 0;
 }
 EXPORT_SYMBOL(cfs_hash_for_each_empty);
