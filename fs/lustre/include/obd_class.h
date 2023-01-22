@@ -1750,4 +1750,43 @@ extern u64 obd_heat_get(struct obd_heat_instance *instance,
 			unsigned int period_second);
 extern void obd_heat_clear(struct obd_heat_instance *instance, int count);
 
+/* struct kobj_type */
+#define KOBJ_ATTR_GROUPS(_name)		_name##_groups
+
+static inline
+struct attribute *_get_attr_matches(const struct kobj_type *typ,
+				    const char *key, size_t keylen,
+				    int (*is_match)(const char *, const char *,
+						    size_t))
+{
+	int i;
+
+	for (i = 0; typ->default_groups[i]; i++) {
+		struct attribute **attrs;
+		int k;
+
+		attrs = (struct attribute **)typ->default_groups[i]->attrs;
+		for (k = 0; attrs[k]; k++) {
+			if (is_match(attrs[k]->name, key, keylen))
+				return (struct attribute *)attrs[k];
+		}
+	}
+
+	return NULL;
+}
+
+static inline
+int _attr_name_starts_with(const char *attr_name, const char *name, size_t len)
+{
+	return !strncmp(attr_name, name, len);
+}
+
+static inline
+struct attribute *get_attr_starts_with(const struct kobj_type *typ,
+				       const char *name,
+				       size_t len)
+{
+	return _get_attr_matches(typ, name, len, _attr_name_starts_with);
+}
+
 #endif /* __LINUX_OBD_CLASS_H */

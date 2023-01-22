@@ -1125,6 +1125,8 @@ static struct attribute *ptlrpc_svc_attrs[] = {
 	NULL,
 };
 
+ATTRIBUTE_GROUPS(ptlrpc_svc); /* creates ptlrpc_svc_groups */
+
 static void ptlrpc_sysfs_svc_release(struct kobject *kobj)
 {
 	struct ptlrpc_service *svc = container_of(kobj, struct ptlrpc_service,
@@ -1134,7 +1136,7 @@ static void ptlrpc_sysfs_svc_release(struct kobject *kobj)
 }
 
 static struct kobj_type ptlrpc_svc_ktype = {
-	.default_attrs	= ptlrpc_svc_attrs,
+	.default_groups = KOBJ_ATTR_GROUPS(ptlrpc_svc),
 	.sysfs_ops	= &lustre_sysfs_ops,
 	.release	= ptlrpc_sysfs_svc_release,
 };
