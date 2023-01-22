@@ -123,6 +123,10 @@ static int ll_xattr_set_common(const struct xattr_handler *handler,
 	    (!strcmp(name, "ima") || !strcmp(name, "evm")))
 		return -EOPNOTSUPP;
 
+	rc = ll_security_secctx_name_filter(sbi, handler->flags, name);
+	if (rc)
+		return rc;
+
 	/*
 	 * In user.* namespace, only regular files and directories can have
 	 * extended attributes.
@@ -373,7 +377,7 @@ int ll_xattr_list(struct inode *inode, const char *name, int type, void *buffer,
 	}
 
 	if (sbi->ll_xattr_cache_enabled && type != XATTR_ACL_ACCESS_T &&
-	    (type != XATTR_SECURITY_T || strcmp(name, "security.selinux")) &&
+	    (type != XATTR_SECURITY_T || !ll_xattr_is_seclabel(name)) &&
 	    (type != XATTR_TRUSTED_T || strcmp(name, XATTR_NAME_SOM))) {
 		rc = ll_xattr_cache_get(inode, name, buffer, size, valid);
 		if (rc == -EAGAIN)
@@ -445,6 +449,10 @@ static int ll_xattr_get_common(const struct xattr_handler *handler,
 	       PFID(ll_inode2fid(inode)), inode);
 
 	rc = xattr_type_filter(sbi, handler);
+	if (rc)
+		return rc;
+
+	rc = ll_security_secctx_name_filter(sbi, handler->flags, name);
 	if (rc)
 		return rc;
 

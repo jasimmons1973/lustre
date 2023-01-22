@@ -38,19 +38,17 @@
 /*
  * Check for LL_SBI_FILE_SECCTX before calling.
  */
-int ll_dentry_init_security(struct inode *parent, struct dentry *dentry,
-			    int mode, struct qstr *name,
-			    const char **secctx_name, void **secctx,
-			    u32 *secctx_size)
+int ll_dentry_init_security(struct dentry *dentry, int mode, struct qstr *name,
+			    const char **secctx_name, u32 *secctx_name_size,
+			    void **secctx, u32 *secctx_size)
 {
+	struct ll_sb_info *sbi = ll_s2sbi(dentry->d_sb);
 	int rc;
 
 	/*
-	 * security_dentry_init_security() is strange. Like
-	 * security_inode_init_security() it may return a context (provided a
-	 * Linux security module is enabled) but unlike
-	 * security_inode_init_security() it does not return to us the name of
-	 * the extended attribute to store the context under (for example
+	 * Before kernel 5.15-rc1-20-g15bf32398ad4,
+	 * security_inode_init_security() does not return to us the name of the
+	 * extended attribute to store the context under (for example
 	 * "security.selinux"). So we only call it when we think we know what
 	 * the name of the extended attribute will be. This is OK-ish since
 	 * SELinux is the only module that implements
@@ -59,29 +57,18 @@ int ll_dentry_init_security(struct inode *parent, struct dentry *dentry,
 	 * from SELinux.
 	 */
 
-	/* fetch length of security xattr name */
-	rc = security_inode_listsecurity(parent, NULL, 0);
-	/* xattr name length == 0 means SELinux is disabled */
-	if (rc == 0)
+	*secctx_name_size = ll_secctx_name_get(sbi, secctx_name);
+	/* xattr name length == 0 means no LSM module manage file contexts */
+	if (*secctx_name_size == 0)
 		return 0;
-	/* we support SELinux only */
-	if (rc != strlen(XATTR_NAME_SELINUX) + 1)
-		return -EOPNOTSUPP;
 
 	rc = security_dentry_init_security(dentry, mode, name, secctx,
 					   secctx_size);
-	/* Usually, security_dentry_init_security() returns -EOPNOTSUPP when
-	 * SELinux is disabled.
-	 * But on some kernels (e.g. rhel 8.5) it returns 0 when SELinux is
-	 * disabled, and in this case the security context is empty.
-	 */
-	if (rc == -EOPNOTSUPP || (rc == 0 && *secctx_size == 0))
-		/* do nothing */
+	/* ignore error if the hook is not supported by the LSM module */
+	if (rc == -EOPNOTSUPP)
 		return 0;
 	if (rc < 0)
 		return rc;
-
-	*secctx_name = XATTR_NAME_SELINUX;
 
 	return 0;
 }
@@ -139,31 +126,159 @@ int
 ll_inode_init_security(struct dentry *dentry, struct inode *inode,
 		       struct inode *dir)
 {
-	int err;
+	int rc;
 
-	err = security_inode_init_security(inode, dir, NULL,
-					   &ll_initxattrs, dentry);
-
-	if (err == -EOPNOTSUPP)
+	if (!ll_security_xattr_wanted(dir))
 		return 0;
-	return err;
+
+	rc = security_inode_init_security(inode, dir, NULL,
+					  &ll_initxattrs, dentry);
+	if (rc == -EOPNOTSUPP)
+		return 0;
+
+	return rc;
 }
 
 /**
- * Get security context xattr name used by policy.
+ * Notify security context to the security layer
  *
- * \retval >= 0     length of xattr name
- * \retval < 0      failure to get security context xattr name
+ * Notify security context @secctx of inode @inode to the security layer.
+ *
+ * Return	0 success, or SELinux is disabled or not supported by the fs
+ *		< 0 failure to set the security context
  */
-int
-ll_listsecurity(struct inode *inode, char *secctx_name, size_t secctx_name_size)
+int ll_inode_notifysecctx(struct inode *inode,
+			  void *secctx, u32 secctxlen)
 {
+	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	int rc;
 
-	rc = security_inode_listsecurity(inode, secctx_name, secctx_name_size);
-	if (rc >= secctx_name_size)
-		rc = -ERANGE;
-	else if (rc >= 0)
-		secctx_name[rc] = '\0';
+	if (!test_bit(LL_SBI_FILE_SECCTX, sbi->ll_flags) ||
+	    !ll_security_xattr_wanted(inode) ||
+	    !secctx || !secctxlen)
+		return 0;
+
+	/* no need to protect selinux_inode_setsecurity() by
+	 * inode_lock. Taking it would lead to a client deadlock
+	 * LU-13617
+	 */
+	rc = security_inode_notifysecctx(inode, secctx, secctxlen);
+	if (rc)
+		CWARN("%s: cannot set security context for "DFID": rc = %d\n",
+		      sbi->ll_fsname, PFID(ll_inode2fid(inode)), rc);
+
 	return rc;
+}
+
+/**
+ * Free the security context xattr name used by policy
+ */
+void ll_secctx_name_free(struct ll_sb_info *sbi)
+{
+	kfree(sbi->ll_secctx_name);
+	sbi->ll_secctx_name = NULL;
+	sbi->ll_secctx_name_size = 0;
+}
+
+/**
+ * Get security context xattr name used by policy and save it.
+ *
+ * Return > 0	length of xattr name
+ *	  == 0	no LSM module registered supporting security contexts
+ *	  <= 0	failure to get xattr name or xattr is not supported
+ */
+int ll_secctx_name_store(struct inode *in)
+{
+	struct ll_sb_info *sbi = ll_i2sbi(in);
+	int rc = 0;
+
+	if (!ll_security_xattr_wanted(in))
+		return 0;
+
+	/* get size of xattr name */
+	rc = security_inode_listsecurity(in, NULL, 0);
+	if (rc <= 0)
+		return rc;
+
+	ll_secctx_name_free(sbi);
+
+	sbi->ll_secctx_name = kzalloc(rc + 1, GFP_NOFS);
+	if (!sbi->ll_secctx_name)
+		return -ENOMEM;
+
+	/* save the xattr name */
+	sbi->ll_secctx_name_size = rc;
+	rc = security_inode_listsecurity(in, sbi->ll_secctx_name,
+					 sbi->ll_secctx_name_size);
+	if (rc <= 0)
+		goto err_free;
+
+	if (rc > sbi->ll_secctx_name_size) {
+		rc = -ERANGE;
+		goto err_free;
+	}
+
+	/* sanity check */
+	sbi->ll_secctx_name[rc] = '\0';
+	if (rc < sizeof(XATTR_SECURITY_PREFIX)) {
+		rc = -EINVAL;
+		goto err_free;
+	}
+	if (strncmp(sbi->ll_secctx_name, XATTR_SECURITY_PREFIX,
+		    sizeof(XATTR_SECURITY_PREFIX) - 1) != 0) {
+		rc = -EOPNOTSUPP;
+		goto err_free;
+	}
+
+	return rc;
+
+err_free:
+	ll_secctx_name_free(sbi);
+	return rc;
+}
+
+/**
+ * Retrieved file security context xattr name stored.
+ *
+ * Return	security context xattr name size stored.
+ *	  0	no xattr name stored.
+ */
+u32 ll_secctx_name_get(struct ll_sb_info *sbi, const char **secctx_name)
+{
+	if (!sbi->ll_secctx_name || !sbi->ll_secctx_name_size)
+		return 0;
+
+	*secctx_name = sbi->ll_secctx_name;
+
+	return sbi->ll_secctx_name_size;
+}
+
+/**
+ * Filter out xattr file security context if not managed by LSM
+ *
+ * This is done to improve performance for application that blindly try to get
+ * file context (like "ls -l" for security.linux).
+ * See LU-549 for more information.
+ *
+ * Return 0		xattr not filtered
+ *	  -EOPNOTSUPP	no enabled LSM security module supports the xattr
+ */
+int ll_security_secctx_name_filter(struct ll_sb_info *sbi, int xattr_type,
+				   const char *suffix)
+{
+	const char *cached_suffix = NULL;
+
+	if (xattr_type != XATTR_SECURITY_T ||
+	    !ll_xattr_suffix_is_seclabel(suffix))
+		return 0;
+
+	/* is the xattr label used by lsm ? */
+	if (!ll_secctx_name_get(sbi, &cached_suffix))
+		return -EOPNOTSUPP;
+
+	cached_suffix += sizeof(XATTR_SECURITY_PREFIX) - 1;
+	if (strcmp(suffix, cached_suffix) != 0)
+		return -EOPNOTSUPP;
+
+	return 0;
 }

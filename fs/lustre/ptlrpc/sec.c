@@ -1767,19 +1767,17 @@ setnext:
 
 int sptlrpc_get_sepol(struct ptlrpc_request *req)
 {
-#ifndef CONFIG_SECURITY_SELINUX
-	(req->rq_sepol)[0] = '\0';
-
-	if (unlikely(send_sepol != 0))
-		CDEBUG(D_SEC,
-		       "Client cannot report SELinux status, it was not built against libselinux.\n");
-	return 0;
-#else
 	struct ptlrpc_sec *imp_sec = req->rq_import->imp_sec;
 	int rc = 0;
 
 	(req->rq_sepol)[0] = '\0';
 
+#ifndef CONFIG_SECURITY_SELINUX
+	if (unlikely(send_sepol != 0))
+		CDEBUG(D_SEC,
+		       "Client cannot report SELinux status, it was not built against libselinux.\n");
+	return 0;
+#endif
 	if (send_sepol == 0)
 		return 0;
 
@@ -1794,10 +1792,13 @@ int sptlrpc_get_sepol(struct ptlrpc_request *req)
 		memcpy(req->rq_sepol, imp_sec->ps_sepol,
 		       sizeof(req->rq_sepol));
 		spin_unlock(&imp_sec->ps_lock);
+	} else if (rc == -ENODEV) {
+		CDEBUG(D_SEC,
+		       "Client cannot report SELinux status, SELinux is disabled.\n");
+		rc = 0;
 	}
 
 	return rc;
-#endif
 }
 EXPORT_SYMBOL(sptlrpc_get_sepol);
 

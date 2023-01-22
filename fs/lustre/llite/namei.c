@@ -712,20 +712,8 @@ static int ll_lookup_it_finish(struct ptlrpc_request *request,
 				       PFID(ll_inode2fid(inode)));
 		}
 
-		if (secctx && secctxlen != 0) {
-			/* no need to protect selinux_inode_setsecurity() by
-			 * inode_lock. Taking it would lead to a client deadlock
-			 * LU-13617
-			 */
-			rc = security_inode_notifysecctx(inode, secctx,
-							 secctxlen);
-			if (rc)
-				CWARN("%s: cannot set security context for " DFID ": rc = %d\n",
-				      ll_i2sbi(inode)->ll_fsname,
-				      PFID(ll_inode2fid(inode)),
-				      rc);
-		}
-
+		/* resume normally on error */
+		ll_inode_notifysecctx(inode, secctx, secctxlen);
 	}
 
 	alias = ll_splice_alias(inode, *de);
@@ -798,26 +786,26 @@ out:
 }
 
 static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
-				   struct lookup_intent *it, void **secctx,
-				   u32 *secctxlen,
+				   struct lookup_intent *it,
+				   void **secctx, u32 *secctxlen,
 				   struct pcc_create_attach *pca,
 				   bool encrypt,
 				   void **encctx, u32 *encctxlen)
 {
 	ktime_t kstart = ktime_get();
 	struct lookup_intent lookup_it = { .it_op = IT_LOOKUP };
+	struct ll_sb_info *sbi = ll_i2sbi(parent);
 	struct dentry *save = dentry, *retval;
 	struct ptlrpc_request *req = NULL;
 	struct md_op_data *op_data = NULL;
 	struct lov_user_md *lum = NULL;
-	char secctx_name[XATTR_NAME_MAX + 1];
 	struct fscrypt_name fname;
 	struct inode *inode;
 	struct lu_fid fid;
 	u32 opc;
 	int rc;
 
-	if (dentry->d_name.len > ll_i2sbi(parent)->ll_namelen)
+	if (dentry->d_name.len > sbi->ll_namelen)
 		return ERR_PTR(-ENAMETOOLONG);
 
 	CDEBUG(D_VFSTRACE, "VFS Op:name=%pd, dir=" DFID "(%p),intent=%s\n",
@@ -831,13 +819,8 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 
 	if (it->it_op == IT_GETATTR && dentry_may_statahead(parent, dentry)) {
 		rc = ll_revalidate_statahead(parent, &dentry, 0);
-		if (rc == 1) {
-			if (dentry == save)
-				retval = NULL;
-			else
-				retval = dentry;
-			goto out;
-		}
+		if (rc == 1)
+			return dentry == save ? NULL : dentry;
 	}
 
 	if (it->it_op & IT_OPEN && it->it_flags & FMODE_WRITE &&
@@ -872,7 +855,6 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 	if (IS_ERR(op_data)) {
 		fscrypt_free_filename(&fname);
 		return ERR_CAST(op_data);
-		goto out;
 	}
 	if (!fid_is_zero(&fid)) {
 		op_data->op_fid2 = fid;
@@ -886,11 +868,11 @@ static struct dentry *ll_lookup_it(struct inode *parent, struct dentry *dentry,
 		it->it_create_mode &= ~current_umask();
 
 	if (it->it_op & IT_CREAT &&
-	    test_bit(LL_SBI_FILE_SECCTX, ll_i2sbi(parent)->ll_flags)) {
-		rc = ll_dentry_init_security(parent,
-					     dentry, it->it_create_mode,
+	    test_bit(LL_SBI_FILE_SECCTX, sbi->ll_flags)) {
+		rc = ll_dentry_init_security(dentry, it->it_create_mode,
 					     &dentry->d_name,
 					     &op_data->op_file_secctx_name,
+					     &op_data->op_file_secctx_name_size,
 					     &op_data->op_file_secctx,
 					     &op_data->op_file_secctx_size);
 		if (rc < 0) {
@@ -993,22 +975,12 @@ inherit:
 			*encctxlen = 0;
 	}
 
-	/* ask for security context upon intent */
-	if (it->it_op & (IT_LOOKUP | IT_GETATTR | IT_OPEN)) {
-		/* get name of security xattr to request to server */
-		rc = ll_listsecurity(parent, secctx_name,
-				     sizeof(secctx_name));
-		if (rc < 0) {
-			CDEBUG(D_SEC,
-			       "cannot get security xattr name for " DFID ": rc = %d\n",
-			       PFID(ll_inode2fid(parent)), rc);
-		} else if (rc > 0) {
-			op_data->op_file_secctx_name = secctx_name;
-			op_data->op_file_secctx_name_size = rc;
-			CDEBUG(D_SEC, "'%.*s' is security xattr for " DFID "\n",
-			       rc, secctx_name, PFID(ll_inode2fid(parent)));
-		}
-	}
+	/* ask for security context upon intent:
+	 * get name of security xattr to request to server
+	 */
+	if (it->it_op & (IT_LOOKUP | IT_GETATTR | IT_OPEN))
+		op_data->op_file_secctx_name_size =
+			ll_secctx_name_get(sbi, &op_data->op_file_secctx_name);
 
 	if (pca && pca->pca_dataset) {
 		lum = kzalloc(sizeof(*lum), GFP_NOFS);
@@ -1416,20 +1388,13 @@ static int ll_create_it(struct inode *dir, struct dentry *dentry,
 	if (IS_ERR(inode))
 		return PTR_ERR(inode);
 
-	if (test_bit(LL_SBI_FILE_SECCTX, ll_i2sbi(inode)->ll_flags) &&
-	    secctx) {
-		/* must be done before d_instantiate, because it calls
-		 * security_d_instantiate, which means a getxattr if security
-		 * context is not set yet
-		 */
-		/* no need to protect selinux_inode_setsecurity() by
-		 * inode_lock. Taking it would lead to a client deadlock
-		 * LU-13617
-		 */
-		rc = security_inode_notifysecctx(inode, secctx, secctxlen);
-		if (rc)
-			return rc;
-	}
+	/* must be done before d_instantiate, because it calls
+	 * security_d_instantiate, which means a getxattr if security
+	 * context is not set yet
+	 */
+	rc = ll_inode_notifysecctx(inode, secctx, secctxlen);
+	if (rc)
+		return rc;
 
 	d_instantiate(dentry, inode);
 
@@ -1567,9 +1532,9 @@ again:
 		ll_qos_mkdir_prep(op_data, dir);
 
 	if (test_bit(LL_SBI_FILE_SECCTX, sbi->ll_flags)) {
-		err = ll_dentry_init_security(dir,
-					      dchild, mode, &dchild->d_name,
+		err = ll_dentry_init_security(dchild, mode, &dchild->d_name,
 					      &op_data->op_file_secctx_name,
+					      &op_data->op_file_secctx_name_size,
 					      &op_data->op_file_secctx,
 					      &op_data->op_file_secctx_size);
 		if (err < 0)
