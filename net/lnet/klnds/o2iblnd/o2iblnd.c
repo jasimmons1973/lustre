@@ -3202,6 +3202,9 @@ static int kiblnd_startup(struct lnet_ni *ni)
 		ifname = ni->ni_interface;
 	} else {
 		ifname = *kiblnd_tunables.kib_default_ipif;
+		rc = libcfs_strnid(&ni->ni_nid, ifname);
+		if (rc < 0 || ni->ni_nid.nid_type != O2IBLND)
+			memset(&ni->ni_nid, 0, sizeof(ni->ni_nid));
 	}
 
 	if (strlen(ifname) >= sizeof(ibdev->ibd_ifname)) {
@@ -3214,12 +3217,13 @@ static int kiblnd_startup(struct lnet_ni *ni)
 	if (rc < 0)
 		goto failed;
 
-	for (i = 0; i < rc; i++) {
-		if (strcmp(ifname, ifaces[i].li_name) == 0)
-			break;
-	}
+	i = lnet_inet_select(ni, ifaces, rc);
+	if (i < 0)
+		goto failed;
 
-	if (i == rc) {
+	if (nid_addr_is_set(&ni->ni_nid)) {
+		strscpy(ifname, ifaces[i].li_name, sizeof(ifname));
+	} else if (strcmp(ifname, ifaces[i].li_name) != 0) {
 		CERROR("ko2iblnd: No matching interfaces\n");
 		rc = -ENOENT;
 		goto failed;
@@ -3235,7 +3239,7 @@ static int kiblnd_startup(struct lnet_ni *ni)
 			goto failed;
 		}
 
-		ibdev->ibd_ifip = ifaces[i].li_ipaddr;
+		ibdev->ibd_ifip = ntohl(ifaces[i].li_ipaddr);
 		strlcpy(ibdev->ibd_ifname, ifaces[i].li_name,
 			sizeof(ibdev->ibd_ifname));
 		ibdev->ibd_can_failover = ifaces[i].li_iff_master;
