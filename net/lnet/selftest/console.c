@@ -224,8 +224,7 @@ lstcon_group_alloc(char *name, struct lstcon_group **grpp)
 	return 0;
 }
 
-static void
-lstcon_group_addref(struct lstcon_group *grp)
+void lstcon_group_addref(struct lstcon_group *grp)
 {
 	grp->grp_ref++;
 }
@@ -245,8 +244,7 @@ lstcon_group_drain(struct lstcon_group *grp, int keep)
 	}
 }
 
-static void
-lstcon_group_decref(struct lstcon_group *grp)
+void lstcon_group_decref(struct lstcon_group *grp)
 {
 	int i;
 
@@ -264,8 +262,7 @@ lstcon_group_decref(struct lstcon_group *grp)
 	kfree(grp);
 }
 
-static int
-lstcon_group_find(const char *name, struct lstcon_group **grpp)
+int lstcon_group_find(const char *name, struct lstcon_group **grpp)
 {
 	struct lstcon_group *grp;
 
@@ -715,24 +712,6 @@ lstcon_group_refresh(char *name, struct list_head __user *result_up)
 	lstcon_group_decref(grp);
 
 	return rc;
-}
-
-int
-lstcon_group_list(int index, int len, char __user *name_up)
-{
-	struct lstcon_group *grp;
-
-	LASSERT(index >= 0);
-	LASSERT(name_up);
-
-	list_for_each_entry(grp, &console_session.ses_grp_list, grp_link) {
-		if (!index--) {
-			return copy_to_user(name_up, grp->grp_name, len) ?
-					    -EFAULT : 0;
-		}
-	}
-
-	return -ENOENT;
 }
 
 static int

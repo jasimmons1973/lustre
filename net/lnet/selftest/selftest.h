@@ -52,19 +52,19 @@
 /* enum lnet_selftest_session_attrs   - LNet selftest session Netlink
  *					attributes
  *
- * @LNET_SELFTEST_SESSION_UNSPEC:	unspecified attribute to catch errors
- * @LNET_SELFTEST_SESSION_PAD:		padding for 64-bit attributes, ignore
+ *  @LNET_SELFTEST_SESSION_UNSPEC:	unspecified attribute to catch errors
+ *  @LNET_SELFTEST_SESSION_PAD:		padding for 64-bit attributes, ignore
  *
- * @LENT_SELFTEST_SESSION_HDR:		Netlink group this data is for
+ *  @LENT_SELFTEST_SESSION_HDR:		Netlink group this data is for
  *					(NLA_NUL_STRING)
- * @LNET_SELFTEST_SESSION_NAME:	name of this session (NLA_STRING)
- * @LNET_SELFTEST_SESSION_KEY:		key used to represent the session
+ *  @LNET_SELFTEST_SESSION_NAME:	name of this session (NLA_STRING)
+ *  @LNET_SELFTEST_SESSION_KEY:		key used to represent the session
  *					(NLA_U32)
- * @LNET_SELFTEST_SESSION_TIMESTAMP:	timestamp when the session was created
+ *  @LNET_SELFTEST_SESSION_TIMESTAMP:	timestamp when the session was created
  *					(NLA_S64)
- * @LNET_SELFTEST_SESSION_NID:		NID of the node selftest ran on
+ *  @LNET_SELFTEST_SESSION_NID:		NID of the node selftest ran on
  *					(NLA_STRING)
- * @LNET_SELFTEST_SESSION_NODE_COUNT:	Number of nodes in use (NLA_U16)
+ *  @LNET_SELFTEST_SESSION_NODE_COUNT:	Number of nodes in use (NLA_U16)
  */
 enum lnet_selftest_session_attrs {
 	LNET_SELFTEST_SESSION_UNSPEC = 0,
@@ -81,6 +81,50 @@ enum lnet_selftest_session_attrs {
 };
 
 #define LNET_SELFTEST_SESSION_MAX	(__LNET_SELFTEST_SESSION_MAX_PLUS_ONE - 1)
+
+/* enum lnet_selftest_group_attrs     - LNet selftest group Netlink attributes
+ *
+ *  @LNET_SELFTEST_GROUP_ATTR_UNSPEC:	unspecified attribute to catch errors
+ *
+ *  @LENT_SELFTEST_GROUP_ATTR_HDR:	Netlink group this data is for
+ *					(NLA_NUL_STRING)
+ *  @LNET_SELFTEST_GROUP_ATTR_NAME:	name of this group (NLA_STRING)
+ *  @LNET_SELFTEST_GROUP_ATTR_NODELIST:	List of nodes belonging to the group
+ *					(NLA_NESTED)
+ */
+enum lnet_selftest_group_attrs {
+	LNET_SELFTEST_GROUP_ATTR_UNSPEC = 0,
+
+	LNET_SELFTEST_GROUP_ATTR_HDR,
+	LNET_SELFTEST_GROUP_ATTR_NAME,
+	LNET_SELFTEST_GROUP_ATTR_NODELIST,
+
+	__LNET_SELFTEST_GROUP_MAX_PLUS_ONE,
+};
+
+#define LNET_SELFTEST_GROUP_MAX			(__LNET_SELFTEST_GROUP_MAX_PLUS_ONE - 1)
+
+/* enum lnet_selftest_group_nodelist_prop_attrs	      - Netlink attributes for
+ *							the properties of the
+ *							nodes that belong to a
+ *							group
+ *
+ *  @LNET_SELFTEST_GROUP_NODELIST_PROP_ATTR_UNSPEC:	unspecified attribute
+ *							to catch errors
+ *
+ *  @LNET_SELFTEST_GROUP_NODELIST_PROP_ATTR_NID:	Nodes's NID (NLA_STRING)
+ *  @LNET_SELFTEST_GROUP_NODELIST_PROP_ATTR_STATUS:	Status of the node
+ *							(NLA_STRING)
+ */
+enum lnet_selftest_group_nodelist_prop_attrs {
+	LNET_SELFTEST_GROUP_NODELIST_PROP_ATTR_UNSPEC = 0,
+
+	LNET_SELFTEST_GROUP_NODELIST_PROP_ATTR_NID,
+	LNET_SELFTEST_GROUP_NODELIST_PROP_ATTR_STATUS,
+	__LNET_SELFTEST_GROUP_NODELIST_PROP_MAX_PLUS_ONE,
+};
+
+#define LNET_SELFTEST_GROUP_NODELIST_PROP_MAX	(__LNET_SELFTEST_GROUP_NODELIST_PROP_MAX_PLUS_ONE - 1)
 
 #define SWI_STATE_NEWBORN		0
 #define SWI_STATE_REPLY_SUBMITTED	1

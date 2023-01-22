@@ -35,7 +35,7 @@
  *
  * Author: Liang Zhen <liangzhen@clusterfs.com>
  */
-
+#include <linux/generic-radix-tree.h>
 #include <linux/lnet/lib-lnet.h>
 #include "console.h"
 
@@ -245,78 +245,6 @@ lst_nodes_add_ioctl(struct lstio_group_nodes_args *args)
 	}
 
 	return rc;
-}
-
-static int
-lst_group_list_ioctl(struct lstio_group_list_args *args)
-{
-	if (args->lstio_grp_key != console_session.ses_key)
-		return -EACCES;
-
-	if (args->lstio_grp_idx < 0 ||
-	    !args->lstio_grp_namep ||
-	    args->lstio_grp_nmlen <= 0 ||
-	    args->lstio_grp_nmlen > LST_NAME_SIZE)
-		return -EINVAL;
-
-	return lstcon_group_list(args->lstio_grp_idx,
-				 args->lstio_grp_nmlen,
-				 args->lstio_grp_namep);
-}
-
-static int
-lst_group_info_ioctl(struct lstio_group_info_args *args)
-{
-	char name[LST_NAME_SIZE + 1];
-	int ndent;
-	int index;
-	int rc;
-
-	if (args->lstio_grp_key != console_session.ses_key)
-		return -EACCES;
-
-	if (!args->lstio_grp_namep ||
-	    args->lstio_grp_nmlen <= 0 ||
-	    args->lstio_grp_nmlen > LST_NAME_SIZE)
-		return -EINVAL;
-
-	if (!args->lstio_grp_entp &&	/* output: group entry */
-	    !args->lstio_grp_dentsp)	/* output: node entry */
-		return -EINVAL;
-
-	if (args->lstio_grp_dentsp) {		/* have node entry */
-		if (!args->lstio_grp_idxp ||	/* node index */
-		    !args->lstio_grp_ndentp)	/* # of node entry */
-			return -EINVAL;
-
-		if (copy_from_user(&ndent, args->lstio_grp_ndentp,
-				   sizeof(ndent)) ||
-		    copy_from_user(&index, args->lstio_grp_idxp,
-				   sizeof(index)))
-			return -EFAULT;
-
-		if (ndent <= 0 || index < 0)
-			return -EINVAL;
-	}
-
-	if (copy_from_user(name, args->lstio_grp_namep,
-			   args->lstio_grp_nmlen))
-		return -EFAULT;
-
-	name[args->lstio_grp_nmlen] = 0;
-
-	rc = lstcon_group_info(name, args->lstio_grp_entp,
-			       &index, &ndent, args->lstio_grp_dentsp);
-
-	if (rc)
-		return rc;
-
-	if (args->lstio_grp_dentsp &&
-	    (copy_to_user(args->lstio_grp_idxp, &index, sizeof(index)) ||
-	     copy_to_user(args->lstio_grp_ndentp, &ndent, sizeof(ndent))))
-		return -EFAULT;
-
-	return 0;
 }
 
 static int
@@ -690,10 +618,9 @@ lstcon_ioctl_entry(struct notifier_block *nb,
 		rc = lst_nodes_add_ioctl((struct lstio_group_nodes_args *)buf);
 		break;
 	case LSTIO_GROUP_LIST:
-		rc = lst_group_list_ioctl((struct lstio_group_list_args *)buf);
-		break;
+		fallthrough;
 	case LSTIO_GROUP_INFO:
-		rc = lst_group_info_ioctl((struct lstio_group_info_args *)buf);
+		rc = -EOPNOTSUPP;
 		break;
 	case LSTIO_BATCH_ADD:
 		rc = lst_batch_add_ioctl((struct lstio_batch_add_args *)buf);
@@ -982,8 +909,340 @@ out_unlock:
 	return rc;
 }
 
+static char *lst_node_state2str(int state)
+{
+	if (state == LST_NODE_ACTIVE)
+		return "Active";
+	if (state == LST_NODE_BUSY)
+		return "Busy";
+	if (state == LST_NODE_DOWN)
+		return "Down";
+
+	return "Unknown";
+}
+
+int lst_node_str2state(char *str)
+{
+	int state = 0;
+
+	if (strcasecmp(str, "Active") == 0)
+		state = LST_NODE_ACTIVE;
+	else if (strcasecmp(str, "Busy") == 0)
+		state = LST_NODE_BUSY;
+	else if (strcasecmp(str, "Down") == 0)
+		state = LST_NODE_DOWN;
+	else if (strcasecmp(str, "Unknown") == 0)
+		state = LST_NODE_UNKNOWN;
+	else if (strcasecmp(str, "Invalid") == 0)
+		state = LST_NODE_UNKNOWN | LST_NODE_DOWN | LST_NODE_BUSY;
+	return state;
+}
+
+struct lst_genl_group_prop {
+	struct lstcon_group	*lggp_grp;
+	int			lggp_state_filter;
+};
+
+struct lst_genl_group_list {
+	GENRADIX(struct lst_genl_group_prop)	lggl_groups;
+	unsigned int				lggl_count;
+	unsigned int				lggl_index;
+	bool					lggl_verbose;
+};
+
+static inline struct lst_genl_group_list *
+lst_group_dump_ctx(struct netlink_callback *cb)
+{
+	return (struct lst_genl_group_list *)cb->args[0];
+}
+
+static int lst_groups_show_done(struct netlink_callback *cb)
+{
+	struct lst_genl_group_list *glist = lst_group_dump_ctx(cb);
+
+	if (glist) {
+		int i;
+
+		for (i = 0; i < glist->lggl_count; i++) {
+			struct lst_genl_group_prop *prop;
+
+			prop = genradix_ptr(&glist->lggl_groups, i);
+			if (!prop || !prop->lggp_grp)
+				continue;
+			lstcon_group_decref(prop->lggp_grp);
+		}
+		genradix_free(&glist->lggl_groups);
+		kfree(glist);
+	}
+	cb->args[0] = 0;
+
+	return 0;
+}
+
+/* LNet selftest groups ->start() handler for GET requests */
+static int lst_groups_show_start(struct netlink_callback *cb)
+{
+	struct genlmsghdr *gnlh = nlmsg_data(cb->nlh);
+	struct netlink_ext_ack *extack = cb->extack;
+	struct nlattr *params = genlmsg_data(gnlh);
+	struct lst_genl_group_list *glist;
+	int msg_len = genlmsg_len(gnlh);
+	struct lstcon_group *grp;
+	struct nlattr *groups;
+	int rem, rc = 0;
+
+	glist = kzalloc(sizeof(*glist), GFP_KERNEL);
+	if (!glist)
+		return -ENOMEM;
+
+	genradix_init(&glist->lggl_groups);
+	cb->args[0] = (long)glist;
+
+	if (!msg_len) {
+		list_for_each_entry(grp, &console_session.ses_grp_list,
+				    grp_link) {
+			struct lst_genl_group_prop *prop;
+
+			prop = genradix_ptr_alloc(&glist->lggl_groups,
+						  glist->lggl_count++,
+						  GFP_ATOMIC);
+			if (!prop) {
+				NL_SET_ERR_MSG(extack,
+					       "failed to allocate group info");
+				rc = -ENOMEM;
+				goto report_err;
+			}
+			lstcon_group_addref(grp);  /* +1 ref for caller */
+			prop->lggp_grp = grp;
+		}
+
+		if (!glist->lggl_count) {
+			NL_SET_ERR_MSG(extack, "No groups found");
+			rc = -ENOENT;
+		}
+		goto report_err;
+	}
+	glist->lggl_verbose = true;
+
+	nla_for_each_attr(groups, params, msg_len, rem) {
+		struct lst_genl_group_prop *prop = NULL;
+		struct nlattr *group;
+		int rem2;
+
+		if (nla_type(groups) != LN_SCALAR_ATTR_LIST)
+			continue;
+
+		nla_for_each_nested(group, groups, rem2) {
+			if (nla_type(group) == LN_SCALAR_ATTR_VALUE) {
+				char name[LST_NAME_SIZE];
+
+				prop = genradix_ptr_alloc(&glist->lggl_groups,
+							  glist->lggl_count++,
+							  GFP_ATOMIC);
+				if (!prop) {
+					NL_SET_ERR_MSG(extack,
+						       "failed to allocate group info");
+					rc = -ENOMEM;
+					goto report_err;
+				}
+
+				rc = nla_strlcpy(name, group, sizeof(name));
+				if (rc < 0) {
+					NL_SET_ERR_MSG(extack,
+						       "failed to get name");
+					goto report_err;
+				}
+				rc = lstcon_group_find(name, &prop->lggp_grp);
+				if (rc < 0) {
+					/* don't stop reporting groups if one
+					 * doesn't exist.
+					 */
+					CWARN("LNet selftest group %s does not exit\n",
+					      name);
+					rc = 0;
+				}
+			} else if (nla_type(group) == LN_SCALAR_ATTR_LIST) {
+				struct nlattr *attr;
+				int rem3;
+
+				if (!prop) {
+					NL_SET_ERR_MSG(extack,
+						       "missing group information");
+					rc = -EINVAL;
+					goto report_err;
+				}
+
+				nla_for_each_nested(attr, group, rem3) {
+					char tmp[16];
+
+					if (nla_type(attr) != LN_SCALAR_ATTR_VALUE ||
+					    nla_strcmp(attr, "status") != 0)
+						continue;
+
+					attr = nla_next(attr, &rem3);
+					if (nla_type(attr) !=
+					    LN_SCALAR_ATTR_VALUE) {
+						NL_SET_ERR_MSG(extack,
+							       "invalid config param");
+						rc = -EINVAL;
+						goto report_err;
+					}
+
+					rc = nla_strlcpy(tmp, attr, sizeof(tmp));
+					if (rc < 0) {
+						NL_SET_ERR_MSG(extack,
+							       "failed to get prop attr");
+						goto report_err;
+					}
+					rc = 0;
+					prop->lggp_state_filter |=
+						lst_node_str2state(tmp);
+				}
+			}
+		}
+	}
+	if (!glist->lggl_count) {
+		NL_SET_ERR_MSG(extack, "No groups found");
+		rc = -ENOENT;
+	}
+report_err:
+	if (rc < 0)
+		lst_groups_show_done(cb);
+
+	return rc;
+}
+
+static const struct ln_key_list lst_group_keys = {
+	.lkl_maxattr			= LNET_SELFTEST_GROUP_MAX,
+	.lkl_list			= {
+		[LNET_SELFTEST_GROUP_ATTR_HDR]	= {
+			.lkp_value		= "groups",
+			.lkp_key_format		= LNKF_SEQUENCE,
+			.lkp_data_type		= NLA_NUL_STRING,
+		},
+		[LNET_SELFTEST_GROUP_ATTR_NAME]	= {
+			.lkp_data_type		= NLA_STRING,
+		},
+		[LNET_SELFTEST_GROUP_ATTR_NODELIST] = {
+			.lkp_key_format		= LNKF_MAPPING | LNKF_SEQUENCE,
+			.lkp_data_type		= NLA_NESTED,
+		},
+	},
+};
+
+static const struct ln_key_list lst_group_nodelist_keys = {
+	.lkl_maxattr			= LNET_SELFTEST_GROUP_NODELIST_PROP_MAX,
+	.lkl_list			= {
+		[LNET_SELFTEST_GROUP_NODELIST_PROP_ATTR_NID] = {
+			.lkp_value		= "nid",
+			.lkp_data_type		= NLA_STRING,
+		},
+		[LNET_SELFTEST_GROUP_NODELIST_PROP_ATTR_STATUS] = {
+			.lkp_value		= "status",
+			.lkp_data_type		= NLA_STRING,
+		},
+	},
+};
+
+static int lst_groups_show_dump(struct sk_buff *msg,
+				struct netlink_callback *cb)
+{
+	struct lst_genl_group_list *glist = lst_group_dump_ctx(cb);
+	struct netlink_ext_ack *extack = cb->extack;
+	int portid = NETLINK_CB(cb->skb).portid;
+	int seq = cb->nlh->nlmsg_seq;
+	int idx = 0, rc = 0;
+
+	if (!glist->lggl_index) {
+		const struct ln_key_list *all[] = {
+			&lst_group_keys, &lst_group_nodelist_keys, NULL
+		};
+
+		rc = lnet_genl_send_scalar_list(msg, portid, seq, &lst_family,
+						NLM_F_CREATE | NLM_F_MULTI,
+						LNET_SELFTEST_CMD_GROUPS, all);
+		if (rc < 0) {
+			NL_SET_ERR_MSG(extack, "failed to send key table");
+			goto send_error;
+		}
+	}
+
+	for (idx = glist->lggl_index; idx < glist->lggl_count; idx++) {
+		struct lst_genl_group_prop *group;
+		struct lstcon_ndlink *ndl;
+		struct nlattr *nodelist;
+		unsigned int count = 1;
+		void *hdr;
+
+		group = genradix_ptr(&glist->lggl_groups, idx);
+		if (!group)
+			continue;
+
+		hdr = genlmsg_put(msg, portid, seq, &lst_family,
+				  NLM_F_MULTI, LNET_SELFTEST_CMD_GROUPS);
+		if (!hdr) {
+			NL_SET_ERR_MSG(extack, "failed to send values");
+			rc = -EMSGSIZE;
+			goto send_error;
+		}
+
+		if (idx == 0)
+			nla_put_string(msg, LNET_SELFTEST_GROUP_ATTR_HDR, "");
+
+		nla_put_string(msg, LNET_SELFTEST_GROUP_ATTR_NAME,
+			       group->lggp_grp->grp_name);
+
+		if (!glist->lggl_verbose)
+			goto skip_details;
+
+		nodelist = nla_nest_start(msg,
+					  LNET_SELFTEST_GROUP_ATTR_NODELIST);
+		list_for_each_entry(ndl, &group->lggp_grp->grp_ndl_list,
+				    ndl_link) {
+			struct nlattr *node = nla_nest_start(msg, count);
+			char *ndstate;
+
+			if (group->lggp_state_filter &&
+			    !(group->lggp_state_filter & ndl->ndl_node->nd_state))
+				continue;
+
+			nla_put_string(msg,
+				       LNET_SELFTEST_GROUP_NODELIST_PROP_ATTR_NID,
+				       libcfs_id2str(ndl->ndl_node->nd_id));
+
+			ndstate = lst_node_state2str(ndl->ndl_node->nd_state);
+			nla_put_string(msg,
+				       LNET_SELFTEST_GROUP_NODELIST_PROP_ATTR_STATUS,
+				       ndstate);
+			nla_nest_end(msg, node);
+		}
+		nla_nest_end(msg, nodelist);
+skip_details:
+		genlmsg_end(msg, hdr);
+	}
+	glist->lggl_index = idx;
+send_error:
+	return rc;
+}
+
+#ifndef HAVE_NETLINK_CALLBACK_START
+static int lst_old_groups_show_dump(struct sk_buff *msg,
+				    struct netlink_callback *cb)
+{
+	if (!cb->args[0]) {
+		int rc = lst_groups_show_start(cb);
+
+		if (rc < 0)
+			return rc;
+	}
+
+	return lst_groups_show_dump(msg, cb);
+}
+#endif
+
 static const struct genl_multicast_group lst_mcast_grps[] = {
 	{ .name = "sessions",		},
+	{ .name	= "groups",		},
 };
 
 static const struct genl_ops lst_genl_ops[] = {
@@ -991,6 +1250,16 @@ static const struct genl_ops lst_genl_ops[] = {
 		.cmd		= LNET_SELFTEST_CMD_SESSIONS,
 		.dumpit		= lst_sessions_show_dump,
 		.doit		= lst_sessions_cmd,
+	},
+	{
+		.cmd		= LNET_SELFTEST_CMD_GROUPS,
+#ifdef HAVE_NETLINK_CALLBACK_START
+		.start		= lst_groups_show_start,
+		.dumpit		= lst_groups_show_dump,
+#else
+		.dumpit		= lst_old_groups_show_dump,
+#endif
+		.done		= lst_groups_show_done,
 	},
 };
 
