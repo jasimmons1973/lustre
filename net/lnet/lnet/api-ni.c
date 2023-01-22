@@ -163,7 +163,7 @@ module_param(lnet_drop_asym_route, drop_asym_route, 0644);
 MODULE_PARM_DESC(lnet_drop_asym_route,
 		 "Set to 1 to drop asymmetrical route messages.");
 
-#define LNET_TRANSACTION_TIMEOUT_DEFAULT 50
+#define LNET_TRANSACTION_TIMEOUT_DEFAULT 150
 unsigned int lnet_transaction_timeout = LNET_TRANSACTION_TIMEOUT_DEFAULT;
 static int transaction_to_set(const char *val, const struct kernel_param *kp);
 static struct kernel_param_ops param_ops_transaction_timeout = {
