@@ -551,6 +551,8 @@ static int lmv_fid2path(struct obd_export *exp, int len, void *karg,
 	struct getinfo_fid2path *remote_gf = NULL;
 	struct lu_fid root_fid;
 	int remote_gf_size = 0;
+	int currentisenc = 0;
+	int globalisenc = 0;
 	int rc;
 
 	tgt = lmv_fid2tgt(lmv, &gf->gf_fid);
@@ -565,11 +567,23 @@ repeat_fid2path:
 	if (rc != 0 && rc != -EREMOTE)
 		goto out_fid2path;
 
+	if (gf->gf_path[0] == '/') {
+		/* by convention, server side (mdt_path_current()) puts
+		 * a leading '/' to tell client that we are dealing with
+		 * an encrypted file
+		 */
+		currentisenc = 1;
+		globalisenc = 1;
+	} else {
+		currentisenc = 0;
+	}
+
 	/* If remote_gf != NULL, it means just building the
 	 * path on the remote MDT, copy this path segment to gf
 	 */
 	if (remote_gf) {
 		struct getinfo_fid2path *ori_gf;
+		int oldisenc = 0;
 		char *ptr;
 		int len;
 
@@ -581,14 +595,22 @@ repeat_fid2path:
 		}
 
 		ptr = ori_gf->gf_path;
+		oldisenc = ptr[0] == '/';
 
 		len = strlen(gf->gf_path);
-		/* move the current path to the right to release space
-		 * for closer-to-root part
-		 */
-		memmove(ptr + len + 1, ptr, strlen(ori_gf->gf_path));
-		memcpy(ptr, gf->gf_path, len);
-		ptr[len] = '/';
+		if (len) {
+			/* move the current path to the right to release space
+			 * for closer-to-root part
+			 */
+			memmove(ptr + len - currentisenc + 1 + globalisenc,
+				ptr + oldisenc,
+				strlen(ori_gf->gf_path) - oldisenc + 1);
+			if (globalisenc)
+				*(ptr++) = '/';
+			memcpy(ptr, gf->gf_path + currentisenc,
+			       len - currentisenc);
+			ptr[len - currentisenc] = '/';
+		}
 	}
 
 	CDEBUG(D_INFO, "%s: get path %s " DFID " rec: %llu ln: %u\n",
@@ -601,13 +623,13 @@ repeat_fid2path:
 
 	/* sigh, has to go to another MDT to do path building further */
 	if (!remote_gf) {
-		remote_gf_size = sizeof(*remote_gf) + PATH_MAX;
+		remote_gf_size = sizeof(*remote_gf) + len - sizeof(*gf);
 		remote_gf = kzalloc(remote_gf_size, GFP_NOFS);
 		if (!remote_gf) {
 			rc = -ENOMEM;
 			goto out_fid2path;
 		}
-		remote_gf->gf_pathlen = PATH_MAX;
+		remote_gf->gf_pathlen = len - sizeof(*gf);
 	}
 
 	if (!fid_is_sane(&gf->gf_fid)) {

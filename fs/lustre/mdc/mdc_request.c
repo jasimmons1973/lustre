@@ -1707,8 +1707,6 @@ static int mdc_ioc_fid2path(struct obd_export *exp, struct getinfo_fid2path *gf)
 	void *key;
 	int rc;
 
-	if (gf->gf_pathlen > PATH_MAX)
-		return -ENAMETOOLONG;
 	if (gf->gf_pathlen < 2)
 		return -EOVERFLOW;
 
@@ -1746,12 +1744,10 @@ static int mdc_ioc_fid2path(struct obd_export *exp, struct getinfo_fid2path *gf)
 		goto out;
 	}
 
-	CDEBUG(D_IOCTL, "path got " DFID " from %llu #%d: %s\n",
+	CDEBUG(D_IOCTL, "path got " DFID " from %llu #%d: %.*s\n",
 	       PFID(&gf->gf_fid), gf->gf_recno, gf->gf_linkno,
-	       gf->gf_pathlen < 512 ? gf->gf_path :
-	       /* only log the last 512 characters of the path */
-	       gf->gf_path + gf->gf_pathlen - 512);
-
+	       /* only log the first 512 characters of the path */
+	       512, gf->gf_path);
 out:
 	kfree(key);
 	return rc;
