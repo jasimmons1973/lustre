@@ -1463,6 +1463,9 @@ static inline void osc_release_bounce_pages(struct brw_page **pga,
 	struct page **pa = NULL;
 	int i, j = 0;
 
+	if (!pga[0])
+		return;
+
 	if (PageChecked(pga[0]->pg)) {
 		pa = kvmalloc_array(page_count, sizeof(*pa),
 				    GFP_KERNEL | __GFP_ZERO);
