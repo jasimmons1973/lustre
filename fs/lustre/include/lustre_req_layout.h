@@ -82,7 +82,9 @@ void req_capsule_fini(struct req_capsule *pill);
 void req_capsule_set(struct req_capsule *pill, const struct req_format *fmt);
 size_t req_capsule_filled_sizes(struct req_capsule *pill,
 				enum req_location loc);
-int  req_capsule_server_pack(struct req_capsule *pill);
+int req_capsule_server_pack(struct req_capsule *pill);
+int req_capsule_client_pack(struct req_capsule *pill);
+void req_capsule_set_replen(struct req_capsule *pill);
 
 void *req_capsule_client_get(struct req_capsule *pill,
 			     const struct req_msg_field *field);
@@ -147,22 +149,6 @@ static inline bool req_capsule_rep_swabbed(struct req_capsule *pill,
 {
 	LASSERT(index < sizeof(pill->rc_rep_swab_mask) * 8);
 	return pill->rc_rep_swab_mask & BIT(index);
-}
-
-/**
- * Returns true if request needs to be swabbed into local cpu byteorder
- */
-static inline bool req_capsule_req_need_swab(struct req_capsule *pill)
-{
-	return req_capsule_req_swabbed(pill, MSG_PTLRPC_HEADER_OFF);
-}
-
-/**
- * Returns true if request reply needs to be swabbed into local cpu byteorder
- */
-static inline bool req_capsule_rep_need_swab(struct req_capsule *pill)
-{
-	return req_capsule_rep_swabbed(pill, MSG_PTLRPC_HEADER_OFF);
 }
 
 /**
@@ -294,6 +280,14 @@ extern struct req_format RQF_LLOG_ORIGIN_HANDLE_PREV_BLOCK;
 extern struct req_format RQF_LLOG_ORIGIN_HANDLE_READ_HEADER;
 
 extern struct req_format RQF_CONNECT;
+
+/* Batch UpdaTe req_format */
+extern struct req_format RQF_MDS_BATCH;
+
+/* Batch UpdaTe format */
+extern struct req_msg_field RMF_BUT_REPLY;
+extern struct req_msg_field RMF_BUT_HEADER;
+extern struct req_msg_field RMF_BUT_BUF;
 
 extern struct req_msg_field RMF_GENERIC_DATA;
 extern struct req_msg_field RMF_PTLRPC_BODY;

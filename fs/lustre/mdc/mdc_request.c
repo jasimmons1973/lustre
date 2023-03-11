@@ -3023,6 +3023,10 @@ static const struct md_ops mdc_md_ops = {
 	.intent_getattr_async	= mdc_intent_getattr_async,
 	.revalidate_lock	= mdc_revalidate_lock,
 	.rmfid			= mdc_rmfid,
+	.batch_create		= cli_batch_create,
+	.batch_stop		= cli_batch_stop,
+	.batch_flush		= cli_batch_flush,
+	.batch_add		= mdc_batch_add,
 };
 
 dev_t mdc_changelog_dev;

@@ -3790,6 +3790,175 @@ static int lmv_merge_attr(struct obd_export *exp,
 	return 0;
 }
 
+static struct lu_batch *lmv_batch_create(struct obd_export *exp,
+					 enum lu_batch_flags flags,
+					 u32 max_count)
+{
+	struct lu_batch *bh;
+	struct lmv_batch *lbh;
+
+	lbh = kzalloc(sizeof(*lbh), GFP_NOFS);
+	if (!lbh)
+		return ERR_PTR(-ENOMEM);
+
+	bh = &lbh->lbh_super;
+	bh->lbt_flags = flags;
+	bh->lbt_max_count = max_count;
+
+	if (flags & BATCH_FL_RQSET) {
+		bh->lbt_rqset = ptlrpc_prep_set();
+		if (!bh->lbt_rqset) {
+			kfree(lbh);
+			return ERR_PTR(-ENOMEM);
+		}
+	}
+
+	INIT_LIST_HEAD(&lbh->lbh_sub_batch_list);
+	return bh;
+}
+
+static int lmv_batch_stop(struct obd_export *exp, struct lu_batch *bh)
+{
+	struct lmv_batch *lbh;
+	struct lmvsub_batch *sub;
+	struct lmvsub_batch *tmp;
+	int rc = 0;
+
+	lbh = container_of(bh, struct lmv_batch, lbh_super);
+	list_for_each_entry_safe(sub, tmp, &lbh->lbh_sub_batch_list,
+				 sbh_sub_item) {
+		list_del(&sub->sbh_sub_item);
+		rc = md_batch_stop(sub->sbh_tgt->ltd_exp, sub->sbh_sub);
+		if (rc < 0) {
+			CERROR("%s: stop batch processing failed: rc = %d\n",
+			       exp->exp_obd->obd_name, rc);
+			if (bh->lbt_result == 0)
+				bh->lbt_result = rc;
+		}
+		kfree(sub);
+	}
+
+	if (bh->lbt_flags & BATCH_FL_RQSET) {
+		rc = ptlrpc_set_wait(NULL, bh->lbt_rqset);
+		ptlrpc_set_destroy(bh->lbt_rqset);
+	}
+
+	kfree(lbh);
+	return rc;
+}
+
+static int lmv_batch_flush(struct obd_export *exp, struct lu_batch *bh,
+			   bool wait)
+{
+	struct lmv_batch *lbh;
+	struct lmvsub_batch *sub;
+	int rc = 0;
+	int rc1;
+
+	lbh = container_of(bh, struct lmv_batch, lbh_super);
+	list_for_each_entry(sub, &lbh->lbh_sub_batch_list, sbh_sub_item) {
+		rc1 = md_batch_flush(sub->sbh_tgt->ltd_exp, sub->sbh_sub, wait);
+		if (rc1 < 0) {
+			CERROR("%s: stop batch processing failed: rc = %d\n",
+			       exp->exp_obd->obd_name, rc);
+			if (bh->lbt_result == 0)
+				bh->lbt_result = rc;
+
+			if (rc == 0)
+				rc = rc1;
+		}
+	}
+
+	if (wait && bh->lbt_flags & BATCH_FL_RQSET) {
+		rc1 = ptlrpc_set_wait(NULL, bh->lbt_rqset);
+		if (rc == 0)
+			rc = rc1;
+	}
+
+	return rc;
+}
+
+static inline struct lmv_tgt_desc *
+lmv_batch_locate_tgt(struct lmv_obd *lmv, struct md_op_item *item)
+{
+	struct lmv_tgt_desc *tgt;
+
+	switch (item->mop_opc) {
+	default:
+		tgt = ERR_PTR(-EOPNOTSUPP);
+	}
+
+	return tgt;
+}
+
+struct lu_batch *lmv_batch_lookup_sub(struct lmv_batch *lbh,
+				      struct lmv_tgt_desc *tgt)
+{
+	struct lmvsub_batch *sub;
+
+	list_for_each_entry(sub, &lbh->lbh_sub_batch_list, sbh_sub_item) {
+		if (sub->sbh_tgt == tgt)
+			return sub->sbh_sub;
+	}
+
+	return NULL;
+}
+
+struct lu_batch *lmv_batch_get_sub(struct lmv_batch *lbh,
+				   struct lmv_tgt_desc *tgt)
+{
+	struct lmvsub_batch *sbh;
+	struct lu_batch *child_bh;
+	struct lu_batch *bh;
+
+	child_bh = lmv_batch_lookup_sub(lbh, tgt);
+	if (child_bh)
+		return child_bh;
+
+	sbh = kzalloc(sizeof(*sbh), GFP_NOFS);
+	if (!sbh)
+		return ERR_PTR(-ENOMEM);
+
+	INIT_LIST_HEAD(&sbh->sbh_sub_item);
+	sbh->sbh_tgt = tgt;
+
+	bh = &lbh->lbh_super;
+	child_bh = md_batch_create(tgt->ltd_exp, bh->lbt_flags,
+				   bh->lbt_max_count);
+	if (IS_ERR(child_bh)) {
+		kfree(sbh);
+		return child_bh;
+	}
+
+	child_bh->lbt_rqset = bh->lbt_rqset;
+	sbh->sbh_sub = child_bh;
+	list_add(&sbh->sbh_sub_item, &lbh->lbh_sub_batch_list);
+	return child_bh;
+}
+
+static int lmv_batch_add(struct obd_export *exp, struct lu_batch *bh,
+			 struct md_op_item *item)
+{
+	struct obd_device *obd = exp->exp_obd;
+	struct lmv_obd *lmv = &obd->u.lmv;
+	struct lmv_tgt_desc *tgt;
+	struct lmv_batch *lbh;
+	struct lu_batch *child_bh;
+	int rc;
+
+	tgt = lmv_batch_locate_tgt(lmv, item);
+	if (IS_ERR(tgt))
+		return PTR_ERR(tgt);
+
+	lbh = container_of(bh, struct lmv_batch, lbh_super);
+	child_bh = lmv_batch_get_sub(lbh, tgt);
+	if (IS_ERR(child_bh))
+		return PTR_ERR(child_bh);
+
+	rc = md_batch_add(tgt->ltd_exp, child_bh, item);
+	return rc;
+}
+
 static const struct obd_ops lmv_obd_ops = {
 	.owner			= THIS_MODULE,
 	.setup			= lmv_setup,
@@ -3840,6 +4009,10 @@ static const struct md_ops lmv_md_ops = {
 	.get_fid_from_lsm	= lmv_get_fid_from_lsm,
 	.unpackmd		= lmv_unpackmd,
 	.rmfid			= lmv_rmfid,
+	.batch_create		= lmv_batch_create,
+	.batch_add		= lmv_batch_add,
+	.batch_stop		= lmv_batch_stop,
+	.batch_flush		= lmv_batch_flush,
 };
 
 static int __init lmv_init(void)

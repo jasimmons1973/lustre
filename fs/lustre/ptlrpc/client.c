@@ -70,6 +70,30 @@ static void ptlrpc_release_bulk_page_pin(struct ptlrpc_bulk_desc *desc)
 		put_page(desc->bd_vec[i].bv_page);
 }
 
+static int ptlrpc_prep_bulk_frag_pages(struct ptlrpc_bulk_desc *desc,
+				       void *frag, int len)
+{
+	unsigned int offset = (unsigned long)frag & ~PAGE_MASK;
+
+	while (len > 0) {
+		int page_len = min_t(unsigned int, PAGE_SIZE - offset,
+				     len);
+		struct page *pg;
+
+		if (is_vmalloc_addr(frag))
+			pg = vmalloc_to_page(frag);
+		else
+			pg = virt_to_page(frag);
+
+		ptlrpc_prep_bulk_page_nopin(desc, pg, offset, page_len);
+		offset = 0;
+		len -= page_len;
+		frag += page_len;
+	}
+
+	return desc->bd_nob;
+}
+
 const struct ptlrpc_bulk_frag_ops ptlrpc_bulk_kiov_pin_ops = {
 	.add_kiov_frag		= ptlrpc_prep_bulk_page_pin,
 	.release_frags		= ptlrpc_release_bulk_page_pin,
@@ -79,6 +103,7 @@ EXPORT_SYMBOL(ptlrpc_bulk_kiov_pin_ops);
 const struct ptlrpc_bulk_frag_ops ptlrpc_bulk_kiov_nopin_ops = {
 	.add_kiov_frag		= ptlrpc_prep_bulk_page_nopin,
 	.release_frags		= NULL,
+	.add_iov_frag		= ptlrpc_prep_bulk_frag_pages,
 };
 EXPORT_SYMBOL(ptlrpc_bulk_kiov_nopin_ops);
 

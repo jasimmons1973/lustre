@@ -835,7 +835,14 @@ struct md_readdir_info {
 struct md_op_item;
 typedef int (*md_op_item_cb_t)(struct md_op_item *item, int rc);
 
+enum md_item_opcode {
+	MD_OP_NONE	= 0,
+	MD_OP_GETATTR	= 1,
+	MD_OP_MAX,
+};
+
 struct md_op_item {
+	enum md_item_opcode		 mop_opc;
 	struct md_op_data		 mop_data;
 	struct lookup_intent		 mop_it;
 	struct lustre_handle		 mop_lockh;
@@ -846,6 +853,69 @@ struct md_op_item {
 	struct req_capsule		*mop_pill;
 	struct work_struct		 mop_work;
 };
+
+enum lu_batch_flags {
+	BATCH_FL_NONE	= 0x0,
+	/* All requests in a batch are read-only. */
+	BATCH_FL_RDONLY	= 0x1,
+	/* Will create PTLRPC request set for the batch. */
+	BATCH_FL_RQSET	= 0x2,
+	/* Whether need sync commit. */
+	BATCH_FL_SYNC	= 0x4,
+};
+
+struct lu_batch {
+	struct ptlrpc_request_set	*lbt_rqset;
+	s32				 lbt_result;
+	u32				 lbt_flags;
+	/* Max batched SUB requests count in a batch. */
+	u32				 lbt_max_count;
+};
+
+struct batch_update_head {
+	struct obd_export	*buh_exp;
+	struct lu_batch		*buh_batch;
+	int			 buh_flags;
+	u32			 buh_count;
+	u32			 buh_update_count;
+	u32			 buh_buf_count;
+	u32			 buh_reqsize;
+	u32			 buh_repsize;
+	u32			 buh_batchid;
+	struct list_head	 buh_buf_list;
+	struct list_head	 buh_cb_list;
+};
+
+struct object_update_callback;
+typedef int (*object_update_interpret_t)(struct ptlrpc_request *req,
+					 struct lustre_msg *repmsg,
+					 struct object_update_callback *ouc,
+					 int rc);
+
+struct object_update_callback {
+	struct list_head		 ouc_item;
+	object_update_interpret_t	 ouc_interpret;
+	struct batch_update_head	*ouc_head;
+	void				*ouc_data;
+};
+
+typedef int (*md_update_pack_t)(struct batch_update_head *head,
+				struct lustre_msg *reqmsg,
+				size_t *max_pack_size,
+				struct md_op_item *item);
+
+struct cli_batch {
+	struct lu_batch			  cbh_super;
+	struct batch_update_head	 *cbh_head;
+};
+
+struct lu_batch *cli_batch_create(struct obd_export *exp,
+				  enum lu_batch_flags flags, u32 max_count);
+int cli_batch_stop(struct obd_export *exp, struct lu_batch *bh);
+int cli_batch_flush(struct obd_export *exp, struct lu_batch *bh, bool wait);
+int cli_batch_add(struct obd_export *exp, struct lu_batch *bh,
+		  struct md_op_item *item, md_update_pack_t packer,
+		  object_update_interpret_t interpreter);
 
 struct obd_ops {
 	struct module *owner;
@@ -1086,6 +1156,14 @@ struct md_ops {
 			const union lmv_mds_md *lmv, size_t lmv_size);
 	int (*rmfid)(struct obd_export *exp, struct fid_array *fa, int *rcs,
 		     struct ptlrpc_request_set *set);
+	struct lu_batch *(*batch_create)(struct obd_export *exp,
+					 enum lu_batch_flags flags,
+					 u32 max_count);
+	int (*batch_stop)(struct obd_export *exp, struct lu_batch *bh);
+	int (*batch_flush)(struct obd_export *exp, struct lu_batch *bh,
+			   bool wait);
+	int (*batch_add)(struct obd_export *exp, struct lu_batch *bh,
+			 struct md_op_item *item);
 };
 
 static inline struct md_open_data *obd_mod_alloc(void)

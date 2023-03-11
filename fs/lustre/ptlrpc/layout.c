@@ -561,6 +561,17 @@ static const struct req_msg_field *mds_setattr_server[] = {
 	&RMF_CAPA2
 };
 
+static const struct req_msg_field *mds_batch_client[] = {
+	&RMF_PTLRPC_BODY,
+	&RMF_BUT_HEADER,
+	&RMF_BUT_BUF,
+};
+
+static const struct req_msg_field *mds_batch_server[] = {
+	&RMF_PTLRPC_BODY,
+	&RMF_BUT_REPLY,
+};
+
 static const struct req_msg_field *llog_origin_handle_create_client[] = {
 	&RMF_PTLRPC_BODY,
 	&RMF_LLOGD_BODY,
@@ -800,6 +811,7 @@ static struct req_format *req_formats[] = {
 	&RQF_LLOG_ORIGIN_HANDLE_PREV_BLOCK,
 	&RQF_LLOG_ORIGIN_HANDLE_READ_HEADER,
 	&RQF_CONNECT,
+	&RQF_MDS_BATCH,
 };
 
 struct req_msg_field {
@@ -1222,6 +1234,20 @@ struct req_msg_field RMF_OST_LADVISE =
 		    lustre_swab_ladvise, NULL);
 EXPORT_SYMBOL(RMF_OST_LADVISE);
 
+struct req_msg_field RMF_BUT_REPLY =
+			DEFINE_MSGF("batch_update_reply", 0, -1,
+				    lustre_swab_batch_update_reply, NULL);
+EXPORT_SYMBOL(RMF_BUT_REPLY);
+
+struct req_msg_field RMF_BUT_HEADER = DEFINE_MSGF("but_update_header", 0,
+				-1, lustre_swab_but_update_header, NULL);
+EXPORT_SYMBOL(RMF_BUT_HEADER);
+
+struct req_msg_field RMF_BUT_BUF = DEFINE_MSGF("but_update_buf",
+			RMF_F_STRUCT_ARRAY, sizeof(struct but_update_buffer),
+			lustre_swab_but_update_buffer, NULL);
+EXPORT_SYMBOL(RMF_BUT_BUF);
+
 /*
  * Request formats.
  */
@@ -1421,6 +1447,11 @@ struct req_format RQF_MDS_GET_INFO =
 	DEFINE_REQ_FMT0("MDS_GET_INFO", mds_getinfo_client,
 			mds_getinfo_server);
 EXPORT_SYMBOL(RQF_MDS_GET_INFO);
+
+struct req_format RQF_MDS_BATCH =
+	DEFINE_REQ_FMT0("MDS_BATCH", mds_batch_client,
+			mds_batch_server);
+EXPORT_SYMBOL(RQF_MDS_BATCH);
 
 struct req_format RQF_LDLM_ENQUEUE =
 	DEFINE_REQ_FMT0("LDLM_ENQUEUE",
@@ -1849,16 +1880,60 @@ int req_capsule_server_pack(struct req_capsule *pill)
 	LASSERT(fmt);
 
 	count = req_capsule_filled_sizes(pill, RCL_SERVER);
-	rc = lustre_pack_reply(pill->rc_req, count,
-			       pill->rc_area[RCL_SERVER], NULL);
-	if (rc != 0) {
-		DEBUG_REQ(D_ERROR, pill->rc_req,
-			  "Cannot pack %d fields in format '%s'",
-			  count, fmt->rf_name);
+	if (req_capsule_ptlreq(pill)) {
+		rc = lustre_pack_reply(pill->rc_req, count,
+				       pill->rc_area[RCL_SERVER], NULL);
+		if (rc != 0) {
+			DEBUG_REQ(D_ERROR, pill->rc_req,
+				  "Cannot pack %d fields in format '%s'",
+				   count, fmt->rf_name);
+		}
+	} else { /* SUB request */
+		u32 msg_len;
+
+		msg_len = lustre_msg_size_v2(count, pill->rc_area[RCL_SERVER]);
+		if (msg_len > pill->rc_reqmsg->lm_repsize) {
+			/* TODO: Check whether there is enough buffer size */
+			CDEBUG(D_INFO,
+			       "Overflow pack %d fields in format '%s' for the SUB request with message len %u:%u\n",
+			       count, fmt->rf_name, msg_len,
+			       pill->rc_reqmsg->lm_repsize);
+		}
+
+		rc = 0;
+		lustre_init_msg_v2(pill->rc_repmsg, count,
+				   pill->rc_area[RCL_SERVER], NULL);
 	}
+
 	return rc;
 }
 EXPORT_SYMBOL(req_capsule_server_pack);
+
+int req_capsule_client_pack(struct req_capsule *pill)
+{
+	const struct req_format *fmt;
+	int count;
+	int rc = 0;
+
+	LASSERT(pill->rc_loc == RCL_CLIENT);
+	fmt = pill->rc_fmt;
+	LASSERT(fmt);
+
+	count = req_capsule_filled_sizes(pill, RCL_CLIENT);
+	if (req_capsule_ptlreq(pill)) {
+		struct ptlrpc_request *req = pill->rc_req;
+
+		rc = lustre_pack_request(req, req->rq_import->imp_msg_magic,
+					 count, pill->rc_area[RCL_CLIENT],
+					 NULL);
+	} else {
+		/* Sub request in a batch PTLRPC request */
+		lustre_init_msg_v2(pill->rc_reqmsg, count,
+				   pill->rc_area[RCL_CLIENT], NULL);
+	}
+	return rc;
+}
+EXPORT_SYMBOL(req_capsule_client_pack);
 
 /**
  * Returns the PTLRPC request or reply (@loc) buffer offset of a @pill
@@ -2050,6 +2125,7 @@ static void *__req_capsule_get(struct req_capsule *pill,
 	value = getter(msg, offset, len);
 
 	if (!value) {
+		LASSERT(pill->rc_req);
 		DEBUG_REQ(D_ERROR, pill->rc_req,
 			  "Wrong buffer for field '%s' (%u of %u) in format '%s', %u vs. %u (%s)",
 			  field->rmf_name, offset, lustre_msg_bufcount(msg),
@@ -2218,10 +2294,18 @@ EXPORT_SYMBOL(req_capsule_get_size);
  */
 u32 req_capsule_msg_size(struct req_capsule *pill, enum req_location loc)
 {
-	return lustre_msg_size(pill->rc_req->rq_import->imp_msg_magic,
-			       pill->rc_fmt->rf_fields[loc].nr,
-			       pill->rc_area[loc]);
+	if (req_capsule_ptlreq(pill)) {
+		return lustre_msg_size(pill->rc_req->rq_import->imp_msg_magic,
+				       pill->rc_fmt->rf_fields[loc].nr,
+				       pill->rc_area[loc]);
+	} else { /* SUB request in a batch request */
+		int count;
+
+		count = req_capsule_filled_sizes(pill, loc);
+		return lustre_msg_size_v2(count, pill->rc_area[loc]);
+	}
 }
+EXPORT_SYMBOL(req_capsule_msg_size);
 
 /**
  * While req_capsule_msg_size() computes the size of a PTLRPC request or reply
@@ -2373,16 +2457,32 @@ void req_capsule_shrink(struct req_capsule *pill,
 	LASSERTF(newlen <= len, "%s:%s, oldlen=%u, newlen=%u\n",
 		 fmt->rf_name, field->rmf_name, len, newlen);
 
+	len = lustre_shrink_msg(msg, offset, newlen, 1);
 	if (loc == RCL_CLIENT) {
-		pill->rc_req->rq_reqlen = lustre_shrink_msg(msg, offset, newlen,
-							    1);
+		if (req_capsule_ptlreq(pill))
+			pill->rc_req->rq_reqlen = len;
 	} else {
-		pill->rc_req->rq_replen = lustre_shrink_msg(msg, offset, newlen,
-							    1);
 		/* update also field size in reply lenghts arrays for possible
 		 * reply re-pack due to req_capsule_server_grow() call.
 		 */
 		req_capsule_set_size(pill, field, loc, newlen);
+		if (req_capsule_ptlreq(pill))
+			pill->rc_req->rq_replen = len;
 	}
 }
 EXPORT_SYMBOL(req_capsule_shrink);
+
+void req_capsule_set_replen(struct req_capsule *pill)
+{
+	if (req_capsule_ptlreq(pill)) {
+		ptlrpc_request_set_replen(pill->rc_req);
+	} else { /* SUB request in a batch request */
+		int count;
+
+		count = req_capsule_filled_sizes(pill, RCL_SERVER);
+		pill->rc_reqmsg->lm_repsize =
+			lustre_msg_size_v2(count,
+					   pill->rc_area[RCL_SERVER]);
+	}
+}
+EXPORT_SYMBOL(req_capsule_set_replen);

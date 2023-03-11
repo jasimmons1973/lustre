@@ -1161,6 +1161,13 @@ struct ptlrpc_bulk_frag_ops {
 			      struct page *page, int pageoffset, int len);
 
 	/**
+	 * Add a @fragment to the bulk descriptor @desc.
+	 * Data to transfer in the fragment is pointed to by @frag
+	 * The size of the fragment is @len
+	 */
+	int (*add_iov_frag)(struct ptlrpc_bulk_desc *desc, void *frag, int len);
+
+	/**
 	 * Uninitialize and free bulk descriptor @desc.
 	 * Works on bulk descriptors both from server and client side.
 	 */
@@ -1169,6 +1176,42 @@ struct ptlrpc_bulk_frag_ops {
 
 extern const struct ptlrpc_bulk_frag_ops ptlrpc_bulk_kiov_pin_ops;
 extern const struct ptlrpc_bulk_frag_ops ptlrpc_bulk_kiov_nopin_ops;
+
+static inline bool req_capsule_ptlreq(struct req_capsule *pill)
+{
+	struct ptlrpc_request *req = pill->rc_req;
+
+	return req && pill == &req->rq_pill;
+}
+
+static inline bool req_capsule_subreq(struct req_capsule *pill)
+{
+	struct ptlrpc_request *req = pill->rc_req;
+
+	return !req || pill != &req->rq_pill;
+}
+
+/**
+ * Returns true if request needs to be swabbed into local cpu byteorder
+ */
+static inline bool req_capsule_req_need_swab(struct req_capsule *pill)
+{
+	struct ptlrpc_request *req = pill->rc_req;
+
+	return req && req_capsule_req_swabbed(&req->rq_pill,
+					      MSG_PTLRPC_HEADER_OFF);
+}
+
+/**
+ * Returns true if request reply needs to be swabbed into local cpu byteorder
+ */
+static inline bool req_capsule_rep_need_swab(struct req_capsule *pill)
+{
+	struct ptlrpc_request *req = pill->rc_req;
+
+	return req && req_capsule_rep_swabbed(&req->rq_pill,
+					      MSG_PTLRPC_HEADER_OFF);
+}
 
 /**
  * Definition of bulk descriptor.
