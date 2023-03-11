@@ -1653,6 +1653,53 @@ static ssize_t ll_nosquash_nids_seq_write(struct file *file,
 
 LDEBUGFS_SEQ_FOPS(ll_nosquash_nids);
 
+static int ll_old_b64_enc_seq_show(struct seq_file *m, void *v)
+{
+	struct super_block *sb = m->private;
+	struct lustre_sb_info *lsi = s2lsi(sb);
+
+	seq_printf(m, "%u\n",
+		   lsi->lsi_flags & LSI_FILENAME_ENC_B64_OLD_CLI ? 1 : 0);
+	return 0;
+}
+
+static ssize_t ll_old_b64_enc_seq_write(struct file *file,
+					const char __user *buffer,
+					size_t count, loff_t *off)
+{
+	struct seq_file *m = file->private_data;
+	struct super_block *sb = m->private;
+	struct lustre_sb_info *lsi = s2lsi(sb);
+	struct ll_sb_info *sbi = ll_s2sbi(sb);
+	bool val;
+	int rc;
+
+	rc = kstrtobool_from_user(buffer, count, &val);
+	if (rc)
+		return rc;
+
+	if (val) {
+		if (!ll_sbi_has_name_encrypt(sbi)) {
+			/* server does not support name encryption,
+			 * so force it to NULL on client
+			 */
+			CDEBUG(D_SEC,
+			       "%s: server does not support name encryption\n",
+			       sbi->ll_fsname);
+			lsi->lsi_flags &= ~LSI_FILENAME_ENC_B64_OLD_CLI;
+			return -EOPNOTSUPP;
+		}
+
+		lsi->lsi_flags |= LSI_FILENAME_ENC_B64_OLD_CLI;
+	} else {
+		lsi->lsi_flags &= ~LSI_FILENAME_ENC_B64_OLD_CLI;
+	}
+
+	return count;
+}
+
+LDEBUGFS_SEQ_FOPS(ll_old_b64_enc);
+
 static int ll_pcc_seq_show(struct seq_file *m, void *v)
 {
 	struct super_block *sb = m->private;
@@ -1709,6 +1756,8 @@ struct ldebugfs_vars lprocfs_llite_obd_vars[] = {
 	  .fops =	&ll_nosquash_nids_fops			},
 	{ .name =	"pcc",
 	  .fops =	&ll_pcc_fops,				},
+	{ .name =	"filename_enc_use_old_base64",
+	  .fops =	&ll_old_b64_enc_fops,			},
 	{ NULL }
 };
 

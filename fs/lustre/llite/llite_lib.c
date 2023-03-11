@@ -508,10 +508,13 @@ retry_connect:
 	}
 
 	if (ll_sbi_has_name_encrypt(sbi) && !obd_connect_has_name_enc(data)) {
+		struct  lustre_sb_info *lsi = s2lsi(sb);
+
 		if (ll_sb_has_test_dummy_encryption(sb))
 			LCONSOLE_WARN("%s: server %s does not support name encryption, not using it.\n",
 				      sbi->ll_fsname,
 				      sbi->ll_md_exp->exp_obd->obd_name);
+		lsi->lsi_flags &= ~LSI_FILENAME_ENC_B64_OLD_CLI;
 		ll_sbi_set_name_encrypt(sbi, false);
 	}
 

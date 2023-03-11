@@ -32,6 +32,9 @@
 
 #include <linux/fscrypt.h>
 
+#define LLCRYPT_DIGESTED_CHAR		'+'
+#define LLCRYPT_DIGESTED_CHAR_OLD	'_'
+
 /* Macro to extract digest from Lustre specific structures */
 #define LLCRYPT_EXTRACT_DIGEST(name, len)			\
 	((name) + round_down((len) - FS_CRYPTO_BLOCK_SIZE - 1,	\

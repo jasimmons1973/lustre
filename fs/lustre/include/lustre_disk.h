@@ -136,7 +136,8 @@ struct lustre_sb_info {
 	struct fscrypt_dummy_context lsi_dummy_enc_ctx;
 };
 
-#define LSI_UMOUNT_FAILOVER	0x00200000
+#define LSI_UMOUNT_FAILOVER		0x00200000
+#define LSI_FILENAME_ENC_B64_OLD_CLI    0x01000000 /* use old style base64 */
 
 #define     s2lsi(sb)	((struct lustre_sb_info *)((sb)->s_fs_info))
 #define     s2lsi_nocast(sb) ((sb)->s_fs_info)
