@@ -481,18 +481,18 @@ static inline int ostid_res_name_eq(const struct ost_id *oi,
 static inline int ostid_set_id(struct ost_id *oi, u64 oid)
 {
 	if (fid_seq_is_mdt0(oi->oi.oi_seq)) {
-		if (oid >= IDIF_MAX_OID)
+		if (oid > IDIF_MAX_OID)
 			return -E2BIG;
 		oi->oi.oi_id = oid;
 	} else if (fid_is_idif(&oi->oi_fid)) {
-		if (oid >= IDIF_MAX_OID)
+		if (oid > IDIF_MAX_OID)
 			return -E2BIG;
 		oi->oi_fid.f_seq = fid_idif_seq(oid,
 						fid_idif_ost_idx(&oi->oi_fid));
 		oi->oi_fid.f_oid = oid;
 		oi->oi_fid.f_ver = oid >> 48;
 	} else {
-		if (oid >= OBIF_MAX_OID)
+		if (oid > OBIF_MAX_OID)
 			return -E2BIG;
 		oi->oi_fid.f_oid = oid;
 	}
