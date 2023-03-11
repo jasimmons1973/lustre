@@ -847,12 +847,8 @@ kiblnd_post_tx_locked(struct kib_conn *conn, struct kib_tx *tx, int credit)
 		struct ib_send_wr *wrq = &tx->tx_wrq[0].wr;
 
 		if (frd && !frd->frd_posted) {
-			if (!frd->frd_valid) {
-				wrq = &frd->frd_inv_wr;
-				wrq->next = &frd->frd_fastreg_wr.wr;
-			} else {
-				wrq = &frd->frd_fastreg_wr.wr;
-			}
+			wrq = &frd->frd_inv_wr;
+			wrq->next = &frd->frd_fastreg_wr.wr;
 			frd->frd_fastreg_wr.wr.next = &tx->tx_wrq[0].wr;
 		}
 
@@ -866,6 +862,15 @@ kiblnd_post_tx_locked(struct kib_conn *conn, struct kib_tx *tx, int credit)
 			rc = -EINVAL;
 		else
 			rc = ib_post_send(conn->ibc_cmid->qp, wrq, &bad);
+
+		if (frd && !frd->frd_posted) {
+			/* The local invalidate becomes invalid (has been
+			 * successfully used) if the post succeeds or the
+			 * failing wr was not the invalidate.
+			 */
+			frd->frd_valid =
+				!(rc == 0 || (bad != &frd->frd_inv_wr));
+		}
 	}
 
 	conn->ibc_last_send = ktime_get();

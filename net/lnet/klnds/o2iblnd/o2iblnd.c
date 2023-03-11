@@ -1584,7 +1584,8 @@ static int kiblnd_alloc_freg_pool(struct kib_fmr_poolset *fps,
 			goto out_middle;
 		}
 
-		frd->frd_valid = true;
+		/* indicate that the local invalidate needs to be generated */
+		frd->frd_valid = false;
 
 		list_add_tail(&frd->frd_list, &fpo->fast_reg.fpo_pool_list);
 		fpo->fast_reg.fpo_pool_size++;
@@ -1738,7 +1739,6 @@ void kiblnd_fmr_pool_unmap(struct kib_fmr *fmr, int status)
 
 	fps = fpo->fpo_owner;
 	if (frd) {
-		frd->frd_valid = false;
 		frd->frd_posted = false;
 		fmr->fmr_frd = NULL;
 		spin_lock(&fps->fps_lock);
@@ -1800,6 +1800,7 @@ again:
 				u32 key = is_rx ? mr->rkey : mr->lkey;
 				struct ib_send_wr *inv_wr;
 
+				frd->frd_valid = true;
 				inv_wr = &frd->frd_inv_wr;
 				memset(inv_wr, 0, sizeof(*inv_wr));
 				inv_wr->opcode = IB_WR_LOCAL_INV;
