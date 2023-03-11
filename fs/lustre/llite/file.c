@@ -2917,9 +2917,37 @@ lookup:
 	return rc;
 }
 
-int ll_fid2path(struct inode *inode, void __user *arg)
+int __ll_fid2path(struct inode *inode, struct getinfo_fid2path *gfout,
+		  size_t outsize, __u32 pathlen_orig)
 {
 	struct obd_export *exp = ll_i2mdexp(inode);
+	int rc;
+
+	/* Append root FID after gfout to let MDT know the root FID so that
+	 * it can lookup the correct path, this is mainly for fileset.
+	 * old server without fileset mount support will ignore this.
+	 */
+	*gfout->gf_root_fid = *ll_inode2fid(inode);
+
+	/* Call mdc_iocontrol */
+	rc = obd_iocontrol(OBD_IOC_FID2PATH, exp, outsize, gfout, NULL);
+
+	if (!rc && gfout->gf_pathlen && gfout->gf_path[0] == '/') {
+		/* by convention, server side (mdt_path_current()) puts
+		 * a leading '/' to tell client that we are dealing with
+		 * an encrypted file
+		 */
+		rc = fid2path_for_enc_file(inode, gfout->gf_path,
+					   gfout->gf_pathlen);
+		if (!rc && strlen(gfout->gf_path) > pathlen_orig)
+			rc = -EOVERFLOW;
+	}
+
+	return rc;
+}
+
+int ll_fid2path(struct inode *inode, void __user *arg)
+{
 	const struct getinfo_fid2path __user *gfin = arg;
 	struct getinfo_fid2path *gfout;
 	u32 pathlen, pathlen_orig;
@@ -2950,33 +2978,10 @@ gf_alloc:
 		goto gf_free;
 	}
 
-	/*
-	 * append root FID after gfout to let MDT know the root FID so that it
-	 * can lookup the correct path, this is mainly for fileset.
-	 * old server without fileset mount support will ignore this.
-	 */
-	*gfout->gf_root_fid = *ll_inode2fid(inode);
 	gfout->gf_pathlen = pathlen;
-
-	/* Call mdc_iocontrol */
-	rc = obd_iocontrol(OBD_IOC_FID2PATH, exp, outsize, gfout, NULL);
+	rc = __ll_fid2path(inode, gfout, outsize, pathlen_orig);
 	if (rc != 0)
 		goto gf_free;
-
-	if (gfout->gf_pathlen && gfout->gf_path[0] == '/') {
-		/* by convention, server side (mdt_path_current()) puts
-		 * a leading '/' to tell client that we are dealing with
-		 * an encrypted file
-		 */
-		rc = fid2path_for_enc_file(inode, gfout->gf_path,
-					   gfout->gf_pathlen);
-		if (rc)
-			goto gf_free;
-		if (strlen(gfout->gf_path) > gfin->gf_pathlen) {
-			rc = -EOVERFLOW;
-			goto gf_free;
-		}
-	}
 
 	if (copy_to_user(arg, gfout, sizeof(*gfout) + pathlen_orig))
 		rc = -EFAULT;

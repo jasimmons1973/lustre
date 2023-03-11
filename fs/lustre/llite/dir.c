@@ -1295,6 +1295,7 @@ int ll_rmfid(struct file *file, void __user *arg)
 {
 	const struct fid_array __user *ufa = arg;
 	struct inode *inode = file_inode(file);
+	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	struct fid_array *lfa = NULL;
 	size_t size;
 	unsigned int nr;
@@ -1325,8 +1326,91 @@ int ll_rmfid(struct file *file, void __user *arg)
 		goto free_rcs;
 	}
 
+	/* In case of subdirectory mount, we need to make sure all the files
+	 * for which we want to remove FID are visible in the namespace.
+	 */
+	if (!fid_is_root(&sbi->ll_root_fid)) {
+		struct fid_array *lfa_new = NULL;
+		int path_len = PATH_MAX, linkno;
+		struct getinfo_fid2path *gf;
+		int idx, last_idx = nr - 1;
+
+		lfa_new = kzalloc(size, GFP_NOFS);
+		if (!lfa_new) {
+			rc = -ENOMEM;
+			goto free_rcs;
+		}
+		lfa_new->fa_nr = 0;
+
+		gf = kmalloc(sizeof(*gf) + path_len + 1, GFP_NOFS);
+		if (!gf) {
+			rc = -ENOMEM;
+			goto free_rcs;
+		}
+
+		for (idx = 0; idx < nr; idx++) {
+			linkno = 0;
+			while (1) {
+				memset(gf, 0, sizeof(*gf) + path_len + 1);
+				gf->gf_fid = lfa->fa_fids[idx];
+				gf->gf_pathlen = path_len;
+				gf->gf_linkno = linkno;
+				rc = __ll_fid2path(inode, gf,
+						   sizeof(*gf) + gf->gf_pathlen,
+						   gf->gf_pathlen);
+				if (rc == -ENAMETOOLONG) {
+					struct getinfo_fid2path *tmpgf;
+
+					path_len += PATH_MAX;
+					tmpgf = krealloc(gf,
+						     sizeof(*gf) + path_len + 1,
+						     GFP_NOFS);
+					if (!tmpgf) {
+						kfree(gf);
+						kfree(lfa_new);
+						rc = -ENOMEM;
+						goto free_rcs;
+					}
+					gf = tmpgf;
+					continue;
+				}
+				if (rc)
+					break;
+				if (gf->gf_linkno == linkno)
+					break;
+				linkno = gf->gf_linkno;
+			}
+
+			if (!rc) {
+				/* All the links for this fid are visible in the
+				 * mounted subdir. So add it to the list of fids
+				 * to remove.
+				 */
+				lfa_new->fa_fids[lfa_new->fa_nr++] =
+					lfa->fa_fids[idx];
+			} else {
+				/* At least one link for this fid is not visible
+				 * in the mounted subdir. So add it at the end
+				 * of the list that will be hidden to lower
+				 * layers, and set -ENOENT as ret code.
+				 */
+				lfa_new->fa_fids[last_idx] = lfa->fa_fids[idx];
+				rcs[last_idx--] = rc;
+			}
+		}
+		kfree(gf);
+		kfree(lfa);
+		lfa = lfa_new;
+	}
+
+	if (lfa->fa_nr == 0) {
+		rc = rcs[nr - 1];
+		goto free_rcs;
+	}
+
 	/* Call mdc_iocontrol */
 	rc = md_rmfid(ll_i2mdexp(file_inode(file)), lfa, rcs, NULL);
+	lfa->fa_nr = nr;
 	if (!rc) {
 		for (i = 0; i < nr; i++)
 			if (rcs[i])
