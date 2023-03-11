@@ -150,6 +150,14 @@ void ll_ra_stats_inc(struct inode *inode, enum ra_stat which)
 	ll_ra_stats_inc_sbi(sbi, which);
 }
 
+void ll_ra_stats_add(struct inode *inode, enum ra_stat which, long count)
+{
+	struct ll_sb_info *sbi = ll_i2sbi(inode);
+
+	LASSERTF(which < _NR_RA_STAT, "which: %u\n", which);
+	lprocfs_counter_add(sbi->ll_ra_stats, which, count);
+}
+
 #define RAS_CDEBUG(ras) \
 	CDEBUG(D_READA,							     \
 	       "lre %llu cr %lu cb %llu wsi %lu wp %lu nra %lu rpc %lu r %lu csr %lu so %llu sb %llu sl %llu lr %lu\n", \
@@ -527,6 +535,10 @@ ll_read_ahead_pages(const struct lu_env *env, struct cl_io *io,
 		}
 	}
 	cl_read_ahead_release(env, &ra);
+
+	if (count)
+		ll_ra_stats_add(vvp_object_inode(io->ci_obj),
+				RA_STAT_READAHEAD_PAGES, count);
 
 	return count;
 }

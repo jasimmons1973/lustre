@@ -1858,6 +1858,7 @@ static const char *const ra_stat_string[] = {
 	[RA_STAT_ASYNC]			= "async readahead",
 	[RA_STAT_FAILED_FAST_READ]	= "failed to fast read",
 	[RA_STAT_MMAP_RANGE_READ]	= "mmap range read",
+	[RA_STAT_READAHEAD_PAGES]	= "readahead_pages",
 };
 
 int ll_debugfs_register_super(struct super_block *sb, const char *name)
@@ -1911,9 +1912,17 @@ int ll_debugfs_register_super(struct super_block *sb, const char *name)
 		goto out_stats;
 	}
 
-	for (id = 0; id < ARRAY_SIZE(ra_stat_string); id++)
-		lprocfs_counter_init(sbi->ll_ra_stats, id, LPROCFS_TYPE_PAGES,
-				     ra_stat_string[id]);
+	for (id = 0; id < ARRAY_SIZE(ra_stat_string); id++) {
+		if (id == RA_STAT_READAHEAD_PAGES)
+			lprocfs_counter_init(sbi->ll_ra_stats, id,
+					     LPROCFS_TYPE_PAGES |
+					     LPROCFS_CNTR_AVGMINMAX,
+					     ra_stat_string[id]);
+		else
+			lprocfs_counter_init(sbi->ll_ra_stats, id,
+					     LPROCFS_TYPE_PAGES,
+					     ra_stat_string[id]);
+	}
 
 	debugfs_create_file("read_ahead_stats", 0644, sbi->ll_debugfs_entry,
 			    sbi->ll_ra_stats, &lprocfs_stats_seq_fops);
