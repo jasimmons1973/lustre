@@ -704,7 +704,6 @@ EXPORT_SYMBOL(cl_page_discard);
 static void __cl_page_delete(const struct lu_env *env, struct cl_page *cp)
 {
 	const struct cl_page_slice *slice;
-	struct page *vmpage;
 	int i;
 
 	PASSERT(env, cp, cp->cp_state != CPS_FREEING);
@@ -718,23 +717,6 @@ static void __cl_page_delete(const struct lu_env *env, struct cl_page *cp)
 	cl_page_slice_for_each_reverse(cp, slice, i) {
 		if (slice->cpl_ops->cpo_delete)
 			(*slice->cpl_ops->cpo_delete)(env, slice);
-	}
-
-	if (cp->cp_type == CPT_CACHEABLE) {
-		vmpage = cp->cp_vmpage;
-		LASSERT(PageLocked(vmpage));
-		LASSERT((struct cl_page *)vmpage->private == cp);
-
-		/* Drop the reference count held in vvp_page_init */
-		refcount_dec(&cp->cp_ref);
-		ClearPagePrivate(vmpage);
-		vmpage->private = 0;
-
-		/*
-		 * The reference from vmpage to cl_page is removed,
-		 * but the reference back is still here. It is removed
-		 * later in cl_page_free().
-		 */
 	}
 }
 

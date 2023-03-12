@@ -1213,6 +1213,7 @@ void ll_lli_init(struct ll_inode_info *lli)
 	memset(lli->lli_jobid, 0, sizeof(lli->lli_jobid));
 	/* ll_cl_context initialize */
 	INIT_LIST_HEAD(&lli->lli_lccs);
+	seqlock_init(&lli->lli_page_inv_lock);
 }
 
 int ll_fill_super(struct super_block *sb)
