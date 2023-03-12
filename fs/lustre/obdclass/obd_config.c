@@ -1331,23 +1331,6 @@ int class_config_llog_handler(const struct lu_env *env,
 			}
 		}
 
-		/* Skip add_conn command if uuid is not on restricted net */
-		if (clli && clli->cfg_sb && s2lsi(clli->cfg_sb)) {
-			struct lustre_sb_info *lsi = s2lsi(clli->cfg_sb);
-			char *uuid_str = lustre_cfg_string(lcfg, 1);
-
-			if (lcfg->lcfg_command == LCFG_ADD_CONN &&
-			    lsi->lsi_lmd->lmd_nidnet &&
-			    LNET_NIDNET(libcfs_str2nid(uuid_str)) !=
-			    libcfs_str2net(lsi->lsi_lmd->lmd_nidnet)) {
-				CDEBUG(D_CONFIG, "skipping add_conn for %s\n",
-				       uuid_str);
-				rc = 0;
-				/* No processing! */
-				break;
-			}
-		}
-
 		lcfg_len = lustre_cfg_len(bufs.lcfg_bufcount, bufs.lcfg_buflen);
 		lcfg_new = kzalloc(lcfg_len, GFP_NOFS);
 		if (!lcfg_new) {
