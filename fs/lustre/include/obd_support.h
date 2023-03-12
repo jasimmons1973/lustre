@@ -458,6 +458,7 @@ extern char obd_jobid_var[];
 /* was	OBD_FAIL_LLOG_CATINFO_NET			0x1309 until 2.3 */
 #define OBD_FAIL_MDS_SYNC_CAPA_SL			0x1310
 #define OBD_FAIL_SEQ_ALLOC				0x1311
+#define OBD_FAIL_CAT_RECORDS				0x1312
 #define OBD_FAIL_PLAIN_RECORDS				0x1319
 #define OBD_FAIL_CATALOG_FULL_CHECK			0x131a
 
