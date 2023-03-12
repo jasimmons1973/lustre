@@ -593,7 +593,6 @@ enum ldlm_cancel_flags {
 	LCF_BL_AST     = 0x4, /* Cancel locks marked as LDLM_FL_BL_AST
 			       * in the same RPC
 			       */
-	LCF_ONE_LOCK	= 0x8,	/* Cancel locks pack only one lock. */
 };
 
 struct ldlm_flock {
