@@ -347,7 +347,8 @@ static int ll_readdir(struct file *filp, struct dir_context *ctx)
 			struct inode *parent;
 
 			parent = file_dentry(filp)->d_parent->d_inode;
-			if (ll_have_md_lock(parent, &ibits, LCK_MINMODE))
+			if (ll_have_md_lock(ll_i2mdexp(parent), parent, &ibits,
+					    LCK_MINMODE))
 				pfid = *ll_inode2fid(parent);
 		}
 

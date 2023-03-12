@@ -5198,7 +5198,7 @@ ll_file_noflock(struct file *file, int cmd, struct file_lock *file_lock)
  *
  * Returns:		boolean, true iff all bits are found
  */
-int ll_have_md_lock(struct inode *inode, u64 *bits,
+int ll_have_md_lock(struct obd_export *exp, struct inode *inode, u64 *bits,
 		    enum ldlm_mode l_req_mode)
 {
 	struct lustre_handle lockh;
@@ -5222,8 +5222,8 @@ int ll_have_md_lock(struct inode *inode, u64 *bits,
 		if (policy.l_inodebits.bits == 0)
 			continue;
 
-		if (md_lock_match(ll_i2mdexp(inode), flags, fid, LDLM_IBITS,
-				  &policy, mode, &lockh)) {
+		if (md_lock_match(exp, flags, fid, LDLM_IBITS, &policy, mode,
+				  &lockh)) {
 			struct ldlm_lock *lock;
 
 			lock = ldlm_handle2lock(&lockh);
