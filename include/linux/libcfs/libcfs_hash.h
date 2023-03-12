@@ -829,24 +829,6 @@ cfs_hash_djb2_hash(const void *key, size_t size, unsigned int mask)
 	return (hash & mask);
 }
 
-/*
- * Generic u32 hash algorithm.
- */
-static inline unsigned
-cfs_hash_u32_hash(const u32 key, unsigned int mask)
-{
-	return ((key * CFS_GOLDEN_RATIO_PRIME_32) & mask);
-}
-
-/*
- * Generic u64 hash algorithm.
- */
-static inline unsigned
-cfs_hash_u64_hash(const u64 key, unsigned int mask)
-{
-	return ((unsigned int)(key * CFS_GOLDEN_RATIO_PRIME_64) & mask);
-}
-
 /** iterate over all buckets in @bds (array of struct cfs_hash_bd) */
 #define cfs_hash_for_each_bd(bds, n, i)	\
 	for (i = 0; i < n && (bds)[i].bd_bucket != NULL; i++)
