@@ -114,7 +114,6 @@ ll_iget_for_nfs(struct super_block *sb,
 		struct lu_fid *fid, struct lu_fid *parent)
 {
 	struct inode *inode;
-	struct dentry *result;
 
 	if (!fid_is_sane(fid))
 		return ERR_PTR(-ESTALE);
@@ -131,19 +130,7 @@ ll_iget_for_nfs(struct super_block *sb,
 		return ERR_PTR(-ESTALE);
 	}
 
-	result = d_obtain_alias(inode);
-	if (IS_ERR(result))
-		return result;
-
-	/*
-	 * Need to signal to the ll_intent_file_open that
-	 * we came from NFS and so opencache needs to be
-	 * enabled for this one
-	 */
-	spin_lock(&result->d_lock);
-	ll_d2d(result)->lld_nfs_dentry = 1;
-	spin_unlock(&result->d_lock);
-	return result;
+	return d_obtain_alias(inode);
 }
 
 /**

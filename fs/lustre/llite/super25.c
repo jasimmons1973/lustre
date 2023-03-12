@@ -55,6 +55,8 @@ static struct inode *ll_alloc_inode(struct super_block *sb)
 		return NULL;
 
 	inode_init_once(&lli->lli_vfs_inode);
+	lli->lli_open_thrsh_count = UINT_MAX;
+
 	return &lli->lli_vfs_inode;
 }
 
