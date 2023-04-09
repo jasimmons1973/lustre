@@ -1863,9 +1863,7 @@ int ll_readpage(struct file *file, struct page *vmpage)
 	struct cl_read_ahead ra = { 0 };
 	struct ll_cl_context *lcc;
 	struct cl_io *io = NULL;
-	struct iov_iter *iter;
 	struct cl_page *page;
-	struct kiocb *iocb;
 	int result;
 
 	if (OBD_FAIL_PRECHECK(OBD_FAIL_LLITE_READPAGE_PAUSE)) {
@@ -1974,11 +1972,8 @@ int ll_readpage(struct file *file, struct page *vmpage)
 	}
 
 	if (lcc && lcc->lcc_type != LCC_MMAP) {
-		iocb = lcc->lcc_iocb;
-		iter = lcc->lcc_iter;
-
-		CDEBUG(D_VFSTRACE, "pgno:%ld, cnt:%ld, pos:%lld\n",
-		       vmpage->index, iter->count, iocb->ki_pos);
+		CDEBUG(D_VFSTRACE, "pgno:%ld, beyond read end_index:%ld\n",
+		       vmpage->index, lcc->lcc_end_index);
 
 		/*
 		 * This handles a kernel bug introduced in kernel 5.12:
@@ -2004,7 +1999,7 @@ int ll_readpage(struct file *file, struct page *vmpage)
 		 * This should never occur except in kernels with the bug
 		 * mentioned above.
 		 */
-		if (cl_offset(clob, vmpage->index) >= iter->count + iocb->ki_pos) {
+		if (vmpage->index >= lcc->lcc_end_index) {
 			result = cl_io_read_ahead(env, io, vmpage->index, &ra);
 			if (result < 0 || vmpage->index > ra.cra_end_idx) {
 				cl_read_ahead_release(env, &ra);
