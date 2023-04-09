@@ -2000,6 +2000,8 @@ ksocknal_handle_link_state_change(struct net_device *dev,
 	bool found_ip = false;
 	struct ksock_interface *ksi = NULL;
 	struct sockaddr_in *sa;
+	u32 ni_state_before;
+	bool update_ping_buf = false;
 	const struct in_ifaddr *ifa;
 
 	ifindex = dev->ifindex;
@@ -2045,8 +2047,9 @@ ksocknal_handle_link_state_change(struct net_device *dev,
 			CDEBUG(D_NET, "Interface %s has no IPv4 status.\n",
 			       dev->name);
 			CDEBUG(D_NET, "set link fatal state to 1\n");
-			atomic_set(&ni->ni_fatal_error_on, 1);
-			continue;
+			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
+						      1);
+			goto ni_done;
 		}
 		in_dev_for_each_ifa_rtnl(ifa, in_dev) {
 			if (sa->sin_addr.s_addr == ifa->ifa_local)
@@ -2057,20 +2060,29 @@ ksocknal_handle_link_state_change(struct net_device *dev,
 			CDEBUG(D_NET, "Interface %s has no matching ip\n",
 			       dev->name);
 			CDEBUG(D_NET, "set link fatal state to 1\n");
-			atomic_set(&ni->ni_fatal_error_on, 1);
-			continue;
+			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
+						      1);
+			goto ni_done;
 		}
 
 		if (link_down) {
 			CDEBUG(D_NET, "set link fatal state to 1\n");
-			atomic_set(&ni->ni_fatal_error_on, link_down);
+			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
+						      1);
 		} else {
 			CDEBUG(D_NET, "set link fatal state to %u\n",
 			       (ksocknal_get_link_status(dev) == 0));
-			atomic_set(&ni->ni_fatal_error_on,
-				   (ksocknal_get_link_status(dev) == 0));
+			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
+						      (ksocknal_get_link_status(dev) == 0));
 		}
+ni_done:
+		if (!update_ping_buf &&
+		    (atomic_read(&ni->ni_fatal_error_on) != ni_state_before))
+			update_ping_buf = true;
 	}
+
+	if (update_ping_buf)
+		lnet_update_ping_buffer();
 out:
 	return 0;
 }
@@ -2086,6 +2098,8 @@ ksocknal_handle_inetaddr_change(struct in_ifaddr *ifa, unsigned long event)
 	int ifindex;
 	struct ksock_interface *ksi = NULL;
 	struct sockaddr_in *sa;
+	u32 ni_state_before;
+	bool update_ping_buf = false;
 
 	if (!ksocknal_data.ksnd_nnets)
 		goto out;
@@ -2106,10 +2120,16 @@ ksocknal_handle_inetaddr_change(struct in_ifaddr *ifa, unsigned long event)
 			CDEBUG(D_NET, "set link fatal state to %u\n",
 			       (event == NETDEV_DOWN));
 			ni = net->ksnn_ni;
-			atomic_set(&ni->ni_fatal_error_on,
-				   (event == NETDEV_DOWN));
+			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
+						      (event == NETDEV_DOWN));
+			if (!update_ping_buf &&
+			    ((event == NETDEV_DOWN) != ni_state_before))
+				update_ping_buf = true;
 		}
 	}
+
+	if (update_ping_buf)
+		lnet_update_ping_buffer();
 out:
 	return 0;
 }
