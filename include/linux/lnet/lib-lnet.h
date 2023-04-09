@@ -565,6 +565,7 @@ extern int alive_router_check_interval;
 extern int live_router_check_interval;
 extern int dead_router_check_interval;
 extern int portal_rotor;
+extern int lock_prim_nid;
 
 int lnet_lib_init(void);
 void lnet_lib_exit(void);
