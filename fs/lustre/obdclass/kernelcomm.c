@@ -116,7 +116,12 @@ static int lustre_device_list_start(struct netlink_callback *cb)
 		struct nlattr *dev;
 		int rem;
 
-		nla_for_each_attr(dev, params, msg_len, rem) {
+		if (!(nla_type(params) & LN_SCALAR_ATTR_LIST)) {
+			NL_SET_ERR_MSG(extack, "no configuration");
+			goto report_err;
+		}
+
+		nla_for_each_nested(dev, params, rem) {
 			struct nlattr *prop;
 			int rem2;
 

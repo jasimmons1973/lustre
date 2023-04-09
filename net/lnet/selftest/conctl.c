@@ -1024,7 +1024,12 @@ static int lst_groups_show_start(struct netlink_callback *cb)
 	}
 	glist->lggl_verbose = true;
 
-	nla_for_each_attr(groups, params, msg_len, rem) {
+	if (!(nla_type(params) & LN_SCALAR_ATTR_LIST)) {
+		NL_SET_ERR_MSG(extack, "no configuration");
+		goto report_err;
+	}
+
+	nla_for_each_nested(groups, params, rem) {
 		struct lst_genl_group_prop *prop = NULL;
 		struct nlattr *group;
 		int rem2;
