@@ -3,9 +3,9 @@
 
 #define LUSTRE_MAJOR 2
 #define LUSTRE_MINOR 15
-#define LUSTRE_PATCH 54
+#define LUSTRE_PATCH 55
 #define LUSTRE_FIX 0
-#define LUSTRE_VERSION_STRING "2.15.54"
+#define LUSTRE_VERSION_STRING "2.15.55"
 
 #define OBD_OCD_VERSION(major, minor, patch, fix)			\
 	(((major) << 24) + ((minor) << 16) + ((patch) << 8) + (fix))
