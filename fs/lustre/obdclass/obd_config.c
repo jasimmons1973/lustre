@@ -822,6 +822,7 @@ static int process_param2_config(struct lustre_cfg *lcfg)
 int class_process_config(struct lustre_cfg *lcfg)
 {
 	struct obd_device *obd;
+	struct lnet_nid nid;
 	int err;
 
 	LASSERT(lcfg && !IS_ERR(lcfg));
@@ -839,8 +840,8 @@ int class_process_config(struct lustre_cfg *lcfg)
 		       lustre_cfg_string(lcfg, 1), lcfg->lcfg_nid,
 		       libcfs_nid2str(lcfg->lcfg_nid));
 
-		err = class_add_uuid(lustre_cfg_string(lcfg, 1),
-				     lcfg->lcfg_nid);
+		lnet_nid4_to_nid(lcfg->lcfg_nid, &nid);
+		err = class_add_uuid(lustre_cfg_string(lcfg, 1), &nid);
 		goto out;
 	}
 	case LCFG_DEL_UUID: {
