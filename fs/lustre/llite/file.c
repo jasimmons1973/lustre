@@ -1382,7 +1382,7 @@ static int ll_lease_close(struct obd_client_handle *och, struct inode *inode,
  * After lease is taken, send the RPC MDS_REINT_RESYNC to the MDT
  */
 static int ll_lease_file_resync(struct obd_client_handle *och,
-				struct inode *inode, unsigned long arg)
+				struct inode *inode, void __user *uarg)
 {
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	struct md_op_data *op_data;
@@ -1395,8 +1395,7 @@ static int ll_lease_file_resync(struct obd_client_handle *och,
 	if (IS_ERR(op_data))
 		return PTR_ERR(op_data);
 
-	if (copy_from_user(&ioc, (struct ll_ioc_lease_id __user *)arg,
-			   sizeof(ioc)))
+	if (copy_from_user(&ioc, uarg, sizeof(ioc)))
 		return -EFAULT;
 
 	/* before starting file resync, it's necessary to clean up page cache
@@ -2496,7 +2495,7 @@ static int ll_file_getstripe(struct inode *inode, void __user *lum, size_t size)
 static int ll_lov_setstripe(struct inode *inode, struct file *file,
 			    void __user *arg)
 {
-	struct lov_user_md __user *lum = (struct lov_user_md __user *)arg;
+	struct lov_user_md __user *lum = arg;
 	struct lov_user_md *klum;
 	int lum_size, rc;
 	u64 flags = FMODE_WRITE;
@@ -2556,8 +2555,9 @@ retry:
 	if (file->f_flags & O_NONBLOCK) {
 		if (!mutex_trylock(&lli->lli_group_mutex))
 			return -EAGAIN;
-	} else
+	} else {
 		mutex_lock(&lli->lli_group_mutex);
+	}
 
 	if (fd->fd_flags & LL_FILE_GROUP_LOCKED) {
 		CWARN("group lock already existed with gid %lu\n",
@@ -3622,22 +3622,19 @@ static int ll_lock_noexpand(struct file *file, int flags)
 }
 
 int ll_ioctl_fsgetxattr(struct inode *inode, unsigned int cmd,
-			unsigned long arg)
+			void __user *uarg)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
 	struct fsxattr fsxattr;
 
-	if (copy_from_user(&fsxattr,
-			   (const struct fsxattr __user *)arg,
-			   sizeof(fsxattr)))
+	if (copy_from_user(&fsxattr, uarg, sizeof(fsxattr)))
 		return -EFAULT;
 
 	fsxattr.fsx_xflags = ll_inode_flags_to_xflags(inode->i_flags);
 	if (test_bit(LLIF_PROJECT_INHERIT, &lli->lli_flags))
 		fsxattr.fsx_xflags |= FS_XFLAG_PROJINHERIT;
 	fsxattr.fsx_projid = ll_i2info(inode)->lli_projid;
-	if (copy_to_user((struct fsxattr __user *)arg,
-			 &fsxattr, sizeof(fsxattr)))
+	if (copy_to_user(uarg, &fsxattr, sizeof(fsxattr)))
 		return -EFAULT;
 
 	return 0;
@@ -3730,21 +3727,18 @@ out_fsxattr:
 }
 
 int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
-			unsigned long arg)
+			void __user *uarg)
 {
 	struct fsxattr fsxattr;
 
-	if (copy_from_user(&fsxattr,
-			   (const struct fsxattr __user *)arg,
-			   sizeof(fsxattr)))
+	if (copy_from_user(&fsxattr, uarg, sizeof(fsxattr)))
 		return -EFAULT;
 
 	return ll_set_project(inode, fsxattr.fsx_xflags,
 			      fsxattr.fsx_projid);
 }
 
-int ll_ioctl_project(struct file *file, unsigned int cmd,
-		     unsigned long arg)
+int ll_ioctl_project(struct file *file, unsigned int cmd, void __user *uarg)
 {
 	struct lu_project lu_project;
 	struct dentry *dentry = file_dentry(file);
@@ -3752,9 +3746,7 @@ int ll_ioctl_project(struct file *file, unsigned int cmd,
 	struct dentry *child_dentry = NULL;
 	int rc = 0, name_len;
 
-	if (copy_from_user(&lu_project,
-			   (const struct lu_project __user *)arg,
-			   sizeof(lu_project)))
+	if (copy_from_user(&lu_project, uarg, sizeof(lu_project)))
 		return -EFAULT;
 
 	/* apply child dentry if name is valid */
@@ -3790,8 +3782,7 @@ int ll_ioctl_project(struct file *file, unsigned int cmd,
 			     &ll_i2info(inode)->lli_flags))
 			lu_project.project_xflags |= FS_XFLAG_PROJINHERIT;
 		lu_project.project_id = ll_i2info(inode)->lli_projid;
-		if (copy_to_user((struct lu_project __user *)arg,
-				 &lu_project, sizeof(lu_project))) {
+		if (copy_to_user(uarg, &lu_project, sizeof(lu_project))) {
 			rc = -EFAULT;
 			goto out;
 		}
@@ -3807,7 +3798,7 @@ out:
 }
 
 static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
-				 unsigned long arg)
+				 void __user *uarg)
 {
 	struct inode *inode = file_inode(file);
 	struct ll_file_data *fd = file->private_data;
@@ -3851,7 +3842,7 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 			goto out_lease_close;
 		}
 
-		if (copy_from_user(data, (void __user *)arg, data_size)) {
+		if (copy_from_user(data, uarg, data_size)) {
 			rc = -EFAULT;
 			goto out_lease_close;
 		}
@@ -3864,8 +3855,8 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 			goto out_lease_close;
 		}
 
-		arg += sizeof(*ioc);
-		if (copy_from_user(&fdv, (void __user *)arg, sizeof(u32))) {
+		uarg += sizeof(*ioc);
+		if (copy_from_user(&fdv, uarg, sizeof(u32))) {
 			rc = -EFAULT;
 			goto out_lease_close;
 		}
@@ -3893,14 +3884,14 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 			goto out_lease_close;
 		}
 
-		arg += sizeof(*ioc);
-		if (copy_from_user(&fdv, (void __user *)arg, sizeof(u32))) {
+		uarg += sizeof(*ioc);
+		if (copy_from_user(&fdv, uarg, sizeof(u32))) {
 			rc = -EFAULT;
 			goto out_lease_close;
 		}
 
-		arg += sizeof(u32);
-		if (copy_from_user(&mirror_id, (void __user *)arg,
+		uarg += sizeof(u32);
+		if (copy_from_user(&mirror_id, uarg,
 				   sizeof(u32))) {
 			rc = -EFAULT;
 			goto out_lease_close;
@@ -3925,8 +3916,8 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 		if (IS_ENCRYPTED(inode))
 			return -EOPNOTSUPP;
 
-		arg += sizeof(*ioc);
-		if (copy_from_user(&param.pa_archive_id, (void __user *)arg,
+		uarg += sizeof(*ioc);
+		if (copy_from_user(&param.pa_archive_id, uarg,
 				   sizeof(u32))) {
 			rc2 = -EFAULT;
 			goto out_lease_close;
@@ -3986,7 +3977,7 @@ out:
 }
 
 static long ll_file_set_lease(struct file *file, struct ll_ioc_lease *ioc,
-			      unsigned long arg)
+			      void __user *uarg)
 {
 	struct inode *inode = file_inode(file);
 	struct ll_inode_info *lli = ll_i2info(inode);
@@ -4009,7 +4000,7 @@ static long ll_file_set_lease(struct file *file, struct ll_ioc_lease *ioc,
 		fmode = FMODE_READ;
 		break;
 	case LL_LEASE_UNLCK:
-		return ll_file_unlock_lease(file, ioc, arg);
+		return ll_file_unlock_lease(file, ioc, uarg);
 	default:
 		return -EINVAL;
 	}
@@ -4024,7 +4015,7 @@ static long ll_file_set_lease(struct file *file, struct ll_ioc_lease *ioc,
 		return PTR_ERR(och);
 
 	if (ioc->lil_flags & LL_LEASE_RESYNC) {
-		rc = ll_lease_file_resync(och, inode, arg);
+		rc = ll_lease_file_resync(och, inode, uarg);
 		if (rc) {
 			ll_lease_close(och, inode, NULL);
 			return rc;
@@ -4091,6 +4082,7 @@ ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	struct inode *inode = file_inode(file);
 	struct ll_file_data *fd = file->private_data;
+	void __user *uarg = (void __user *)arg;
 	int flags, rc;
 
 	CDEBUG(D_VFSTRACE, "VFS Op:inode=" DFID "(%p),cmd=%x\n",
@@ -4129,15 +4121,14 @@ ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		return 0;
 	case LL_IOC_LOV_SETSTRIPE:
 	case LL_IOC_LOV_SETSTRIPE_NEW:
-		return ll_lov_setstripe(inode, file, (void __user *)arg);
+		return ll_lov_setstripe(inode, file, uarg);
 	case LL_IOC_LOV_SETEA:
-		return ll_lov_setea(inode, file, (void __user *)arg);
+		return ll_lov_setea(inode, file, uarg);
 	case LL_IOC_LOV_SWAP_LAYOUTS: {
 		struct file *file2;
 		struct lustre_swap_layouts lsl;
 
-		if (copy_from_user(&lsl, (char __user *)arg,
-				   sizeof(struct lustre_swap_layouts)))
+		if (copy_from_user(&lsl, uarg, sizeof(lsl)))
 			return -EFAULT;
 
 		if ((file->f_flags & O_ACCMODE) == O_RDONLY)
@@ -4180,10 +4171,10 @@ out:
 	}
 	case LL_IOC_LOV_GETSTRIPE:
 	case LL_IOC_LOV_GETSTRIPE_NEW:
-		return ll_file_getstripe(inode, (void __user *)arg, 0);
+		return ll_file_getstripe(inode, uarg, 0);
 	case FS_IOC_GETFLAGS:
 	case FS_IOC_SETFLAGS:
-		return ll_iocontrol(inode, file, cmd, arg);
+		return ll_iocontrol(inode, file, cmd, uarg);
 	case FSFILT_IOC_GETVERSION:
 	case FS_IOC_GETVERSION:
 		return put_user(inode->i_generation, (int __user *)arg);
@@ -4199,12 +4190,12 @@ out:
 	case LL_IOC_GROUP_UNLOCK:
 		return ll_put_grouplock(inode, file, arg);
 	case IOC_OBD_STATFS:
-		return ll_obd_statfs(inode, (void __user *)arg);
+		return ll_obd_statfs(inode, uarg);
 
 	case LL_IOC_FLUSHCTX:
 		return ll_flush_ctx(inode);
 	case LL_IOC_PATH2FID: {
-		if (copy_to_user((void __user *)arg, ll_inode2fid(inode),
+		if (copy_to_user(uarg, ll_inode2fid(inode),
 				 sizeof(struct lu_fid)))
 			return -EFAULT;
 
@@ -4213,17 +4204,17 @@ out:
 	case LL_IOC_GETPARENT:
 		return ll_getparent(file, (struct getparent __user *)arg);
 	case OBD_IOC_FID2PATH:
-		return ll_fid2path(inode, (void __user *)arg);
+		return ll_fid2path(inode, uarg);
 	case LL_IOC_DATA_VERSION: {
 		struct ioc_data_version	idv;
 		int rc;
 
-		if (copy_from_user(&idv, (char __user *)arg, sizeof(idv)))
+		if (copy_from_user(&idv, uarg, sizeof(idv)))
 			return -EFAULT;
 
 		idv.idv_flags &= LL_DV_RD_FLUSH | LL_DV_WR_FLUSH;
 		rc = ll_ioc_data_version(inode, &idv);
-		if (rc == 0 && copy_to_user((char __user *)arg, &idv,
+		if (rc == 0 && copy_to_user(uarg, &idv,
 					    sizeof(idv)))
 			return -EFAULT;
 
@@ -4237,7 +4228,7 @@ out:
 		if (mdtidx < 0)
 			return mdtidx;
 
-		if (put_user(mdtidx, (int __user *)arg))
+		if (put_user(mdtidx, (int __user *)uarg))
 			return -EFAULT;
 
 		return 0;
@@ -4247,7 +4238,7 @@ out:
 	case OBD_IOC_GETDTNAME:
 		fallthrough;
 	case OBD_IOC_GETMDNAME:
-		return ll_get_obd_name(inode, cmd, arg);
+		return ll_get_obd_name(inode, cmd, uarg);
 	case LL_IOC_HSM_STATE_GET: {
 		struct md_op_data *op_data;
 		struct hsm_user_state *hus;
@@ -4267,7 +4258,7 @@ out:
 		rc = obd_iocontrol(cmd, ll_i2mdexp(inode), sizeof(*op_data),
 				   op_data, NULL);
 
-		if (copy_to_user((void __user *)arg, hus, sizeof(*hus)))
+		if (copy_to_user(uarg, hus, sizeof(*hus)))
 			rc = -EFAULT;
 
 		ll_finish_md_op_data(op_data);
@@ -4278,7 +4269,7 @@ out:
 		struct hsm_state_set *hss;
 		int rc;
 
-		hss = memdup_user((char __user *)arg, sizeof(*hss));
+		hss = memdup_user(uarg, sizeof(*hss));
 		if (IS_ERR(hss))
 			return PTR_ERR(hss);
 
@@ -4323,7 +4314,7 @@ out:
 			       hca->hca_location.offset, hca->hca_location.length);
 		}
 
-		if (copy_to_user((char __user *)arg, hca, sizeof(*hca)))
+		if (copy_to_user(uarg, hca, sizeof(*hca)))
 			rc = -EFAULT;
 skip_copy:
 		ll_finish_md_op_data(op_data);
@@ -4338,10 +4329,10 @@ skip_copy:
 	case LL_IOC_SET_LEASE: {
 		struct ll_ioc_lease ioc;
 
-		if (copy_from_user(&ioc, (void __user *)arg, sizeof(ioc)))
+		if (copy_from_user(&ioc, uarg, sizeof(ioc)))
 			return -EFAULT;
 
-		return ll_file_set_lease(file, &ioc, arg);
+		return ll_file_set_lease(file, &ioc, uarg);
 	}
 	case LL_IOC_GET_LEASE: {
 		struct ll_inode_info *lli = ll_i2info(inode);
@@ -4367,7 +4358,7 @@ skip_copy:
 	case LL_IOC_HSM_IMPORT: {
 		struct hsm_user_import *hui;
 
-		hui = memdup_user((void __user *)arg, sizeof(*hui));
+		hui = memdup_user(uarg, sizeof(*hui));
 		if (IS_ERR(hui))
 			return PTR_ERR(hui);
 
@@ -4377,11 +4368,9 @@ skip_copy:
 		return rc;
 	}
 	case LL_IOC_FUTIMES_3: {
-		const struct ll_futimes_3 __user *lfu_user;
 		struct ll_futimes_3 lfu;
 
-		lfu_user = (const struct ll_futimes_3 __user *)arg;
-		if (copy_from_user(&lfu, lfu_user, sizeof(lfu)))
+		if (copy_from_user(&lfu, uarg, sizeof(lfu)))
 			return -EFAULT;
 
 		return ll_file_futimes_3(file, &lfu);
@@ -4394,7 +4383,7 @@ skip_copy:
 		int i;
 
 		rc = 0;
-		u_ladvise_hdr = (void __user *)arg;
+		u_ladvise_hdr = uarg;
 		k_ladvise_hdr = kzalloc(alloc_size, GFP_KERNEL);
 		if (!k_ladvise_hdr)
 			return -ENOMEM;
@@ -4479,15 +4468,15 @@ out_ladvise:
 		if (!(file->f_flags & O_DIRECT))
 			return -EINVAL;
 
-		fd->fd_designated_mirror = (u32)arg;
+		fd->fd_designated_mirror = arg;
 		return 0;
 	}
 	case FS_IOC_FSGETXATTR:
-		return ll_ioctl_fsgetxattr(inode, cmd, arg);
+		return ll_ioctl_fsgetxattr(inode, cmd, uarg);
 	case FS_IOC_FSSETXATTR:
-		return ll_ioctl_fssetxattr(inode, cmd, arg);
+		return ll_ioctl_fssetxattr(inode, cmd, uarg);
 	case LL_IOC_PROJECT:
-		return ll_ioctl_project(file, cmd, arg);
+		return ll_ioctl_project(file, cmd, uarg);
 	case BLKSSZGET:
 		return put_user(PAGE_SIZE, (int __user *)arg);
 	case LL_IOC_HEAT_GET: {
@@ -4495,7 +4484,7 @@ out_ladvise:
 		struct lu_heat *heat;
 		int size;
 
-		if (copy_from_user(&uheat, (void __user *)arg, sizeof(uheat)))
+		if (copy_from_user(&uheat, uarg, sizeof(uheat)))
 			return -EFAULT;
 
 		if (uheat.lh_count > OBD_HEAT_COUNT)
@@ -4508,14 +4497,14 @@ out_ladvise:
 
 		heat->lh_count = uheat.lh_count;
 		ll_heat_get(inode, heat);
-		rc = copy_to_user((char __user *)arg, heat, size);
+		rc = copy_to_user(uarg, heat, size);
 		kfree(heat);
 		return rc ? -EFAULT : 0;
 	}
 	case LL_IOC_HEAT_SET: {
 		u64 flags;
 
-		if (copy_from_user(&flags, (void __user *)arg, sizeof(flags)))
+		if (copy_from_user(&flags, uarg, sizeof(flags)))
 			return -EFAULT;
 
 		rc = ll_heat_set(inode, flags);
@@ -4528,9 +4517,7 @@ out_ladvise:
 		if (!detach)
 			return -ENOMEM;
 
-		if (copy_from_user(detach,
-				   (const struct lu_pcc_detach __user *)arg,
-				   sizeof(*detach))) {
+		if (copy_from_user(detach, uarg, sizeof(*detach))) {
 			rc = -EFAULT;
 			goto out_detach_free;
 		}
@@ -4551,8 +4538,7 @@ out_detach_free:
 		return rc;
 	}
 	case LL_IOC_PCC_STATE: {
-		struct lu_pcc_state __user *ustate =
-			(struct lu_pcc_state __user *)arg;
+		struct lu_pcc_state __user *ustate = uarg;
 		struct lu_pcc_state *state;
 
 		state = kzalloc(sizeof(*state), GFP_KERNEL);
@@ -4581,28 +4567,27 @@ out_state:
 	case FS_IOC_SET_ENCRYPTION_POLICY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_set_policy(file, (const void __user *)arg);
+		return fscrypt_ioctl_set_policy(file, uarg);
 	case FS_IOC_GET_ENCRYPTION_POLICY_EX:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_get_policy_ex(file, (void __user *)arg);
+		return fscrypt_ioctl_get_policy_ex(file, uarg);
 	case FS_IOC_ADD_ENCRYPTION_KEY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_add_key(file, (void __user *)arg);
+		return fscrypt_ioctl_add_key(file, uarg);
 	case FS_IOC_REMOVE_ENCRYPTION_KEY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_remove_key(file, (void __user *)arg);
+		return fscrypt_ioctl_remove_key(file, uarg);
 	case FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_remove_key_all_users(file,
-							  (void __user *)arg);
+		return fscrypt_ioctl_remove_key_all_users(file, uarg);
 	case FS_IOC_GET_ENCRYPTION_KEY_STATUS:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_get_key_status(file, (void __user *)arg);
+		return fscrypt_ioctl_get_key_status(file, uarg);
 #endif
 
 	case LL_IOC_UNLOCK_FOREIGN: {
@@ -4619,8 +4604,7 @@ out_state:
 	}
 
 	default:
-		return obd_iocontrol(cmd, ll_i2dtexp(inode), 0, NULL,
-				     (void __user *)arg);
+		return obd_iocontrol(cmd, ll_i2dtexp(inode), 0, NULL, uarg);
 	}
 }
 

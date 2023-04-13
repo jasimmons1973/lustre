@@ -1464,6 +1464,7 @@ static long ll_dir_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	struct inode *inode = file_inode(file);
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	struct obd_ioctl_data *data;
+	void __user *uarg = (void __user *)arg;
 	int rc = 0;
 
 	CDEBUG(D_VFSTRACE, "VFS Op:inode=" DFID "(%p), cmd=%#x\n",
@@ -1477,7 +1478,7 @@ static long ll_dir_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case FS_IOC_GETFLAGS:
 	case FS_IOC_SETFLAGS:
-		return ll_iocontrol(inode, file, cmd, arg);
+		return ll_iocontrol(inode, file, cmd, uarg);
 	case FSFILT_IOC_GETVERSION:
 	case FS_IOC_GETVERSION:
 		return put_user(inode->i_generation, (int __user *)arg);
@@ -1504,7 +1505,7 @@ static long ll_dir_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		int namelen, len = 0;
 		char *filename;
 
-		rc = obd_ioctl_getdata(&data, &len, (void __user *)arg);
+		rc = obd_ioctl_getdata(&data, &len, uarg);
 		if (rc)
 			return rc;
 
@@ -1537,7 +1538,7 @@ out_free:
 		int len;
 		int rc;
 
-		rc = obd_ioctl_getdata(&data, &len, (void __user *)arg);
+		rc = obd_ioctl_getdata(&data, &len, uarg);
 		if (rc)
 			return rc;
 
@@ -1591,11 +1592,10 @@ lmv_out_free:
 		return rc;
 	}
 	case LL_IOC_LMV_SET_DEFAULT_STRIPE: {
-		struct lmv_user_md __user *ulump;
+		struct lmv_user_md __user *ulump = uarg;
 		struct lmv_user_md lum;
 		int rc;
 
-		ulump = (struct lmv_user_md __user *)arg;
 		if (copy_from_user(&lum, ulump, sizeof(lum)))
 			return -EFAULT;
 
@@ -1611,8 +1611,8 @@ lmv_out_free:
 		struct lov_user_md_v3 *lumv3 = NULL;
 		struct lov_user_md_v1 lumv1;
 		struct lov_user_md_v1 *lumv1_ptr = &lumv1;
-		struct lov_user_md_v1 __user *lumv1p = (void __user *)arg;
-		struct lov_user_md_v3 __user *lumv3p = (void __user *)arg;
+		struct lov_user_md_v1 __user *lumv1p = uarg;
+		struct lov_user_md_v3 __user *lumv3p = uarg;
 		int lum_size = 0;
 
 		int set_default = 0;
@@ -1656,7 +1656,7 @@ out:
 		return rc;
 	}
 	case LL_IOC_LMV_GETSTRIPE: {
-		struct lmv_user_md __user *ulmv;
+		struct lmv_user_md __user *ulmv = uarg;
 		struct lmv_user_md lum;
 		struct ptlrpc_request *request = NULL;
 		struct ptlrpc_request *root_request = NULL;
@@ -1881,7 +1881,7 @@ finish_req:
 		if (cmd == IOC_MDC_GETFILEINFO_V1 ||
 		    cmd == IOC_MDC_GETFILEINFO_V2 ||
 		    cmd == IOC_MDC_GETFILESTRIPE) {
-			filename = ll_getname((const char __user *)arg);
+			filename = ll_getname(uarg);
 			if (IS_ERR(filename))
 				return PTR_ERR(filename);
 
@@ -2064,7 +2064,7 @@ out_req:
 		if (!qctl)
 			return -ENOMEM;
 
-		if (copy_from_user(qctl, (void __user *)arg, sizeof(*qctl))) {
+		if (copy_from_user(qctl, uarg, sizeof(*qctl))) {
 			rc = -EFAULT;
 			goto out_quotactl;
 		}
@@ -2082,7 +2082,7 @@ out_req:
 
 		rc = quotactl_ioctl(inode->i_sb, qctl);
 		if ((rc == 0 || rc == -ENODATA) &&
-		    copy_to_user((void __user *)arg, qctl, sizeof(*qctl)))
+		    copy_to_user(uarg, qctl, sizeof(*qctl)))
 			rc = -EFAULT;
 out_quotactl:
 		kfree(qctl);
@@ -2093,7 +2093,7 @@ out_quotactl:
 	case OBD_IOC_GETDTNAME:
 		fallthrough;
 	case OBD_IOC_GETMDNAME:
-		return ll_get_obd_name(inode, cmd, arg);
+		return ll_get_obd_name(inode, cmd, uarg);
 	case LL_IOC_FLUSHCTX:
 		return ll_flush_ctx(inode);
 	case LL_IOC_GETOBDCOUNT: {
@@ -2119,18 +2119,18 @@ out_quotactl:
 		return 0;
 	}
 	case LL_IOC_PATH2FID:
-		if (copy_to_user((void __user *)arg, ll_inode2fid(inode),
+		if (copy_to_user(uarg, ll_inode2fid(inode),
 				 sizeof(struct lu_fid)))
 			return -EFAULT;
 		return 0;
 	case LL_IOC_GET_CONNECT_FLAGS: {
 		return obd_iocontrol(cmd, sbi->ll_md_exp, 0, NULL,
-				     (void __user *)arg);
+				     uarg);
 	}
 	case OBD_IOC_FID2PATH:
-		return ll_fid2path(inode, (void __user *)arg);
+		return ll_fid2path(inode, uarg);
 	case LL_IOC_GETPARENT:
-		return ll_getparent(file, (void __user *)arg);
+		return ll_getparent(file, uarg);
 	case LL_IOC_FID2MDTIDX: {
 		struct obd_export *exp = ll_i2mdexp(inode);
 		struct lu_fid fid;
@@ -2152,7 +2152,7 @@ out_quotactl:
 		struct hsm_user_request	*hur;
 		ssize_t	totalsize;
 
-		hur = memdup_user((void __user *)arg, sizeof(*hur));
+		hur = memdup_user(uarg, sizeof(*hur));
 		if (IS_ERR(hur))
 			return PTR_ERR(hur);
 
@@ -2171,7 +2171,7 @@ out_quotactl:
 			return -ENOMEM;
 
 		/* Copy the whole struct */
-		if (copy_from_user(hur, (void __user *)arg, totalsize)) {
+		if (copy_from_user(hur, uarg, totalsize)) {
 			kvfree(hur);
 			return -EFAULT;
 		}
@@ -2207,7 +2207,7 @@ out_quotactl:
 		struct hsm_progress_kernel hpk;
 		struct hsm_progress hp;
 
-		if (copy_from_user(&hp, (void __user *)arg, sizeof(hp)))
+		if (copy_from_user(&hp, uarg, sizeof(hp)))
 			return -EFAULT;
 
 		hpk.hpk_fid = hp.hp_fid;
@@ -2270,7 +2270,7 @@ out_quotactl:
 		int len;
 		int rc;
 
-		rc = obd_ioctl_getdata(&data, &len, (void __user *)arg);
+		rc = obd_ioctl_getdata(&data, &len, uarg);
 		if (rc)
 			return rc;
 
@@ -2306,11 +2306,11 @@ migrate_free:
 		return rc;
 	}
 	case FS_IOC_FSGETXATTR:
-		return ll_ioctl_fsgetxattr(inode, cmd, arg);
+		return ll_ioctl_fsgetxattr(inode, cmd, uarg);
 	case FS_IOC_FSSETXATTR:
-		return ll_ioctl_fssetxattr(inode, cmd, arg);
+		return ll_ioctl_fssetxattr(inode, cmd, uarg);
 	case LL_IOC_PROJECT:
-		return ll_ioctl_project(file, cmd, arg);
+		return ll_ioctl_project(file, cmd, uarg);
 	case LL_IOC_PCC_DETACH_BY_FID: {
 		struct lu_pcc_detach_fid *detach;
 		struct lu_fid *fid;
@@ -2360,35 +2360,33 @@ out_detach:
 	case FS_IOC_SET_ENCRYPTION_POLICY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_set_policy(file, (const void __user *)arg);
+		return fscrypt_ioctl_set_policy(file, uarg);
 	case FS_IOC_GET_ENCRYPTION_POLICY_EX:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_get_policy_ex(file, (void __user *)arg);
+		return fscrypt_ioctl_get_policy_ex(file, uarg);
 	case FS_IOC_ADD_ENCRYPTION_KEY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		rc = fscrypt_ioctl_add_key(file, (void __user *)arg);
+		rc = fscrypt_ioctl_add_key(file, uarg);
 		if (!rc)
 			sptlrpc_enc_pool_add_user();
 		return rc;
 	case FS_IOC_REMOVE_ENCRYPTION_KEY:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_remove_key(file, (void __user *)arg);
+		return fscrypt_ioctl_remove_key(file, uarg);
 	case FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_remove_key_all_users(file,
-							  (void __user *)arg);
+		return fscrypt_ioctl_remove_key_all_users(file, uarg);
 	case FS_IOC_GET_ENCRYPTION_KEY_STATUS:
 		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
 			return -EOPNOTSUPP;
-		return fscrypt_ioctl_get_key_status(file, (void __user *)arg);
+		return fscrypt_ioctl_get_key_status(file, uarg);
 #endif
 	default:
-		return obd_iocontrol(cmd, sbi->ll_dt_exp, 0, NULL,
-				     (void __user *)arg);
+		return obd_iocontrol(cmd, sbi->ll_dt_exp, 0, NULL, uarg);
 	}
 }
 

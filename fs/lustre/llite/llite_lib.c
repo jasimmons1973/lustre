@@ -2853,7 +2853,7 @@ void ll_delete_inode(struct inode *inode)
 }
 
 int ll_iocontrol(struct inode *inode, struct file *file,
-		 unsigned int cmd, unsigned long arg)
+		 unsigned int cmd, void __user *uarg)
 {
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	struct ptlrpc_request *req = NULL;
@@ -2891,7 +2891,7 @@ int ll_iocontrol(struct inode *inode, struct file *file,
 
 		ptlrpc_req_finished(req);
 
-		return put_user(flags, (int __user *)arg);
+		return put_user(flags, (int __user *)uarg);
 	}
 	case FS_IOC_SETFLAGS: {
 		struct md_op_data *op_data;
@@ -2899,7 +2899,7 @@ int ll_iocontrol(struct inode *inode, struct file *file,
 		struct iattr *attr;
 		struct fsxattr fa = { 0 };
 
-		if (get_user(flags, (int __user *)arg))
+		if (get_user(flags, (int __user *)uarg))
 			return -EFAULT;
 
 		fa.fsx_projid = ll_i2info(inode)->lli_projid;
@@ -3219,7 +3219,7 @@ out:
 	return rc;
 }
 
-int ll_obd_statfs(struct inode *inode, void __user *arg)
+int ll_obd_statfs(struct inode *inode, void __user *uarg)
 {
 	struct ll_sb_info *sbi = NULL;
 	struct obd_export *exp;
@@ -3238,7 +3238,7 @@ int ll_obd_statfs(struct inode *inode, void __user *arg)
 		goto out_statfs;
 	}
 
-	rc = obd_ioctl_getdata(&data, &len, arg);
+	rc = obd_ioctl_getdata(&data, &len, uarg);
 	if (rc)
 		goto out_statfs;
 
@@ -3491,7 +3491,7 @@ int ll_show_options(struct seq_file *seq, struct dentry *dentry)
 /**
  * Get obd name by cmd, and copy out to user space
  */
-int ll_get_obd_name(struct inode *inode, unsigned int cmd, unsigned long arg)
+int ll_get_obd_name(struct inode *inode, unsigned int cmd, void __user *uarg)
 {
 	struct ll_sb_info *sbi = ll_i2sbi(inode);
 	struct obd_device *obd;
@@ -3506,8 +3506,7 @@ int ll_get_obd_name(struct inode *inode, unsigned int cmd, unsigned long arg)
 	if (!obd)
 		return -ENOENT;
 
-	if (copy_to_user((void __user *)arg, obd->obd_name,
-			 strlen(obd->obd_name) + 1))
+	if (copy_to_user(uarg, obd->obd_name, strlen(obd->obd_name) + 1))
 		return -EFAULT;
 
 	return 0;

@@ -1222,12 +1222,10 @@ int ll_get_fid_by_name(struct inode *parent, const char *name,
 int ll_inode_permission(struct inode *inode, int mask);
 int ll_ioctl_check_project(struct inode *inode, u32 xflags, u32 projid);
 int ll_ioctl_fsgetxattr(struct inode *inode, unsigned int cmd,
-			unsigned long arg);
+			void __user *uarg);
 int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
-			unsigned long arg);
-int ll_ioctl_project(struct file *file, unsigned int cmd,
-		     unsigned long arg);
-
+			void __user *uarg);
+int ll_ioctl_project(struct file *file, unsigned int cmd, void __user *uarg);
 int ll_lov_setstripe_ea_info(struct inode *inode, struct dentry *dentry,
 			     u64 flags, struct lov_user_md *lum,
 			     int lum_size);
@@ -1290,7 +1288,7 @@ int ll_read_inode2(struct inode *inode, void *opaque);
 void ll_truncate_inode_pages_final(struct inode *inode, struct cl_io *io);
 void ll_delete_inode(struct inode *inode);
 int ll_iocontrol(struct inode *inode, struct file *file,
-		 unsigned int cmd, unsigned long arg);
+		 unsigned int cmd, void __user *uarg);
 int ll_flush_ctx(struct inode *inode);
 void ll_umount_begin(struct super_block *sb);
 int ll_remount_fs(struct super_block *sb, int *flags, char *data);
@@ -1298,7 +1296,7 @@ int ll_show_options(struct seq_file *seq, struct dentry *dentry);
 void ll_dirty_page_discard_warn(struct inode *inode, int ioret);
 int ll_prep_inode(struct inode **inode, struct req_capsule *pill,
 		  struct super_block *sb, struct lookup_intent *it);
-int ll_obd_statfs(struct inode *inode, void __user *arg);
+int ll_obd_statfs(struct inode *inode, void __user *uarg);
 int ll_get_max_mdsize(struct ll_sb_info *sbi, int *max_mdsize);
 int ll_get_default_mdsize(struct ll_sb_info *sbi, int *default_mdsize);
 int ll_set_default_mdsize(struct ll_sb_info *sbi, int default_mdsize);
@@ -1310,7 +1308,7 @@ struct md_op_data *ll_prep_md_op_data(struct md_op_data *op_data,
 				      u32 mode, enum md_op_code opc,
 				      void *data);
 void ll_finish_md_op_data(struct md_op_data *op_data);
-int ll_get_obd_name(struct inode *inode, unsigned int cmd, unsigned long arg);
+int ll_get_obd_name(struct inode *inode, unsigned int cmd, void __user *uarg);
 void ll_compute_rootsquash_state(struct ll_sb_info *sbi);
 ssize_t ll_copy_user_md(const struct lov_user_md __user *md,
 			struct lov_user_md **kbuf);

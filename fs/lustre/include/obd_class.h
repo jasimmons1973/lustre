@@ -58,7 +58,7 @@ extern rwlock_t obd_dev_lock;
 
 /* OBD Operations Declarations */
 struct obd_device *class_exp2obd(struct obd_export *exp);
-int class_handle_ioctl(unsigned int cmd, unsigned long arg);
+int class_handle_ioctl(unsigned int cmd, void __user *uarg);
 int lustre_get_jobid(char *jobid, size_t len);
 void jobid_cache_fini(void);
 int jobid_cache_init(void);

@@ -277,14 +277,14 @@ free_buf:
 }
 EXPORT_SYMBOL(obd_ioctl_getdata);
 
-int class_handle_ioctl(unsigned int cmd, unsigned long arg)
+int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 {
 	struct obd_ioctl_data *data;
 	struct obd_device *obd = NULL;
 	int err = 0, len = 0;
 
 	CDEBUG(D_IOCTL, "cmd = %x\n", cmd);
-	if (obd_ioctl_getdata(&data, &len, (void __user *)arg)) {
+	if (obd_ioctl_getdata(&data, &len, uarg)) {
 		CERROR("OBD ioctl: data error\n");
 		return -EINVAL;
 	}
@@ -341,7 +341,7 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 		memcpy(data->ioc_bulk, LUSTRE_VERSION_STRING,
 		       strlen(LUSTRE_VERSION_STRING) + 1);
 
-		if (copy_to_user((void __user *)arg, data, len))
+		if (copy_to_user(uarg, data, len))
 			err = -EFAULT;
 		goto out;
 	}
@@ -359,7 +359,7 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 			goto out;
 		}
 
-		if (copy_to_user((void __user *)arg, data, sizeof(*data)))
+		if (copy_to_user(uarg, data, sizeof(*data)))
 			err = -EFAULT;
 		goto out;
 	}
@@ -396,7 +396,7 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 		CDEBUG(D_IOCTL, "device name %s, dev %d\n", data->ioc_inlbuf1,
 		       dev);
 
-		if (copy_to_user((void __user *)arg, data, sizeof(*data)))
+		if (copy_to_user(uarg, data, sizeof(*data)))
 			err = -EFAULT;
 		goto out;
 	}
@@ -438,7 +438,7 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 			 obd->obd_name, obd->obd_uuid.uuid,
 			 atomic_read(&obd->obd_refcount));
 
-		if (copy_to_user((void __user *)arg, data, len))
+		if (copy_to_user(uarg, data, len))
 			err = -EFAULT;
 		goto out;
 	}
@@ -479,7 +479,7 @@ int class_handle_ioctl(unsigned int cmd, unsigned long arg)
 	if (err)
 		goto out;
 
-	if (copy_to_user((void __user *)arg, data, len))
+	if (copy_to_user(uarg, data, len))
 		err = -EFAULT;
 out:
 	kvfree(data);
@@ -497,7 +497,7 @@ static long obd_class_ioctl(struct file *filp, unsigned int cmd,
 	if ((cmd & 0xffffff00) == ((int)'T') << 8) /* ignore all tty ioctls */
 		return -ENOTTY;
 
-	return class_handle_ioctl(cmd, (unsigned long)arg);
+	return class_handle_ioctl(cmd, (void __user *)arg);
 }
 
 /* declare character device */
