@@ -160,6 +160,7 @@ static int ll_xattr_set_common(const struct xattr_handler *handler,
 		}
 		return rc;
 	}
+	ll_i2info(inode)->lli_synced_to_mds = false;
 
 	ptlrpc_req_finished(req);
 
