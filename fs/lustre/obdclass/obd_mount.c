@@ -228,7 +228,7 @@ int lustre_start_mgc(struct super_block *sb)
 
 	/* Use nids from mount line: uml1,1@elan:uml2,2@elan:/lustre */
 	ptr = lsi->lsi_lmd->lmd_dev;
-	if (class_parse_nid(ptr, &nid, &ptr) == 0)
+	if (class_parse_nid4(ptr, &nid, &ptr) == 0)
 		i++;
 	if (i == 0) {
 		CERROR("No valid MGS nids found.\n");
@@ -314,7 +314,7 @@ int lustre_start_mgc(struct super_block *sb)
 	i = 0;
 	/* Use nids from mount line: uml1,1@elan:uml2,2@elan:/lustre */
 	ptr = lsi->lsi_lmd->lmd_dev;
-	while (class_parse_nid(ptr, &nid, &ptr) == 0) {
+	while (class_parse_nid4(ptr, &nid, &ptr) == 0) {
 		rc = do_lcfg(mgcname, nid,
 			     LCFG_ADD_UUID, niduuid, NULL, NULL, NULL);
 		if (!rc)
@@ -354,7 +354,7 @@ int lustre_start_mgc(struct super_block *sb)
 		/* New failover node */
 		sprintf(niduuid, "%s_%x", mgcname, i);
 		j = 0;
-		while (class_parse_nid_quiet(ptr, &nid, &ptr) == 0) {
+		while (class_parse_nid4_quiet(ptr, &nid, &ptr) == 0) {
 			rc = do_lcfg(mgcname, nid, LCFG_ADD_UUID, niduuid,
 				     NULL, NULL, NULL);
 			if (!rc)
@@ -870,7 +870,7 @@ static int lmd_parse_mgs(struct lustre_mount_data *lmd, char **ptr)
 	int oldlen = 0;
 
 	/* Find end of nidlist */
-	while (class_parse_nid_quiet(tail, &nid, &tail) == 0)
+	while (class_parse_nid4_quiet(tail, &nid, &tail) == 0)
 		;
 	length = tail - *ptr;
 	if (length == 0) {
