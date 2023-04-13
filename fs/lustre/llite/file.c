@@ -4083,7 +4083,7 @@ ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	struct inode *inode = file_inode(file);
 	struct ll_file_data *fd = file->private_data;
 	void __user *uarg = (void __user *)arg;
-	int flags, rc;
+	int flags, rc = 0;
 
 	CDEBUG(D_VFSTRACE, "VFS Op:inode=" DFID "(%p),cmd=%x\n",
 	       PFID(ll_inode2fid(inode)), inode, cmd);
@@ -4471,14 +4471,6 @@ out_ladvise:
 		fd->fd_designated_mirror = arg;
 		return 0;
 	}
-	case FS_IOC_FSGETXATTR:
-		return ll_ioctl_fsgetxattr(inode, cmd, uarg);
-	case FS_IOC_FSSETXATTR:
-		return ll_ioctl_fssetxattr(inode, cmd, uarg);
-	case LL_IOC_PROJECT:
-		return ll_ioctl_project(file, cmd, uarg);
-	case BLKSSZGET:
-		return put_user(PAGE_SIZE, (int __user *)arg);
 	case LL_IOC_HEAT_GET: {
 		struct lu_heat uheat;
 		struct lu_heat *heat;
@@ -4563,49 +4555,14 @@ out_state:
 		kfree(state);
 		return rc;
 	}
-#ifdef CONFIG_FS_ENCRYPTION
-	case FS_IOC_SET_ENCRYPTION_POLICY:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_set_policy(file, uarg);
-	case FS_IOC_GET_ENCRYPTION_POLICY_EX:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_get_policy_ex(file, uarg);
-	case FS_IOC_ADD_ENCRYPTION_KEY:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_add_key(file, uarg);
-	case FS_IOC_REMOVE_ENCRYPTION_KEY:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_remove_key(file, uarg);
-	case FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_remove_key_all_users(file, uarg);
-	case FS_IOC_GET_ENCRYPTION_KEY_STATUS:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_get_key_status(file, uarg);
-#endif
-
-	case LL_IOC_UNLOCK_FOREIGN: {
-		struct dentry *dentry = file_dentry(file);
-
-		/* if not a foreign symlink do nothing */
-		if (ll_foreign_is_removable(dentry, true)) {
-			CDEBUG(D_INFO,
-			       "prevent unlink of non-foreign file ("DFID")\n",
-			       PFID(ll_inode2fid(inode)));
-			return -EOPNOTSUPP;
-		}
-		return 0;
-	}
-
 	default:
-		return obd_iocontrol(cmd, ll_i2dtexp(inode), 0, NULL, uarg);
+		rc = ll_iocontrol(inode, file, cmd, uarg);
+		if (rc == -ENOTTY)
+			rc = obd_iocontrol(cmd, ll_i2dtexp(inode), 0, NULL, uarg);
+		break;
 	}
+
+	return rc;
 }
 
 loff_t ll_lseek(struct file *file, loff_t offset, int whence)

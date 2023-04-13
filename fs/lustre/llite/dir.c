@@ -1476,31 +1476,6 @@ static long ll_dir_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 	ll_stats_ops_tally(ll_i2sbi(inode), LPROC_LL_IOCTL, 1);
 	switch (cmd) {
-	case FS_IOC_GETFLAGS:
-	case FS_IOC_SETFLAGS:
-		return ll_iocontrol(inode, file, cmd, uarg);
-	case FSFILT_IOC_GETVERSION:
-	case FS_IOC_GETVERSION:
-		return put_user(inode->i_generation, (int __user *)arg);
-	/* We need to special case any other ioctls we want to handle,
-	 * to send them to the MDS/OST as appropriate and to properly
-	 * network encode the arg field.
-	 */
-	case FS_IOC_SETVERSION:
-		return -ENOTSUPP;
-
-	case LL_IOC_GET_MDTIDX: {
-		int mdtidx;
-
-		mdtidx = ll_get_mdt_idx(inode);
-		if (mdtidx < 0)
-			return mdtidx;
-
-		if (put_user((int)mdtidx, (int __user *)arg))
-			return -EFAULT;
-
-		return 0;
-	}
 	case IOC_MDC_LOOKUP: {
 		int namelen, len = 0;
 		char *filename;
@@ -1840,23 +1815,10 @@ finish_req:
 		ptlrpc_req_finished(root_request);
 		return rc;
 	}
-
-	case LL_IOC_UNLOCK_FOREIGN:
-		/* if not a foreign symlink do nothing */
-		if (ll_foreign_is_removable(dentry, true)) {
-			CDEBUG(D_INFO,
-			       "prevent rmdir of non-foreign dir ("DFID")\n",
-			       PFID(ll_inode2fid(inode)));
-			return -EOPNOTSUPP;
-		}
-		return 0;
-
 	case LL_IOC_RMFID:
 		return ll_rmfid(file, (void __user *)arg);
 	case LL_IOC_LOV_SWAP_LAYOUTS:
 		return -EPERM;
-	case IOC_OBD_STATFS:
-		return ll_obd_statfs(inode, (void __user *)arg);
 	case LL_IOC_LOV_GETSTRIPE:
 	case LL_IOC_LOV_GETSTRIPE_NEW:
 	case LL_IOC_MDC_GETINFO_V1:
@@ -2088,14 +2050,6 @@ out_quotactl:
 		kfree(qctl);
 		return rc;
 	}
-	case OBD_IOC_GETNAME_OLD:
-		fallthrough;
-	case OBD_IOC_GETDTNAME:
-		fallthrough;
-	case OBD_IOC_GETMDNAME:
-		return ll_get_obd_name(inode, cmd, uarg);
-	case LL_IOC_FLUSHCTX:
-		return ll_flush_ctx(inode);
 	case LL_IOC_GETOBDCOUNT: {
 		int count, vallen;
 		struct obd_export *exp;
@@ -2118,11 +2072,6 @@ out_quotactl:
 
 		return 0;
 	}
-	case LL_IOC_PATH2FID:
-		if (copy_to_user(uarg, ll_inode2fid(inode),
-				 sizeof(struct lu_fid)))
-			return -EFAULT;
-		return 0;
 	case LL_IOC_GET_CONNECT_FLAGS: {
 		return obd_iocontrol(cmd, sbi->ll_md_exp, 0, NULL,
 				     uarg);
@@ -2305,12 +2254,6 @@ migrate_free:
 
 		return rc;
 	}
-	case FS_IOC_FSGETXATTR:
-		return ll_ioctl_fsgetxattr(inode, cmd, uarg);
-	case FS_IOC_FSSETXATTR:
-		return ll_ioctl_fssetxattr(inode, cmd, uarg);
-	case LL_IOC_PROJECT:
-		return ll_ioctl_project(file, cmd, uarg);
 	case LL_IOC_PCC_DETACH_BY_FID: {
 		struct lu_pcc_detach_fid *detach;
 		struct lu_fid *fid;
@@ -2356,38 +2299,13 @@ out_detach:
 		kfree(detach);
 		return rc;
 	}
-#ifdef CONFIG_FS_ENCRYPTION
-	case FS_IOC_SET_ENCRYPTION_POLICY:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_set_policy(file, uarg);
-	case FS_IOC_GET_ENCRYPTION_POLICY_EX:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_get_policy_ex(file, uarg);
-	case FS_IOC_ADD_ENCRYPTION_KEY:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		rc = fscrypt_ioctl_add_key(file, uarg);
-		if (!rc)
-			sptlrpc_enc_pool_add_user();
-		return rc;
-	case FS_IOC_REMOVE_ENCRYPTION_KEY:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_remove_key(file, uarg);
-	case FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_remove_key_all_users(file, uarg);
-	case FS_IOC_GET_ENCRYPTION_KEY_STATUS:
-		if (!ll_sbi_has_encrypt(ll_i2sbi(inode)))
-			return -EOPNOTSUPP;
-		return fscrypt_ioctl_get_key_status(file, uarg);
-#endif
 	default:
-		return obd_iocontrol(cmd, sbi->ll_dt_exp, 0, NULL, uarg);
+		rc = ll_iocontrol(inode, file, cmd, uarg);
+		if (rc == -ENOTTY)
+			rc = obd_iocontrol(cmd, sbi->ll_dt_exp, 0, NULL, uarg);
+		break;
 	}
+	return rc;
 }
 
 static loff_t ll_dir_seek(struct file *file, loff_t offset, int origin)
