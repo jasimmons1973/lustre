@@ -1417,7 +1417,7 @@ out:
 	return rc;
 }
 
-int ll_merge_attr(const struct lu_env *env, struct inode *inode)
+static int ll_merge_attr_nolock(const struct lu_env *env, struct inode *inode)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
 	struct cl_object *obj = lli->lli_clob;
@@ -1427,10 +1427,7 @@ int ll_merge_attr(const struct lu_env *env, struct inode *inode)
 	s64 ctime;
 	int rc = 0;
 
-	ll_inode_size_lock(inode);
-
-	/*
-	 * merge timestamps the most recently obtained from MDS with
+	/* merge timestamps the most recently obtained from MDS with
 	 * timestamps obtained from OSTSs.
 	 *
 	 * Do not overwrite atime of inode because it may be refreshed
@@ -1463,7 +1460,7 @@ int ll_merge_attr(const struct lu_env *env, struct inode *inode)
 	if (rc != 0) {
 		if (rc == -ENODATA)
 			rc = 0;
-		goto out_size_unlock;
+		goto out;
 	}
 
 	if (atime < attr->cat_atime)
@@ -1475,8 +1472,8 @@ int ll_merge_attr(const struct lu_env *env, struct inode *inode)
 	if (mtime < attr->cat_mtime)
 		mtime = attr->cat_mtime;
 
-	CDEBUG(D_VFSTRACE, DFID " updating i_size %llu\n",
-	       PFID(&lli->lli_fid), attr->cat_size);
+	CDEBUG(D_VFSTRACE, DFID" updating i_size %llu i_block %llu\n",
+	       PFID(&lli->lli_fid), attr->cat_size, attr->cat_blocks);
 
 	if (fscrypt_require_key(inode) == -ENOKEY) {
 		/* Without the key, round up encrypted file size to next
@@ -1495,9 +1492,30 @@ int ll_merge_attr(const struct lu_env *env, struct inode *inode)
 	inode->i_mtime.tv_sec = mtime;
 	inode->i_atime.tv_sec = atime;
 	inode->i_ctime.tv_sec = ctime;
+out:
+	return rc;
+}
 
-out_size_unlock:
+int ll_merge_attr(const struct lu_env *env, struct inode *inode)
+{
+	int rc;
+
+	ll_inode_size_lock(inode);
+	rc = ll_merge_attr_nolock(env, inode);
 	ll_inode_size_unlock(inode);
+
+	return rc;
+}
+
+/* Use to update size and blocks on inode for LSOM if there is no contention */
+int ll_merge_attr_try(const struct lu_env *env, struct inode *inode)
+{
+	int rc = 0;
+
+	if (ll_inode_size_trylock(inode)) {
+		rc = ll_merge_attr_nolock(env, inode);
+		ll_inode_size_unlock(inode);
+	}
 
 	return rc;
 }
