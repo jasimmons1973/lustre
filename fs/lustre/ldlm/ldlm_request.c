@@ -369,7 +369,7 @@ static bool ldlm_request_slot_needed(struct ldlm_enqueue_info *einfo)
  *
  * Called after receiving reply from server.
  */
-int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
+int ldlm_cli_enqueue_fini(struct obd_export *exp, struct req_capsule *pill,
 			  struct ldlm_enqueue_info *einfo,
 			  u8 with_policy, u64 *ldlm_flags, void *lvb,
 			  u32 lvb_len, const struct lustre_handle *lockh,
@@ -382,10 +382,17 @@ int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
 	struct ldlm_reply *reply;
 	int cleanup_phase = 1;
 
-	if (request_slot)
-		obd_put_request_slot(&req->rq_import->imp_obd->u.cli);
+	if (req_capsule_ptlreq(pill)) {
+		struct ptlrpc_request *req = pill->rc_req;
 
-	ptlrpc_put_mod_rpc_slot(req);
+		if (request_slot)
+			obd_put_request_slot(&req->rq_import->imp_obd->u.cli);
+
+		ptlrpc_put_mod_rpc_slot(req);
+
+		if (req && req->rq_svc_thread)
+			env = req->rq_svc_thread->t_env;
+	}
 
 	lock = ldlm_handle2lock(lockh);
 	/* ldlm_cli_enqueue is holding a reference on this lock. */
@@ -407,7 +414,7 @@ int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
 	}
 
 	/* Before we return, swab the reply */
-	reply = req_capsule_server_get(&req->rq_pill, &RMF_DLM_REP);
+	reply = req_capsule_server_get(pill, &RMF_DLM_REP);
 	if (!reply) {
 		rc = -EPROTO;
 		goto cleanup;
@@ -416,8 +423,7 @@ int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
 	if (lvb_len > 0) {
 		int size = 0;
 
-		size = req_capsule_get_size(&req->rq_pill, &RMF_DLM_LVB,
-					    RCL_SERVER);
+		size = req_capsule_get_size(pill, &RMF_DLM_LVB, RCL_SERVER);
 		if (size < 0) {
 			LDLM_ERROR(lock, "Fail to get lvb_len, rc = %d", size);
 			rc = size;
@@ -434,7 +440,7 @@ int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
 
 	if (rc == ELDLM_LOCK_ABORTED) {
 		if (lvb_len > 0 && lvb)
-			rc = ldlm_fill_lvb(lock, &req->rq_pill, RCL_SERVER,
+			rc = ldlm_fill_lvb(lock, pill, RCL_SERVER,
 					   lvb, lvb_len);
 		if (rc == 0)
 			rc = ELDLM_LOCK_ABORTED;
@@ -520,7 +526,7 @@ int ldlm_cli_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
 		 */
 		lock_res_and_lock(lock);
 		if (!ldlm_is_granted(lock))
-			rc = ldlm_fill_lvb(lock, &req->rq_pill, RCL_SERVER,
+			rc = ldlm_fill_lvb(lock, pill, RCL_SERVER,
 					   lock->l_lvb_data, lvb_len);
 		unlock_res_and_lock(lock);
 		if (rc < 0) {
@@ -857,8 +863,9 @@ int ldlm_cli_enqueue(struct obd_export *exp, struct ptlrpc_request **reqp,
 
 	rc = ptlrpc_queue_wait(req);
 
-	err = ldlm_cli_enqueue_fini(exp, req, einfo, policy ? 1 : 0, flags,
-				    lvb, lvb_len, lockh, rc, need_req_slot);
+	err = ldlm_cli_enqueue_fini(exp, &req->rq_pill, einfo, policy ? 1 : 0,
+				    flags, lvb, lvb_len, lockh, rc,
+				    need_req_slot);
 
 	/*
 	 * If ldlm_cli_enqueue_fini did not find the lock, we need to free
@@ -878,6 +885,57 @@ out:
 	return rc;
 }
 EXPORT_SYMBOL(ldlm_cli_enqueue);
+
+/**
+ * Client-side IBITS lock create and pack for WBC EX lock request.
+ */
+int ldlm_cli_lock_create_pack(struct obd_export *exp,
+			      struct ldlm_request *dlmreq,
+			      struct ldlm_enqueue_info *einfo,
+			      const struct ldlm_res_id *res_id,
+			      union ldlm_policy_data const *policy,
+			      u64 *flags, void *lvb, u32 lvb_len,
+			      enum lvb_type lvb_type,
+			      struct lustre_handle *lockh)
+{
+	const struct ldlm_callback_suite cbs = {
+		.lcs_completion	= einfo->ei_cb_cp,
+		.lcs_blocking	= einfo->ei_cb_bl,
+		.lcs_glimpse	= einfo->ei_cb_gl
+	};
+	struct ldlm_namespace *ns;
+	struct ldlm_lock *lock;
+
+	LASSERT(exp);
+	LASSERT(!(*flags & LDLM_FL_REPLAY));
+
+	ns = exp->exp_obd->obd_namespace;
+	lock = ldlm_lock_create(ns, res_id, einfo->ei_type, einfo->ei_mode,
+				&cbs, einfo->ei_cbdata, lvb_len, lvb_type);
+	if (IS_ERR(lock))
+		return PTR_ERR(lock);
+
+	/* For the local lock, add the reference */
+	ldlm_lock_addref_internal(lock, einfo->ei_mode);
+	ldlm_lock2handle(lock, lockh);
+	if (policy)
+		lock->l_policy_data = *policy;
+
+	LDLM_DEBUG(lock, "client-side enqueue START, flags %#llx", *flags);
+	lock->l_conn_export = exp;
+	lock->l_export = NULL;
+	lock->l_blocking_ast = einfo->ei_cb_bl;
+	lock->l_flags |= (*flags & (LDLM_FL_NO_LRU | LDLM_FL_EXCL |
+				    LDLM_FL_ATOMIC_CB));
+	lock->l_activity = ktime_get_real_seconds();
+
+	ldlm_lock2desc(lock, &dlmreq->lock_desc);
+	dlmreq->lock_flags = ldlm_flags_to_wire(*flags);
+	dlmreq->lock_handle[0] = *lockh;
+
+	return 0;
+}
+EXPORT_SYMBOL(ldlm_cli_lock_create_pack);
 
 /**
  * Client-side IBITS lock convert.

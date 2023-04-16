@@ -722,6 +722,26 @@ static const struct req_msg_field *mdt_hsm_request[] = {
 	&RMF_GENERIC_DATA,
 };
 
+static const struct req_msg_field *mds_batch_getattr_client[] = {
+	&RMF_DLM_REQ,
+	&RMF_LDLM_INTENT,
+	&RMF_MDT_BODY,     /* coincides with mds_getattr_name_client[] */
+	&RMF_CAPA1,
+	&RMF_NAME,
+	&RMF_FILE_SECCTX_NAME
+};
+
+static const struct req_msg_field *mds_batch_getattr_server[] = {
+	&RMF_DLM_REP,
+	&RMF_MDT_BODY,
+	&RMF_MDT_MD,
+	&RMF_ACL,
+	&RMF_CAPA1,
+	&RMF_FILE_SECCTX,
+	&RMF_DEFAULT_MDT_MD,
+	&RMF_FILE_ENCCTX,
+};
+
 static struct req_format *req_formats[] = {
 	&RQF_OBD_PING,
 	&RQF_OBD_SET_INFO,
@@ -811,6 +831,7 @@ static struct req_format *req_formats[] = {
 	&RQF_LLOG_ORIGIN_HANDLE_PREV_BLOCK,
 	&RQF_LLOG_ORIGIN_HANDLE_READ_HEADER,
 	&RQF_CONNECT,
+	&RQF_BUT_GETATTR,
 	&RQF_MDS_BATCH,
 };
 
@@ -1701,6 +1722,11 @@ struct req_format RQF_OST_LADVISE =
 	DEFINE_REQ_FMT0("OST_LADVISE", ost_ladvise, ost_body_only);
 EXPORT_SYMBOL(RQF_OST_LADVISE);
 
+struct req_format RQF_BUT_GETATTR =
+	DEFINE_REQ_FMT0("MDS_BATCH_GETATTR", mds_batch_getattr_client,
+			mds_batch_getattr_server);
+EXPORT_SYMBOL(RQF_BUT_GETATTR);
+
 /* Convenience macro */
 #define FMT_FIELD(fmt, i, j) ((fmt)->rf_fields[(i)].d[(j)])
 
@@ -2471,6 +2497,20 @@ void req_capsule_shrink(struct req_capsule *pill,
 	}
 }
 EXPORT_SYMBOL(req_capsule_shrink);
+
+void req_capsule_subreq_init(struct req_capsule *pill,
+			     const struct req_format *fmt,
+			     struct ptlrpc_request *req,
+			     struct lustre_msg *reqmsg,
+			     struct lustre_msg *repmsg,
+			     enum req_location loc)
+{
+	req_capsule_init(pill, req, loc);
+	req_capsule_set(pill, fmt);
+	pill->rc_reqmsg = reqmsg;
+	pill->rc_repmsg = repmsg;
+}
+EXPORT_SYMBOL(req_capsule_subreq_init);
 
 void req_capsule_set_replen(struct req_capsule *pill)
 {

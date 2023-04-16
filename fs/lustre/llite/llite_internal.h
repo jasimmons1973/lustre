@@ -792,6 +792,9 @@ struct ll_sb_info {
 	unsigned int		ll_sa_running_max; /* max concurrent
 						    * statahead instances
 						    */
+	unsigned int		ll_sa_batch_max;/* max SUB request count in
+						 * a batch PTLRPC request
+						 */
 	unsigned int		ll_sa_max;	/* max statahead RPCs */
 	atomic_t		ll_sa_total;	/* statahead thread started
 						 * count
@@ -1520,9 +1523,10 @@ void ll_ra_count_put(struct ll_sb_info *sbi, unsigned long len);
 void ll_ra_stats_inc(struct inode *inode, enum ra_stat which);
 
 /* statahead.c */
-#define LL_SA_RPC_MIN	   2
-#define LL_SA_RPC_DEF	   32
-#define LL_SA_RPC_MAX		512
+
+#define LL_SA_RPC_MIN		8
+#define LL_SA_RPC_DEF		32
+#define LL_SA_RPC_MAX		2048
 
 /* XXX: If want to support more concurrent statahead instances,
  *	please consider to decentralize the RPC lists attached
@@ -1532,7 +1536,10 @@ void ll_ra_stats_inc(struct inode *inode, enum ra_stat which);
 #define LL_SA_RUNNING_MAX	256
 #define LL_SA_RUNNING_DEF	16
 
-#define LL_SA_CACHE_BIT	 5
+#define LL_SA_BATCH_MAX		1024
+#define LL_SA_BATCH_DEF		0
+
+#define LL_SA_CACHE_BIT		5
 #define LL_SA_CACHE_SIZE	BIT(LL_SA_CACHE_BIT)
 #define LL_SA_CACHE_MASK	(LL_SA_CACHE_SIZE - 1)
 
@@ -1576,6 +1583,9 @@ struct ll_statahead_info {
 	struct list_head	sai_cache[LL_SA_CACHE_SIZE];
 	spinlock_t		sai_cache_lock[LL_SA_CACHE_SIZE];
 	atomic_t		sai_cache_count; /* entry count in cache */
+	struct lu_batch		*sai_bh;
+	u32			sai_max_batch_count;
+	u64			sai_index_end;
 };
 
 int ll_revalidate_statahead(struct inode *dir, struct dentry **dentry,

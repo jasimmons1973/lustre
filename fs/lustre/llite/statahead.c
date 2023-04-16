@@ -132,6 +132,21 @@ static inline int sa_sent_full(struct ll_statahead_info *sai)
 	return atomic_read(&sai->sai_cache_count) >= sai->sai_max;
 }
 
+/* Batch metadata handle */
+static inline bool sa_has_batch_handle(struct ll_statahead_info *sai)
+{
+	return sai->sai_bh != NULL;
+}
+
+static inline void ll_statahead_flush_nowait(struct ll_statahead_info *sai)
+{
+	if (sa_has_batch_handle(sai)) {
+		sai->sai_index_end = sai->sai_index - 1;
+		(void) md_batch_flush(ll_i2mdexp(sai->sai_dentry->d_inode),
+				      sai->sai_bh, false);
+	}
+}
+
 static inline int agl_list_empty(struct ll_statahead_info *sai)
 {
 	return list_empty(&sai->sai_agls);
@@ -256,19 +271,35 @@ sa_kill(struct ll_statahead_info *sai, struct sa_entry *entry)
 
 /* called by scanner after use, sa_entry will be killed */
 static void
-sa_put(struct ll_statahead_info *sai, struct sa_entry *entry)
+sa_put(struct inode *dir, struct ll_statahead_info *sai, struct sa_entry *entry)
 {
+	struct ll_inode_info *lli = ll_i2info(dir);
 	struct sa_entry *tmp, *next;
+	bool wakeup = false;
 
 	if (entry && entry->se_state == SA_ENTRY_SUCC) {
 		struct ll_sb_info *sbi = ll_i2sbi(sai->sai_dentry->d_inode);
 
 		sai->sai_hit++;
 		sai->sai_consecutive_miss = 0;
-		sai->sai_max = min(2 * sai->sai_max, sbi->ll_sa_max);
+		if (sai->sai_max < sbi->ll_sa_max) {
+			sai->sai_max = min(2 * sai->sai_max, sbi->ll_sa_max);
+			wakeup = true;
+		} else if (sai->sai_max_batch_count > 0) {
+			if (sai->sai_max >= sai->sai_max_batch_count &&
+			   (sai->sai_index_end - entry->se_index) %
+			   sai->sai_max_batch_count == 0) {
+				wakeup = true;
+			} else if (entry->se_index == sai->sai_index_end) {
+				wakeup = true;
+			}
+		} else {
+			wakeup = true;
+		}
 	} else {
 		sai->sai_miss++;
 		sai->sai_consecutive_miss++;
+		wakeup = true;
 	}
 
 	if (entry)
@@ -283,6 +314,11 @@ sa_put(struct ll_statahead_info *sai, struct sa_entry *entry)
 			break;
 		sa_kill(sai, tmp);
 	}
+
+	spin_lock(&lli->lli_sa_lock);
+	if (wakeup && sai->sai_task)
+		wake_up_process(sai->sai_task);
+	spin_unlock(&lli->lli_sa_lock);
 }
 
 /*
@@ -326,6 +362,9 @@ static void sa_fini_data(struct md_op_item *item)
 		kfree(op_data->op_name);
 	ll_unlock_md_op_lsm(op_data);
 	iput(item->mop_dir);
+	/* make sure it wasn't allocated with kmem_cache_alloc */
+	if (item->mop_subpill_allocated)
+		kfree(item->mop_pill);
 	kfree(item);
 }
 
@@ -356,6 +395,7 @@ sa_prep_data(struct inode *dir, struct inode *child, struct sa_entry *entry)
 	if (!child)
 		op_data->op_fid2 = entry->se_fid;
 
+	item->mop_opc = MD_OP_GETATTR;
 	item->mop_it.it_op = IT_GETATTR;
 	item->mop_dir = igrab(dir);
 	item->mop_cb = ll_statahead_interpret;
@@ -657,8 +697,12 @@ static void ll_statahead_interpret_work(struct work_struct *work)
 	}
 
 	rc = ll_prep_inode(&child, pill, dir->i_sb, it);
-	if (rc)
+	if (rc) {
+		CERROR("%s: getattr callback for %.*s "DFID": rc = %d\n",
+		       ll_i2sbi(dir)->ll_fsname, entry->se_qstr.len,
+		       entry->se_qstr.name, PFID(&entry->se_fid), rc);
 		goto out;
+	}
 
 	/* If encryption context was returned by MDT, put it in
 	 * inode now to save an extra getxattr.
@@ -782,6 +826,19 @@ out:
 	return rc;
 }
 
+static inline int sa_getattr(struct inode *dir, struct md_op_item *item)
+{
+	struct ll_statahead_info *sai = ll_i2info(dir)->lli_sai;
+	int rc;
+
+	if (sa_has_batch_handle(sai))
+		rc = md_batch_add(ll_i2mdexp(dir), sai->sai_bh, item);
+	else
+		rc = md_intent_getattr_async(ll_i2mdexp(dir), item);
+
+	return rc;
+}
+
 /* async stat for file not found in dcache */
 static int sa_lookup(struct inode *dir, struct sa_entry *entry)
 {
@@ -792,8 +849,8 @@ static int sa_lookup(struct inode *dir, struct sa_entry *entry)
 	if (IS_ERR(item))
 		return PTR_ERR(item);
 
-	rc = md_intent_getattr_async(ll_i2mdexp(dir), item);
-	if (rc)
+	rc = sa_getattr(dir, item);
+	if (rc < 0)
 		sa_fini_data(item);
 
 	return rc;
@@ -837,7 +894,7 @@ static int sa_revalidate(struct inode *dir, struct sa_entry *entry,
 		return 1;
 	}
 
-	rc = md_intent_getattr_async(ll_i2mdexp(dir), item);
+	rc = sa_getattr(dir, item);
 	if (rc) {
 		entry->se_inode = NULL;
 		iput(inode);
@@ -880,6 +937,9 @@ static void sa_statahead(struct dentry *parent, const char *name, int len,
 		sai->sai_sent++;
 
 	sai->sai_index++;
+
+	if (sa_sent_full(sai))
+		ll_statahead_flush_nowait(sai);
 }
 
 /* async glimpse (agl) thread main function */
@@ -991,6 +1051,7 @@ static int ll_statahead_thread(void *arg)
 	struct ll_sb_info *sbi = ll_i2sbi(dir);
 	struct ll_statahead_info *sai = lli->lli_sai;
 	struct page *page = NULL;
+	struct lu_batch *bh = NULL;
 	u64 pos = 0;
 	int first = 0;
 	int rc = 0;
@@ -999,6 +1060,17 @@ static int ll_statahead_thread(void *arg)
 	CDEBUG(D_READA, "statahead thread starting: sai %p, parent %pd\n",
 	       sai, parent);
 
+	sai->sai_max_batch_count = sbi->ll_sa_batch_max;
+	if (sai->sai_max_batch_count) {
+		bh = md_batch_create(ll_i2mdexp(dir), BATCH_FL_RDONLY,
+				     sai->sai_max_batch_count);
+		if (IS_ERR(bh)) {
+			rc = PTR_ERR(bh);
+			goto out_stop_agl;
+		}
+	}
+
+	sai->sai_bh = bh;
 	op_data = kzalloc(sizeof(*op_data), GFP_NOFS);
 	if (!op_data) {
 		rc = -ENOMEM;
@@ -1164,6 +1236,8 @@ static int ll_statahead_thread(void *arg)
 		spin_unlock(&lli->lli_sa_lock);
 	}
 
+	ll_statahead_flush_nowait(sai);
+
 	/*
 	 * statahead is finished, but statahead entries need to be cached, wait
 	 * for file release closedir() call to stop me.
@@ -1175,6 +1249,12 @@ static int ll_statahead_thread(void *arg)
 	}
 	__set_current_state(TASK_RUNNING);
 out:
+	if (bh) {
+		rc = md_batch_stop(ll_i2mdexp(dir), sai->sai_bh);
+		sai->sai_bh = NULL;
+	}
+
+out_stop_agl:
 	ll_stop_agl(sai);
 
 	/*
@@ -1553,11 +1633,7 @@ out_unplug:
 	 */
 	ldd = ll_d2d(*dentryp);
 	ldd->lld_sa_generation = lli->lli_sa_generation;
-	sa_put(sai, entry);
-	spin_lock(&lli->lli_sa_lock);
-	if (sai->sai_task)
-		wake_up_process(sai->sai_task);
-	spin_unlock(&lli->lli_sa_lock);
+	sa_put(dir, sai, entry);
 
 	return rc;
 }

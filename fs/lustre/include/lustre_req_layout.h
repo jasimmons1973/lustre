@@ -80,6 +80,12 @@ void req_capsule_init(struct req_capsule *pill, struct ptlrpc_request *req,
 void req_capsule_fini(struct req_capsule *pill);
 
 void req_capsule_set(struct req_capsule *pill, const struct req_format *fmt);
+void req_capsule_subreq_init(struct req_capsule *pill,
+			     const struct req_format *fmt,
+			     struct ptlrpc_request *req,
+			     struct lustre_msg *reqmsg,
+			     struct lustre_msg *repmsg,
+			     enum req_location loc);
 size_t req_capsule_filled_sizes(struct req_capsule *pill,
 				enum req_location loc);
 int req_capsule_server_pack(struct req_capsule *pill);
@@ -282,6 +288,7 @@ extern struct req_format RQF_LLOG_ORIGIN_HANDLE_READ_HEADER;
 extern struct req_format RQF_CONNECT;
 
 /* Batch UpdaTe req_format */
+extern struct req_format RQF_BUT_GETATTR;
 extern struct req_format RQF_MDS_BATCH;
 
 /* Batch UpdaTe format */
