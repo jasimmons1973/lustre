@@ -2088,6 +2088,7 @@ u32 lustre_msg_get_conn_cnt(struct lustre_msg *msg);
 u32 lustre_msg_get_magic(struct lustre_msg *msg);
 timeout_t lustre_msg_get_timeout(struct lustre_msg *msg);
 timeout_t lustre_msg_get_service_timeout(struct lustre_msg *msg);
+int lustre_msg_get_uid_gid(struct lustre_msg *msg, u32 *uid, u32 *gid);
 char *lustre_msg_get_jobid(struct lustre_msg *msg);
 u32 lustre_msg_get_cksum(struct lustre_msg *msg);
 u64 lustre_msg_get_mbits(struct lustre_msg *msg);
@@ -2106,6 +2107,7 @@ void ptlrpc_request_set_replen(struct ptlrpc_request *req);
 void lustre_msg_set_timeout(struct lustre_msg *msg, timeout_t timeout);
 void lustre_msg_set_service_timeout(struct lustre_msg *msg,
 				    timeout_t service_timeout);
+void lustre_msg_set_uid_gid(struct lustre_msg *msg, u32 *uid, u32 *gid);
 void lustre_msg_set_jobid(struct lustre_msg *msg, char *jobid);
 void lustre_msg_set_cksum(struct lustre_msg *msg, u32 cksum);
 void lustre_msg_set_mbits(struct lustre_msg *msg, u64 mbits);
