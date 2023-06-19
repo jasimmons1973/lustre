@@ -735,10 +735,6 @@ static int ll_lookup_it_finish(struct ptlrpc_request *request,
 			rc = fscrypt_get_encryption_info(inode);
 			if (rc)
 				goto out;
-			if (!fscrypt_has_encryption_key(inode)) {
-				rc = -ENOKEY;
-				goto out;
-			}
 		}
 	} else if (!it_disposition(it, DISP_OPEN_CREATE)) {
 		/*
@@ -1204,6 +1200,7 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 		rc = fscrypt_get_encryption_info(dir);
 		if (rc)
 			goto out_release;
+		encrypt = true;
 		if (open_flags & O_CREAT) {
 			/* For migration or mirroring without enc key, we still
 			 * need to be able to create a volatile file.
@@ -1216,7 +1213,6 @@ static int ll_atomic_open(struct inode *dir, struct dentry *dentry,
 				rc = -ENOKEY;
 				goto out_release;
 			}
-			encrypt = true;
 		}
 	}
 
