@@ -198,8 +198,10 @@ struct obd_import {
 
 	/** List of not replied requests */
 	struct list_head		imp_unreplied_list;
-	/** Known maximal replied XID */
+	/** XID below which we know all replies have been received */
 	u64				imp_known_replied_xid;
+	/** highest XID for which we have received a reply */
+	u64				imp_highest_replied_xid;
 
 	/** obd device for this import */
 	struct obd_device	       *imp_obd;

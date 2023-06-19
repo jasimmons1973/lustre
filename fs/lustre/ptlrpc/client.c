@@ -1289,12 +1289,9 @@ static int ptlrpc_import_delay_req(struct obd_import *imp,
  * Return:	false if no message should be printed
  *		true if console message should be printed
  */
-static bool ptlrpc_console_allow(struct ptlrpc_request *req)
+static bool ptlrpc_console_allow(struct ptlrpc_request *req, u32 opc, int err)
 {
-	u32 opc;
-
 	LASSERT(req->rq_reqmsg);
-	opc = lustre_msg_get_opc(req->rq_reqmsg);
 
 	/* Suppress particular reconnect errors which are to be expected. */
 	if (opc == OST_CONNECT || opc == MDS_CONNECT || opc == MGS_CONNECT) {
@@ -1316,6 +1313,15 @@ static bool ptlrpc_console_allow(struct ptlrpc_request *req)
 			return false;
 	}
 
+	if (opc == LDLM_ENQUEUE && err == -EAGAIN)
+		/* -EAGAIN is normal when using POSIX flocks */
+		return false;
+
+	if (opc == OBD_PING && (err == -ENODEV || err == -ENOTCONN) &&
+	    (req->rq_xid & 0xf) != 10)
+		/* Suppress most ping requests, they may fail occasionally */
+		return false;
+
 	return true;
 }
 
@@ -1334,8 +1340,7 @@ static int ptlrpc_check_status(struct ptlrpc_request *req)
 		u32 opc = lustre_msg_get_opc(req->rq_reqmsg);
 
 		/* -EAGAIN is normal when using POSIX flocks */
-		if (ptlrpc_console_allow(req) &&
-		    !(opc == LDLM_ENQUEUE && rc == -EAGAIN))
+		if (ptlrpc_console_allow(req, opc, rc))
 			LCONSOLE_ERROR_MSG(0x011,
 					   "%s: operation %s to node %s failed: rc = %d\n",
 					   imp->imp_obd->obd_name,
@@ -2226,13 +2231,19 @@ EXPORT_SYMBOL(ptlrpc_check_set);
 int ptlrpc_expire_one_request(struct ptlrpc_request *req, int async_unlink)
 {
 	struct obd_import *imp = req->rq_import;
+	unsigned int debug_mask = D_RPCTRACE;
 	int rc = 0;
+	u32 opc;
 
 	spin_lock(&req->rq_lock);
 	req->rq_timedout = 1;
 	spin_unlock(&req->rq_lock);
 
-	DEBUG_REQ(D_WARNING, req, "Request sent has %s: [sent %lld/real %lld]",
+	opc = lustre_msg_get_opc(req->rq_reqmsg);
+	if (ptlrpc_console_allow(req, opc,
+				 lustre_msg_get_status(req->rq_reqmsg)))
+		debug_mask = D_WARNING;
+	DEBUG_REQ(debug_mask, req, "Request sent has %s: [sent %lld/real %lld]",
 		  req->rq_net_err ? "failed due to network error" :
 		     ((req->rq_real_sent == 0 ||
 		       req->rq_real_sent < req->rq_sent ||
@@ -2286,7 +2297,9 @@ int ptlrpc_expire_one_request(struct ptlrpc_request *req, int async_unlink)
 		rc = 1;
 	}
 
-	ptlrpc_fail_import(imp, lustre_msg_get_conn_cnt(req->rq_reqmsg));
+	if (opc != OBD_PING || req->rq_xid > imp->imp_highest_replied_xid)
+		ptlrpc_fail_import(imp,
+				   lustre_msg_get_conn_cnt(req->rq_reqmsg));
 
 	return rc;
 }
