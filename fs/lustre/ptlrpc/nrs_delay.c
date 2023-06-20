@@ -102,6 +102,7 @@ static struct binheap_ops nrs_delay_heap_ops = {
  * the delay-specific private data structure.
  *
  * @policy	The policy to start
+ * @arg		Generic char buffer; unused in this policy
  *
  * Return:	-ENOMEM OOM error
  *		0 success
@@ -109,7 +110,7 @@ static struct binheap_ops nrs_delay_heap_ops = {
  * \see nrs_policy_register()
  * \see nrs_policy_ctl()
  */
-static int nrs_delay_start(struct ptlrpc_nrs_policy *policy)
+static int nrs_delay_start(struct ptlrpc_nrs_policy *policy, char *arg)
 {
 	struct nrs_delay_data *delay_data;
 

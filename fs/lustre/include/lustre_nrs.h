@@ -100,10 +100,12 @@ struct ptlrpc_nrs_pol_ops {
 	 * initialize their resources here; this operation is optional.
 	 *
 	 * @policy:	The policy being started
+	 * @arg:	A generic char buffer
 	 *
 	 * \see nrs_policy_start_locked()
 	 */
-	int	(*op_policy_start)(struct ptlrpc_nrs_policy *policy);
+	int	(*op_policy_start)(struct ptlrpc_nrs_policy *policy,
+				   char *arg);
 	/**
 	 * Called when deactivating a policy via lprocfs; policies deallocate
 	 * their resources here; this operation is optional
@@ -617,6 +619,10 @@ struct ptlrpc_nrs_policy {
 	 */
 	long				pol_ref;
 	/**
+	 * Usage Reference count taken for a started policy
+	 */
+	refcount_t			pol_start_ref;
+	/**
 	 * Human-readable policy argument
 	 */
 	char				pol_arg[NRS_POL_ARG_MAX];
@@ -632,6 +638,10 @@ struct ptlrpc_nrs_policy {
 	 * Policy descriptor for this policy instance.
 	 */
 	struct ptlrpc_nrs_pol_desc     *pol_desc;
+	/**
+	 * Policy wait queue
+	 */
+	wait_queue_head_t		pol_wq;
 };
 
 /**
