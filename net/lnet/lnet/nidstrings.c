@@ -358,20 +358,22 @@ EXPORT_SYMBOL(cfs_parse_nidlist);
  *
  * Return:	1 on match, 0 otherwises
  */
-int cfs_match_nid(lnet_nid_t nid, struct list_head *nidlist)
+int cfs_match_nid(struct lnet_nid *nid, struct list_head *nidlist)
 {
 	struct nidrange *nr;
 	struct addrrange *ar;
 
+	if (!nid_is_nid4(nid))
+		return 0;
 	list_for_each_entry(nr, nidlist, nr_link) {
-		if (nr->nr_netstrfns->nf_type != LNET_NETTYP(LNET_NIDNET(nid)))
+		if (nr->nr_netstrfns->nf_type != nid->nid_type)
 			continue;
-		if (nr->nr_netnum != LNET_NETNUM(LNET_NIDNET(nid)))
+		if (nr->nr_netnum != be16_to_cpu(nid->nid_num))
 			continue;
 		if (nr->nr_all)
 			return 1;
 		list_for_each_entry(ar, &nr->nr_addrranges, ar_link)
-			if (nr->nr_netstrfns->nf_match_addr(LNET_NIDADDR(nid),
+			if (nr->nr_netstrfns->nf_match_addr(be32_to_cpu(nid->nid_addr[0]),
 							    &ar->ar_numaddr_ranges))
 				return 1;
 	}
