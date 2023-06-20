@@ -39,6 +39,7 @@
 #include <linux/module.h>
 #include <uapi/linux/lustre/lustre_idl.h>
 #include <obd.h>
+#include <obd_class.h>
 
 #define OUT_UPDATE_REPLY_SIZE          4096
 
@@ -403,14 +404,16 @@ static int batch_update_interpret(const struct lu_env *env,
 static int batch_send_update_req(const struct lu_env *env,
 				 struct batch_update_head *head)
 {
-	struct lu_batch *bh;
+	struct obd_device *obd;
 	struct ptlrpc_request *req = NULL;
 	struct batch_update_args *aa;
+	struct lu_batch *bh;
 	int rc;
 
 	if (!head)
 		return 0;
 
+	obd = class_exp2obd(head->buh_exp);
 	bh = head->buh_batch;
 	rc = batch_prep_update_req(head, &req);
 	if (rc) {
@@ -447,6 +450,8 @@ static int batch_send_update_req(const struct lu_env *env,
 	if (req)
 		ptlrpc_req_finished(req);
 
+	lprocfs_oh_tally_log2(&obd->u.cli.cl_batch_rpc_hist,
+			      head->buh_update_count);
 	return rc;
 }
 
