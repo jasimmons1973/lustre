@@ -822,11 +822,11 @@ cfs_match_nid_net(struct lnet_nid *nid, u32 net_type,
 	u32 address;
 	struct netstrfns *nf;
 
-	if (!addr || !net_num_list)
+	if (!addr || list_empty(addr) || !net_num_list)
 		return 0;
 
 	nf = type2net_info(LNET_NETTYP(LNET_NID_NET(nid)));
-	if (!nf || !net_num_list || !addr)
+	if (!nf)
 		return 0;
 
 	/* FIXME handle long-addr nid */
