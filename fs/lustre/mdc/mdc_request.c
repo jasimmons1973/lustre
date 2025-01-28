@@ -2208,6 +2208,9 @@ static int mdc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	struct obd_import *imp = obd->u.cli.cl_import;
 	int rc;
 
+	CDEBUG(D_IOCTL, "%s: cmd=%x len=%u karg=%pK uarg=%pK\n",
+	       obd->obd_name, cmd, len, karg, uarg);
+
 	if (!try_module_get(THIS_MODULE)) {
 		CERROR("%s: cannot get module '%s'\n", obd->obd_name,
 		       module_name(THIS_MODULE));
@@ -2321,9 +2324,8 @@ static int mdc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 		rc = mdc_ioc_swap_layouts(exp, karg);
 		goto out;
 	default:
-		CERROR("unrecognised ioctl: cmd = %#x\n", cmd);
-		rc = -ENOTTY;
-		goto out;
+		rc = OBD_IOC_ERROR(obd->obd_name, cmd, "unrecognized", -ENOTTY);
+		break;
 	}
 out:
 	module_put(THIS_MODULE);

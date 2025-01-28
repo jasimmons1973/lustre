@@ -3359,6 +3359,9 @@ static int osc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	struct obd_ioctl_data *data = karg;
 	int rc = 0;
 
+	CDEBUG(D_IOCTL, "%s: cmd=%x len=%u karg=%pK uarg=%pK\n",
+	       obd->obd_name, cmd, len, karg, uarg);
+
 	if (!try_module_get(THIS_MODULE)) {
 		CERROR("%s: cannot get module '%s'\n", obd->obd_name,
 		       module_name(THIS_MODULE));
@@ -3379,9 +3382,8 @@ static int osc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 					      data->ioc_offset);
 		break;
 	default:
-		CDEBUG(D_INODE, "%s: unrecognised ioctl %#x by %s\n",
-		       obd->obd_name, cmd, current->comm);
-		rc = -ENOTTY;
+		rc = OBD_IOC_DEBUG(D_IOCTL, obd->obd_name, cmd, "unrecognized",
+				   -ENOTTY);
 		break;
 	}
 

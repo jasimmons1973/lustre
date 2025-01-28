@@ -4099,8 +4099,8 @@ ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	void __user *uarg = (void __user *)arg;
 	int flags, rc = 0;
 
-	CDEBUG(D_VFSTRACE, "VFS Op:inode=" DFID "(%p),cmd=%x\n",
-	       PFID(ll_inode2fid(inode)), inode, cmd);
+	CDEBUG(D_VFSTRACE|D_IOCTL, "VFS Op:inode="DFID"(%pK) cmd=%x arg=%lx\n",
+	       PFID(ll_inode2fid(inode)), inode, cmd, arg);
 	ll_stats_ops_tally(ll_i2sbi(inode), LPROC_LL_IOCTL, 1);
 
 	/* asm-ppc{,64} declares TCGETS, et. al. as type 't' not 'T' */
@@ -4123,9 +4123,11 @@ ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		if (cmd == LL_IOC_SETFLAGS) {
 			if ((flags & LL_FILE_IGNORE_LOCK) &&
 			    !(file->f_flags & O_DIRECT)) {
-				CERROR("%s: unable to disable locking on non-O_DIRECT file\n",
-				       current->comm);
-				return -EINVAL;
+				rc = -EINVAL;
+				CERROR("%s: unable to disable locking on non-O_DIRECT file "DFID": rc = %d\n",
+				       current->comm, PFID(ll_inode2fid(inode)),
+				       rc);
+				return rc;
 			}
 
 			fd->fd_flags |= flags;
@@ -4865,32 +4867,30 @@ ll_file_flock(struct file *file, int cmd, struct file_lock *file_lock)
 		einfo.ei_mode = LCK_PW;
 		break;
 	default:
-		CDEBUG(D_INFO, "Unknown fcntl lock type: %d\n", fl_type);
-		return -ENOTSUPP;
+		rc = -EINVAL;
+		CERROR("%s: fcntl from '%s' unknown lock type=%d: rc = %d\n",
+		       sbi->ll_fsname, current->comm, fl_type, rc);
+		return rc;
 	}
 
 	switch (cmd) {
 	case F_SETLKW:
-#ifdef F_SETLKW64
 	case F_SETLKW64:
-#endif
 		flags = 0;
 		break;
 	case F_SETLK:
-#ifdef F_SETLK64
 	case F_SETLK64:
-#endif
 		flags = LDLM_FL_BLOCK_NOWAIT;
 		break;
 	case F_GETLK:
-#ifdef F_GETLK64
 	case F_GETLK64:
-#endif
 		flags = LDLM_FL_TEST_LOCK;
 		break;
 	default:
-		CERROR("unknown fcntl lock command: %d\n", cmd);
-		return -EINVAL;
+		rc = -EINVAL;
+		CERROR("%s: fcntl from '%s' unknown lock command=%d: rc = %d\n",
+		       sbi->ll_fsname, current->comm, cmd, rc);
+		return rc;
 	}
 
 	/*

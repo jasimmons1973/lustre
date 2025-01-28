@@ -831,6 +831,9 @@ static int lmv_iocontrol(unsigned int cmd, struct obd_export *exp,
 	u32 count = lmv->lmv_mdt_count;
 	int rc = 0;
 
+	CDEBUG(D_IOCTL, "%s: cmd=%x len=%u karg=%pK uarg=%pK\n",
+	       exp->exp_obd->obd_name, cmd, len, karg, uarg);
+
 	if (count == 0)
 		return -ENOTTY;
 
@@ -1069,10 +1072,8 @@ hsm_req_err:
 			err = obd_iocontrol(cmd, tgt->ltd_exp, len, karg, uarg);
 			if (err) {
 				if (tgt->ltd_active) {
-					CERROR("%s: error: iocontrol MDC %s on MDTidx %d cmd %x: err = %d\n",
-					       lmv2obd_dev(lmv)->obd_name,
-					       tgt->ltd_uuid.uuid,
-					       tgt->ltd_index, cmd, err);
+					OBD_IOC_ERROR(obd->obd_name, cmd,
+						      tgt->ltd_uuid.uuid, err);
 					if (!rc)
 						rc = err;
 				}

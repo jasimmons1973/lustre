@@ -999,6 +999,9 @@ echo_client_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	int rw = OBD_BRW_READ;
 	int rc = 0;
 
+	CDEBUG(D_IOCTL, "%s: cmd=%x len=%u karg=%pK uarg=%pK\n",
+	       exp->exp_obd->obd_name, cmd, len, karg, uarg);
+
 	oa = &data->ioc_obdo1;
 	if (!(oa->o_valid & OBD_MD_FLGROUP)) {
 		oa->o_valid |= OBD_MD_FLGROUP;
@@ -1076,11 +1079,9 @@ echo_client_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	case OBD_IOC_BRW_READ:
 		rc = echo_client_brw_ioctl(env, rw, exp, data);
 		goto out;
-
 	default:
-		CERROR("echo_ioctl(): unrecognised ioctl %#x\n", cmd);
-		rc = -ENOTTY;
-		goto out;
+		rc = OBD_IOC_ERROR(obd->obd_name, cmd, "unrecognized", -ENOTTY);
+		break;
 	}
 
 out:

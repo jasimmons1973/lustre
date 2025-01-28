@@ -82,6 +82,29 @@ EXPORT_SYMBOL(at_early_margin);
 int at_extra = 30;
 EXPORT_SYMBOL(at_extra);
 
+int obd_ioctl_msg(const char *file, const char *func, int line, int level,
+		  const char *name, unsigned int cmd, const char *msg, int rc)
+{
+	static struct cfs_debug_limit_state cdls;
+	static char *dirs[] = {
+		[_IOC_NONE]		= "_IO",
+		[_IOC_READ]		= "_IOR",
+		[_IOC_WRITE]		= "_IOW",
+		[_IOC_READ|_IOC_WRITE]	= "_IOWR",
+	};
+	char type;
+
+	type = _IOC_TYPE(cmd);
+	__CDEBUG_WITH_LOC(file, func, line, level, &cdls,
+			  "%s: iocontrol from '%s' cmd=%x %s('%c', %u, %u) %s: rc = %d\n",
+			  name, current->comm, cmd,
+			  dirs[_IOC_DIR(cmd)] ?: "_IO?",
+			  isprint(type) ? type : '?', _IOC_NR(cmd),
+			  _IOC_SIZE(cmd), msg, rc);
+	return rc;
+}
+EXPORT_SYMBOL(obd_ioctl_msg);
+
 static int class_resolve_dev_name(u32 len, const char *name)
 {
 	int rc;
@@ -199,26 +222,27 @@ int obd_ioctl_getdata(struct obd_ioctl_data **datap, int *len, void __user *arg)
 	struct obd_ioctl_data *data;
 	struct obd_ioctl_hdr hdr;
 	int offset = 0;
-	int err;
+	int rc = -EINVAL;
 
 	if (copy_from_user(&hdr, arg, sizeof(hdr)))
 		return -EFAULT;
 
 	if (hdr.ioc_version != OBD_IOCTL_VERSION) {
-		CERROR("Version mismatch kernel (%x) vs application (%x)\n",
-		       OBD_IOCTL_VERSION, hdr.ioc_version);
-		return -EINVAL;
+		CERROR("%s: kernel/user version mismatch (%x != %x): rc = %d\n",
+		       current->comm, OBD_IOCTL_VERSION, hdr.ioc_version, rc);
+		return rc;
 	}
 
 	if (hdr.ioc_len > OBD_MAX_IOCTL_BUFFER) {
-		CERROR("User buffer len %d exceeds %d max buffer\n",
-		       hdr.ioc_len, OBD_MAX_IOCTL_BUFFER);
-		return -EINVAL;
+		CERROR("%s: user buffer len %d exceeds %d max: rc = %d\n",
+		       current->comm, hdr.ioc_len, OBD_MAX_IOCTL_BUFFER, rc);
+		return rc;
 	}
 
-	if (hdr.ioc_len < sizeof(struct obd_ioctl_data)) {
-		CERROR("User buffer too small for ioctl (%d)\n", hdr.ioc_len);
-		return -EINVAL;
+	if (hdr.ioc_len < sizeof(*data)) {
+		CERROR("%s: user buffer %d too small for ioctl %zu: rc = %d\n",
+		       current->comm, hdr.ioc_len, sizeof(*data), rc);
+		return rc;
 	}
 
 	/* When there are lots of processes calling vmalloc on multi-core
@@ -228,26 +252,27 @@ int obd_ioctl_getdata(struct obd_ioctl_data **datap, int *len, void __user *arg)
 	 */
 	data = kvzalloc(hdr.ioc_len, GFP_KERNEL);
 	if (!data) {
-		CERROR("Cannot allocate control buffer of len %d\n",
-		       hdr.ioc_len);
-		return -EINVAL;
+		rc = -ENOMEM;
+		CERROR("%s: cannot allocate control buffer len %d: rc = %d\n",
+		       current->comm, hdr.ioc_len, rc);
+		return rc;
 	}
 	*len = hdr.ioc_len;
 	*datap = data;
 
 	if (copy_from_user(data, arg, hdr.ioc_len)) {
-		err = -EFAULT;
+		rc = -EFAULT;
 		goto free_buf;
 	}
 
 	if (hdr.ioc_len != data->ioc_len) {
-		err = -EINVAL;
+		rc = -EINVAL;
 		goto free_buf;
 	}
 
 	if (obd_ioctl_is_invalid(data)) {
 		CERROR("ioctl not correctly formatted\n");
-		err = -EINVAL;
+		rc = -EINVAL;
 		goto free_buf;
 	}
 
@@ -273,7 +298,7 @@ int obd_ioctl_getdata(struct obd_ioctl_data **datap, int *len, void __user *arg)
 
 free_buf:
 	kvfree(data);
-	return err;
+	return rc;
 }
 EXPORT_SYMBOL(obd_ioctl_getdata);
 
@@ -281,12 +306,13 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 {
 	struct obd_ioctl_data *data;
 	struct obd_device *obd = NULL;
-	int err = 0, len = 0;
+	int rc = 0, len = 0;
 
-	CDEBUG(D_IOCTL, "cmd = %x\n", cmd);
-	if (obd_ioctl_getdata(&data, &len, uarg)) {
-		CERROR("OBD ioctl: data error\n");
-		return -EINVAL;
+	CDEBUG(D_IOCTL, "obdclass: cmd=%x len=%u uarg=%pK\n", cmd, len, uarg);
+	rc = obd_ioctl_getdata(&data, &len, uarg);
+	if (rc) {
+		CERROR("%s: ioctl data error: rc = %d\n", current->comm, rc);
+		return rc;
 	}
 
 	switch (cmd) {
@@ -294,28 +320,26 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 		struct lustre_cfg *lcfg;
 
 		if (!data->ioc_plen1 || !data->ioc_pbuf1) {
-			CERROR("No config buffer passed!\n");
-			err = -EINVAL;
+			rc = OBD_IOC_ERROR("obdclass", cmd, "no config buffer",
+					   -EINVAL);
 			goto out;
 		}
 		lcfg = kzalloc(data->ioc_plen1, GFP_NOFS);
 		if (!lcfg) {
-			err = -ENOMEM;
+			rc = -ENOMEM;
 			goto out;
 		}
-		if (copy_from_user(lcfg, data->ioc_pbuf1, data->ioc_plen1))
-			err = -EFAULT;
-		if (!err)
-			err = lustre_cfg_sanity_check(lcfg, data->ioc_plen1);
-		if (!err)
-			err = class_process_config(lcfg);
+		rc = copy_from_user(lcfg, data->ioc_pbuf1, data->ioc_plen1);
+		if (!rc)
+			rc = lustre_cfg_sanity_check(lcfg, data->ioc_plen1);
+		if (!rc)
+			rc = class_process_config(lcfg);
 
 		kfree(lcfg);
 		goto out;
 	}
 
 	case OBD_GET_VERSION: {
-
 		/* This was the method to pass to user land the lustre version.
 		 * Today that information is in the sysfs tree so we can in the
 		 * future remove this.
@@ -324,14 +348,14 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 			     LUSTRE_VERSION_CODE);
 
 		if (!data->ioc_inlbuf1) {
-			CERROR("No buffer passed in ioctl\n");
-			err = -EINVAL;
+			rc = OBD_IOC_ERROR("obdclass", cmd, "no buffer passed",
+					   -EINVAL);
 			goto out;
 		}
 
 		if (strlen(LUSTRE_VERSION_STRING) + 1 > data->ioc_inllen1) {
-			CERROR("ioctl buffer too small to hold version\n");
-			err = -EINVAL;
+			rc = OBD_IOC_ERROR("obdclass", cmd, "buffer too small",
+					   -EINVAL);
 			goto out;
 		}
 
@@ -342,7 +366,7 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 		       strlen(LUSTRE_VERSION_STRING) + 1);
 
 		if (copy_to_user(uarg, data, len))
-			err = -EFAULT;
+			rc = -EFAULT;
 		goto out;
 	}
 	case OBD_IOC_NAME2DEV: {
@@ -355,30 +379,28 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 					     data->ioc_inlbuf1);
 		data->ioc_dev = dev;
 		if (dev < 0) {
-			err = -EINVAL;
+			rc = -EINVAL;
 			goto out;
 		}
 
 		if (copy_to_user(uarg, data, sizeof(*data)))
-			err = -EFAULT;
+			rc = -EFAULT;
 		goto out;
 	}
 
 	case OBD_IOC_UUID2DEV: {
-		/* Resolve a device uuid.  This does not change the
-		 * currently selected device.
-		 */
-		int dev;
+		/* Resolve device uuid, does not change current selected dev */
 		struct obd_uuid uuid;
+		int dev;
 
 		if (!data->ioc_inllen1 || !data->ioc_inlbuf1) {
-			CERROR("No UUID passed!\n");
-			err = -EINVAL;
+			rc = OBD_IOC_ERROR("obdclass", cmd, "no UUID passed",
+					   -EINVAL);
 			goto out;
 		}
 		if (data->ioc_inlbuf1[data->ioc_inllen1 - 1] != 0) {
-			CERROR("UUID not NUL terminated!\n");
-			err = -EINVAL;
+			rc = OBD_IOC_ERROR("obdclass", cmd, "unterminated UUID",
+					   -EINVAL);
 			goto out;
 		}
 
@@ -389,7 +411,7 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 		if (dev == -1) {
 			CDEBUG(D_IOCTL, "No device for UUID %s!\n",
 			       data->ioc_inlbuf1);
-			err = -EINVAL;
+			rc = -EINVAL;
 			goto out;
 		}
 
@@ -397,28 +419,28 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 		       dev);
 
 		if (copy_to_user(uarg, data, sizeof(*data)))
-			err = -EFAULT;
+			rc = -EFAULT;
 		goto out;
 	}
 
 	case OBD_IOC_GETDEVICE: {
-		int     index = data->ioc_count;
-		char    *status, *str;
+		int index = data->ioc_count;
+		char *status, *str;
 
 		if (!data->ioc_inlbuf1) {
-			CERROR("No buffer passed in ioctl\n");
-			err = -EINVAL;
+			rc = OBD_IOC_ERROR("obdclass", cmd, "no buffer passed",
+					    -EINVAL);
 			goto out;
 		}
-		if (data->ioc_inllen1 < 128) {
-			CERROR("ioctl buffer too small to hold version\n");
-			err = -EINVAL;
+		if (data->ioc_inllen1 < MAX_OBD_NAME) {
+			rc = OBD_IOC_ERROR("obdclass", cmd, "too small version",
+					   -EINVAL);
 			goto out;
 		}
 
 		obd = class_num2obd(index);
 		if (!obd) {
-			err = -ENOENT;
+			rc = -ENOENT;
 			goto out;
 		}
 
@@ -439,51 +461,51 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 			 atomic_read(&obd->obd_refcount));
 
 		if (copy_to_user(uarg, data, len))
-			err = -EFAULT;
+			rc = -EFAULT;
 		goto out;
 	}
 	}
 
 	if (data->ioc_dev == OBD_DEV_BY_DEVNAME) {
 		if (data->ioc_inllen4 <= 0 || !data->ioc_inlbuf4) {
-			err = -EINVAL;
+			rc = -EINVAL;
 			goto out;
 		}
 		if (strnlen(data->ioc_inlbuf4, MAX_OBD_NAME) >= MAX_OBD_NAME) {
-			err = -EINVAL;
+			rc = -EINVAL;
 			goto out;
 		}
 		obd = class_name2obd(data->ioc_inlbuf4);
 	} else if (data->ioc_dev < class_devno_max()) {
 		obd = class_num2obd(data->ioc_dev);
 	} else {
-		CERROR("OBD ioctl: No device\n");
-		err = -EINVAL;
+		rc = OBD_IOC_ERROR("obdclass", cmd, "no device", -EINVAL);
 		goto out;
 	}
 
 	if (!obd) {
-		CERROR("OBD ioctl : No Device %d\n", data->ioc_dev);
-		err = -EINVAL;
+		rc = OBD_IOC_ERROR(data->ioc_inlbuf4, cmd, "no device found",
+				   -EINVAL);
 		goto out;
 	}
 	LASSERT(obd->obd_magic == OBD_DEVICE_MAGIC);
 
 	if (!obd->obd_set_up || obd->obd_stopping) {
-		CERROR("OBD ioctl: device not setup %d\n", data->ioc_dev);
-		err = -EINVAL;
+		rc = -EINVAL;
+		CERROR("obdclass: device %d not set up: rc = %d\n",
+		       data->ioc_dev, rc);
 		goto out;
 	}
 
-	err = obd_iocontrol(cmd, obd->obd_self_export, len, data, NULL);
-	if (err)
+	rc = obd_iocontrol(cmd, obd->obd_self_export, len, data, NULL);
+	if (rc)
 		goto out;
 
 	if (copy_to_user(uarg, data, len))
-		err = -EFAULT;
+		rc = -EFAULT;
 out:
 	kvfree(data);
-	return err;
+	return rc;
 } /* class_handle_ioctl */
 
 /* to control /dev/obd */
