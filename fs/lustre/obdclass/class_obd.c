@@ -262,18 +262,17 @@ int obd_ioctl_getdata(struct obd_ioctl_data **datap, int *len, void __user *arg)
 
 	if (copy_from_user(data, arg, hdr.ioc_len)) {
 		rc = -EFAULT;
-		goto free_buf;
+		goto out_free;
 	}
 
 	if (hdr.ioc_len != data->ioc_len) {
 		rc = -EINVAL;
-		goto free_buf;
+		goto out_free;
 	}
 
 	if (obd_ioctl_is_invalid(data)) {
-		CERROR("ioctl not correctly formatted\n");
 		rc = -EINVAL;
-		goto free_buf;
+		goto out_free;
 	}
 
 	if (data->ioc_inllen1) {
@@ -296,7 +295,7 @@ int obd_ioctl_getdata(struct obd_ioctl_data **datap, int *len, void __user *arg)
 
 	return 0;
 
-free_buf:
+out_free:
 	kvfree(data);
 	return rc;
 }
@@ -309,6 +308,9 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 	int rc = 0, len = 0;
 
 	CDEBUG(D_IOCTL, "obdclass: cmd=%x len=%u uarg=%pK\n", cmd, len, uarg);
+	if (unlikely(_IOC_TYPE(cmd) != 'f' && cmd != IOC_OSC_SET_ACTIVE))
+		return OBD_IOC_ERROR(obd->obd_name, cmd, "unknown", -ENOTTY);
+
 	rc = obd_ioctl_getdata(&data, &len, uarg);
 	if (rc) {
 		CERROR("%s: ioctl data error: rc = %d\n", current->comm, rc);

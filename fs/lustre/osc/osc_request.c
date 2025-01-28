@@ -3358,8 +3358,8 @@ static int osc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 			 void *karg, void __user *uarg)
 {
 	struct obd_device *obd = exp->exp_obd;
-	struct obd_ioctl_data *data = karg;
-	int rc = 0;
+	struct obd_ioctl_data *data;
+	int rc;
 
 	CDEBUG(D_IOCTL, "%s: cmd=%x len=%u karg=%pK uarg=%pK\n",
 	       obd->obd_name, cmd, len, karg, uarg);
@@ -3371,15 +3371,33 @@ static int osc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	}
 	switch (cmd) {
 	case OBD_IOC_CLIENT_RECOVER:
+		if (unlikely(!karg)) {
+			OBD_IOC_ERROR(obd->obd_name, cmd, "karg=NULL",
+				      rc = -EINVAL);
+			break;
+		}
+		data = karg;
 		rc = ptlrpc_recover_import(obd->u.cli.cl_import,
 					   data->ioc_inlbuf1, 0);
 		if (rc > 0)
 			rc = 0;
 		break;
 	case OBD_IOC_GETATTR:
+		if (unlikely(!karg)) {
+			OBD_IOC_ERROR(obd->obd_name, cmd, "karg=NULL",
+				      rc = -EINVAL);
+			break;
+		}
+		data = karg;
 		rc = obd_getattr(NULL, exp, &data->ioc_obdo1);
 		break;
 	case IOC_OSC_SET_ACTIVE:
+		if (unlikely(!karg)) {
+			OBD_IOC_ERROR(obd->obd_name, cmd, "karg=NULL",
+				      rc = -EINVAL);
+			break;
+		}
+		data = karg;
 		rc = ptlrpc_set_import_active(obd->u.cli.cl_import,
 					      data->ioc_offset);
 		break;

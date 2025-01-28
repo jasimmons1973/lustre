@@ -837,6 +837,23 @@ static int lmv_iocontrol(unsigned int cmd, struct obd_export *exp,
 	if (count == 0)
 		return -ENOTTY;
 
+	/* exit early for unknown ioctl types */
+	if (unlikely(_IOC_TYPE(cmd) != 'f' && cmd != IOC_OSC_SET_ACTIVE))
+		return OBD_IOC_ERROR(obd->obd_name, cmd, "unknown", -ENOTTY);
+
+	/* handle commands that don't use @karg first */
+	switch (cmd) {
+	case LL_IOC_GET_CONNECT_FLAGS:
+		tgt = lmv_tgt(lmv, 0);
+		rc = -ENODATA;
+		if (tgt && tgt->ltd_exp)
+			rc = obd_iocontrol(cmd, tgt->ltd_exp, len, NULL, uarg);
+		return rc;
+	}
+
+	if (unlikely(!karg))
+		return OBD_IOC_ERROR(obd->obd_name, cmd, "karg=NULL", -EINVAL);
+
 	switch (cmd) {
 	case IOC_OBD_STATFS: {
 		struct obd_ioctl_data *data = karg;
@@ -924,14 +941,6 @@ static int lmv_iocontrol(unsigned int cmd, struct obd_export *exp,
 			qctl->obd_uuid = tgt->ltd_uuid;
 		}
 		kfree(oqctl);
-		break;
-	}
-	case LL_IOC_GET_CONNECT_FLAGS: {
-		tgt = lmv_tgt(lmv, 0);
-		rc = -ENODATA;
-
-		if (tgt && tgt->ltd_exp)
-			rc = obd_iocontrol(cmd, tgt->ltd_exp, len, karg, uarg);
 		break;
 	}
 	case LL_IOC_FID2MDTIDX: {
@@ -1076,6 +1085,8 @@ hsm_req_err:
 						      tgt->ltd_uuid.uuid, err);
 					if (!rc)
 						rc = err;
+					if (unlikely(err == -ENOTTY))
+						break;
 				}
 			} else {
 				set = 1;
@@ -1083,6 +1094,7 @@ hsm_req_err:
 		}
 		if (!set && !rc)
 			rc = -EIO;
+		break;
 	}
 	return rc;
 }

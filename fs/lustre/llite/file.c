@@ -2500,6 +2500,10 @@ static int ll_file_getstripe(struct inode *inode, void __user *lum, size_t size)
 	u16 refcheck;
 	int rc;
 
+	/* exit before doing any work if pointer is bad */
+	if (unlikely(!access_ok(lum, sizeof(struct lov_user_md))))
+		return -EFAULT;
+
 	env = cl_env_get(&refcheck);
 	if (IS_ERR(env))
 		return PTR_ERR(env);
@@ -3826,7 +3830,7 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 	bool lease_broken = false;
 	fmode_t fmode = 0;
 	enum mds_op_bias bias = 0;
-	int fdv;
+	u32 fdv;
 	struct file *layout_file = NULL;
 	void *data = NULL;
 	size_t data_size = 0;
@@ -3873,7 +3877,7 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 		}
 
 		uarg += sizeof(*ioc);
-		if (copy_from_user(&fdv, uarg, sizeof(u32))) {
+		if (copy_from_user(&fdv, uarg, sizeof(fdv))) {
 			rc = -EFAULT;
 			goto out_lease_close;
 		}
@@ -3894,7 +3898,7 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 		bias = MDS_CLOSE_LAYOUT_MERGE;
 		break;
 	case LL_LEASE_LAYOUT_SPLIT: {
-		int mirror_id;
+		u32 mirror_id;
 
 		if (ioc->lil_count != 2) {
 			rc = -EINVAL;
@@ -3902,15 +3906,18 @@ static long ll_file_unlock_lease(struct file *file, struct ll_ioc_lease *ioc,
 		}
 
 		uarg += sizeof(*ioc);
-		if (copy_from_user(&fdv, uarg, sizeof(u32))) {
+		if (copy_from_user(&fdv, uarg, sizeof(fdv))) {
 			rc = -EFAULT;
 			goto out_lease_close;
 		}
 
-		uarg += sizeof(u32);
-		if (copy_from_user(&mirror_id, uarg,
-				   sizeof(u32))) {
+		uarg += sizeof(fdv);
+		if (copy_from_user(&mirror_id, uarg, sizeof(mirror_id))) {
 			rc = -EFAULT;
+			goto out_lease_close;
+		}
+		if (mirror_id >= MIRROR_ID_NEG) {
+			rc = -EINVAL;
 			goto out_lease_close;
 		}
 
@@ -4110,6 +4117,9 @@ ll_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	if (_IOC_TYPE(cmd) == 'T' || _IOC_TYPE(cmd) == 't') /* tty ioctls */
 		return -ENOTTY;
 
+	/* can't do a generic karg == NULL check here, since it is too noisy and
+	 * we need to return -ENOTTY for unsupported ioctls instead of -EINVAL.
+	 */
 	switch (cmd) {
 	case LL_IOC_GETFLAGS:
 		/* Get the current value of the file flags */
@@ -4263,6 +4273,9 @@ out:
 		struct hsm_user_state *hus;
 		int rc;
 
+		if (!access_ok(uarg, sizeof(*hus)))
+			return -EFAULT;
+
 		hus = kzalloc(sizeof(*hus), GFP_KERNEL);
 		if (!hus)
 			return -ENOMEM;
@@ -4270,17 +4283,16 @@ out:
 		op_data = ll_prep_md_op_data(NULL, inode, NULL, NULL, 0, 0,
 					     LUSTRE_OPC_ANY, hus);
 		if (IS_ERR(op_data)) {
-			kfree(hus);
-			return PTR_ERR(op_data);
+			rc = PTR_ERR(op_data);
+		} else {
+			rc = obd_iocontrol(cmd, ll_i2mdexp(inode),
+					   sizeof(*op_data), op_data, NULL);
+
+			if (copy_to_user(uarg, hus, sizeof(*hus)))
+				rc = -EFAULT;
+
+			ll_finish_md_op_data(op_data);
 		}
-
-		rc = obd_iocontrol(cmd, ll_i2mdexp(inode), sizeof(*op_data),
-				   op_data, NULL);
-
-		if (copy_to_user(uarg, hus, sizeof(*hus)))
-			rc = -EFAULT;
-
-		ll_finish_md_op_data(op_data);
 		kfree(hus);
 		return rc;
 	}
@@ -4302,6 +4314,9 @@ out:
 		struct hsm_current_action *hca;
 		const char *action;
 		int rc;
+
+		if (!access_ok(uarg, sizeof(*hca)))
+			return -EFAULT;
 
 		hca = kzalloc(sizeof(*hca), GFP_KERNEL);
 		if (!hca)

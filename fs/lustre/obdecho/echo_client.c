@@ -991,7 +991,7 @@ echo_client_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	struct echo_device *ed = obd2echo_dev(obd);
 	struct echo_client_obd *ec = ed->ed_ec;
 	struct echo_object *eco;
-	struct obd_ioctl_data *data = karg;
+	struct obd_ioctl_data *data;
 	struct lu_env *env;
 	u16 refcheck;
 	struct obdo *oa;
@@ -1001,6 +1001,12 @@ echo_client_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 
 	CDEBUG(D_IOCTL, "%s: cmd=%x len=%u karg=%pK uarg=%pK\n",
 	       exp->exp_obd->obd_name, cmd, len, karg, uarg);
+
+	 CDEBUG(D_IOCTL, "%s: cmd=%x len=%u karg=%pK uarg=%pK\n",
+		exp->exp_obd->obd_name, cmd, len, karg, uarg);
+	if (unlikely(!karg))
+		return OBD_IOC_ERROR(obd->obd_name, cmd, "karg=NULL", rc);
+	data = karg;
 
 	oa = &data->ioc_obdo1;
 	if (!(oa->o_valid & OBD_MD_FLGROUP)) {

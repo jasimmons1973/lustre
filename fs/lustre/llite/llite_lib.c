@@ -37,18 +37,18 @@
 #define DEBUG_SUBSYSTEM S_LLITE
 
 #include <linux/cpu.h>
+
+#include <linux/delay.h>
+#include <linux/file.h>
+#include <linux/fs_struct.h>
+#include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/random.h>
 #include <linux/statfs.h>
-#include <linux/file.h>
 #include <linux/types.h>
-#include <linux/mm.h>
-#include <linux/delay.h>
+#include <linux/uaccess.h>
+#include <linux/uidgid.h>
 #include <linux/uuid.h>
-#include <linux/random.h>
-#include <linux/security.h>
-#include <linux/fs_struct.h>
-#include <uapi/linux/mount.h>
 
 #include <linux/libcfs/libcfs_cpu.h>
 #include <uapi/linux/lustre/lustre_ioctl.h>
@@ -2887,6 +2887,9 @@ int ll_iocontrol(struct inode *inode, struct file *file,
 		struct mdt_body *body;
 		struct md_op_data *op_data;
 
+		if (!access_ok(uarg, sizeof(int)))
+			return -EFAULT;
+
 		op_data = ll_prep_md_op_data(NULL, inode, NULL, NULL, 0, 0,
 					     LUSTRE_OPC_ANY, NULL);
 		if (IS_ERR(op_data)) {
@@ -2982,6 +2985,9 @@ int ll_iocontrol(struct inode *inode, struct file *file,
 		rc = ll_obd_statfs(inode, uarg);
 		break;
 	case LL_IOC_GET_MDTIDX: {
+		if (!access_ok(uarg, sizeof(rc)))
+			return -EFAULT;
+
 		rc = ll_get_mdt_idx(inode);
 		if (rc < 0)
 			break;
