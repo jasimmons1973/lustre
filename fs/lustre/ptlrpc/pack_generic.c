@@ -454,6 +454,58 @@ int lustre_shrink_msg(struct lustre_msg *msg, int segment,
 }
 EXPORT_SYMBOL(lustre_shrink_msg);
 
+static int lustre_grow_msg_v2(struct lustre_msg_v2 *msg, __u32 segment,
+			      unsigned int newlen)
+{
+	char *tail = NULL, *newpos;
+	int tail_len = 0, n;
+
+	LASSERT(msg);
+	LASSERT(msg->lm_bufcount > segment);
+	LASSERT(msg->lm_buflens[segment] <= newlen);
+
+	if (msg->lm_buflens[segment] == newlen)
+		goto out;
+
+	if (msg->lm_bufcount > segment + 1) {
+		tail = lustre_msg_buf_v2(msg, segment + 1, 0);
+		for (n = segment + 1; n < msg->lm_bufcount; n++)
+			tail_len += round_up(msg->lm_buflens[n], 8);
+	}
+
+	msg->lm_buflens[segment] = newlen;
+
+	if (tail && tail_len) {
+		newpos = lustre_msg_buf_v2(msg, segment + 1, 0);
+		memmove(newpos, tail, tail_len);
+	}
+out:
+	return lustre_msg_size_v2(msg->lm_bufcount, msg->lm_buflens);
+}
+
+/*
+ * for @msg, grow @segment to size @newlen.
+ * Always move higher buffer forward.
+ *
+ * return new msg size after growing.
+ *
+ * CAUTION:
+ * - caller must make sure there is enough space in allocated message buffer
+ * - caller should NOT keep pointers to msg buffers which higher than @segment
+ *   after call shrink.
+ */
+int lustre_grow_msg(struct lustre_msg *msg, int segment, unsigned int newlen)
+{
+	switch (msg->lm_magic) {
+	case LUSTRE_MSG_MAGIC_V2:
+		return lustre_grow_msg_v2(msg, segment, newlen);
+	default:
+		LASSERTF(0, "incorrect message magic: %08x\n", msg->lm_magic);
+		return -EINVAL;
+	}
+}
+EXPORT_SYMBOL(lustre_grow_msg);
+
 void lustre_free_reply_state(struct ptlrpc_reply_state *rs)
 {
 	PTLRPC_RS_DEBUG_LRU_DEL(rs);
@@ -659,6 +711,24 @@ u32 lustre_msg_buflen(struct lustre_msg *m, u32 n)
 	}
 }
 EXPORT_SYMBOL(lustre_msg_buflen);
+
+static inline void
+lustre_msg_set_buflen_v2(struct lustre_msg_v2 *m, u32 n, u32 len)
+{
+	LASSERT(n < m->lm_bufcount);
+	m->lm_buflens[n] = len;
+}
+
+void lustre_msg_set_buflen(struct lustre_msg *m, u32 n, u32 len)
+{
+	switch (m->lm_magic) {
+	case LUSTRE_MSG_MAGIC_V2:
+		lustre_msg_set_buflen_v2(m, n, len);
+		return;
+	default:
+		LASSERTF(0, "incorrect message magic: %08x\n", m->lm_magic);
+	}
+}
 
 /* NB return the bufcount for lustre_msg_v2 format, so if message is packed
  * in V1 format, the result is one bigger. (add struct ptlrpc_body).

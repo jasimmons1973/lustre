@@ -1915,16 +1915,62 @@ int req_capsule_server_pack(struct req_capsule *pill)
 				   count, fmt->rf_name);
 		}
 	} else { /* SUB request */
+		struct ptlrpc_request *req = pill->rc_req;
+		u32 used_len;
 		u32 msg_len;
 
 		msg_len = lustre_msg_size_v2(count, pill->rc_area[RCL_SERVER]);
-		if (msg_len > pill->rc_reqmsg->lm_repsize) {
+		used_len = (char *)pill->rc_repmsg - (char *)req->rq_repmsg;
+		/* Overflow the reply buffer */
+		if (used_len + msg_len > req->rq_replen) {
+			u32 len;
+			u32 max;
+			u32 add;
+
+			if (!req_capsule_has_field(&req->rq_pill,
+						   &RMF_BUT_REPLY, RCL_SERVER))
+				return -EINVAL;
+
+			if (!req_capsule_field_present(&req->rq_pill,
+						       &RMF_BUT_REPLY,
+						       RCL_SERVER))
+				return -EINVAL;
+
+			if (used_len + msg_len > BUT_MAXREPSIZE)
+				return -EOVERFLOW;
+
+			len = req_capsule_get_size(&req->rq_pill,
+						    &RMF_BUT_REPLY, RCL_SERVER);
+			/*
+			 * Currently just increase the batch RPC reply buffer
+			 * (including @RMF_PTLRPC_BODY + @RMF_BUT_REPLY) by 2.
+			 * We must set the new length carefully as it will be
+			 * rounded up with 8.
+			 */
+			max = BUT_MAXREPSIZE - req->rq_replen;
+			add = len;
+			if (used_len + msg_len > len)
+				add = used_len + msg_len;
+
+			if (add > max)
+				len += max;
+			else
+				len += add;
+			rc = req_capsule_server_grow(&req->rq_pill,
+						     &RMF_BUT_REPLY, len);
+			if (rc)
+				return rc;
+
+			pill->rc_repmsg =
+			(struct lustre_msg *)((char *)req->rq_repmsg +
+						      used_len);
+		}
+		if (msg_len > pill->rc_reqmsg->lm_repsize)
 			/* TODO: Check whether there is enough buffer size */
 			CDEBUG(D_INFO,
 			       "Overflow pack %d fields in format '%s' for the SUB request with message len %u:%u\n",
 			       count, fmt->rf_name, msg_len,
 			       pill->rc_reqmsg->lm_repsize);
-		}
 
 		rc = 0;
 		lustre_init_msg_v2(pill->rc_repmsg, count,
@@ -2497,6 +2543,147 @@ void req_capsule_shrink(struct req_capsule *pill,
 	}
 }
 EXPORT_SYMBOL(req_capsule_shrink);
+
+int req_capsule_server_grow(struct req_capsule *pill,
+			    const struct req_msg_field *field,
+			    u32 newlen)
+{
+	struct ptlrpc_request *req = pill->rc_req;
+	struct ptlrpc_reply_state *rs = req->rq_reply_state, *nrs;
+	char *from, *to, *sptr = NULL;
+	u32 slen = 0, snewlen = 0;
+	u32 offset, len, max, diff;
+	int rc;
+
+	LASSERT(pill->rc_fmt);
+	LASSERT(__req_format_is_sane(pill->rc_fmt));
+	LASSERT(req_capsule_has_field(pill, field, RCL_SERVER));
+	LASSERT(req_capsule_field_present(pill, field, RCL_SERVER));
+
+	if (req_capsule_subreq(pill)) {
+		if (!req_capsule_has_field(&req->rq_pill, &RMF_BUT_REPLY,
+					   RCL_SERVER))
+			return -EINVAL;
+
+		if (!req_capsule_field_present(&req->rq_pill, &RMF_BUT_REPLY,
+					       RCL_SERVER))
+			return -EINVAL;
+
+		len = req_capsule_get_size(&req->rq_pill, &RMF_BUT_REPLY,
+					   RCL_SERVER);
+		sptr = req_capsule_server_get(&req->rq_pill, &RMF_BUT_REPLY);
+		slen = req_capsule_get_size(pill, field, RCL_SERVER);
+
+		LASSERT(len >= (char *)pill->rc_repmsg - sptr +
+			       lustre_packed_msg_size(pill->rc_repmsg));
+		if (len >= (char *)pill->rc_repmsg - sptr +
+			   lustre_packed_msg_size(pill->rc_repmsg) - slen +
+			   newlen) {
+			req_capsule_set_size(pill, field, RCL_SERVER, newlen);
+			offset = __req_capsule_offset(pill, field, RCL_SERVER);
+			lustre_grow_msg(pill->rc_repmsg, offset, newlen);
+			return 0;
+		}
+
+		/*
+		 * Currently first try to increase the reply buffer by
+		 * 2 * newlen with reply buffer limit of BUT_MAXREPSIZE.
+		 * TODO: Enlarge the reply buffer properly according to the
+		 * left SUB requests in the batch PTLRPC request.
+		 */
+		snewlen = newlen;
+		diff = snewlen - slen;
+		max = BUT_MAXREPSIZE - req->rq_replen;
+		if (diff > max)
+			return -EOVERFLOW;
+
+		if (diff * 2 + len < max)
+			newlen = (len + diff) * 2;
+		else
+			newlen = len + max;
+
+		req_capsule_set_size(pill, field, RCL_SERVER, snewlen);
+		req_capsule_set_size(&req->rq_pill, &RMF_BUT_REPLY, RCL_SERVER,
+				     newlen);
+		offset = __req_capsule_offset(&req->rq_pill, &RMF_BUT_REPLY,
+					      RCL_SERVER);
+	} else {
+		len = req_capsule_get_size(pill, field, RCL_SERVER);
+		offset = __req_capsule_offset(pill, field, RCL_SERVER);
+		req_capsule_set_size(pill, field, RCL_SERVER, newlen);
+	}
+
+	CDEBUG(D_INFO, "Reply packed: %d, allocated: %d, field len %d -> %d\n",
+	       lustre_packed_msg_size(rs->rs_msg), rs->rs_repbuf_len,
+				      len, newlen);
+
+	/**
+	 * There can be enough space in current reply buffer, make sure
+	 * that rs_repbuf is not a wrapper but real reply msg, otherwise
+	 * re-packing is still needed.
+	 */
+	if (rs->rs_msg == rs->rs_repbuf &&
+	    rs->rs_repbuf_len >=
+	    lustre_packed_msg_size(rs->rs_msg) - len + newlen) {
+		req->rq_replen = lustre_grow_msg(rs->rs_msg, offset, newlen);
+		return 0;
+	}
+
+	/* Re-allocate replay state */
+	req->rq_reply_state = NULL;
+	rc = req_capsule_server_pack(&req->rq_pill);
+	if (rc) {
+		/* put old values back, the caller should decide what to do */
+		if (req_capsule_subreq(pill)) {
+			req_capsule_set_size(&req->rq_pill, &RMF_BUT_REPLY,
+					     RCL_SERVER, len);
+			req_capsule_set_size(pill, field, RCL_SERVER, slen);
+		} else {
+			req_capsule_set_size(pill, field, RCL_SERVER, len);
+		}
+		pill->rc_req->rq_reply_state = rs;
+		return rc;
+	}
+	nrs = req->rq_reply_state;
+	LASSERT(lustre_packed_msg_size(nrs->rs_msg) >
+		lustre_packed_msg_size(rs->rs_msg));
+
+	/* Now we need only buffers, copy them and grow the needed one */
+	to = lustre_msg_buf(nrs->rs_msg, 0, 0);
+	from = lustre_msg_buf(rs->rs_msg, 0, 0);
+	memcpy(to, from,
+	       (char *)rs->rs_msg + lustre_packed_msg_size(rs->rs_msg) - from);
+	lustre_msg_set_buflen(nrs->rs_msg, offset, len);
+	req->rq_replen = lustre_grow_msg(nrs->rs_msg, offset, newlen);
+
+	if (req_capsule_subreq(pill)) {
+		char *ptr;
+
+		ptr = req_capsule_server_get(&req->rq_pill, &RMF_BUT_REPLY);
+		pill->rc_repmsg = (struct lustre_msg *)(ptr +
+				  ((char *)pill->rc_repmsg - sptr));
+		offset = __req_capsule_offset(pill, field, RCL_SERVER);
+		lustre_grow_msg(pill->rc_repmsg, offset, snewlen);
+	}
+
+	if (rs->rs_difficult) {
+		/* copy rs data */
+		int i;
+
+		nrs->rs_difficult = 1;
+		nrs->rs_no_ack = rs->rs_no_ack;
+		for (i = 0; i < rs->rs_nlocks; i++) {
+			nrs->rs_locks[i] = rs->rs_locks[i];
+			nrs->rs_nlocks++;
+		}
+		rs->rs_nlocks = 0;
+		rs->rs_difficult = 0;
+		rs->rs_no_ack = 0;
+	}
+	ptlrpc_rs_decref(rs);
+	return 0;
+}
+EXPORT_SYMBOL(req_capsule_server_grow);
 
 void req_capsule_subreq_init(struct req_capsule *pill,
 			     const struct req_format *fmt,

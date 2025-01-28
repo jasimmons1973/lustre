@@ -132,6 +132,9 @@ int req_capsule_field_present(const struct req_capsule *pill,
 void req_capsule_shrink(struct req_capsule *pill,
 			const struct req_msg_field *field,
 			u32 newlen, enum req_location loc);
+int req_capsule_server_grow(struct req_capsule *pill,
+			    const struct req_msg_field *field,
+			    u32 newlen);
 bool req_capsule_need_swab(struct req_capsule *pill, enum req_location loc,
 			   u32 index);
 void req_capsule_set_swabbed(struct req_capsule *pill, enum req_location loc,

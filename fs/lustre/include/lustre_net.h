@@ -265,6 +265,9 @@
 #define OUT_MAXREQSIZE	(1000 * 1024)
 #define OUT_MAXREPSIZE	MDS_MAXREPSIZE
 
+#define BUT_MAXREQSIZE	OUT_MAXREQSIZE
+#define BUT_MAXREPSIZE	BUT_MAXREQSIZE
+
  /*
   * LDLM threads constants:
   *
@@ -2051,6 +2054,7 @@ int lustre_pack_reply_flags(struct ptlrpc_request *, int count, u32 *lens,
 			    char **bufs, int flags);
 int lustre_shrink_msg(struct lustre_msg *msg, int segment,
 		      unsigned int newlen, int move_data);
+int lustre_grow_msg(struct lustre_msg *msg, int segment, unsigned int newlen);
 void lustre_free_reply_state(struct ptlrpc_reply_state *rs);
 int __lustre_unpack_msg(struct lustre_msg *m, int len);
 u32 lustre_msg_hdr_size(u32 magic, u32 count);
@@ -2061,6 +2065,7 @@ extern u32 lustre_msg_early_size;
 void *lustre_msg_buf_v2(struct lustre_msg_v2 *m, u32 n, u32 min_size);
 void *lustre_msg_buf(struct lustre_msg *m, u32 n, u32 minlen);
 u32 lustre_msg_buflen(struct lustre_msg *m, u32 n);
+void lustre_msg_set_buflen(struct lustre_msg *m, u32 n, u32 len);
 u32 lustre_msg_bufcount(struct lustre_msg *m);
 char *lustre_msg_string(struct lustre_msg *m, u32 n, u32 max_len);
 u32 lustre_msghdr_get_flags(struct lustre_msg *msg);
