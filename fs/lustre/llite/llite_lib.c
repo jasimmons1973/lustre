@@ -1702,25 +1702,23 @@ static int ll_update_lsm_md(struct inode *inode, struct lustre_md *md)
 	}
 
 	rc = ll_init_lsm_md(inode, md);
-	if (rc) {
-		up_write(&lli->lli_lsm_sem);
-		return rc;
-	}
+	up_write(&lli->lli_lsm_sem);
 
-	/* md_merge_attr() may take long, since lsm is already set, switch to
-	 * read lock.
-	 */
-	downgrade_write(&lli->lli_lsm_sem);
+	if (rc)
+		return rc;
 
 	/* set md->lmv to NULL, so the following free lustre_md will not free
 	 * this lsm.
 	 */
 	md->lmv = NULL;
 
-	if (!lmv_dir_striped(lli->lli_lsm_md)) {
-		rc = 0;
+	/* md_merge_attr() may take long, since lsm is already set, switch to
+	 * read lock.
+	 */
+	down_read(&lli->lli_lsm_sem);
+
+	if (!lmv_dir_striped(lli->lli_lsm_md))
 		goto unlock;
-	}
 
 	attr = kzalloc(sizeof(*attr), GFP_NOFS);
 	if (!attr) {
