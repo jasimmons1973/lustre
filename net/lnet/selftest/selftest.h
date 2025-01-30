@@ -126,14 +126,18 @@ enum lnet_selftest_group_nodelist_prop_attrs {
 
 #define LNET_SELFTEST_GROUP_NODELIST_PROP_MAX	(__LNET_SELFTEST_GROUP_NODELIST_PROP_MAX_PLUS_ONE - 1)
 
-#define SWI_STATE_NEWBORN		0
-#define SWI_STATE_REPLY_SUBMITTED	1
-#define SWI_STATE_REPLY_SENT		2
-#define SWI_STATE_REQUEST_SUBMITTED	3
-#define SWI_STATE_REQUEST_SENT		4
-#define SWI_STATE_REPLY_RECEIVED	5
-#define SWI_STATE_BULK_STARTED		6
-#define SWI_STATE_DONE			10
+enum lsr_swi_state {
+	SWI_STATE_DONE = 0,
+	SWI_STATE_NEWBORN,
+	SWI_STATE_REPLY_SUBMITTED,
+	SWI_STATE_REPLY_SENT,
+	SWI_STATE_REQUEST_SUBMITTED,
+	SWI_STATE_REQUEST_SENT,
+	SWI_STATE_REPLY_RECEIVED,
+	SWI_STATE_BULK_STARTED,
+	SWI_STATE_RUNNING,
+	SWI_STATE_PAUSE,
+};
 
 /* forward refs */
 struct srpc_service;
@@ -248,9 +252,9 @@ typedef void (*swi_action_t) (struct swi_workitem *);
 
 struct swi_workitem {
 	struct workqueue_struct *swi_wq;
-	struct work_struct  swi_work;
-	swi_action_t	    swi_action;
-	int		    swi_state;
+	struct work_struct	swi_work;
+	swi_action_t		swi_action;
+	enum lsr_swi_state	swi_state;
 };
 
 /* server-side state of a RPC */
@@ -562,7 +566,6 @@ swi_wi_action(struct work_struct *wi)
 	struct swi_workitem *swi;
 
 	swi = container_of(wi, struct swi_workitem, swi_work);
-
 	swi->swi_action(swi);
 }
 

@@ -88,7 +88,7 @@ static int
 lnet_selftest_init(void)
 {
 	int nscheds;
-	int rc;
+	int rc = -ENOMEM;
 	int i;
 
 	rc = libcfs_setup();
@@ -118,11 +118,14 @@ lnet_selftest_init(void)
 
 		/* reserve at least one CPU for LND */
 		nthrs = max(nthrs - 1, 1);
-		lst_test_wq[i] = alloc_workqueue("lst_t", WQ_UNBOUND, nthrs);
-		if (!lst_test_wq[i]) {
-			CWARN("Failed to create CPU partition affinity WI scheduler %d for LST\n",
-			      i);
-			rc = -ENOMEM;
+		lst_test_wq[i] = cfs_cpt_bind_workqueue("lst_t",
+							lnet_cpt_table(), 0,
+							i, nthrs);
+		if (IS_ERR(lst_test_wq[i])) {
+			rc = PTR_ERR(lst_test_wq[i]);
+			CERROR("Failed to create CPU partition affinity WI scheduler %d for LST: rc = %d\n",
+			       i, rc);
+			lst_test_wq[i] = NULL;
 			goto error;
 		}
 

@@ -93,8 +93,7 @@ srpc_serv_portal(int svc_id)
 }
 
 /* forward ref's */
-void srpc_handle_rpc(struct swi_workitem *wi);
-
+static void srpc_handle_rpc(struct swi_workitem *wi);
 
 void srpc_get_counters(struct srpc_counters *cnt)
 {
@@ -295,8 +294,7 @@ srpc_service_init(struct srpc_service *svc)
 		scd->scd_ev.ev_data = scd;
 		scd->scd_ev.ev_type = SRPC_REQUEST_RCVD;
 
-		/*
-		 * NB: don't use lst_serial_wq for adding buffer,
+		/* NB: don't use lst_serial_wq for adding buffer,
 		 * see details in srpc_service_add_buffers()
 		 */
 		swi_init_workitem(&scd->scd_buf_wi,
@@ -601,6 +599,7 @@ srpc_add_buffer(struct swi_workitem *wi)
 		scd->scd_buf_posting--;
 	}
 
+	wi->swi_state = SWI_STATE_RUNNING;
 	spin_unlock(&scd->scd_lock);
 }
 
@@ -933,8 +932,6 @@ srpc_server_rpc_done(struct srpc_server_rpc *rpc, int status)
 	struct srpc_service *sv = scd->scd_svc;
 	struct srpc_buffer *buffer;
 
-	LASSERT(status || rpc->srpc_wi.swi_state == SWI_STATE_DONE);
-
 	rpc->srpc_status = status;
 
 	CDEBUG_LIMIT(!status ? D_NET : D_NETERROR,
@@ -969,6 +966,7 @@ srpc_server_rpc_done(struct srpc_server_rpc *rpc, int status)
 	 * Cancel pending schedules and prevent future schedule attempts:
 	 */
 	LASSERT(rpc->srpc_ev.ev_fired);
+	rpc->srpc_wi.swi_state = SWI_STATE_DONE;
 
 	if (!sv->sv_shuttingdown && !list_empty(&scd->scd_buf_blocked)) {
 		buffer = list_first_entry(&scd->scd_buf_blocked,
@@ -986,8 +984,7 @@ srpc_server_rpc_done(struct srpc_server_rpc *rpc, int status)
 }
 
 /* handles an incoming RPC */
-void
-srpc_handle_rpc(struct swi_workitem *wi)
+static void srpc_handle_rpc(struct swi_workitem *wi)
 {
 	struct srpc_server_rpc *rpc = container_of(wi, struct srpc_server_rpc,
 						   srpc_wi);
@@ -996,20 +993,22 @@ srpc_handle_rpc(struct swi_workitem *wi)
 	struct srpc_event *ev = &rpc->srpc_ev;
 	int rc = 0;
 
-	LASSERT(wi == &rpc->srpc_wi);
-
 	spin_lock(&scd->scd_lock);
+	if (wi->swi_state == SWI_STATE_DONE) {
+		spin_unlock(&scd->scd_lock);
+		return;
+	}
 
 	if (sv->sv_shuttingdown || rpc->srpc_aborted) {
+		wi->swi_state = SWI_STATE_DONE;
 		spin_unlock(&scd->scd_lock);
 
 		if (rpc->srpc_bulk)
 			LNetMDUnlink(rpc->srpc_bulk->bk_mdh);
 		LNetMDUnlink(rpc->srpc_replymdh);
 
-		if (ev->ev_fired) { /* no more event, OK to finish */
+		if (ev->ev_fired) /* no more event, OK to finish */
 			srpc_server_rpc_done(rpc, -ESHUTDOWN);
-		}
 		return;
 	}
 
@@ -1069,7 +1068,6 @@ srpc_handle_rpc(struct swi_workitem *wi)
 
 			if (sv->sv_bulk_ready)
 				rc = (*sv->sv_bulk_ready) (rpc, rc);
-
 			if (rc) {
 				srpc_server_rpc_done(rpc, rc);
 				return;
@@ -1164,8 +1162,6 @@ srpc_client_rpc_done(struct srpc_client_rpc *rpc, int status)
 {
 	struct swi_workitem *wi = &rpc->crpc_wi;
 
-	LASSERT(status || wi->swi_state == SWI_STATE_DONE);
-
 	spin_lock(&rpc->crpc_lock);
 
 	rpc->crpc_closed = 1;
@@ -1188,6 +1184,7 @@ srpc_client_rpc_done(struct srpc_client_rpc *rpc, int status)
 	 * Cancel pending schedules and prevent future schedule attempts:
 	 */
 	LASSERT(!srpc_event_pending(rpc));
+	wi->swi_state = SWI_STATE_DONE;
 
 	spin_unlock(&rpc->crpc_lock);
 
@@ -1214,6 +1211,10 @@ srpc_send_rpc(struct swi_workitem *wi)
 	do_bulk = rpc->crpc_bulk.bk_niov > 0;
 
 	spin_lock(&rpc->crpc_lock);
+	if (wi->swi_state == SWI_STATE_DONE) {
+		spin_unlock(&rpc->crpc_lock);
+		return;
+	}
 
 	if (rpc->crpc_aborted) {
 		spin_unlock(&rpc->crpc_lock);

@@ -545,6 +545,7 @@ sfw_test_rpc_fini(struct srpc_client_rpc *rpc)
 
 	/* Called with hold of tsi->tsi_lock */
 	LASSERT(list_empty(&rpc->crpc_list));
+	rpc->crpc_wi.swi_state = SWI_STATE_DONE;
 	list_add(&rpc->crpc_list, &tsi->tsi_free_rpcs);
 }
 
@@ -651,6 +652,7 @@ sfw_destroy_test_instance(struct sfw_test_instance *tsi)
 					       struct srpc_client_rpc,
 					       crpc_list)) != NULL) {
 		list_del(&rpc->crpc_list);
+		swi_cancel_workitem(&rpc->crpc_wi);
 		kfree(rpc);
 	}
 
@@ -937,6 +939,7 @@ sfw_create_test_rpc(struct sfw_test_unit *tsu, struct lnet_process_id peer,
 					     blklen, sfw_test_rpc_done,
 					     sfw_test_rpc_fini, tsu);
 	} else {
+		swi_cancel_workitem(&rpc->crpc_wi);
 		srpc_init_client_rpc(rpc, peer, tsi->tsi_service, nblk,
 				     blklen, sfw_test_rpc_done,
 				     sfw_test_rpc_fini, tsu);
@@ -962,14 +965,20 @@ sfw_run_test(struct swi_workitem *wi)
 
 	if (tsi->tsi_ops->tso_prep_rpc(tsu, tsu->tsu_dest, &rpc)) {
 		LASSERT(!rpc);
+		wi->swi_state = SWI_STATE_DONE;
 		goto test_done;
 	}
 
 	LASSERT(rpc);
 
 	spin_lock(&tsi->tsi_lock);
+	if (wi->swi_state == SWI_STATE_DONE) {
+		spin_unlock(&tsi->tsi_lock);
+		return;
+	}
 
 	if (tsi->tsi_stopping) {
+		wi->swi_state = SWI_STATE_DONE;
 		list_add(&rpc->crpc_list, &tsi->tsi_free_rpcs);
 		spin_unlock(&tsi->tsi_lock);
 		goto test_done;
@@ -979,6 +988,7 @@ sfw_run_test(struct swi_workitem *wi)
 		tsu->tsu_loop--;
 
 	list_add_tail(&rpc->crpc_list, &tsi->tsi_active_rpcs);
+	wi->swi_state = SWI_STATE_RUNNING;
 	spin_unlock(&tsi->tsi_lock);
 
 	spin_lock(&rpc->crpc_lock);
@@ -1021,12 +1031,14 @@ sfw_run_batch(struct sfw_batch *tsb)
 		atomic_inc(&tsb->bat_nactive);
 
 		list_for_each_entry(tsu, &tsi->tsi_units, tsu_list) {
+			int cpt;
+
 			atomic_inc(&tsi->tsi_nactive);
 			tsu->tsu_loop = tsi->tsi_loop;
 			wi = &tsu->tsu_worker;
-			swi_init_workitem(wi, sfw_run_test,
-					  lst_test_wq[lnet_cpt_of_nid(tsu->tsu_dest.nid,
-							  NULL)]);
+
+			cpt = lnet_cpt_of_nid(tsu->tsu_dest.nid, NULL);
+			swi_init_workitem(wi, sfw_run_test, lst_test_wq[cpt]);
 			swi_schedule_workitem(wi);
 		}
 	}
@@ -1406,14 +1418,15 @@ sfw_create_rpc(struct lnet_process_id peer, int service,
 		rpc = list_first_entry(&sfw_data.fw_zombie_rpcs,
 				       struct srpc_client_rpc, crpc_list);
 		list_del(&rpc->crpc_list);
-
-		srpc_init_client_rpc(rpc, peer, service, 0, 0,
-				     done, sfw_client_rpc_fini, priv);
 	}
-
 	spin_unlock(&sfw_data.fw_lock);
 
-	if (!rpc) {
+	if (rpc) {
+		/* Ensure that rpc is done */
+		swi_cancel_workitem(&rpc->crpc_wi);
+		srpc_init_client_rpc(rpc, peer, service, 0, 0,
+				     done, sfw_client_rpc_fini, priv);
+	} else {
 		rpc = srpc_create_client_rpc(peer, service,
 					     nbulkiov, bulklen, done,
 					     nbulkiov ?  NULL :
