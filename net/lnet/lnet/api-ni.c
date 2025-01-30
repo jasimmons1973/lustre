@@ -4973,16 +4973,22 @@ lnet_genl_parse_local_ni(struct nlattr *entry, struct genl_info *info,
 			 bool *ni_list)
 {
 	bool create = info->nlhdr->nlmsg_flags & NLM_F_CREATE;
-	struct lnet_ioctl_config_lnd_tunables tun;
+	struct lnet_ioctl_config_lnd_tunables *tun;
 	struct nlattr *settings;
 	int rem3, rc = 0;
 
-	memset(&tun, 0, sizeof(tun));
+	tun = kzalloc(sizeof(*tun), GFP_KERNEL);
+	if (!tun) {
+		GENL_SET_ERR_MSG(info, "cannot allocate memory for tunables");
+		rc = -ENOMEM;
+		goto out;
+	}
+
 	/* Use LND defaults */
-	tun.lt_cmn.lct_peer_timeout = -1;
-	tun.lt_cmn.lct_peer_tx_credits = -1;
-	tun.lt_cmn.lct_peer_rtr_credits = -1;
-	tun.lt_cmn.lct_max_tx_credits = -1;
+	tun->lt_cmn.lct_peer_timeout = -1;
+	tun->lt_cmn.lct_peer_tx_credits = -1;
+	tun->lt_cmn.lct_peer_rtr_credits = -1;
+	tun->lt_cmn.lct_max_tx_credits = -1;
 	conf->lic_ncpts = 0;
 
 	nla_for_each_nested(settings, entry, rem3) {
@@ -5031,7 +5037,7 @@ lnet_genl_parse_local_ni(struct nlattr *entry, struct genl_info *info,
 				goto out;
 			}
 
-			rc = lnet_genl_parse_tunables(settings, &tun);
+			rc = lnet_genl_parse_tunables(settings, tun);
 			if (rc < 0) {
 				GENL_SET_ERR_MSG(info,
 						 "failed to parse tunables");
@@ -5058,7 +5064,7 @@ lnet_genl_parse_local_ni(struct nlattr *entry, struct genl_info *info,
 			}
 
 			rc = lnet_genl_parse_lnd_tunables(settings,
-							  &tun.lt_tun, lnd);
+							  &tun->lt_tun, lnd);
 			if (rc < 0) {
 				GENL_SET_ERR_MSG(info,
 						 "failed to parse lnd tunables");
@@ -5150,7 +5156,7 @@ lnet_genl_parse_local_ni(struct nlattr *entry, struct genl_info *info,
 			goto out;
 		}
 
-		rc = lnet_dyn_add_ni(conf, net_id, &tun);
+		rc = lnet_dyn_add_ni(conf, net_id, tun);
 		switch (rc) {
 		case -ENOENT:
 			GENL_SET_ERR_MSG(info,
@@ -5168,6 +5174,8 @@ lnet_genl_parse_local_ni(struct nlattr *entry, struct genl_info *info,
 		}
 	}
 out:
+	kfree(tun);
+
 	return rc;
 }
 
