@@ -334,7 +334,7 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt)
 
 	data->ocd_cksum_types = obd_cksum_types_supported_client();
 
-	if (OBD_FAIL_CHECK(OBD_FAIL_MDC_LIGHTWEIGHT))
+	if (CFS_FAIL_CHECK(OBD_FAIL_MDC_LIGHTWEIGHT))
 		/* flag mdc connection as lightweight, only used for test
 		 * purpose, use with care
 		 */
@@ -563,7 +563,7 @@ retry_connect:
 				   OBD_CONNECT2_INC_XID | OBD_CONNECT2_LSEEK |
 				   OBD_CONNECT2_REP_MBITS;
 
-	if (!OBD_FAIL_CHECK(OBD_FAIL_OSC_CONNECT_GRANT_PARAM))
+	if (!CFS_FAIL_CHECK(OBD_FAIL_OSC_CONNECT_GRANT_PARAM))
 		data->ocd_connect_flags |= OBD_CONNECT_GRANT_PARAM;
 
 	/* OBD_CONNECT_CKSUM should always be set, even if checksums are
@@ -573,7 +573,7 @@ retry_connect:
 	 */
 	data->ocd_connect_flags |= OBD_CONNECT_CKSUM;
 
-	if (OBD_FAIL_CHECK(OBD_FAIL_OSC_CKSUM_ADLER_ONLY))
+	if (CFS_FAIL_CHECK(OBD_FAIL_OSC_CKSUM_ADLER_ONLY))
 		data->ocd_cksum_types = OBD_CKSUM_ADLER;
 	else
 		data->ocd_cksum_types = obd_cksum_types_supported_client();
@@ -1241,7 +1241,7 @@ int ll_fill_super(struct super_block *sb)
 
 	CDEBUG(D_VFSTRACE, "VFS Op: sb %p\n", sb);
 
-	OBD_RACE(OBD_FAIL_LLITE_RACE_MOUNT);
+	CFS_RACE(OBD_FAIL_LLITE_RACE_MOUNT);
 
 	cfg = kzalloc(sizeof(*cfg), GFP_NOFS);
 	if (!cfg) {
@@ -1429,7 +1429,7 @@ void ll_put_super(struct super_block *sb)
 	}
 
 	/* imitate failed cleanup */
-	if (OBD_FAIL_CHECK(OBD_FAIL_OBD_CLEANUP))
+	if (CFS_FAIL_CHECK(OBD_FAIL_OBD_CLEANUP))
 		goto skip_cleanup;
 
 	next = 0;

@@ -1674,7 +1674,7 @@ ssize_t pcc_file_write_iter(struct kiocb *iocb,
 	if (!*cached)
 		return 0;
 
-	if (OBD_FAIL_CHECK(OBD_FAIL_LLITE_PCC_FAKE_ERROR)) {
+	if (CFS_FAIL_CHECK(OBD_FAIL_LLITE_PCC_FAKE_ERROR)) {
 		result = -ENOSPC;
 		goto out;
 	}
@@ -1911,7 +1911,7 @@ vm_fault_t pcc_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf,
 		return VM_FAULT_RETRY | VM_FAULT_NOPAGE;
 	}
 	/* Pause to allow for a race with concurrent detach */
-	OBD_FAIL_TIMEOUT(OBD_FAIL_LLITE_PCC_MKWRITE_PAUSE, cfs_fail_val);
+	CFS_FAIL_TIMEOUT(OBD_FAIL_LLITE_PCC_MKWRITE_PAUSE, cfs_fail_val);
 
 	pcc_io_init(inode, PIT_PAGE_MKWRITE, cached);
 	if (!*cached) {
@@ -1944,7 +1944,7 @@ vm_fault_t pcc_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf,
 	 * This fault injection can also be used to simulate -ENOSPC and
 	 * -EDQUOT failure of underlying PCC backend fs.
 	 */
-	if (OBD_FAIL_CHECK(OBD_FAIL_LLITE_PCC_DETACH_MKWRITE)) {
+	if (CFS_FAIL_CHECK(OBD_FAIL_LLITE_PCC_DETACH_MKWRITE)) {
 		pcc_io_fini(inode);
 		pcc_ioctl_detach(inode, PCC_DETACH_OPT_UNCACHE);
 		mmap_read_unlock(mm);
@@ -2401,7 +2401,7 @@ int pcc_readwrite_attach(struct file *file, struct inode *inode,
 		goto out_fput;
 
 	/* Pause to allow for a race with concurrent HSM remove */
-	OBD_FAIL_TIMEOUT(OBD_FAIL_LLITE_PCC_ATTACH_PAUSE, cfs_fail_val);
+	CFS_FAIL_TIMEOUT(OBD_FAIL_LLITE_PCC_ATTACH_PAUSE, cfs_fail_val);
 
 	pcc_inode_lock(inode);
 	pcci = ll_i2pcci(inode);
