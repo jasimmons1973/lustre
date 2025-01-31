@@ -290,7 +290,7 @@ void sptlrpc_cli_ctx_put(struct ptlrpc_cli_ctx *ctx, int sync)
 	struct ptlrpc_sec *sec = ctx->cc_sec;
 
 	LASSERT(sec);
-	LASSERT_ATOMIC_POS(&ctx->cc_refcount);
+	LASSERT(atomic_read(&(ctx)->cc_refcount) > 0);
 
 	if (!atomic_dec_and_test(&ctx->cc_refcount))
 		return;
@@ -1214,7 +1214,7 @@ static void sec_cop_destroy_sec(struct ptlrpc_sec *sec)
 
 static void sptlrpc_sec_kill(struct ptlrpc_sec *sec)
 {
-	LASSERT_ATOMIC_POS(&sec->ps_refcount);
+	LASSERT(atomic_read(&(sec)->ps_refcount) > 0);
 
 	if (sec->ps_policy->sp_cops->kill_sec) {
 		sec->ps_policy->sp_cops->kill_sec(sec);
@@ -1234,7 +1234,7 @@ static struct ptlrpc_sec *sptlrpc_sec_get(struct ptlrpc_sec *sec)
 void sptlrpc_sec_put(struct ptlrpc_sec *sec)
 {
 	if (sec) {
-		LASSERT_ATOMIC_POS(&sec->ps_refcount);
+		LASSERT(atomic_read(&(sec)->ps_refcount) > 0);
 
 		if (atomic_dec_and_test(&sec->ps_refcount)) {
 			sptlrpc_gc_del_sec(sec);
@@ -1314,7 +1314,7 @@ static void sptlrpc_import_sec_install(struct obd_import *imp,
 {
 	struct ptlrpc_sec *old_sec;
 
-	LASSERT_ATOMIC_POS(&sec->ps_refcount);
+	LASSERT(atomic_read(&(sec)->ps_refcount) > 0);
 
 	write_lock(&imp->imp_sec_lock);
 	old_sec = imp->imp_sec;
@@ -1507,7 +1507,7 @@ int sptlrpc_cli_alloc_reqbuf(struct ptlrpc_request *req, int msgsize)
 	LASSERT(ctx->cc_sec);
 	LASSERT(ctx->cc_sec->ps_policy);
 	LASSERT(!req->rq_reqmsg);
-	LASSERT_ATOMIC_POS(&ctx->cc_refcount);
+	LASSERT(atomic_read(&(ctx)->cc_refcount) > 0);
 
 	policy = ctx->cc_sec->ps_policy;
 	rc = policy->sp_cops->alloc_reqbuf(ctx->cc_sec, req, msgsize);
@@ -1535,7 +1535,7 @@ void sptlrpc_cli_free_reqbuf(struct ptlrpc_request *req)
 	LASSERT(ctx);
 	LASSERT(ctx->cc_sec);
 	LASSERT(ctx->cc_sec->ps_policy);
-	LASSERT_ATOMIC_POS(&ctx->cc_refcount);
+	LASSERT(atomic_read(&(ctx)->cc_refcount) > 0);
 
 	if (!req->rq_reqbuf && !req->rq_clrbuf)
 		return;
@@ -1655,7 +1655,7 @@ void sptlrpc_cli_free_repbuf(struct ptlrpc_request *req)
 	LASSERT(ctx);
 	LASSERT(ctx->cc_sec);
 	LASSERT(ctx->cc_sec->ps_policy);
-	LASSERT_ATOMIC_POS(&ctx->cc_refcount);
+	LASSERT(atomic_read(&(ctx)->cc_refcount) > 0);
 
 	if (!req->rq_repbuf)
 		return;
@@ -2239,7 +2239,7 @@ void sptlrpc_svc_ctx_decref(struct ptlrpc_request *req)
 	if (!ctx)
 		return;
 
-	LASSERT_ATOMIC_POS(&ctx->sc_refcount);
+	LASSERT(atomic_read(&(ctx)->sc_refcount) > 0);
 	if (atomic_dec_and_test(&ctx->sc_refcount)) {
 		if (ctx->sc_policy->sp_sops->free_ctx)
 			ctx->sc_policy->sp_sops->free_ctx(ctx);

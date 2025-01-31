@@ -132,7 +132,6 @@ do {								\
 #endif /* LASSERT_ATOMIC_ENABLED */
 
 #define LASSERT_ATOMIC_ZERO(a)		LASSERT_ATOMIC_EQ(a, 0)
-#define LASSERT_ATOMIC_POS(a)		LASSERT_ATOMIC_GT(a, 0)
 
 /* implication */
 #define ergo(a, b) (!(a) || (b))

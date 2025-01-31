@@ -270,7 +270,7 @@ static inline void class_export_rpc_inc(struct obd_export *exp)
 
 static inline void class_export_rpc_dec(struct obd_export *exp)
 {
-	LASSERT_ATOMIC_POS(&exp->exp_rpc_count);
+	LASSERT(atomic_read(&(exp)->exp_rpc_count) > 0);
 	atomic_dec(&(exp)->exp_rpc_count);
 	CDEBUG(D_INFO, "RPC PUTting export %p : new rpc_count %d\n",
 	       (exp), atomic_read(&(exp)->exp_rpc_count));
@@ -289,7 +289,7 @@ static inline struct obd_export *class_export_lock_get(struct obd_export *exp,
 static inline void class_export_lock_put(struct obd_export *exp,
 					 struct ldlm_lock *lock)
 {
-	LASSERT_ATOMIC_POS(&exp->exp_locks_count);
+	LASSERT(atomic_read(&(exp)->exp_rpc_count) > 0);
 	atomic_dec(&(exp)->exp_locks_count);
 	__class_export_del_lock_ref(exp, lock);
 	CDEBUG(D_INFO, "lock PUTting export %p : new locks_count %d\n",
