@@ -5322,6 +5322,395 @@ out:
 	return rc;
 }
 
+/** LNet route handling */
+
+/* We can't use struct lnet_ioctl_config_data since it lacks
+ * support for large NIDS
+ */
+struct lnet_route_properties {
+	struct lnet_nid		lrp_gateway;
+	u32			lrp_net;
+	s32			lrp_hop;
+	u32			lrp_flags;
+	u32			lrp_priority;
+	u32			lrp_sensitivity;
+};
+
+struct lnet_genl_route_list {
+	unsigned int				lgrl_index;
+	unsigned int				lgrl_count;
+	GENRADIX(struct lnet_route_properties)	lgrl_list;
+};
+
+static inline struct lnet_genl_route_list *
+lnet_route_dump_ctx(struct netlink_callback *cb)
+{
+	return (struct lnet_genl_route_list *)cb->args[0];
+}
+
+static int lnet_route_show_done(struct netlink_callback *cb)
+{
+	struct lnet_genl_route_list *rlist = lnet_route_dump_ctx(cb);
+
+	if (rlist) {
+		genradix_free(&rlist->lgrl_list);
+		kfree(rlist);
+	}
+	cb->args[0] = 0;
+
+	return 0;
+}
+
+int lnet_scan_route(struct lnet_genl_route_list *rlist,
+		    struct lnet_route_properties *settings)
+{
+	struct lnet_remotenet *rnet;
+	struct list_head *rn_list;
+	struct lnet_route *route;
+	int cpt, i, rc = 0;
+
+	cpt = lnet_net_lock_current();
+
+	for (i = 0; i < LNET_REMOTE_NETS_HASH_SIZE; i++) {
+		rn_list = &the_lnet.ln_remote_nets_hash[i];
+		list_for_each_entry(rnet, rn_list, lrn_list) {
+			if (settings->lrp_net != LNET_NET_ANY &&
+			    settings->lrp_net != rnet->lrn_net)
+				continue;
+
+			list_for_each_entry(route, &rnet->lrn_routes,
+					    lr_list) {
+				struct lnet_route_properties *prop;
+
+				if (!LNET_NID_IS_ANY(&settings->lrp_gateway) &&
+				    !nid_same(&settings->lrp_gateway,
+					      &route->lr_nid)) {
+					continue;
+				}
+
+				if (settings->lrp_hop != -1 &&
+				    settings->lrp_hop != route->lr_hops)
+					continue;
+
+				if (settings->lrp_priority != -1 &&
+				    settings->lrp_priority != route->lr_priority)
+					continue;
+
+				if (settings->lrp_sensitivity != -1 &&
+				    settings->lrp_sensitivity !=
+				    route->lr_gateway->lp_health_sensitivity)
+					continue;
+
+				prop = genradix_ptr_alloc(&rlist->lgrl_list,
+							  rlist->lgrl_count++,
+							  GFP_ATOMIC);
+				if (!prop) {
+					rc = -ENOMEM;
+					goto failed_alloc;
+				}
+
+				prop->lrp_net = rnet->lrn_net;
+				prop->lrp_gateway = route->lr_nid;
+				prop->lrp_hop = route->lr_hops;
+				prop->lrp_priority = route->lr_priority;
+				prop->lrp_sensitivity =
+					route->lr_gateway->lp_health_sensitivity;
+				if (lnet_is_route_alive(route))
+					prop->lrp_flags |= LNET_RT_ALIVE;
+				else
+					prop->lrp_flags &= ~LNET_RT_ALIVE;
+				if (route->lr_single_hop)
+					prop->lrp_flags &= ~LNET_RT_MULTI_HOP;
+				else
+					prop->lrp_flags |= LNET_RT_MULTI_HOP;
+			}
+		}
+	}
+
+failed_alloc:
+	lnet_net_unlock(cpt);
+	return rc;
+}
+
+/* LNet route ->start() handler for GET requests */
+static int lnet_route_show_start(struct netlink_callback *cb)
+{
+	struct genlmsghdr *gnlh = nlmsg_data(cb->nlh);
+	struct netlink_ext_ack *extack = cb->extack;
+	struct lnet_genl_route_list *rlist;
+	int msg_len = genlmsg_len(gnlh);
+	int rc = 0;
+
+	if (the_lnet.ln_refcount == 0 ||
+	    the_lnet.ln_state != LNET_STATE_RUNNING) {
+		NL_SET_ERR_MSG(extack, "Network is down");
+		return -ENETDOWN;
+	}
+
+	rlist = kzalloc(sizeof(*rlist), GFP_KERNEL);
+	if (!rlist) {
+		NL_SET_ERR_MSG(extack, "No memory for route list");
+		return -ENOMEM;
+	}
+
+	genradix_init(&rlist->lgrl_list);
+	rlist->lgrl_count = 0;
+	rlist->lgrl_index = 0;
+	cb->args[0] = (long)rlist;
+
+	mutex_lock(&the_lnet.ln_api_mutex);
+	if (!msg_len) {
+		struct lnet_route_properties tmp = {
+			.lrp_gateway		= LNET_ANY_NID,
+			.lrp_net		= LNET_NET_ANY,
+			.lrp_hop		= -1,
+			.lrp_priority		= -1,
+			.lrp_sensitivity	= -1,
+		};
+
+		rc = lnet_scan_route(rlist, &tmp);
+		if (rc < 0) {
+			NL_SET_ERR_MSG(extack,
+				       "failed to allocate router data");
+			goto report_err;
+		}
+	} else {
+		struct nlattr *params = genlmsg_data(gnlh);
+		struct nlattr *attr;
+		int rem;
+
+		nla_for_each_nested(attr, params, rem) {
+			struct lnet_route_properties tmp = {
+				.lrp_gateway		= LNET_ANY_NID,
+				.lrp_net		= LNET_NET_ANY,
+				.lrp_hop		= -1,
+				.lrp_priority		= -1,
+				.lrp_sensitivity	= -1,
+			};
+			struct nlattr *route;
+			int rem2;
+
+			if (nla_type(attr) != LN_SCALAR_ATTR_LIST)
+				continue;
+
+			nla_for_each_nested(route, attr, rem2) {
+				if (nla_type(route) != LN_SCALAR_ATTR_VALUE)
+					continue;
+
+				if (nla_strcmp(route, "net") == 0) {
+					char nw[LNET_NIDSTR_SIZE];
+
+					route = nla_next(route, &rem2);
+					if (nla_type(route) !=
+					    LN_SCALAR_ATTR_VALUE) {
+						NL_SET_ERR_MSG(extack,
+							       "invalid net param");
+						rc = -EINVAL;
+						goto report_err;
+					}
+
+					rc = nla_strlcpy(nw, route, sizeof(nw));
+					if (rc < 0) {
+						NL_SET_ERR_MSG(extack,
+							       "failed to get route param");
+						goto report_err;
+					}
+					rc = 0;
+					tmp.lrp_net = libcfs_str2net(strim(nw));
+				} else if (nla_strcmp(route, "gateway") == 0) {
+					char gw[LNET_NIDSTR_SIZE];
+
+					route = nla_next(route, &rem2);
+					if (nla_type(route) !=
+					    LN_SCALAR_ATTR_VALUE) {
+						NL_SET_ERR_MSG(extack,
+							       "invalid gateway param");
+						rc = -EINVAL;
+						goto report_err;
+					}
+
+					rc = nla_strlcpy(gw, route, sizeof(gw));
+					if (rc < 0) {
+						NL_SET_ERR_MSG(extack,
+							       "failed to get route param");
+						goto report_err;
+					}
+					rc = 0;
+					libcfs_strnid(&tmp.lrp_gateway, strim(gw));
+				} else if (nla_strcmp(route, "hop") == 0) {
+					route = nla_next(route, &rem2);
+					if (nla_type(route) !=
+					    LN_SCALAR_ATTR_INT_VALUE) {
+						NL_SET_ERR_MSG(extack,
+							       "invalid hop param");
+						rc = -EINVAL;
+						goto report_err;
+					}
+
+					tmp.lrp_hop = nla_get_s64(route);
+					if (tmp.lrp_hop != -1)
+						clamp_t(s32, tmp.lrp_hop, 1, 127);
+				} else if (nla_strcmp(route, "priority") == 0) {
+					route = nla_next(route, &rem2);
+					if (nla_type(route) !=
+					    LN_SCALAR_ATTR_INT_VALUE) {
+						NL_SET_ERR_MSG(extack,
+							       "invalid priority param");
+						rc = -EINVAL;
+						goto report_err;
+					}
+
+					tmp.lrp_priority = nla_get_s64(route);
+				}
+			}
+
+			rc = lnet_scan_route(rlist, &tmp);
+			if (rc < 0) {
+				NL_SET_ERR_MSG(extack,
+					       "failed to allocate router data");
+				goto report_err;
+			}
+		}
+	}
+report_err:
+	mutex_unlock(&the_lnet.ln_api_mutex);
+
+	if (rc < 0)
+		lnet_route_show_done(cb);
+
+	return rc;
+}
+
+static const struct ln_key_list route_props_list = {
+	.lkl_maxattr			= LNET_ROUTE_ATTR_MAX,
+	.lkl_list			= {
+		[LNET_ROUTE_ATTR_HDR]			= {
+			.lkp_value			= "route",
+			.lkp_key_format			= LNKF_SEQUENCE | LNKF_MAPPING,
+			.lkp_data_type			= NLA_NUL_STRING,
+		},
+		[LNET_ROUTE_ATTR_NET]			= {
+			.lkp_value			= "net",
+			.lkp_data_type			= NLA_STRING
+		},
+		[LNET_ROUTE_ATTR_GATEWAY]		= {
+			.lkp_value			= "gateway",
+			.lkp_data_type			= NLA_STRING
+		},
+		[LNET_ROUTE_ATTR_HOP]			= {
+			.lkp_value			= "hop",
+			.lkp_data_type			= NLA_S32
+		},
+		[LNET_ROUTE_ATTR_PRIORITY]		= {
+			.lkp_value			= "priority",
+			.lkp_data_type			= NLA_U32
+		},
+		[LNET_ROUTE_ATTR_HEALTH_SENSITIVITY]	= {
+			.lkp_value			= "health_sensitivity",
+			.lkp_data_type			= NLA_U32
+		},
+		[LNET_ROUTE_ATTR_STATE]	= {
+			.lkp_value			= "state",
+			.lkp_data_type			= NLA_STRING,
+		},
+		[LNET_ROUTE_ATTR_TYPE]	= {
+			.lkp_value			= "type",
+			.lkp_data_type			= NLA_STRING,
+		},
+	},
+};
+
+static int lnet_route_show_dump(struct sk_buff *msg,
+				struct netlink_callback *cb)
+{
+	struct lnet_genl_route_list *rlist = lnet_route_dump_ctx(cb);
+	struct genlmsghdr *gnlh = nlmsg_data(cb->nlh);
+	struct netlink_ext_ack *extack = cb->extack;
+	int portid = NETLINK_CB(cb->skb).portid;
+	int seq = cb->nlh->nlmsg_seq;
+	int idx = rlist->lgrl_index;
+	int rc = 0;
+
+	if (!rlist->lgrl_count) {
+		NL_SET_ERR_MSG(extack, "No routes found");
+		rc = -ENOENT;
+		goto send_error;
+	}
+
+	if (!idx) {
+		const struct ln_key_list *all[] = {
+			&route_props_list, NULL
+		};
+
+		rc = lnet_genl_send_scalar_list(msg, portid, seq,
+						&lnet_family,
+						NLM_F_CREATE | NLM_F_MULTI,
+						LNET_CMD_ROUTES, all);
+		if (rc < 0) {
+			NL_SET_ERR_MSG(extack, "failed to send key table");
+			goto send_error;
+		}
+	}
+
+	/* If not routes found send an empty message and not an error */
+	if (!rlist->lgrl_count) {
+		void *hdr;
+
+		hdr = genlmsg_put(msg, portid, seq, &lnet_family,
+				  NLM_F_MULTI, LNET_CMD_ROUTES);
+		if (!hdr) {
+			NL_SET_ERR_MSG(extack, "failed to send values");
+			genlmsg_cancel(msg, hdr);
+			rc = -EMSGSIZE;
+			goto send_error;
+		}
+		genlmsg_end(msg, hdr);
+
+		goto send_error;
+	}
+
+	while (idx < rlist->lgrl_count) {
+		struct lnet_route_properties *prop;
+		void *hdr;
+
+		prop = genradix_ptr(&rlist->lgrl_list, idx++);
+
+		hdr = genlmsg_put(msg, portid, seq, &lnet_family,
+				  NLM_F_MULTI, LNET_CMD_ROUTES);
+		if (!hdr) {
+			NL_SET_ERR_MSG(extack, "failed to send values");
+			genlmsg_cancel(msg, hdr);
+			rc = -EMSGSIZE;
+			goto send_error;
+		}
+
+		if (idx == 1)
+			nla_put_string(msg, LNET_ROUTE_ATTR_HDR, "");
+
+		nla_put_string(msg, LNET_ROUTE_ATTR_NET,
+			       libcfs_net2str(prop->lrp_net));
+		nla_put_string(msg, LNET_ROUTE_ATTR_GATEWAY,
+			       libcfs_nidstr(&prop->lrp_gateway));
+		if (gnlh->version) {
+			nla_put_s32(msg, LNET_ROUTE_ATTR_HOP, prop->lrp_hop);
+			nla_put_u32(msg, LNET_ROUTE_ATTR_PRIORITY, prop->lrp_priority);
+			nla_put_u32(msg, LNET_ROUTE_ATTR_HEALTH_SENSITIVITY,
+				    prop->lrp_sensitivity);
+
+			nla_put_string(msg, LNET_ROUTE_ATTR_STATE,
+				       prop->lrp_flags & LNET_RT_ALIVE ?
+				       "up" : "down");
+			nla_put_string(msg, LNET_ROUTE_ATTR_TYPE,
+				       prop->lrp_flags & LNET_RT_MULTI_HOP ?
+				       "multi-hop" : "single-hop");
+		}
+		genlmsg_end(msg, hdr);
+	}
+	rlist->lgrl_index = idx;
+send_error:
+	return rc;
+};
+
 static inline struct lnet_genl_ping_list *
 lnet_ping_dump_ctx(struct netlink_callback *cb)
 {
@@ -5654,6 +6043,7 @@ send_error:
 static const struct genl_multicast_group lnet_mcast_grps[] = {
 	{ .name	=	"ip2net",	},
 	{ .name =	"net",		},
+	{ .name	=	"route",	},
 	{ .name	=	"ping",		},
 };
 
@@ -5665,6 +6055,12 @@ static const struct genl_ops lnet_genl_ops[] = {
 		.dumpit		= lnet_net_show_dump,
 		.done		= lnet_net_show_done,
 		.doit		= lnet_net_cmd,
+	},
+	{
+		.cmd		= LNET_CMD_ROUTES,
+		.start		= lnet_route_show_start,
+		.dumpit		= lnet_route_show_dump,
+		.done		= lnet_route_show_done,
 	},
 	{
 		.cmd		= LNET_CMD_PING,
