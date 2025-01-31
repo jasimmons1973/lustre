@@ -753,7 +753,7 @@ EXPORT_SYMBOL(target_pack_pool_reply);
 static int
 target_send_reply_msg(struct ptlrpc_request *req, int rc, int fail_id)
 {
-	if (OBD_FAIL_CHECK_ORSET(fail_id & ~OBD_FAIL_ONCE, OBD_FAIL_ONCE)) {
+	if (CFS_FAIL_CHECK_ORSET(fail_id & ~CFS_FAIL_ONCE, CFS_FAIL_ONCE)) {
 		DEBUG_REQ(D_ERROR, req, "dropping reply");
 		return -ECOMM;
 	}
@@ -763,7 +763,7 @@ target_send_reply_msg(struct ptlrpc_request *req, int rc, int fail_id)
 	 */
 	if (req->rq_reqmsg &&
 	    unlikely(lustre_msg_get_opc(req->rq_reqmsg) == MDS_REINT &&
-	    OBD_FAIL_CHECK(OBD_FAIL_MDS_REINT_MULTI_NET_REP)))
+	    CFS_FAIL_CHECK(OBD_FAIL_MDS_REINT_MULTI_NET_REP)))
 		return -ECOMM;
 
 	if (unlikely(rc)) {

@@ -168,7 +168,7 @@ void ldlm_extent_add_lock(struct ldlm_resource *res,
 	 */
 	ldlm_resource_add_lock(res, &res->lr_granted, lock);
 
-	if (OBD_FAIL_CHECK(OBD_FAIL_LDLM_GRANT_CHECK)) {
+	if (CFS_FAIL_CHECK(OBD_FAIL_LDLM_GRANT_CHECK)) {
 		struct ldlm_lock *lck;
 
 		list_for_each_entry_reverse(lck, &res->lr_granted,

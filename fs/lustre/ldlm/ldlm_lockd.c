@@ -218,7 +218,7 @@ static int ldlm_handle_cp_callback(struct ptlrpc_request *req,
 
 	LDLM_DEBUG(lock, "client completion callback handler START");
 
-	if (OBD_FAIL_CHECK(OBD_FAIL_LDLM_CANCEL_BL_CB_RACE)) {
+	if (CFS_FAIL_CHECK(OBD_FAIL_LDLM_CANCEL_BL_CB_RACE)) {
 		long to = HZ;
 
 		ldlm_callback_reply(req, 0);
@@ -328,7 +328,7 @@ static int ldlm_handle_cp_callback(struct ptlrpc_request *req,
 	LDLM_DEBUG(lock, "callback handler finished, about to run_ast_work");
 
 	/* Let Enqueue to call osc_lock_upcall() and initialize l_ast_data */
-	OBD_FAIL_TIMEOUT(OBD_FAIL_OSC_CP_ENQ_RACE, 2);
+	CFS_FAIL_TIMEOUT(OBD_FAIL_OSC_CP_ENQ_RACE, 2);
 
 	ldlm_run_ast_work(ns, &ast_list, LDLM_WORK_CP_AST);
 
@@ -625,18 +625,18 @@ static int ldlm_callback_handler(struct ptlrpc_request *req)
 
 	switch (lustre_msg_get_opc(req->rq_reqmsg)) {
 	case LDLM_BL_CALLBACK:
-		if (OBD_FAIL_CHECK(OBD_FAIL_LDLM_BL_CALLBACK_NET)) {
+		if (CFS_FAIL_CHECK(OBD_FAIL_LDLM_BL_CALLBACK_NET)) {
 			if (cfs_fail_err)
 				ldlm_callback_reply(req, -(int)cfs_fail_err);
 			return 0;
 		}
 		break;
 	case LDLM_CP_CALLBACK:
-		if (OBD_FAIL_CHECK(OBD_FAIL_LDLM_CP_CALLBACK_NET))
+		if (CFS_FAIL_CHECK(OBD_FAIL_LDLM_CP_CALLBACK_NET))
 			return 0;
 		break;
 	case LDLM_GL_CALLBACK:
-		if (OBD_FAIL_CHECK(OBD_FAIL_LDLM_GL_CALLBACK_NET))
+		if (CFS_FAIL_CHECK(OBD_FAIL_LDLM_GL_CALLBACK_NET))
 			return 0;
 		break;
 	case LDLM_SET_INFO:
@@ -667,7 +667,7 @@ static int ldlm_callback_handler(struct ptlrpc_request *req)
 	 * Force a known safe race, send a cancel to the server for a lock
 	 * which the server has already started a blocking callback on.
 	 */
-	if (OBD_FAIL_CHECK(OBD_FAIL_LDLM_CANCEL_BL_CB_RACE) &&
+	if (CFS_FAIL_CHECK(OBD_FAIL_LDLM_CANCEL_BL_CB_RACE) &&
 	    lustre_msg_get_opc(req->rq_reqmsg) == LDLM_BL_CALLBACK) {
 		rc = ldlm_cli_cancel(&dlm_req->lock_handle[0], 0);
 		if (rc < 0)
@@ -687,7 +687,7 @@ static int ldlm_callback_handler(struct ptlrpc_request *req)
 
 	if (ldlm_is_fail_loc(lock) &&
 	    lustre_msg_get_opc(req->rq_reqmsg) == LDLM_BL_CALLBACK)
-		OBD_RACE(OBD_FAIL_LDLM_CP_BL_RACE);
+		CFS_RACE(OBD_FAIL_LDLM_CP_BL_RACE);
 
 	/* Copy hints/flags (e.g. LDLM_FL_DISCARD_DATA) from AST. */
 	lock_res_and_lock(lock);
@@ -751,7 +751,7 @@ static int ldlm_callback_handler(struct ptlrpc_request *req)
 		LDLM_DEBUG(lock, "completion ast\n");
 		req_capsule_extend(&req->rq_pill, &RQF_LDLM_CP_CALLBACK);
 		rc = ldlm_handle_cp_callback(req, ns, dlm_req, lock);
-		if (!OBD_FAIL_CHECK(OBD_FAIL_LDLM_CANCEL_BL_CB_RACE))
+		if (!CFS_FAIL_CHECK(OBD_FAIL_LDLM_CANCEL_BL_CB_RACE))
 			ldlm_callback_reply(req, rc);
 		break;
 	case LDLM_GL_CALLBACK:
@@ -879,7 +879,7 @@ static int ldlm_bl_thread_blwi(struct ldlm_bl_pool *blp,
 	if (blwi->blwi_mem_pressure)
 		flags = memalloc_noreclaim_save();
 
-	OBD_FAIL_TIMEOUT(OBD_FAIL_LDLM_PAUSE_CANCEL2, 4);
+	CFS_FAIL_TIMEOUT(OBD_FAIL_LDLM_PAUSE_CANCEL2, 4);
 
 	if (blwi->blwi_count) {
 		int count;
