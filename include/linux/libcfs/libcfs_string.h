@@ -79,8 +79,6 @@ int cfs_gettok(struct cfs_lstr *next, char delim, struct cfs_lstr *res);
 int cfs_str2num_check(char *str, int nob, unsigned int *num,
 		      unsigned int min, unsigned int max);
 int cfs_expr_list_match(u32 value, struct cfs_expr_list *expr_list);
-int cfs_expr_list_print(char *buffer, int count,
-			struct cfs_expr_list *expr_list);
 int cfs_expr_list_values(struct cfs_expr_list *expr_list,
 			 int max, u32 **values);
 void cfs_expr_list_free(struct cfs_expr_list *expr_list);
