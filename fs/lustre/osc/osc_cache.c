@@ -2302,7 +2302,7 @@ int osc_prep_async_page(struct osc_object *osc, struct osc_page *ops,
 	struct osc_async_page *oap = &ops->ops_oap;
 
 	if (!page)
-		return cfs_size_round(sizeof(*oap));
+		return round_up(sizeof(*oap), 8);
 
 	oap->oap_obj = osc;
 	oap->oap_page = page->cp_vmpage;

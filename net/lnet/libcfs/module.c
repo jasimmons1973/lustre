@@ -72,8 +72,8 @@ static inline size_t libcfs_ioctl_packlen(struct libcfs_ioctl_data *data)
 {
 	size_t len = sizeof(*data);
 
-	len += cfs_size_round(data->ioc_inllen1);
-	len += cfs_size_round(data->ioc_inllen2);
+	len += round_up(data->ioc_inllen1, 8);
+	len += round_up(data->ioc_inllen2, 8);
 	return len;
 }
 
@@ -124,7 +124,7 @@ static inline bool libcfs_ioctl_is_invalid(struct libcfs_ioctl_data *data)
 		return true;
 	}
 	if (data->ioc_inllen2 &&
-	    data->ioc_bulk[cfs_size_round(data->ioc_inllen1) +
+	    data->ioc_bulk[round_up(data->ioc_inllen1, 8) +
 			   data->ioc_inllen2 - 1] != '\0') {
 		CERROR("LIBCFS ioctl: inlbuf2 not 0 terminated\n");
 		return true;
@@ -144,7 +144,7 @@ static int libcfs_ioctl_data_adjust(struct libcfs_ioctl_data *data)
 
 	if (data->ioc_inllen2)
 		data->ioc_inlbuf2 = &data->ioc_bulk[0] +
-			cfs_size_round(data->ioc_inllen1);
+				    round_up(data->ioc_inllen1, 8);
 
 	return 0;
 }

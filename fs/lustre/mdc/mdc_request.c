@@ -1712,15 +1712,14 @@ static int mdc_ioc_fid2path(struct obd_export *exp, struct getinfo_fid2path *gf)
 		return -EOVERFLOW;
 
 	/* Key is KEY_FID2PATH + getinfo_fid2path description */
-	keylen = cfs_size_round(sizeof(KEY_FID2PATH)) + sizeof(*gf) +
-				sizeof(struct lu_fid);
+	keylen = round_up(sizeof(KEY_FID2PATH) + sizeof(*gf) +
+			  sizeof(struct lu_fid), 8);
 	key = kzalloc(keylen, GFP_NOFS);
 	if (!key)
 		return -ENOMEM;
 	memcpy(key, KEY_FID2PATH, sizeof(KEY_FID2PATH));
-	memcpy(key + cfs_size_round(sizeof(KEY_FID2PATH)), gf, sizeof(*gf));
-
-	memcpy(key + cfs_size_round(sizeof(KEY_FID2PATH)) + sizeof(*gf),
+	memcpy(key + round_up(sizeof(KEY_FID2PATH), 8), gf, sizeof(*gf));
+	memcpy(key + round_up(sizeof(KEY_FID2PATH), 8) + sizeof(*gf),
 	       gf->gf_root_fid, sizeof(struct lu_fid));
 	CDEBUG(D_IOCTL, "path get " DFID " from %llu #%d\n",
 	       PFID(&gf->gf_fid), gf->gf_recno, gf->gf_linkno);
