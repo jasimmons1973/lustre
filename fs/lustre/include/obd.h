@@ -1188,6 +1188,8 @@ static inline struct md_open_data *obd_mod_alloc(void)
 	if (atomic_dec_and_test(&(mod)->mod_refcount)) {		\
 		if ((mod)->mod_open_req)				\
 			ptlrpc_req_finished((mod)->mod_open_req);	\
+		if ((mod)->mod_close_req)				\
+			ptlrpc_req_finished((mod)->mod_close_req);	\
 		kfree(mod);						\
 	}								\
 })

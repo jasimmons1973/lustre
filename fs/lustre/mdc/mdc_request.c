@@ -1033,12 +1033,16 @@ out:
 	if (mod) {
 		if (rc != 0)
 			mod->mod_close_req = NULL;
+		if (mod->mod_close_req)
+			ptlrpc_request_addref(mod->mod_close_req);
+
 		/* Since now, mod is accessed through open_req only,
 		 * thus close req does not keep a reference on mod anymore.
 		 */
 		obd_mod_put(mod);
 	}
 	*request = req;
+
 	return rc < 0 ? rc : saved_rc;
 }
 
