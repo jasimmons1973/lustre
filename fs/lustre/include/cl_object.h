@@ -2260,8 +2260,6 @@ void cl_page_discard(const struct lu_env *env, struct cl_io *io,
 void cl_page_delete(const struct lu_env *env, struct cl_page *pg);
 void cl_page_touch(const struct lu_env *env, const struct cl_page *pg,
 		   size_t to);
-loff_t cl_offset(const struct cl_object *obj, pgoff_t idx);
-pgoff_t cl_index(const struct cl_object *obj, loff_t offset);
 int cl_pages_prune(const struct lu_env *env, struct cl_object *obj);
 
 void cl_lock_print(const struct lu_env *env, void *cookie,

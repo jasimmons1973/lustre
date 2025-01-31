@@ -249,13 +249,13 @@ static int __osc_extent_sanity_check(struct osc_extent *ext,
 	}
 
 	if (ext->oe_dlmlock &&
-	    ext->oe_dlmlock->l_resource->lr_type == LDLM_EXTENT &&
-	    !ldlm_is_failed(ext->oe_dlmlock)) {
+			ext->oe_dlmlock->l_resource->lr_type == LDLM_EXTENT &&
+			!ldlm_is_failed(ext->oe_dlmlock)) {
 		struct ldlm_extent *extent;
 
 		extent = &ext->oe_dlmlock->l_policy_data.l_extent;
-		if (!(extent->start <= cl_offset(osc2cl(obj), ext->oe_start) &&
-		      extent->end >= cl_offset(osc2cl(obj), ext->oe_max_end))) {
+		if (!(extent->start <= ext->oe_start << PAGE_SHIFT &&
+		      extent->end >= ext->oe_max_end << PAGE_SHIFT)) {
 			rc = 100;
 			goto out;
 		}
@@ -1331,10 +1331,10 @@ static int osc_refresh_count(const struct lu_env *env,
 		return result;
 
 	kms = attr->cat_kms;
-	if (cl_offset(obj, index) >= kms)
+	if (index << PAGE_SHIFT >= kms)
 		/* catch race with truncate */
 		return 0;
-	else if (cl_offset(obj, index + 1) > kms)
+	else if ((index + 1) << PAGE_SHIFT > kms)
 		/* catch sub-page write at end of file */
 		return kms & ~PAGE_MASK;
 	else
@@ -2777,8 +2777,8 @@ int osc_cache_truncate_start(const struct lu_env *env, struct osc_object *obj,
 	bool partial;
 
 	/* pages with index greater or equal to index will be truncated. */
-	index = cl_index(osc2cl(obj), size);
-	partial = size > cl_offset(osc2cl(obj), index);
+	index = size >> PAGE_SHIFT;
+	partial = size > (index << PAGE_SHIFT);
 
 again:
 	osc_object_lock(obj);
@@ -3248,12 +3248,11 @@ static bool check_and_discard_cb(const struct lu_env *env, struct cl_io *io,
 				u64 start = tmp->l_policy_data.l_extent.start;
 
 				/* no lock covering this page */
-				if (index < cl_index(osc2cl(osc), start)) {
+				if (index < start >> PAGE_SHIFT) {
 					/* no lock at @index,
 					 * first lock at @start
 					 */
-					info->oti_ng_index = cl_index(osc2cl(osc),
-								      start);
+					info->oti_ng_index = start >> PAGE_SHIFT;
 					discard = true;
 				} else {
 					/* Cache the first-non-overlapped
@@ -3263,8 +3262,8 @@ static bool check_and_discard_cb(const struct lu_env *env, struct cl_io *io,
 					 * is canceled, it will discard these
 					 * pages.
 					 */
-					info->oti_fn_index = cl_index(osc2cl(osc),
-								      end + 1);
+					info->oti_fn_index =
+						(end + 1) >> PAGE_SHIFT;
 					if (end == OBD_OBJECT_EOF)
 						info->oti_fn_index = CL_PAGE_EOF;
 				}

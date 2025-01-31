@@ -111,8 +111,8 @@ void osc_index2policy(union ldlm_policy_data *policy,
 		      pgoff_t start, pgoff_t end)
 {
 	memset(policy, 0, sizeof(*policy));
-	policy->l_extent.start = cl_offset(obj, start);
-	policy->l_extent.end = cl_offset(obj, end + 1) - 1;
+	policy->l_extent.start = start << PAGE_SHIFT;
+	policy->l_extent.end = ((end + 1) << PAGE_SHIFT) - 1;
 }
 
 static int osc_page_print(const struct lu_env *env,
@@ -247,7 +247,7 @@ int osc_page_init(const struct lu_env *env, struct cl_object *obj,
 	opg->ops_to = PAGE_SIZE - 1;
 	INIT_LIST_HEAD(&opg->ops_lru);
 
-	result = osc_prep_async_page(osc, opg, cl_page, cl_offset(obj, index));
+	result = osc_prep_async_page(osc, opg, cl_page, index << PAGE_SHIFT);
 	if (result != 0)
 		return result;
 

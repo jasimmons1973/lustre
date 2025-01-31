@@ -449,7 +449,7 @@ out:
 	if (vmf->page && result == VM_FAULT_LOCKED) {
 		ll_rw_stats_tally(ll_i2sbi(file_inode(vma->vm_file)),
 				  current->pid, vma->vm_file->private_data,
-				  cl_offset(NULL, vmf->page->index), PAGE_SIZE,
+				  vmf->page->index << PAGE_SHIFT, PAGE_SIZE,
 				  READ);
 		ll_stats_ops_tally(ll_i2sbi(file_inode(vma->vm_file)),
 				   LPROC_LL_FAULT,
@@ -522,7 +522,7 @@ out:
 	if (ret == VM_FAULT_LOCKED) {
 		ll_rw_stats_tally(ll_i2sbi(file_inode(vma->vm_file)),
 				  current->pid, vma->vm_file->private_data,
-				  cl_offset(NULL, vmf->page->index), PAGE_SIZE,
+				  vmf->page->index << PAGE_SHIFT, PAGE_SIZE,
 				  WRITE);
 		ll_stats_ops_tally(ll_i2sbi(file_inode(vma->vm_file)),
 				   LPROC_LL_MKWRITE,

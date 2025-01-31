@@ -514,8 +514,8 @@ static int lov_io_slice_init(struct lov_io *lio, struct lov_object *obj,
 	case CIT_FAULT: {
 		pgoff_t index = io->u.ci_fault.ft_index;
 
-		lio->lis_pos = cl_offset(io->ci_obj, index);
-		lio->lis_endpos = cl_offset(io->ci_obj, index + 1);
+		lio->lis_pos = index << PAGE_SHIFT;
+		lio->lis_endpos = (index + 1) << PAGE_SHIFT;
 		break;
 	}
 
@@ -699,12 +699,11 @@ static void lov_io_sub_inherit(struct lov_io_sub *sub, struct lov_io *lio,
 		break;
 	}
 	case CIT_FAULT: {
-		struct cl_object *obj = parent->ci_obj;
-		u64 off = cl_offset(obj, parent->u.ci_fault.ft_index);
+		loff_t off = parent->u.ci_fault.ft_index << PAGE_SHIFT;
 
 		io->u.ci_fault = parent->u.ci_fault;
 		off = lov_size_to_stripe(lsm, index, off, stripe);
-		io->u.ci_fault.ft_index = cl_index(obj, off);
+		io->u.ci_fault.ft_index = off >> PAGE_SHIFT;
 		break;
 	}
 	case CIT_FSYNC: {
@@ -1131,7 +1130,6 @@ static int lov_io_read_ahead(const struct lu_env *env,
 {
 	struct lov_io *lio = cl2lov_io(env, ios);
 	struct lov_object *loo = lio->lis_object;
-	struct cl_object *obj = lov2cl(loo);
 	struct lov_layout_raid0 *r0;
 	unsigned int pps; /* pages per stripe */
 	struct lov_io_sub *sub;
@@ -1142,7 +1140,7 @@ static int lov_io_read_ahead(const struct lu_env *env,
 	int index;
 	int rc;
 
-	offset = cl_offset(obj, start);
+	offset = start << PAGE_SHIFT;
 	index = lov_io_layout_at(lio, offset);
 	if (index < 0 || !lsm_entry_inited(loo->lo_lsm, index) ||
 	    lsm_entry_is_foreign(loo->lo_lsm, index))
@@ -1164,8 +1162,7 @@ static int lov_io_read_ahead(const struct lu_env *env,
 
 	lov_stripe_offset(loo->lo_lsm, index, offset, stripe, &suboff);
 	rc = cl_io_read_ahead(sub->sub_env, &sub->sub_io,
-			      cl_index(lovsub2cl(r0->lo_sub[stripe]), suboff),
-			      ra);
+			      suboff >> PAGE_SHIFT, ra);
 
 	CDEBUG(D_READA, DFID " cra_end = %lu, stripes = %d, rc = %d\n",
 	       PFID(lu_object_fid(lov2lu(loo))), ra->cra_end_idx,
@@ -1188,7 +1185,7 @@ static int lov_io_read_ahead(const struct lu_env *env,
 						   ra_end, stripe);
 
 	/* boundary of current component */
-	ra_end = cl_index(obj, (loff_t)lov_io_extent(lio, index)->e_end);
+	ra_end = lov_io_extent(lio, index)->e_end >> PAGE_SHIFT;
 	if (ra_end != CL_PAGE_EOF && ra->cra_end_idx >= ra_end)
 		ra->cra_end_idx = ra_end - 1;
 
@@ -1444,7 +1441,7 @@ static int lov_io_fault_start(const struct lu_env *env,
 	 * refer to another mirror of an old IO.
 	 */
 	if (lov_is_flr(lio->lis_object)) {
-		offset = cl_offset(ios->cis_obj, fio->ft_index);
+		offset = fio->ft_index << PAGE_SHIFT;
 		entry = lov_io_layout_at(lio, offset);
 		if (entry < 0) {
 			CERROR(DFID": page fault index %lu invalid component: %d, mirror: %d\n",
