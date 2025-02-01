@@ -48,6 +48,7 @@
 #include <lustre_net.h>
 #include <lustre_import.h>
 #include <lustre_handles.h>
+#include <linux/interval_tree_generic.h>
 #include <lu_ref.h>
 
 #include "lustre_dlm_flags.h"
@@ -574,7 +575,7 @@ struct ldlm_glimpse_work {
  * Interval tree for extent locks.
  * The interval tree must be accessed under the resource lock.
  * Interval trees are used for granted extent locks to speed up conflicts
- * lookup. See ldlm/interval_tree.c for more details.
+ * lookup.
  */
 struct ldlm_interval_tree {
 	/** Tree size. */
@@ -666,11 +667,14 @@ struct ldlm_lock {
 	 * Protected by lr_lock in struct ldlm_resource.
 	 */
 	struct list_head		l_res_link;
+
 	/**
-	 * Interval-tree node for ldlm_extent.
+	 * Internal structure per lock type..
 	 */
+	/* LDLM_EXTENT locks only */
+	struct ldlm_extent		l_req_extent;
 	struct rb_node			l_rb;
-	u64				__subtree_last;
+	u64				l_subtree_last;
 
 	/**
 	 * Requested mode.
@@ -749,9 +753,6 @@ struct ldlm_lock {
 	 * Time, in nanoseconds, last used by e.g. being matched by lock match.
 	 */
 	ktime_t				l_last_used;
-
-	/** Originally requested extent for the extent lock. */
-	struct ldlm_extent		l_req_extent;
 
 	/*
 	 * Client-side-only members.
@@ -857,6 +858,15 @@ enum ldlm_match_flags {
 	LDLM_MATCH_RIGHT	= BIT(3),
 	LDLM_MATCH_GROUP	= BIT(4),
 };
+
+#define extent_last(tree) rb_entry_safe(rb_last(&tree->lit_root.rb_root),\
+					struct ldlm_lock, l_rb)
+#define extent_first(tree) rb_entry_safe(rb_first(&tree->lit_root.rb_root),\
+					 struct ldlm_lock, l_rb)
+#define extent_top(tree) rb_entry_safe(tree->lit_root.rb_root.rb_node, \
+				       struct ldlm_lock, l_rb)
+#define extent_prev(lock) rb_entry_safe(rb_prev(&lock->l_rb),		\
+					struct ldlm_lock, l_rb)
 
 /**
  * Describe the overlap between two locks.  itree_overlap_cb data.

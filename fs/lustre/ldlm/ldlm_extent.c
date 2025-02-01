@@ -63,7 +63,7 @@
 
 #define START(node) ISTART((node)->l_policy_data.l_extent.end)
 #define LAST(node) IEND((node)->l_policy_data.l_extent.start)
-INTERVAL_TREE_DEFINE(struct ldlm_lock, l_rb, u64, __subtree_last,
+INTERVAL_TREE_DEFINE(struct ldlm_lock, l_rb, u64, l_subtree_last,
 		     START, LAST, static, extent);
 
 /* When a lock is cancelled by a client, the KMS may undergo change if this
@@ -81,7 +81,7 @@ u64 ldlm_extent_shift_kms(struct ldlm_lock *lock, u64 old_kms)
 	struct ldlm_lock *lck;
 	u64 kms = 0;
 	int idx = 0;
-	bool complete;
+	bool complete = false;
 
 	/* don't let another thread in ldlm_extent_shift_kms race in
 	 * just after we finish and take our lock into account in its
@@ -90,22 +90,27 @@ u64 ldlm_extent_shift_kms(struct ldlm_lock *lock, u64 old_kms)
 	ldlm_set_kms_ignore(lock);
 
 	/* We iterate over the lock trees, looking for the largest kms
-	 * smaller than the current one.  Note that each tree is
-	 * iterated starting a largest end, because the interval tree
-	 * is stored last-to-first order.
+	 * smaller than the current one.
 	 */
 	for (idx = 0; idx < LCK_MODE_NUM; idx++) {
 		tree = &res->lr_itree[idx];
 
-		for (lck = extent_iter_first(&tree->lit_root, 0, U64_MAX);
+		/* If our already known kms is >= than the highest 'end' in
+		 * this tree, we don't need to check this tree, because
+		 * the kms from a tree can be lower than in_max_high (due to
+		 * kms_ignore), but it can never be higher.
+		 */
+		lck = extent_top(tree);
+		if (!lck || kms >= lck->l_subtree_last)
+			continue;
+
+		for (lck = extent_last(tree);
 		     lck;
-		     lck = extent_iter_next(lck, 0, U64_MAX)) {
+		     lck = extent_prev(lck)) {
 			if (ldlm_is_kms_ignore(lck))
 				continue;
 
-			/* This is the last lock-end that doesn't ignore
-			 * kms.
-			 * If it has a greater or equal kms, we are not
+			/* If this lock has a greater or equal kms, we are not
 			 * the highest lock (or we share that distinction
 			 * with another lock), and don't need to update KMS.
 			 * Record old_kms and stop looking.
@@ -114,9 +119,21 @@ u64 ldlm_extent_shift_kms(struct ldlm_lock *lock, u64 old_kms)
 			    lck->l_policy_data.l_extent.end + 1 >= old_kms) {
 				kms = old_kms;
 				complete = true;
-			} else
+				break;
+			}
+			if (lck->l_policy_data.l_extent.end + 1 > kms)
 				kms = lck->l_policy_data.l_extent.end + 1;
-			break;
+
+			/* Since we start with the highest lock and work
+			 * down, for PW locks, we only need to check if we
+			 * should update the kms, then stop walking the tree.
+			 * PR locks are not exclusive, so the highest start
+			 * does not imply the highest end and we must
+			 * continue.  (Only one group lock is allowed per
+			 * resource, so this is irrelevant for group locks.)
+			 */
+			if (lck->l_granted_mode == LCK_PW)
+				break;
 		}
 
 		/* this tells us we're not the highest lock, so we don't need
@@ -126,8 +143,7 @@ u64 ldlm_extent_shift_kms(struct ldlm_lock *lock, u64 old_kms)
 			break;
 	}
 
-	LASSERTF(kms <= old_kms, "kms %llu old_kms %llu\n", kms,
-		 old_kms);
+	LASSERTF(kms <= old_kms, "kms %llu old_kms %llu\n", kms, old_kms);
 
 	return kms;
 }
@@ -204,8 +220,11 @@ void ldlm_extent_unlink_lock(struct ldlm_lock *lock)
 	LASSERT(lock->l_granted_mode == BIT(idx));
 	tree = &res->lr_itree[idx];
 
+	LASSERT(!RB_EMPTY_ROOT(&tree->lit_root.rb_root));
+
 	tree->lit_size--;
 	extent_remove(lock, &tree->lit_root);
+	RB_CLEAR_NODE(&lock->l_rb);
 }
 
 void ldlm_extent_policy_wire_to_local(const union ldlm_wire_policy_data *wpolicy,

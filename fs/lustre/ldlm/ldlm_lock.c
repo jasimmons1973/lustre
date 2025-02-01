@@ -182,8 +182,6 @@ void ldlm_lock_put(struct ldlm_lock *lock)
 		lprocfs_counter_decr(ldlm_res_to_ns(res)->ns_stats,
 				     LDLM_NSS_LOCKS);
 		lu_ref_del(&res->lr_reference, "lock", lock);
-		ldlm_resource_putref(res);
-		lock->l_resource = NULL;
 		if (lock->l_export) {
 			class_export_lock_put(lock->l_export, lock);
 			lock->l_export = NULL;
@@ -191,6 +189,8 @@ void ldlm_lock_put(struct ldlm_lock *lock)
 
 		kvfree(lock->l_lvb_data);
 
+		ldlm_resource_putref(res);
+		lock->l_resource = NULL;
 		lu_ref_fini(&lock->l_reference);
 		call_rcu(&lock->l_handle.h_rcu, lock_handle_free);
 	}
@@ -399,6 +399,7 @@ static struct ldlm_lock *ldlm_lock_new(struct ldlm_resource *resource)
 	lock->l_blocking_lock = NULL;
 	INIT_LIST_HEAD(&lock->l_sl_mode);
 	INIT_LIST_HEAD(&lock->l_sl_policy);
+	/* LDLM_EXTENT */
 	RB_CLEAR_NODE(&lock->l_rb);
 
 	lprocfs_counter_incr(ldlm_res_to_ns(resource)->ns_stats,
@@ -1042,6 +1043,8 @@ void ldlm_grant_lock(struct ldlm_lock *lock, struct list_head *work_list)
  *
  * @lock	test-against this lock
  * @data	parameters
+ *
+ * RETURN	returns true if @lock matches @data, false otherwise
  */
 static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 {
@@ -1052,15 +1055,13 @@ static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 	if (lock == data->lmd_old)
 		return true;
 
-	/*
-	 * Check if this lock can be matched.
+	/* Check if this lock can be matched.
 	 * Used by LU-2919(exclusive open) for open lease lock
 	 */
 	if (ldlm_is_excl(lock))
 		return false;
 
-	/*
-	 * llite sometimes wants to match locks that will be
+	/* llite sometimes wants to match locks that will be
 	 * canceled when their users drop, but we allow it to match
 	 * if it passes in CBPENDING and the lock still has users.
 	 * this is generally only going to be used by children
@@ -1106,10 +1107,7 @@ static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 			return false;
 		break;
 	case LDLM_IBITS:
-		/*
-		 * We match if we have existing lock with same or wider set
-		 * of bits.
-		 */
+		/* We match with existing lock with same or wider set of bits. */
 		if ((lpol->l_inodebits.bits &
 		     data->lmd_policy->l_inodebits.bits) !=
 		    data->lmd_policy->l_inodebits.bits)
@@ -1124,10 +1122,8 @@ static bool lock_matches(struct ldlm_lock *lock, void *vdata)
 	default:
 		break;
 	}
-	/*
-	 * We match if we have existing lock with same or wider set
-	 * of bits.
-	 */
+
+	/* We match if we have existing lock with same or wider set of bits. */
 	if (!(data->lmd_match & LDLM_MATCH_UNREF) && LDLM_HAVE_MASK(lock, GONE))
 		return false;
 
@@ -1168,16 +1164,13 @@ matched:
 struct ldlm_lock *search_itree(struct ldlm_resource *res,
 			       struct ldlm_match_data *data)
 {
-	struct ldlm_extent ext = {
-		.start	= data->lmd_policy->l_extent.start,
-		.end	= data->lmd_policy->l_extent.end
-	};
+	u64 end = data->lmd_policy->l_extent.end;
 	int idx;
 
 	data->lmd_lock = NULL;
 
 	if (data->lmd_match & LDLM_MATCH_RIGHT)
-		ext.end = OBD_OBJECT_EOF;
+		end = OBD_OBJECT_EOF;
 
 	for (idx = 0; idx < LCK_MODE_NUM; idx++) {
 		struct ldlm_interval_tree *tree = &res->lr_itree[idx];
@@ -1188,7 +1181,9 @@ struct ldlm_lock *search_itree(struct ldlm_resource *res,
 		if (!(tree->lit_mode & *data->lmd_mode))
 			continue;
 
-		ldlm_extent_search(&tree->lit_root, ext.start, ext.end,
+		ldlm_extent_search(&tree->lit_root,
+				   data->lmd_policy->l_extent.start,
+				   end,
 				   lock_matches, data);
 		if (data->lmd_lock)
 			return data->lmd_lock;
@@ -1557,7 +1552,7 @@ struct ldlm_lock *ldlm_lock_create(struct ldlm_namespace *ns,
 {
 	struct ldlm_lock *lock;
 	struct ldlm_resource *res;
-	int rc;
+	int rc = 0;
 
 	res = ldlm_resource_get(ns, res_id, type, 1);
 	if (IS_ERR(res))
@@ -1603,11 +1598,13 @@ out:
 
 /**
  * Enqueue (request) a lock.
- * On the client this is called from ldlm_cli_enqueue_fini
- * after we already got an initial reply from the server with some status.
  *
  * Does not block. As a result of enqueue the lock would be put
  * into granted or waiting list.
+ *
+ * If namespace has intent policy sent and the lock has LDLM_FL_HAS_INTENT flag
+ * set, skip all the enqueueing and delegate lock processing to intent policy
+ * function.
  */
 enum ldlm_error ldlm_lock_enqueue(const struct lu_env *env,
 				  struct ldlm_namespace *ns,
@@ -1616,6 +1613,7 @@ enum ldlm_error ldlm_lock_enqueue(const struct lu_env *env,
 {
 	struct ldlm_lock *lock = *lockp;
 	struct ldlm_resource *res;
+	enum ldlm_error rc = ELDLM_OK;
 
 	res = lock_res_and_lock(lock);
 	if (ldlm_is_granted(lock)) {
@@ -1637,8 +1635,7 @@ enum ldlm_error ldlm_lock_enqueue(const struct lu_env *env,
 	if (*flags & LDLM_FL_TEST_LOCK)
 		ldlm_set_test_lock(lock);
 
-	/*
-	 * This distinction between local lock trees is very important; a client
+	/* This distinction between local lock trees is very important; a client
 	 * namespace only has information about locks taken by that client, and
 	 * thus doesn't have enough information to decide for itself if it can
 	 * be granted (below).  In this case, we do exactly what the server
@@ -1651,7 +1648,7 @@ enum ldlm_error ldlm_lock_enqueue(const struct lu_env *env,
 
 out:
 	unlock_res_and_lock(lock);
-	return ELDLM_OK;
+	return rc;
 }
 
 /**

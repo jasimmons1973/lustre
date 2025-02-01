@@ -1283,17 +1283,18 @@ int ldlm_init(void)
 						    0, SLAB_HWCACHE_ALIGN,
 						    NULL);
 	if (!ldlm_interval_tree_slab)
-		goto out_lock;
+		goto out_lock_slab;
 
 #if LUSTRE_TRACKS_LOCK_EXP_REFS
 	class_export_dump_hook = ldlm_dump_export_locks;
 #endif
 	return 0;
 
-out_lock:
+out_lock_slab:
 	kmem_cache_destroy(ldlm_lock_slab);
 out_resource:
 	kmem_cache_destroy(ldlm_resource_slab);
+
 	return -ENOMEM;
 }
 
