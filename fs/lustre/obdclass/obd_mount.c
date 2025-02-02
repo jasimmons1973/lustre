@@ -280,22 +280,25 @@ int lustre_start_mgc(struct super_block *sb)
 		if (lmd_is_client(lsi->lsi_lmd)) {
 			int has_ir;
 			int vallen = sizeof(*data);
-			u32 *flags = &lsi->lsi_lmd->lmd_flags;
 
 			rc = obd_get_info(NULL, obd->obd_self_export,
 					  strlen(KEY_CONN_DATA), KEY_CONN_DATA,
 					  &vallen, data);
 			LASSERT(rc == 0);
 			has_ir = OCD_HAS_FLAG(data, IMP_RECOV);
-			if (has_ir ^ !(*flags & LMD_FLG_NOIR)) {
+			if (has_ir ^ !test_bit(LMD_FLG_NOIR,
+					       lsi->lsi_lmd->lmd_flags)) {
 				/* LMD_FLG_NOIR is for test purpose only */
 				LCONSOLE_WARN(
 					"Trying to mount a client with IR setting not compatible with current mgc. Force to use current mgc setting that is IR %s.\n",
 					has_ir ? "enabled" : "disabled");
-				if (has_ir)
-					*flags &= ~LMD_FLG_NOIR;
-				else
-					*flags |= LMD_FLG_NOIR;
+				if (has_ir) {
+					clear_bit(LMD_FLG_NOIR,
+						  lsi->lsi_lmd->lmd_flags);
+				} else {
+					set_bit(LMD_FLG_NOIR,
+						lsi->lsi_lmd->lmd_flags);
+				}
 			}
 		}
 
@@ -408,7 +411,7 @@ int lustre_start_mgc(struct super_block *sb)
 	data->ocd_connect_flags2 = OBD_CONNECT2_REP_MBITS;
 
 	if (lmd_is_client(lsi->lsi_lmd) &&
-	    lsi->lsi_lmd->lmd_flags & LMD_FLG_NOIR)
+	    test_bit(LMD_FLG_NOIR, lsi->lsi_lmd->lmd_flags))
 		data->ocd_connect_flags &= ~OBD_CONNECT_IMP_RECOV;
 	data->ocd_version = LUSTRE_VERSION_CODE;
 	rc = obd_connect(NULL, &exp, obd, uuid, data, NULL);
@@ -695,7 +698,6 @@ static void lmd_print(struct lustre_mount_data *lmd)
 	if (lmd_is_client(lmd))
 		PRINT_CMD(D_MOUNT, "profile: %s\n", lmd->lmd_profile);
 	PRINT_CMD(D_MOUNT, "device:  %s\n", lmd->lmd_dev);
-	PRINT_CMD(D_MOUNT, "flags:   %x\n", lmd->lmd_flags);
 
 	if (lmd->lmd_opts)
 		PRINT_CMD(D_MOUNT, "options: %s\n", lmd->lmd_opts);
@@ -1053,8 +1055,12 @@ int lmd_parse(char *options, struct lustre_mount_data *lmd)
 		/* Parse non-ldiskfs options here. Rather than modifying
 		 * ldiskfs, we just zero these out here
 		 */
-		if (strncmp(s1, "abort_recov", 11) == 0) {
-			lmd->lmd_flags |= LMD_FLG_ABORT_RECOV;
+		if (!strncmp(s1, "abort_recov_mdt", 15) ||
+		    !strncmp(s1, "abort_recovery_mdt", 18)) {
+			set_bit(LMD_FLG_ABORT_RECOV_MDT, lmd->lmd_flags);
+			clear++;
+		} else if (strncmp(s1, "abort_recov", 11) == 0) {
+			set_bit(LMD_FLG_ABORT_RECOV, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, "recovery_time_soft=", 19) == 0) {
 			lmd->lmd_recovery_time_soft = max_t(int,
@@ -1064,17 +1070,26 @@ int lmd_parse(char *options, struct lustre_mount_data *lmd)
 			lmd->lmd_recovery_time_hard = max_t(int,
 				simple_strtoul(s1 + 19, NULL, 10), time_min);
 			clear++;
-		} else if (strncmp(s1, "noir", 4) == 0) {
-			lmd->lmd_flags |= LMD_FLG_NOIR; /* test purpose only. */
+		} else if (strncmp(s1, "no_precreate", 12) == 0) {
+			set_bit(LMD_FLG_NO_PRECREATE, lmd->lmd_flags);
+			clear++;
+		} else if (strncmp(s1, "noir", 4) == 0) { /* test case only */
+			set_bit(LMD_FLG_NOIR, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, "nosvc", 5) == 0) {
-			lmd->lmd_flags |= LMD_FLG_NOSVC;
+			set_bit(LMD_FLG_NOSVC, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, "nomgs", 5) == 0) {
-			lmd->lmd_flags |= LMD_FLG_NOMGS;
+			set_bit(LMD_FLG_NOMGS, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, "noscrub", 7) == 0) {
-			lmd->lmd_flags |= LMD_FLG_NOSCRUB;
+			set_bit(LMD_FLG_NOSCRUB, lmd->lmd_flags);
+			clear++;
+		} else if (strncmp(s1, "skip_lfsck", 10) == 0) {
+			set_bit(LMD_FLG_SKIP_LFSCK, lmd->lmd_flags);
+			clear++;
+		} else if (strncmp(s1, "rdonly_dev", 10) == 0) {
+			set_bit(LMD_FLG_DEV_RDONLY, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, PARAM_MGSNODE,
 				   sizeof(PARAM_MGSNODE) - 1) == 0) {
@@ -1087,16 +1102,19 @@ int lmd_parse(char *options, struct lustre_mount_data *lmd)
 				goto invalid;
 			clear++;
 		} else if (strncmp(s1, "writeconf", 9) == 0) {
-			lmd->lmd_flags |= LMD_FLG_WRITECONF;
+			set_bit(LMD_FLG_WRITECONF, lmd->lmd_flags);
+			clear++;
+		} else if (strncmp(s1, "nolocallogs", 11) == 0) {
+			set_bit(LMD_FLG_NO_LOCAL_LOGS, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, "update", 6) == 0) {
-			lmd->lmd_flags |= LMD_FLG_UPDATE;
+			set_bit(LMD_FLG_UPDATE, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, "virgin", 6) == 0) {
-			lmd->lmd_flags |= LMD_FLG_VIRGIN;
+			set_bit(LMD_FLG_VIRGIN, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, "noprimnode", 10) == 0) {
-			lmd->lmd_flags |= LMD_FLG_NO_PRIMNODE;
+			set_bit(LMD_FLG_NO_PRIMNODE, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, "mgssec=", 7) == 0) {
 			rc = lmd_parse_mgssec(lmd, s1 + 7);
@@ -1112,7 +1130,7 @@ int lmd_parse(char *options, struct lustre_mount_data *lmd)
 			clear++;
 		} else if (strncmp(s1, "mgs", 3) == 0) {
 			/* We are an MGS */
-			lmd->lmd_flags |= LMD_FLG_MGS;
+			set_bit(LMD_FLG_MGS, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, "svname=", 7) == 0) {
 			rc = lmd_parse_string(&lmd->lmd_profile, s1 + 7);
@@ -1142,6 +1160,9 @@ int lmd_parse(char *options, struct lustre_mount_data *lmd)
 			lmd->lmd_params[params_length + length] = '\0';
 			strlcat(lmd->lmd_params, " ", LMD_PARAMS_MAXLEN);
 			s3 = s1 + 6 + length;
+			clear++;
+		} else if (strncmp(s1, "localrecov", 10) == 0) {
+			set_bit(LMD_FLG_LOCAL_RECOV, lmd->lmd_flags);
 			clear++;
 		} else if (strncmp(s1, "osd=", 4) == 0) {
 			rc = lmd_parse_string(&lmd->lmd_osd_type, s1 + 4);
@@ -1196,7 +1217,7 @@ int lmd_parse(char *options, struct lustre_mount_data *lmd)
 	s1 = strstr(devname, ":/");
 	if (s1) {
 		++s1;
-		lmd->lmd_flags |= LMD_FLG_CLIENT;
+		set_bit(LMD_FLG_CLIENT, lmd->lmd_flags);
 		/* Remove leading /s from fsname */
 		while (*++s1 == '/')
 			;
@@ -1248,7 +1269,6 @@ int lmd_parse(char *options, struct lustre_mount_data *lmd)
 	}
 
 	lmd_print(lmd);
-	lmd->lmd_magic = LMD_MAGIC;
 
 	return rc;
 
