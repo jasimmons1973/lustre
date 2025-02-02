@@ -47,6 +47,7 @@
 #include <uapi/linux/lustre/lustre_ioctl.h>
 #include <uapi/linux/lnet/libcfs_ioctl.h>
 #include "llog_internal.h"
+#include <lustre_ioctl_old.h>
 
 /* The following are visible and mutable through /sys/fs/lustre. */
 unsigned int obd_debug_peer_on_timeout;
@@ -308,7 +309,8 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 	int rc = 0, len = 0;
 
 	CDEBUG(D_IOCTL, "obdclass: cmd=%x len=%u uarg=%pK\n", cmd, len, uarg);
-	if (unlikely(_IOC_TYPE(cmd) != 'f' && cmd != IOC_OSC_SET_ACTIVE))
+	 if (unlikely(_IOC_TYPE(cmd) != 'f' &&
+		      !IOC_OSC_SET_ACTIVE_ALLOW(cmd)))
 		return OBD_IOC_ERROR(obd->obd_name, cmd, "unknown", -ENOTTY);
 
 	rc = obd_ioctl_getdata(&data, &len, uarg);
@@ -341,14 +343,8 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 		goto out;
 	}
 
-	case OBD_GET_VERSION: {
-		/* This was the method to pass to user land the lustre version.
-		 * Today that information is in the sysfs tree so we can in the
-		 * future remove this.
-		 */
-		BUILD_BUG_ON(OBD_OCD_VERSION(3, 0, 53, 0) <=
-			     LUSTRE_VERSION_CODE);
-
+#ifdef OBD_GET_VERSION
+	case_OBD_IOC_DEPRECATED(OBD_GET_VERSION, "obdclass", 2, 15)
 		if (!data->ioc_inlbuf1) {
 			rc = OBD_IOC_ERROR("obdclass", cmd, "no buffer passed",
 					   -EINVAL);
@@ -361,16 +357,13 @@ int class_handle_ioctl(unsigned int cmd, void __user *uarg)
 			goto out;
 		}
 
-		WARN_ONCE(1,
-			  "ioctl(OBD_GET_VERSION) is deprecated, use llapi_get_version_string() and/or relink\n");
-
 		memcpy(data->ioc_bulk, LUSTRE_VERSION_STRING,
 		       strlen(LUSTRE_VERSION_STRING) + 1);
 
 		if (copy_to_user(uarg, data, len))
 			rc = -EFAULT;
 		goto out;
-	}
+#endif
 	case OBD_IOC_NAME2DEV: {
 		/* Resolve a device name.  This does not change the
 		 * currently selected device.

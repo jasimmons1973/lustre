@@ -46,11 +46,12 @@
 #include <lustre_ha.h>
 #include <lprocfs_status.h>
 #include <uapi/linux/lustre/lustre_ioctl.h>
+#include <lustre_ioctl_old.h>
 #include <lustre_obdo.h>
+#include <lustre_osc.h>
 #include <lustre_fid.h>
 #include <obd_class.h>
 #include <obd.h>
-#include <lustre_osc.h>
 
 #include "osc_internal.h"
 
@@ -3397,7 +3398,10 @@ static int osc_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 		data = karg;
 		rc = obd_getattr(NULL, exp, &data->ioc_obdo1);
 		break;
-	case IOC_OSC_SET_ACTIVE:
+#ifdef IOC_OSC_SET_ACTIVE
+	case_OBD_IOC_DEPRECATED_FT(IOC_OSC_SET_ACTIVE, obd->obd_name, 2, 17);
+#endif
+	case OBD_IOC_SET_ACTIVE:
 		if (unlikely(!karg)) {
 			OBD_IOC_ERROR(obd->obd_name, cmd, "karg=NULL",
 				      rc = -EINVAL);

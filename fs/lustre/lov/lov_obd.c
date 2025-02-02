@@ -47,6 +47,7 @@
 #include <cl_object.h>
 #include <lustre_dlm.h>
 #include <lustre_fid.h>
+#include <lustre_ioctl_old.h>
 #include <lustre_lib.h>
 #include <lustre_net.h>
 #include <uapi/linux/lustre/lustre_param.h>
@@ -974,7 +975,7 @@ static int lov_iocontrol(unsigned int cmd, struct obd_export *exp, int len,
 	       exp->exp_obd->obd_name, cmd, len, karg, uarg);
 
 	/* exit early for unknown ioctl types */
-	if (unlikely(_IOC_TYPE(cmd) != 'f' && cmd != IOC_OSC_SET_ACTIVE))
+	if (unlikely(_IOC_TYPE(cmd) != 'f' && !IOC_OSC_SET_ACTIVE_ALLOW(cmd)))
 		return OBD_IOC_DEBUG(D_IOCTL, obd->obd_name, cmd, "unknown",
 				     -ENOTTY);
 

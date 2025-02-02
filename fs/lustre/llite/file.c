@@ -4204,39 +4204,10 @@ out:
 	case LL_IOC_LOV_GETSTRIPE:
 	case LL_IOC_LOV_GETSTRIPE_NEW:
 		return ll_file_getstripe(inode, uarg, 0);
-	case FS_IOC_GETFLAGS:
-	case FS_IOC_SETFLAGS:
-		return ll_iocontrol(inode, file, cmd, uarg);
-	case FSFILT_IOC_GETVERSION:
-	case FS_IOC_GETVERSION:
-		return put_user(inode->i_generation, (int __user *)arg);
-	/* We need to special case any other ioctls we want to handle,
-	 * to send them to the MDS/OST as appropriate and to properly
-	 * network encode the arg field.
-	 */
-	case FS_IOC_SETVERSION:
-		return -ENOTSUPP;
-
 	case LL_IOC_GROUP_LOCK:
 		return ll_get_grouplock(inode, file, arg);
 	case LL_IOC_GROUP_UNLOCK:
 		return ll_put_grouplock(inode, file, arg);
-	case IOC_OBD_STATFS:
-		return ll_obd_statfs(inode, uarg);
-
-	case LL_IOC_FLUSHCTX:
-		return ll_flush_ctx(inode);
-	case LL_IOC_PATH2FID: {
-		if (copy_to_user(uarg, ll_inode2fid(inode),
-				 sizeof(struct lu_fid)))
-			return -EFAULT;
-
-		return 0;
-	}
-	case LL_IOC_GETPARENT:
-		return ll_getparent(file, (struct getparent __user *)arg);
-	case OBD_IOC_FID2PATH:
-		return ll_fid2path(inode, uarg);
 	case LL_IOC_DATA_VERSION: {
 		struct ioc_data_version	idv;
 		int rc;
@@ -4246,31 +4217,11 @@ out:
 
 		idv.idv_flags &= LL_DV_RD_FLUSH | LL_DV_WR_FLUSH;
 		rc = ll_ioc_data_version(inode, &idv);
-		if (rc == 0 && copy_to_user(uarg, &idv,
-					    sizeof(idv)))
+		if (rc == 0 && copy_to_user(uarg, &idv, sizeof(idv)))
 			return -EFAULT;
 
 		return rc;
 	}
-
-	case LL_IOC_GET_MDTIDX: {
-		int mdtidx;
-
-		mdtidx = ll_get_mdt_idx(inode);
-		if (mdtidx < 0)
-			return mdtidx;
-
-		if (put_user(mdtidx, (int __user *)uarg))
-			return -EFAULT;
-
-		return 0;
-	}
-	case OBD_IOC_GETNAME_OLD:
-		fallthrough;
-	case OBD_IOC_GETDTNAME:
-		fallthrough;
-	case OBD_IOC_GETMDNAME:
-		return ll_get_obd_name(inode, cmd, uarg);
 	case LL_IOC_HSM_STATE_GET: {
 		struct md_op_data *op_data;
 		struct hsm_user_state *hus;

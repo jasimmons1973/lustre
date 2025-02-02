@@ -52,6 +52,7 @@
 
 #include <linux/libcfs/libcfs_cpu.h>
 #include <uapi/linux/lustre/lustre_ioctl.h>
+#include <lustre_ioctl_old.h>
 #include <lustre_ha.h>
 #include <lustre_dlm.h>
 #include <lprocfs_status.h>
@@ -3059,8 +3060,10 @@ int ll_iocontrol(struct inode *inode, struct file *file,
 	case OBD_IOC_FID2PATH:
 		rc = ll_fid2path(inode, uarg);
 		break;
-	case OBD_IOC_GETNAME_OLD:
-		fallthrough;
+#ifdef OBD_IOC_GETNAME_OLD
+	case_OBD_IOC_DEPRECATED_FT(OBD_IOC_GETNAME_OLD,
+				   sbi->ll_md_exp->exp_obd->obd_name, 2, 16);
+#endif
 	case OBD_IOC_GETDTNAME:
 		fallthrough;
 	case OBD_IOC_GETMDNAME:
@@ -3119,10 +3122,10 @@ void ll_umount_begin(struct super_block *sb)
 
 	ioc_data = kzalloc(sizeof(*ioc_data), GFP_NOFS);
 	if (ioc_data) {
-		obd_iocontrol(IOC_OSC_SET_ACTIVE, sbi->ll_md_exp,
+		obd_iocontrol(OBD_IOC_SET_ACTIVE, sbi->ll_md_exp,
 			      sizeof(*ioc_data), ioc_data, NULL);
 
-		obd_iocontrol(IOC_OSC_SET_ACTIVE, sbi->ll_dt_exp,
+		obd_iocontrol(OBD_IOC_SET_ACTIVE, sbi->ll_dt_exp,
 			      sizeof(*ioc_data), ioc_data, NULL);
 
 		kfree(ioc_data);
