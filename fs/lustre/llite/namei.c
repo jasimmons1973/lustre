@@ -726,10 +726,13 @@ static int ll_lookup_it_finish(struct ptlrpc_request *request,
 
 	if (!it_disposition(it, DISP_LOOKUP_NEG)) {
 		/* We have the "lookup" lock, so unhide dentry */
-		if (bits & MDS_INODELOCK_LOOKUP) {
+		if (bits & MDS_INODELOCK_LOOKUP)
 			d_lustre_revalidate(*de);
-			ll_update_dir_depth(parent, d_inode(*de));
-		}
+		/* open may not fetch LOOKUP lock, update dir depth/dmv anyway
+		 * in case it's used uninitialized.
+		 */
+		if (S_ISDIR(inode->i_mode))
+			ll_update_dir_depth_dmv(parent, *de);
 
 		if (encrypt) {
 			rc = fscrypt_get_encryption_info(inode);
@@ -1424,10 +1427,11 @@ static int ll_create_it(struct inode *dir, struct dentry *dentry,
 	ll_set_lock_data(ll_i2sbi(dir)->ll_md_exp, inode, it, &bits);
 	if (bits & MDS_INODELOCK_LOOKUP) {
 		d_lustre_revalidate(dentry);
-		ll_update_dir_depth(dir, inode);
+		if (S_ISDIR(inode->i_mode))
+			ll_update_dir_depth_dmv(dir, dentry);
 	}
 
-	return rc;
+	return 0;
 }
 
 void ll_update_times(struct ptlrpc_request *request, struct inode *inode)
@@ -1517,6 +1521,9 @@ static int ll_new_node(struct inode *dir, struct dentry *dchild,
 	struct ll_sb_info *sbi = ll_i2sbi(dir);
 	struct fscrypt_str *disk_link = NULL;
 	bool encrypt = false;
+	struct lmv_user_md *lum = NULL;
+	const void *data = NULL;
+	size_t datalen = 0;
 	int err;
 
 	if (unlikely(tgt)) {
@@ -1524,6 +1531,8 @@ static int ll_new_node(struct inode *dir, struct dentry *dchild,
 		rdev = 0;
 		if (!disk_link)
 			return -EINVAL;
+		data = disk_link->name;
+		datalen = disk_link->len;
 	}
 
 again:
@@ -1534,8 +1543,37 @@ again:
 		goto err_exit;
 	}
 
-	if (S_ISDIR(mode))
+	if (S_ISDIR(mode)) {
 		ll_qos_mkdir_prep(op_data, dir);
+		if ((exp_connect_flags2(ll_i2mdexp(dir)) &
+		     OBD_CONNECT2_DMV_IMP_INHERIT) &&
+		    op_data->op_default_mea1 && !lum) {
+			const struct lmv_stripe_md *lsm;
+
+			/* once DMV_IMP_INHERIT is set, pack default LMV in
+			 * create request.
+			 */
+			lum = kzalloc(sizeof(*lum), GFP_NOFS);
+			if (!lum) {
+				err = -ENOMEM;
+				goto err_exit;
+			}
+			lsm = op_data->op_default_mea1;
+			lum->lum_magic = cpu_to_le32(lsm->lsm_md_magic);
+			lum->lum_stripe_count =
+				cpu_to_le32(lsm->lsm_md_stripe_count);
+			lum->lum_stripe_offset =
+				cpu_to_le32(lsm->lsm_md_master_mdt_index);
+			lum->lum_hash_type =
+				cpu_to_le32(lsm->lsm_md_hash_type);
+			lum->lum_max_inherit = lsm->lsm_md_max_inherit;
+			lum->lum_max_inherit_rr = lsm->lsm_md_max_inherit_rr;
+			lum->lum_pool_name[0] = 0;
+			op_data->op_bias |= MDS_CREATE_DEFAULT_LMV;
+			data = lum;
+			datalen = sizeof(*lum);
+		}
+	}
 
 	if (test_bit(LL_SBI_FILE_SECCTX, sbi->ll_flags)) {
 		err = ll_dentry_init_security(dchild, mode, &dchild->d_name,
@@ -1596,11 +1634,13 @@ again:
 			dchild->d_sb->s_op->destroy_inode(fakeinode);
 			if (err)
 				goto err_exit;
+
+			data = disk_link->name;
+			datalen = disk_link->len;
 		}
 	}
 
-	err = md_create(sbi->ll_md_exp, op_data, tgt ? disk_link->name : NULL,
-			tgt ? disk_link->len : 0, mode,
+	err = md_create(sbi->ll_md_exp, op_data, data, datalen, mode,
 			from_kuid(&init_user_ns, current_fsuid()),
 			from_kgid(&init_user_ns, current_fsgid()),
 			current_cap(), rdev, &request);
@@ -1727,9 +1767,9 @@ again:
 err_exit:
 	if (request)
 		ptlrpc_req_finished(request);
-
 	if (!IS_ERR_OR_NULL(op_data))
 		ll_finish_md_op_data(op_data);
+	kfree(lum);
 
 	return err;
 }

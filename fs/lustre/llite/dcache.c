@@ -219,8 +219,9 @@ int ll_revalidate_it_finish(struct ptlrpc_request *request,
 	ll_set_lock_data(ll_i2sbi(inode)->ll_md_exp, inode, it,
 			 &bits);
 	if (bits & MDS_INODELOCK_LOOKUP) {
-		ll_update_dir_depth(de->d_parent->d_inode, inode);
 		d_lustre_revalidate(de);
+		if (S_ISDIR(inode->i_mode))
+			ll_update_dir_depth_dmv(de->d_parent->d_inode, de);
 	}
 
 	return rc;
@@ -263,8 +264,11 @@ static int ll_revalidate_dentry(struct dentry *dentry,
 	 * to this dentry, then its lock has not been revoked and the
 	 * path component is valid.
 	 */
-	if (lookup_flags & LOOKUP_PARENT)
+	if (lookup_flags & LOOKUP_PARENT) {
+		if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
+			ll_update_dir_depth_dmv(dir, dentry);
 		return 1;
+	}
 
 	/* Symlink - always valid as long as the dentry was found */
 	/* only special case is to prevent ELOOP error from VFS during open
@@ -297,6 +301,9 @@ static int ll_revalidate_dentry(struct dentry *dentry,
 
 	if (dentry_may_statahead(dir, dentry))
 		ll_revalidate_statahead(dir, &dentry, !d_inode(dentry));
+
+	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
+		ll_update_dir_depth_dmv(dir, dentry);
 
 	return 1;
 }

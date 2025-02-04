@@ -196,7 +196,12 @@ struct ll_inode_info {
 			 * statahead hit ratio is too low, or start statahead
 			 * thread failed.
 			 */
-			unsigned short			lli_sa_enabled:1;
+			unsigned short			lli_sa_enabled:1,
+			/* default LMV is explicitly set in inode on MDT, this
+			 * is for old server, or default LMV is set by
+			 * "lfs setdirstripe -D".
+			 */
+							lli_default_lmv_set:1;
 			/* generation for statahead */
 			unsigned int			lli_sa_generation;
 			/* rw lock protects lli_lsm_md */
@@ -1293,7 +1298,7 @@ int ll_statfs_internal(struct ll_sb_info *sbi, struct obd_statfs *osfs,
 		       u32 flags);
 int ll_update_inode(struct inode *inode, struct lustre_md *md);
 void ll_update_inode_flags(struct inode *inode, unsigned int ext_flags);
-void ll_update_dir_depth(struct inode *dir, struct inode *inode);
+void ll_update_dir_depth_dmv(struct inode *dir, struct dentry *de);
 int ll_read_inode2(struct inode *inode, void *opaque);
 void ll_truncate_inode_pages_final(struct inode *inode, struct cl_io *io);
 void ll_delete_inode(struct inode *inode);

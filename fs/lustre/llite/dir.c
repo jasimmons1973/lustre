@@ -655,6 +655,64 @@ int ll_dir_setstripe(struct inode *inode, struct lov_user_md *lump,
 	return rc;
 }
 
+/* get default LMV from client cache */
+static int ll_dir_get_default_lmv(struct inode *inode, struct lmv_user_md *lum)
+{
+	struct ll_inode_info *lli = ll_i2info(inode);
+	const struct lmv_stripe_md *lsm;
+	bool fs_dmv_got = false;
+	int rc = -ENODATA;
+
+retry:
+	if (lli->lli_default_lsm_md) {
+		down_read(&lli->lli_lsm_sem);
+		lsm = lli->lli_default_lsm_md;
+		if (lsm) {
+			lum->lum_magic = lsm->lsm_md_magic;
+			lum->lum_stripe_count = lsm->lsm_md_stripe_count;
+			lum->lum_stripe_offset = lsm->lsm_md_master_mdt_index;
+			lum->lum_hash_type = lsm->lsm_md_hash_type;
+			lum->lum_max_inherit = lsm->lsm_md_max_inherit;
+			lum->lum_max_inherit_rr = lsm->lsm_md_max_inherit_rr;
+			rc = 0;
+		}
+		up_read(&lli->lli_lsm_sem);
+	}
+
+	if (rc == -ENODATA && !is_root_inode(inode) && !fs_dmv_got) {
+		lli = ll_i2info(inode->i_sb->s_root->d_inode);
+		fs_dmv_got = true;
+		goto retry;
+	}
+
+	if (!rc && fs_dmv_got) {
+		lli = ll_i2info(inode);
+		if (lum->lum_max_inherit != LMV_INHERIT_UNLIMITED) {
+			if (lum->lum_max_inherit == LMV_INHERIT_NONE ||
+			    lum->lum_max_inherit < LMV_INHERIT_END ||
+			    lum->lum_max_inherit > LMV_INHERIT_MAX ||
+			    lum->lum_max_inherit <= lli->lli_dir_depth) {
+				rc = -ENODATA;
+				goto out;
+			}
+			lum->lum_max_inherit -= lli->lli_dir_depth;
+		}
+
+		if (lum->lum_max_inherit_rr != LMV_INHERIT_RR_UNLIMITED) {
+			if (lum->lum_max_inherit_rr == LMV_INHERIT_NONE ||
+			    lum->lum_max_inherit_rr < LMV_INHERIT_RR_END ||
+			    lum->lum_max_inherit_rr > LMV_INHERIT_RR_MAX ||
+			    lum->lum_max_inherit_rr <= lli->lli_dir_depth)
+				lum->lum_max_inherit_rr = LMV_INHERIT_RR_NONE;
+
+			if (lum->lum_max_inherit_rr > lli->lli_dir_depth)
+				lum->lum_max_inherit_rr -= lli->lli_dir_depth;
+		}
+	}
+out:
+	return rc;
+}
+
 int ll_dir_get_default_layout(struct inode *inode, void **plmm, int *plmm_size,
 			      struct ptlrpc_request **request, u64 valid,
 			      enum get_default_layout_type type)
@@ -1634,7 +1692,6 @@ out:
 		struct lmv_user_md __user *ulmv = uarg;
 		struct lmv_user_md lum;
 		struct ptlrpc_request *request = NULL;
-		struct ptlrpc_request *root_request = NULL;
 		struct lmv_user_md *tmp = NULL;
 		union lmv_mds_md *lmm = NULL;
 		u64 valid = 0;
@@ -1650,6 +1707,19 @@ out:
 		if (copy_from_user(&lum, ulmv, sizeof(*ulmv)))
 			return -EFAULT;
 
+		/* get default LMV */
+		if (lum.lum_magic == LMV_USER_MAGIC &&
+		    lum.lum_type != LMV_TYPE_RAW) {
+			rc = ll_dir_get_default_lmv(inode, &lum);
+			if (rc)
+				return rc;
+
+			if (copy_to_user(ulmv, &lum, sizeof(lum)))
+				return -EFAULT;
+
+			return 0;
+		}
+
 		max_stripe_count = lum.lum_stripe_count;
 		/*
 		 * lum_magic will indicate which stripe the ioctl will like
@@ -1664,64 +1734,12 @@ out:
 			return -EINVAL;
 
 		rc = ll_dir_getstripe_default(inode, (void **)&lmm, &lmmsize,
-					      &request, &root_request, valid);
+					      &request, NULL, valid);
 		if (rc)
 			goto finish_req;
 
-		/* Get default LMV EA */
+		/* Get default LMV EA in raw mode */
 		if (lum.lum_magic == LMV_USER_MAGIC) {
-			struct lmv_user_md *lum;
-			struct ll_inode_info *lli;
-
-			if (lmmsize > sizeof(*ulmv)) {
-				rc = -EINVAL;
-				goto finish_req;
-			}
-
-			lum = (struct lmv_user_md *)lmm;
-			if (lum->lum_max_inherit == LMV_INHERIT_NONE) {
-				rc = -ENODATA;
-				goto finish_req;
-			}
-
-			if (root_request) {
-				lli = ll_i2info(inode);
-				if (lum->lum_max_inherit !=
-				    LMV_INHERIT_UNLIMITED) {
-					if (lum->lum_max_inherit <
-						LMV_INHERIT_END ||
-					    lum->lum_max_inherit >
-						LMV_INHERIT_MAX ||
-					    lum->lum_max_inherit <=
-						lli->lli_dir_depth) {
-						rc = -ENODATA;
-						goto finish_req;
-					}
-
-					lum->lum_max_inherit -=
-						lli->lli_dir_depth;
-				}
-
-				if (lum->lum_max_inherit_rr !=
-				    LMV_INHERIT_RR_UNLIMITED) {
-					if (lum->lum_max_inherit_rr ==
-						LMV_INHERIT_NONE ||
-					    lum->lum_max_inherit_rr <
-						LMV_INHERIT_RR_END ||
-					    lum->lum_max_inherit_rr >
-						LMV_INHERIT_RR_MAX ||
-					    lum->lum_max_inherit_rr <=
-						lli->lli_dir_depth) {
-						lum->lum_max_inherit_rr =
-							LMV_INHERIT_RR_NONE;
-						goto out_copy;
-					}
-
-					lum->lum_max_inherit_rr -=
-						lli->lli_dir_depth;
-				}
-			}
-out_copy:
 			if (copy_to_user(ulmv, lmm, lmmsize))
 				rc = -EFAULT;
 
@@ -1812,7 +1830,6 @@ out_tmp:
 		kfree(tmp);
 finish_req:
 		ptlrpc_req_finished(request);
-		ptlrpc_req_finished(root_request);
 		return rc;
 	}
 	case LL_IOC_RMFID:
