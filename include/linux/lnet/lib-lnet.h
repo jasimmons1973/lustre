@@ -49,6 +49,8 @@
 #include <uapi/linux/lnet/lnetctl.h>
 #include <uapi/linux/lnet/nidstr.h>
 
+#include "lock.h"
+
 /* LNET has 0xeXXX */
 #define CFS_FAIL_PTLRPC_OST_BULK_CB2	0xe000
 
@@ -1208,7 +1210,6 @@ u32 lnet_sum_stats(struct lnet_element_stats *stats,
 
 void lnet_usr_translate_stats(struct lnet_ioctl_element_msg_stats *msg_stats,
 			      struct lnet_element_stats *stats);
-
 static inline void
 lnet_set_route_aliveness(struct lnet_route *route, bool alive)
 {
