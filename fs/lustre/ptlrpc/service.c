@@ -1610,7 +1610,7 @@ static int ptlrpc_server_handle_req_in(struct ptlrpc_service_part *svcpt,
 	}
 
 	opc = lustre_msg_get_opc(req->rq_reqmsg);
-	if (OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_DROP_REQ_OPC) &&
+	if (CFS_FAIL_CHECK(OBD_FAIL_PTLRPC_DROP_REQ_OPC) &&
 	    opc == cfs_fail_val) {
 		CERROR("drop incoming rpc opc %u, x%llu\n",
 		       cfs_fail_val, req->rq_xid);
@@ -1691,10 +1691,10 @@ static int ptlrpc_server_handle_req_in(struct ptlrpc_service_part *svcpt,
 	}
 
 
-	if (unlikely(OBD_FAIL_PRECHECK(OBD_FAIL_PTLRPC_ENQ_RESEND) &&
+	if (unlikely(CFS_FAIL_PRECHECK(OBD_FAIL_PTLRPC_ENQ_RESEND) &&
 		     (opc == LDLM_ENQUEUE) &&
 		     (lustre_msg_get_flags(req->rq_reqmsg) & MSG_RESENT)))
-		OBD_FAIL_TIMEOUT(OBD_FAIL_PTLRPC_ENQ_RESEND, 6);
+		CFS_FAIL_TIMEOUT(OBD_FAIL_PTLRPC_ENQ_RESEND, 6);
 
 	ptlrpc_at_add_timed(req);
 
@@ -1738,19 +1738,19 @@ static int ptlrpc_server_handle_request(struct ptlrpc_service_part *svcpt,
 	if (!request)
 		return 0;
 
-	if (OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_HPREQ_NOTIMEOUT))
+	if (CFS_FAIL_CHECK(OBD_FAIL_PTLRPC_HPREQ_NOTIMEOUT))
 		fail_opc = OBD_FAIL_PTLRPC_HPREQ_NOTIMEOUT;
-	else if (OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_HPREQ_TIMEOUT))
+	else if (CFS_FAIL_CHECK(OBD_FAIL_PTLRPC_HPREQ_TIMEOUT))
 		fail_opc = OBD_FAIL_PTLRPC_HPREQ_TIMEOUT;
 
 	if (unlikely(fail_opc)) {
 		if (request->rq_export && request->rq_ops)
-			OBD_FAIL_TIMEOUT(fail_opc, 4);
+			CFS_FAIL_TIMEOUT(fail_opc, 4);
 	}
 
 	ptlrpc_rqphase_move(request, RQ_PHASE_INTERPRET);
 
-	if (OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_DUMP_LOG))
+	if (CFS_FAIL_CHECK(OBD_FAIL_PTLRPC_DUMP_LOG))
 		libcfs_debug_dumplog();
 
 	work_start = ktime_get_real();
@@ -2633,7 +2633,7 @@ again:
 		return -ESRCH;
 
 	if (!ptlrpc_threads_increasable(svcpt) ||
-	    (OBD_FAIL_CHECK(OBD_FAIL_TGT_TOOMANY_THREADS) &&
+	    (CFS_FAIL_CHECK(OBD_FAIL_TGT_TOOMANY_THREADS) &&
 	     svcpt->scp_nthrs_running == svc->srv_nthrs_cpt_init - 1))
 		return -EMFILE;
 

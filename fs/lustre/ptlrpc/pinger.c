@@ -155,7 +155,7 @@ static int ptlrpc_ping(struct obd_import *imp)
 static inline int imp_is_deactive(struct obd_import *imp)
 {
 	return (imp->imp_deactive ||
-		OBD_FAIL_CHECK(OBD_FAIL_PTLRPC_IMP_DEACTIVE));
+		CFS_FAIL_CHECK(OBD_FAIL_PTLRPC_IMP_DEACTIVE));
 }
 
 static inline time64_t ptlrpc_next_reconnect(struct obd_import *imp)
