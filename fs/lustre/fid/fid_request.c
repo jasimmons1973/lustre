@@ -210,7 +210,7 @@ int seq_client_alloc_fid(const struct lu_env *env,
 
 	spin_lock(&seq->lcs_lock);
 
-	if (OBD_FAIL_CHECK(OBD_FAIL_SEQ_EXHAUST))
+	if (CFS_FAIL_CHECK(OBD_FAIL_SEQ_EXHAUST))
 		seq->lcs_fid.f_oid = seq->lcs_width;
 
 	wait_event_cmd(seq->lcs_waitq,
