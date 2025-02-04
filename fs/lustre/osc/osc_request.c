@@ -1243,7 +1243,7 @@ static int osc_checksum_bulk_t10pi(const char *obd_name, int nob,
 		 * simulate an OST->client data error
 		 */
 		if (unlikely(i == 0 && opc == OST_READ &&
-			     OBD_FAIL_CHECK(OBD_FAIL_OSC_CHECKSUM_RECEIVE))) {
+			     CFS_FAIL_CHECK(OBD_FAIL_OSC_CHECKSUM_RECEIVE))) {
 			unsigned char *ptr = kmap(pga[i]->pg);
 
 			memcpy(ptr + off, "bad1", min_t(typeof(nob), 4, nob));
@@ -1292,7 +1292,7 @@ out_hash:
 		 * of corrupting the data so it is still correct on a redo
 		 */
 		if (opc == OST_WRITE &&
-		    OBD_FAIL_CHECK(OBD_FAIL_OSC_CHECKSUM_SEND))
+		    CFS_FAIL_CHECK(OBD_FAIL_OSC_CHECKSUM_SEND))
 			cksum++;
 
 		*check_sum = cksum;
@@ -1328,7 +1328,7 @@ static int osc_checksum_bulk(int nob, u32 pg_count,
 		 * simulate an OST->client data error
 		 */
 		if (i == 0 && opc == OST_READ &&
-		    OBD_FAIL_CHECK(OBD_FAIL_OSC_CHECKSUM_RECEIVE)) {
+		    CFS_FAIL_CHECK(OBD_FAIL_OSC_CHECKSUM_RECEIVE)) {
 			unsigned char *ptr = kmap(pga[i]->pg);
 			int off = pga[i]->off & ~PAGE_MASK;
 
@@ -1356,7 +1356,7 @@ static int osc_checksum_bulk(int nob, u32 pg_count,
 	/* For sending we only compute the wrong checksum instead
 	 * of corrupting the data so it is still correct on a redo
 	 */
-	if (opc == OST_WRITE && OBD_FAIL_CHECK(OBD_FAIL_OSC_CHECKSUM_SEND))
+	if (opc == OST_WRITE && CFS_FAIL_CHECK(OBD_FAIL_OSC_CHECKSUM_SEND))
 		(*cksum)++;
 
 	return 0;
@@ -1537,9 +1537,9 @@ static int osc_brw_prep_request(int cmd, struct client_obd *cli,
 		if (clpage->cp_type == CPT_TRANSIENT)
 			directio = true;
 	}
-	if (OBD_FAIL_CHECK(OBD_FAIL_OSC_BRW_PREP_REQ))
+	if (CFS_FAIL_CHECK(OBD_FAIL_OSC_BRW_PREP_REQ))
 		return -ENOMEM; /* Recoverable */
-	if (OBD_FAIL_CHECK(OBD_FAIL_OSC_BRW_PREP_REQ2))
+	if (CFS_FAIL_CHECK(OBD_FAIL_OSC_BRW_PREP_REQ2))
 		return -EINVAL; /* Fatal */
 
 	if ((cmd & OBD_BRW_WRITE) != 0) {
@@ -1804,7 +1804,7 @@ no_bulk:
 
 	if (inode && IS_ENCRYPTED(inode) &&
 	    fscrypt_has_encryption_key(inode) &&
-	    !OBD_FAIL_CHECK(OBD_FAIL_LFSCK_NO_ENCFLAG)) {
+	    !CFS_FAIL_CHECK(OBD_FAIL_LFSCK_NO_ENCFLAG)) {
 		if ((body->oa.o_valid & OBD_MD_FLFLAGS) == 0) {
 			body->oa.o_valid |= OBD_MD_FLFLAGS;
 			body->oa.o_flags = 0;
@@ -2846,7 +2846,7 @@ int osc_build_rpc(const struct lu_env *env, struct client_obd *cli,
 		       cmd == OBD_BRW_READ ? "read" : "write", starting_offset,
 		       ending_offset, cli->cl_r_in_flight, cli->cl_w_in_flight);
 	}
-	OBD_FAIL_TIMEOUT(OBD_FAIL_OSC_DELAY_IO, cfs_fail_val);
+	CFS_FAIL_TIMEOUT(OBD_FAIL_OSC_DELAY_IO, cfs_fail_val);
 
 	ptlrpcd_add_req(req);
 	rc = 0;
@@ -2987,10 +2987,10 @@ int osc_enqueue_interpret(const struct lu_env *env, struct ptlrpc_request *req,
 	ldlm_lock_addref(lockh, mode);
 
 	/* Let cl_lock_state_wait fail with -ERESTARTSYS to unuse sublocks. */
-	OBD_FAIL_TIMEOUT(OBD_FAIL_LDLM_ENQUEUE_HANG, 2);
+	CFS_FAIL_TIMEOUT(OBD_FAIL_LDLM_ENQUEUE_HANG, 2);
 
 	/* Let CP AST to grant the lock first. */
-	OBD_FAIL_TIMEOUT(OBD_FAIL_OSC_CP_ENQ_RACE, 1);
+	CFS_FAIL_TIMEOUT(OBD_FAIL_OSC_CP_ENQ_RACE, 1);
 
 	if (aa->oa_speculative) {
 		LASSERT(!aa->oa_lvb);
@@ -3006,7 +3006,7 @@ int osc_enqueue_interpret(const struct lu_env *env, struct ptlrpc_request *req,
 	rc = osc_enqueue_fini(req, aa->oa_upcall, aa->oa_cookie, lockh, mode,
 			      aa->oa_flags, aa->oa_speculative, rc);
 
-	OBD_FAIL_TIMEOUT(OBD_FAIL_OSC_CP_CANCEL_RACE, 10);
+	CFS_FAIL_TIMEOUT(OBD_FAIL_OSC_CP_CANCEL_RACE, 10);
 
 	ldlm_lock_decref(lockh, mode);
 	LDLM_LOCK_PUT(lock);
@@ -3165,7 +3165,7 @@ int osc_match_base(const struct lu_env *env, struct obd_export *exp,
 	u64 lflags = *flags;
 	enum ldlm_mode rc;
 
-	if (OBD_FAIL_CHECK(OBD_FAIL_OSC_MATCH))
+	if (CFS_FAIL_CHECK(OBD_FAIL_OSC_MATCH))
 		return -EIO;
 
 	/* Filesystem lock extents are extended to page boundaries so that
@@ -3432,7 +3432,7 @@ int osc_set_info_async(const struct lu_env *env, struct obd_export *exp,
 	char *tmp;
 	int rc;
 
-	OBD_FAIL_TIMEOUT(OBD_FAIL_OSC_SHUTDOWN, 10);
+	CFS_FAIL_TIMEOUT(OBD_FAIL_OSC_SHUTDOWN, 10);
 
 	if (KEY_IS(KEY_CHECKSUM)) {
 		if (vallen != sizeof(int))
