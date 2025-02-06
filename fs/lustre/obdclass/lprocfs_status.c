@@ -140,6 +140,8 @@ static const char *const obd_connect_names[] = {
 	"mkdir_replay",			/* 0x10000000 */
 	"dmv_imp_inherit",		/* 0x20000000 */
 	"encryption_fid2path",		/* 0x40000000 */
+	"large_nid",			/* 0x100000000 */
+	"compressed_file",		/* 0x200000000 */
 	NULL
 };
 
