@@ -1277,6 +1277,7 @@ int obd_get_request_slot(struct client_obd *cli)
 			else
 				list_del(&orsw.orsw_entry);
 		}
+		rc = -EINTR;
 	}
 
 	if (orsw.orsw_signaled) {
@@ -1328,7 +1329,7 @@ int obd_set_max_rpcs_in_flight(struct client_obd *cli, u32 max)
 	if (max > OBD_MAX_RIF_MAX || max < 1)
 		return -ERANGE;
 
-	CDEBUG(D_INFO, "%s: max = %hu max_mod = %u rif = %u\n",
+	CDEBUG(D_INFO, "%s: max = %u max_mod = %u rif = %u\n",
 	       cli->cl_import->imp_obd->obd_name, max,
 	       cli->cl_max_mod_rpcs_in_flight, cli->cl_max_rpcs_in_flight);
 
@@ -1384,6 +1385,7 @@ int obd_set_max_mod_rpcs_in_flight(struct client_obd *cli, u16 max)
 	if (max > OBD_MAX_RIF_MAX || max < 1)
 		return -ERANGE;
 
+	ocd = &cli->cl_import->imp_connect_data;
 	CDEBUG(D_INFO, "%s: max = %hu flags = %llx, max_mod = %u rif = %u\n",
 	       cli->cl_import->imp_obd->obd_name, max, ocd->ocd_connect_flags,
 	       ocd->ocd_maxmodrpcs, cli->cl_max_rpcs_in_flight);
@@ -1396,9 +1398,9 @@ int obd_set_max_mod_rpcs_in_flight(struct client_obd *cli, u16 max)
 	 */
 	if (max >= cli->cl_max_rpcs_in_flight) {
 		CDEBUG(D_INFO,
-		       "%s: increasing max_rpcs_in_flight=%hu to allow larger max_mod_rpcs_in_flight=%u\n",
+		       "%s: increasing max_rpcs_in_flight=%u to allow larger max_mod_rpcs_in_flight=%u\n",
 		       cli->cl_import->imp_obd->obd_name, max + 1, max);
-		return -ERANGE;
+		obd_set_max_rpcs_in_flight(cli, max + 1);
 	}
 
 	/* cannot exceed max modify RPCs in flight supported by the server,

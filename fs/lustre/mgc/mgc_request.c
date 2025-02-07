@@ -255,9 +255,8 @@ config_recover_log_add(struct obd_device *obd, char *fsname,
 	 * where only clients are notified if one of cmd server restarts
 	 */
 	LASSERT(strlen(fsname) < sizeof(logname) / 2);
-	strcpy(logname, fsname);
 	LASSERT(lcfg.cfg_instance);
-	strcat(logname, "-cliir");
+	scnprintf(logname, sizeof(logname), "%s-cliir", fsname);
 
 	cld = do_config_log_add(obd, logname, MGS_CFG_T_RECOVER, &lcfg, sb);
 	return cld;

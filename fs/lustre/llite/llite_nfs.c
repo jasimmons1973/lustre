@@ -197,7 +197,7 @@ static int ll_get_name(struct dentry *dentry, char *name,
 	struct ll_getname_data lgd = {
 		.lgd_name = name,
 		.lgd_fid = ll_i2info(d_inode(child))->lli_fid,
-		.ctx.actor = ll_nfs_get_name_filldir,
+		.ctx.actor = (filldir_t)ll_nfs_get_name_filldir,
 	};
 	struct md_op_data *op_data;
 	u64 pos = 0;
