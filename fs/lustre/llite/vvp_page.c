@@ -116,7 +116,7 @@ static void vvp_vmpage_error(struct inode *inode, struct page *vmpage,
 	} else {
 		SetPageError(vmpage);
 		if (ioret != -ENOSPC &&
-		    OBD_FAIL_CHECK(OBD_FAIL_LLITE_PANIC_ON_ESTALE))
+		    CFS_FAIL_CHECK(OBD_FAIL_LLITE_PANIC_ON_ESTALE))
 			LBUG();
 
 		mapping_set_error(inode->i_mapping, ioret);
