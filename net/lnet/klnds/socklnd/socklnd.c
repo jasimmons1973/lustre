@@ -47,6 +47,77 @@
 static struct lnet_lnd the_ksocklnd;
 struct ksock_nal_data ksocknal_data;
 
+static int ksocknal_ip2index(struct sockaddr *addr, struct lnet_ni *ni,
+			     int *dev_status)
+{
+	struct net_device *dev;
+	int ret = -1;
+	const struct in_ifaddr *ifa;
+
+	*dev_status = -1;
+
+	if (addr->sa_family != AF_INET && addr->sa_family != AF_INET6)
+		return ret;
+
+	rcu_read_lock();
+	for_each_netdev(ni->ni_net_ns, dev) {
+		int flags = dev_get_flags(dev);
+		struct in_device *in_dev;
+
+		if (flags & IFF_LOOPBACK) /* skip the loopback IF */
+			continue;
+
+		if (!(flags & IFF_UP))
+			continue;
+
+		switch (addr->sa_family) {
+		case AF_INET:
+			in_dev = __in_dev_get_rcu(dev);
+			if (!in_dev)
+				continue;
+
+			in_dev_for_each_ifa_rcu(ifa, in_dev) {
+				if (ifa->ifa_local ==
+				    ((struct sockaddr_in *)addr)->sin_addr.s_addr)
+					ret = dev->ifindex;
+			}
+			break;
+#if IS_ENABLED(CONFIG_IPV6)
+		case AF_INET6: {
+			struct inet6_dev *in6_dev;
+			const struct inet6_ifaddr *ifa6;
+			struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)addr;
+
+			in6_dev = __in6_dev_get(dev);
+			if (!in6_dev)
+				continue;
+
+			list_for_each_entry_rcu(ifa6, &in6_dev->addr_list, if_list) {
+				if (ipv6_addr_cmp(&ifa6->addr,
+						  &addr6->sin6_addr) == 0)
+					ret = dev->ifindex;
+			}
+			break;
+			}
+#endif /* IS_ENABLED(CONFIG_IPV6) */
+		}
+		if (ret >= 0)
+			break;
+	}
+
+	rcu_read_unlock();
+	if (ret >= 0)
+		*dev_status = 1;
+
+	if ((ret == -1) ||
+	    (dev->reg_state == NETREG_UNREGISTERING ||
+	     dev->operstate != IF_OPER_UP) ||
+	    (lnet_get_link_status(dev) == 0))
+		*dev_status = 0;
+
+	return ret;
+}
+
 static struct ksock_conn_cb *
 ksocknal_create_conn_cb(struct sockaddr *addr)
 {
@@ -1856,25 +1927,6 @@ ksocknal_free_buffers(void)
 	}
 }
 
-static int ksocknal_get_link_status(struct net_device *dev)
-{
-	int ret = -1;
-
-	LASSERT(dev);
-
-	if (!netif_running(dev)) {
-		ret = 0;
-		CDEBUG(D_NET, "device not running\n");
-	}
-	/* Some devices may not be providing link settings */
-	else if (dev->ethtool_ops->get_link) {
-		ret = dev->ethtool_ops->get_link(dev);
-		CDEBUG(D_NET, "get_link returns %u\n", ret);
-	}
-
-	return ret;
-}
-
 static int
 ksocknal_handle_link_state_change(struct net_device *dev,
 				  unsigned char operstate)
@@ -1891,6 +1943,7 @@ ksocknal_handle_link_state_change(struct net_device *dev,
 	u32 ni_state_before;
 	bool update_ping_buf = false;
 	const struct in_ifaddr *ifa;
+	int state;
 
 	ifindex = dev->ifindex;
 
@@ -1921,7 +1974,7 @@ ksocknal_handle_link_state_change(struct net_device *dev,
 			continue;
 
 		if (dev->reg_state == NETREG_UNREGISTERING) {
-			/* Device is being unregitering, we need to clear the
+			/* Device is being unregitered, we need to clear the
 			 * index, it can change when device will be back
 			 */
 			ksi->ksni_index = -1;
@@ -1934,9 +1987,7 @@ ksocknal_handle_link_state_change(struct net_device *dev,
 		if (!in_dev) {
 			CDEBUG(D_NET, "Interface %s has no IPv4 status.\n",
 			       dev->name);
-			CDEBUG(D_NET, "set link fatal state to 1\n");
-			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
-						      1);
+			ni_state_before = lnet_set_link_fatal_state(ni, 1);
 			goto ni_done;
 		}
 		in_dev_for_each_ifa_rtnl(ifa, in_dev) {
@@ -1947,24 +1998,20 @@ ksocknal_handle_link_state_change(struct net_device *dev,
 		if (!found_ip) {
 			CDEBUG(D_NET, "Interface %s has no matching ip\n",
 			       dev->name);
-			CDEBUG(D_NET, "set link fatal state to 1\n");
-			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
-						      1);
+			ni_state_before = lnet_set_link_fatal_state(ni, 1);
 			goto ni_done;
 		}
 
 		if (link_down) {
-			CDEBUG(D_NET, "set link fatal state to 1\n");
-			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
-						      1);
+			ni_state_before = lnet_set_link_fatal_state(ni, 1);
 		} else {
-			CDEBUG(D_NET, "set link fatal state to %u\n",
-			       (ksocknal_get_link_status(dev) == 0));
-			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
-						      (ksocknal_get_link_status(dev) == 0));
+			state = (lnet_get_link_status(dev) == 0);
+			ni_state_before = lnet_set_link_fatal_state(ni,
+								    state);
 		}
 ni_done:
 		if (!update_ping_buf &&
+		    (ni->ni_state == LNET_NI_STATE_ACTIVE) &&
 		    (atomic_read(&ni->ni_fatal_error_on) != ni_state_before))
 			update_ping_buf = true;
 	}
@@ -1979,7 +2026,7 @@ out:
 static int
 ksocknal_handle_inetaddr_change(struct in_ifaddr *ifa, unsigned long event)
 {
-	struct lnet_ni *ni;
+	struct lnet_ni *ni = NULL;
 	struct ksock_net *net;
 	struct ksock_net *cnxt;
 	struct net_device *event_netdev = ifa->ifa_dev->dev;
@@ -1988,6 +2035,7 @@ ksocknal_handle_inetaddr_change(struct in_ifaddr *ifa, unsigned long event)
 	struct sockaddr_in *sa;
 	u32 ni_state_before;
 	bool update_ping_buf = false;
+	bool link_down;
 
 	if (!ksocknal_data.ksnd_nnets)
 		goto out;
@@ -2005,12 +2053,13 @@ ksocknal_handle_inetaddr_change(struct in_ifaddr *ifa, unsigned long event)
 			continue;
 
 		if (sa->sin_addr.s_addr == ifa->ifa_local) {
-			CDEBUG(D_NET, "set link fatal state to %u\n",
-			       (event == NETDEV_DOWN));
 			ni = net->ksnn_ni;
-			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
-						      (event == NETDEV_DOWN));
+			link_down = (event == NETDEV_DOWN);
+			ni_state_before = lnet_set_link_fatal_state(ni,
+								    link_down);
+
 			if (!update_ping_buf &&
+			    (ni->ni_state == LNET_NI_STATE_ACTIVE) &&
 			    ((event == NETDEV_DOWN) != ni_state_before))
 				update_ping_buf = true;
 		}
@@ -2455,6 +2504,7 @@ ksocknal_startup(struct lnet_ni *ni)
 	struct ksock_interface *ksi = NULL;
 	struct lnet_inetdev *ifaces = NULL;
 	int rc, if_idx;
+	int dev_status;
 
 	LASSERT(ni->ni_net->net_lnd == &the_ksocklnd);
 
@@ -2520,6 +2570,11 @@ ksocknal_startup(struct lnet_ni *ni)
 	rc = ksocknal_net_start_threads(net, ni->ni_cpts, ni->ni_ncpts);
 	if (rc)
 		goto out_net;
+
+	if (ksocknal_ip2index((struct sockaddr *)&ksi->ksni_addr,
+			      ni, &dev_status) < 0 ||
+	    dev_status <= 0)
+		lnet_set_link_fatal_state(ni, 1);
 
 	list_add(&net->ksnn_list, &ksocknal_data.ksnd_nets);
 	net->ksnn_ni = ni;

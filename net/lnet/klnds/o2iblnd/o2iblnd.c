@@ -1673,21 +1673,6 @@ static void kiblnd_fini_fmr_poolset(struct kib_fmr_poolset *fps)
 	}
 }
 
-static int kiblnd_get_link_status(struct net_device *dev)
-{
-	int ret = -1;
-
-	LASSERT(dev);
-
-	if (!netif_running(dev))
-		ret = 0;
-	/* Some devices may not be providing link settings */
-	else if (dev->ethtool_ops->get_link)
-		ret = dev->ethtool_ops->get_link(dev);
-
-	return ret;
-}
-
 static int
 kiblnd_init_fmr_poolset(struct kib_fmr_poolset *fps, int cpt, int ncpts,
 			struct kib_net *net,
@@ -2385,15 +2370,19 @@ kiblnd_set_ni_fatal_on(struct kib_hca_dev *hdev, int val)
 	struct kib_net *net;
 	u32 ni_state_before;
 	bool update_ping_buf = false;
+	struct lnet_ni *ni = NULL;
 
 	/* for health check */
 	list_for_each_entry(net, &hdev->ibh_dev->ibd_nets, ibn_list) {
+		ni = net->ibn_ni;
 		if (val)
 			CDEBUG(D_NETERROR, "Fatal device error for NI %s\n",
-			       libcfs_nidstr(&net->ibn_ni->ni_nid));
-		ni_state_before = atomic_xchg(&net->ibn_ni->ni_fatal_error_on,
-					      val);
-		if (!update_ping_buf && val != ni_state_before)
+			       libcfs_nidstr(&ni->ni_nid));
+		ni_state_before = lnet_set_link_fatal_state(ni, val);
+
+		if (!update_ping_buf &&
+		    ni->ni_state == LNET_NI_STATE_ACTIVE &&
+		    val != ni_state_before)
 			update_ping_buf = true;
 	}
 
@@ -2689,7 +2678,7 @@ out:
 		if (set_fatal) {
 			rcu_read_lock();
 			netdev = dev_get_by_name_rcu(ns, dev->ibd_ifname);
-			if (netdev && (kiblnd_get_link_status(netdev) == 1))
+			if (netdev && (lnet_get_link_status(netdev) == 1))
 				kiblnd_set_ni_fatal_on(dev->ibd_hdev, 0);
 			rcu_read_unlock();
 		}
@@ -2759,6 +2748,7 @@ kiblnd_handle_link_state_change(struct net_device *dev,
 	u32 ni_state_before;
 	bool update_ping_buf = false;
 	const struct in_ifaddr *ifa;
+	int state;
 
 	event_kibdev = kiblnd_dev_search(dev->name);
 
@@ -2773,10 +2763,7 @@ kiblnd_handle_link_state_change(struct net_device *dev,
 		if (!in_dev) {
 			CDEBUG(D_NET, "Interface %s has no IPv4 status.\n",
 			       dev->name);
-			CDEBUG(D_NET, "%s: set link fatal state to 1\n",
-			       libcfs_nidstr(&net->ibn_ni->ni_nid));
-			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
-						      1);
+			ni_state_before = lnet_set_link_fatal_state(ni, 1);
 			goto ni_done;
 		}
 		in_dev_for_each_ifa_rtnl(ifa, in_dev) {
@@ -2787,27 +2774,20 @@ kiblnd_handle_link_state_change(struct net_device *dev,
 		if (!found_ip) {
 			CDEBUG(D_NET, "Interface %s has no matching ip\n",
 			       dev->name);
-			CDEBUG(D_NET, "%s: set link fatal state to 1\n",
-			       libcfs_nidstr(&net->ibn_ni->ni_nid));
-			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
-						      1);
+			ni_state_before = lnet_set_link_fatal_state(ni, 1);
 			goto ni_done;
 		}
 
 		if (link_down) {
-			CDEBUG(D_NET, "%s: set link fatal state to 1\n",
-			       libcfs_nidstr(&net->ibn_ni->ni_nid));
-			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
-						      link_down);
+			ni_state_before = lnet_set_link_fatal_state(ni, 1);
 		} else {
-			CDEBUG(D_NET, "%s: set link fatal state to %u\n",
-			       libcfs_nidstr(&net->ibn_ni->ni_nid),
-			       (kiblnd_get_link_status(dev) == 0));
-			ni_state_before = atomic_xchg(&ni->ni_fatal_error_on,
-						      (kiblnd_get_link_status(dev) == 0));
+			state = (lnet_get_link_status(dev) == 0);
+			ni_state_before = lnet_set_link_fatal_state(ni,
+								    state);
 		}
 ni_done:
 		if (!update_ping_buf &&
+		    (ni->ni_state == LNET_NI_STATE_ACTIVE) &&
 		    (atomic_read(&ni->ni_fatal_error_on) != ni_state_before))
 			update_ping_buf = true;
 	}
@@ -2827,6 +2807,8 @@ kiblnd_handle_inetaddr_change(struct in_ifaddr *ifa, unsigned long event)
 	struct net_device *event_netdev = ifa->ifa_dev->dev;
 	u32 ni_state_before;
 	bool update_ping_buf = false;
+	struct lnet_ni *ni = NULL;
+	bool link_down;
 
 	event_kibdev = kiblnd_dev_search(event_netdev->name);
 
@@ -2838,12 +2820,11 @@ kiblnd_handle_inetaddr_change(struct in_ifaddr *ifa, unsigned long event)
 
 	list_for_each_entry_safe(net, cnxt, &event_kibdev->ibd_nets,
 				 ibn_list) {
-		CDEBUG(D_NET, "%s: set link fatal state to %u\n",
-		       libcfs_nidstr(&net->ibn_ni->ni_nid),
-		       (event == NETDEV_DOWN));
-		ni_state_before = atomic_xchg(&net->ibn_ni->ni_fatal_error_on,
-					      (event == NETDEV_DOWN));
+		ni = net->ibn_ni;
+		link_down = (event == NETDEV_DOWN);
+		ni_state_before = lnet_set_link_fatal_state(ni, link_down);
 		if (!update_ping_buf &&
+		    (ni->ni_state == LNET_NI_STATE_ACTIVE) &&
 		    ((event == NETDEV_DOWN) != ni_state_before))
 			update_ping_buf = true;
 	}
@@ -3199,6 +3180,7 @@ static int kiblnd_startup(struct lnet_ni *ni)
 	int rc;
 	int i;
 	bool newdev;
+	struct net_device *netdev;
 
 	LASSERT(ni->ni_net->net_lnd == &the_o2iblnd);
 
@@ -3312,6 +3294,16 @@ static int kiblnd_startup(struct lnet_ni *ni)
 	/* for health check */
 	if (ibdev->ibd_hdev->ibh_state == IBLND_DEV_PORT_DOWN)
 		kiblnd_set_ni_fatal_on(ibdev->ibd_hdev, 1);
+
+	rcu_read_lock();
+	netdev = dev_get_by_name_rcu(ni->ni_net_ns, net->ibn_dev->ibd_ifname);
+	if ((netdev->reg_state == NETREG_UNREGISTERING ||
+	     netdev->operstate != IF_OPER_UP) ||
+	    lnet_get_link_status(netdev) == 0) {
+		kiblnd_set_ni_fatal_on(ibdev->ibd_hdev, 1);
+	}
+	rcu_read_unlock();
+
 	write_unlock_irqrestore(&kiblnd_data.kib_global_lock, flags);
 
 	net->ibn_init = IBLND_INIT_ALL;
