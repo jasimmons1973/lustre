@@ -987,6 +987,9 @@ struct lnet_peer {
 	 * nets/NIs
 	 */
 	u32			lp_send_seq;
+
+	/* timestamp (ns) of primary nid lock */
+	u64			lp_prim_lock_ts;
 };
 
 /*
