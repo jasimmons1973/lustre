@@ -105,12 +105,14 @@ struct lnet_ioctl_config_o2iblnd_tunables {
 	__u32 lnd_fmr_cache;
 	__u16 lnd_conns_per_peer;
 	__u16 lnd_ntx;
+	__u32 lnd_timeout;
 };
 
 struct lnet_ioctl_config_socklnd_tunables {
 	__u32 lnd_version;
 	__u16 lnd_conns_per_peer;
 	__u16 lnd_pad;
+	__u32 lnd_timeout;
 };
 
 struct lnet_lnd_tunables {
