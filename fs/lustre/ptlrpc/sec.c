@@ -116,10 +116,9 @@ static
 struct ptlrpc_sec_policy *sptlrpc_wireflavor2policy(u32 flavor)
 {
 	static DEFINE_MUTEX(load_mutex);
-	static atomic_t loaded = ATOMIC_INIT(0);
 	struct ptlrpc_sec_policy *policy;
 	u16 number = SPTLRPC_FLVR_POLICY(flavor);
-	u16 flag = 0;
+	int rc;
 
 	if (number >= SPTLRPC_POLICY_MAX)
 		return NULL;
@@ -129,25 +128,26 @@ struct ptlrpc_sec_policy *sptlrpc_wireflavor2policy(u32 flavor)
 		policy = policies[number];
 		if (policy && !try_module_get(policy->sp_owner))
 			policy = NULL;
-		if (!policy)
-			flag = atomic_read(&loaded);
 		read_unlock(&policy_lock);
 
-		if (policy || flag != 0 ||
-		    number != SPTLRPC_POLICY_GSS)
+		if (policy || number != SPTLRPC_POLICY_GSS)
 			break;
 
-		/* try to load gss module, once */
+		/* try to load gss module, happens only if policy at index
+		 * SPTLRPC_POLICY_GSS is not already referenced in
+		 * global array policies[]
+		 */
 		mutex_lock(&load_mutex);
-		if (atomic_read(&loaded) == 0) {
-			if (request_module("ptlrpc_gss") == 0)
-				CDEBUG(D_SEC,
-				       "module ptlrpc_gss loaded on demand\n");
-			else
-				CERROR("Unable to load module ptlrpc_gss\n");
-
-			atomic_set(&loaded, 1);
-		}
+		/* The fact that request_module() returns 0 does not guarantee
+		 * the module has done its job. So we must check that the
+		 * requested policy is now available. This is done by checking
+		 * again for policies[number] in the loop.
+		 */
+		rc = request_module("ptlrpc_gss");
+		if (rc == 0)
+			CDEBUG(D_SEC, "module ptlrpc_gss loaded on demand\n");
+		else
+			CERROR("Unable to load module ptlrpc_gss: rc %d\n", rc);
 		mutex_unlock(&load_mutex);
 	}
 
