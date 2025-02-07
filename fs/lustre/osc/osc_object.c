@@ -344,10 +344,12 @@ static void osc_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 	struct lov_oinfo *oinfo;
 	struct ost_lvb *lvb;
 	struct obdo *oa;
+	struct osc_page *opg;
 
 	oinfo = cl2osc(obj)->oo_oinfo;
 	lvb = &oinfo->loi_lvb;
 	oa = attr->cra_oa;
+	opg = osc_cl_page_osc(attr->cra_page, cl2osc(obj));
 
 	if (flags & OBD_MD_FLMTIME) {
 		oa->o_mtime = lvb->lvb_mtime;
@@ -381,14 +383,15 @@ static void osc_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 		}
 		oa->o_valid |= OBD_MD_FLID;
 	}
-	if (flags & OBD_MD_FLHANDLE) {
+	/* if srvlock is set, don't look for a local lock, since we won't use
+	 * it and shouldn't note it in the RPC
+	 */
+	if (flags & OBD_MD_FLHANDLE && !opg->ops_srvlock) {
 		struct ldlm_lock *lock;
-		struct osc_page *opg;
 
-		opg = osc_cl_page_osc(attr->cra_page, cl2osc(obj));
 		lock = osc_dlmlock_at_pgoff(env, cl2osc(obj), osc_index(opg),
 					    OSC_DAP_FL_TEST_LOCK | OSC_DAP_FL_CANCELING);
-		if (!lock && !opg->ops_srvlock) {
+		if (!lock) {
 			struct ldlm_namespace *ns;
 			struct ldlm_resource *res;
 			struct ldlm_res_id *resname;
@@ -405,12 +408,9 @@ static void osc_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 			LBUG();
 		}
 
-		/* check for lockless io. */
-		if (lock) {
-			oa->o_handle = lock->l_remote_handle;
-			oa->o_valid |= OBD_MD_FLHANDLE;
-			LDLM_LOCK_PUT(lock);
-		}
+		oa->o_handle = lock->l_remote_handle;
+		oa->o_valid |= OBD_MD_FLHANDLE;
+		LDLM_LOCK_PUT(lock);
 	}
 }
 
