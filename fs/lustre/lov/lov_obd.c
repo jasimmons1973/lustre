@@ -134,8 +134,10 @@ int lov_connect_osc(struct obd_device *obd, u32 index, int activate,
 	tgt_obd = lov->lov_tgts[index]->ltd_obd;
 
 	if (!tgt_obd->obd_set_up) {
-		CERROR("Target %s not set up\n", obd_uuid2str(tgt_uuid));
-		return -EINVAL;
+		rc = -EINVAL;
+		CERROR("%s: target not set up: rc = %d\n",
+		       obd_uuid2str(tgt_uuid), rc);
+		return rc;
 	}
 
 	/* override the sp_me from lov */
@@ -159,7 +161,7 @@ int lov_connect_osc(struct obd_device *obd, u32 index, int activate,
 
 	rc = obd_register_observer(tgt_obd, obd);
 	if (rc) {
-		CERROR("Target %s register_observer error %d\n",
+		CERROR("%s: target register_observer error: rc = %d\n",
 		       obd_uuid2str(tgt_uuid), rc);
 		return rc;
 	}
@@ -174,8 +176,9 @@ int lov_connect_osc(struct obd_device *obd, u32 index, int activate,
 	rc = obd_connect(NULL, &lov->lov_tgts[index]->ltd_exp, tgt_obd,
 			 &lov_osc_uuid, data, lov->lov_cache);
 	if (rc || !lov->lov_tgts[index]->ltd_exp) {
-		CERROR("Target %s connect error %d\n",
+		CERROR("%s: target connect error: rc = %d\n",
 		       obd_uuid2str(tgt_uuid), rc);
+		obd_register_observer(tgt_obd, NULL);
 		return -ENODEV;
 	}
 
