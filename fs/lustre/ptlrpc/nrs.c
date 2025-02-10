@@ -209,6 +209,8 @@ static void nrs_policy_stop_primary(struct ptlrpc_nrs *nrs)
 static int nrs_policy_start_locked(struct ptlrpc_nrs_policy *policy, char *arg)
 {
 	struct ptlrpc_nrs *nrs = policy->pol_nrs;
+	struct ptlrpc_service_part *svcpt = nrs->nrs_svcpt;
+	char *srv_name = svcpt->scp_service->srv_name;
 	int rc = 0;
 
 	/**
@@ -224,8 +226,10 @@ static int nrs_policy_start_locked(struct ptlrpc_nrs_policy *policy, char *arg)
 		return -EAGAIN;
 
 	if (arg && strlen(arg) >= sizeof(policy->pol_arg)) {
-		CWARN("NRS: arg '%s' is too long\n", arg);
-		return -EINVAL;
+		rc = -EINVAL;
+		CWARN("%s.%d NRS: arg '%s' is too long: rc = %d\n",
+		      srv_name, svcpt->scp_cpt, arg, rc);
+		return rc;
 	}
 
 	if (policy->pol_flags & PTLRPC_NRS_FL_FALLBACK) {
@@ -277,9 +281,10 @@ static int nrs_policy_start_locked(struct ptlrpc_nrs_policy *policy, char *arg)
 	if (atomic_inc_return(&policy->pol_desc->pd_refs) == 1 &&
 	    !try_module_get(policy->pol_desc->pd_owner)) {
 		atomic_dec(&policy->pol_desc->pd_refs);
-		CERROR("NRS: cannot get module for policy %s; is it alive?\n",
-		       policy->pol_desc->pd_name);
-		return -ENODEV;
+		rc = -ENODEV;
+		CERROR("%s.%d NRS: cannot get module for policy %s (is it alive?): rc = %d\n",
+		       srv_name, svcpt->scp_cpt, policy->pol_desc->pd_name, rc);
+		return rc;
 	}
 
 	/**
@@ -713,6 +718,8 @@ out:
 static int nrs_policy_unregister(struct ptlrpc_nrs *nrs, char *name)
 {
 	struct ptlrpc_nrs_policy *policy = NULL;
+	struct ptlrpc_service_part *svcpt = nrs->nrs_svcpt;
+	char *srv_name = svcpt->scp_service->srv_name;
 	int rc = 0;
 
 	spin_lock(&nrs->nrs_lock);
@@ -720,14 +727,15 @@ static int nrs_policy_unregister(struct ptlrpc_nrs *nrs, char *name)
 	policy = nrs_policy_find_locked(nrs, name);
 	if (!policy) {
 		rc = -ENOENT;
-		CERROR("NRS: cannot find policy '%s': rc = %d\n", name, rc);
+		CERROR("%s.%d NRS: cannot find policy '%s': rc = %d\n",
+		       srv_name, svcpt->scp_cpt, name, rc);
 		goto out_unlock;
 	}
 
 	if (policy->pol_ref > 1) {
 		rc = -EBUSY;
-		CERROR("NRS: policy '%s' is busy with %ld references: rc = %d",
-		       name, policy->pol_ref, rc);
+		CERROR("%s.%d NRS: policy '%s' is busy with %ld references: rc = %d\n",
+			srv_name, svcpt->scp_cpt, name, policy->pol_ref, rc);
 		goto out_put;
 	}
 
@@ -737,8 +745,9 @@ static int nrs_policy_unregister(struct ptlrpc_nrs *nrs, char *name)
 	if (policy->pol_state != NRS_POL_STATE_STOPPED) {
 		rc = nrs_policy_stop_locked(policy);
 		if (rc) {
-			CERROR("NRS: failed to stop policy '%s' with refcount %d: rc = %d\n",
-			       name, refcount_read(&policy->pol_start_ref), rc);
+			CERROR("%s.%d NRS: failed to stop policy '%s' with refcount %d: rc = %d\n",
+			       srv_name, svcpt->scp_cpt, name,
+			       refcount_read(&policy->pol_start_ref), rc);
 			goto out_put;
 		}
 	}
@@ -775,6 +784,7 @@ static int nrs_policy_register(struct ptlrpc_nrs *nrs,
 	struct ptlrpc_nrs_policy *policy;
 	struct ptlrpc_nrs_policy *tmp;
 	struct ptlrpc_service_part *svcpt = nrs->nrs_svcpt;
+	char *srv_name = svcpt->scp_service->srv_name;
 	int rc;
 
 	LASSERT(desc->pd_ops->op_res_get);
@@ -809,16 +819,17 @@ static int nrs_policy_register(struct ptlrpc_nrs *nrs,
 
 	tmp = nrs_policy_find_locked(nrs, policy->pol_desc->pd_name);
 	if (tmp) {
-		CERROR("NRS policy %s has been registered, can't register it for %s\n",
-		       policy->pol_desc->pd_name,
-		       svcpt->scp_service->srv_name);
+		rc = -EEXIST;
+		CERROR("%s.%d NRS: policy %s has been registered, can't register it: rc = %d\n",
+		       srv_name, svcpt->scp_cpt, policy->pol_desc->pd_name,
+		       rc);
 		nrs_policy_put_locked(tmp);
 
 		spin_unlock(&nrs->nrs_lock);
 		nrs_policy_fini(policy);
 		kfree(policy);
 
-		return -EEXIST;
+		return rc;
 	}
 
 	list_add_tail(&policy->pol_list, &nrs->nrs_policy_list);
@@ -921,9 +932,9 @@ static int nrs_register_policies_locked(struct ptlrpc_nrs *nrs)
 		if (nrs_policy_compatible(svc, desc)) {
 			rc = nrs_policy_register(nrs, desc);
 			if (rc != 0) {
-				CERROR("Failed to register NRS policy %s for partition %d of service %s: %d\n",
-				       desc->pd_name, svcpt->scp_cpt,
-				       svc->srv_name, rc);
+				CERROR("%s.%d NRS: Failed to register policy %s: rc = %d\n",
+				       svc->srv_name, svcpt->scp_cpt,
+				       desc->pd_name, rc);
 				/**
 				 * Fail registration if any of the policies'
 				 * registration fails.
@@ -1108,6 +1119,7 @@ static int nrs_policy_unregister_locked(struct ptlrpc_nrs_pol_desc *desc)
 			continue;
 
 		ptlrpc_service_for_each_part(svcpt, i, svc) {
+			char *srv_name = svcpt->scp_service->srv_name;
 			bool hp = false;
 
 again:
@@ -1120,9 +1132,9 @@ again:
 			if (rc == -ENOENT) {
 				rc = 0;
 			} else if (rc != 0) {
-				CERROR("Failed to unregister NRS policy %s for partition %d of service %s: %d\n",
-				       desc->pd_name, svcpt->scp_cpt,
-				       svcpt->scp_service->srv_name, rc);
+				CERROR("%s.%d NRS: Failed to unregister policy %s: rc = %d\n",
+				       srv_name, svcpt->scp_cpt, desc->pd_name,
+				       rc);
 				return rc;
 			}
 
@@ -1182,17 +1194,18 @@ static int ptlrpc_nrs_policy_register(struct ptlrpc_nrs_pol_conf *conf)
 	if ((conf->nc_flags & PTLRPC_NRS_FL_REG_EXTERN) &&
 	    (conf->nc_flags & (PTLRPC_NRS_FL_FALLBACK |
 			       PTLRPC_NRS_FL_REG_START))) {
-		CERROR("NRS: failing to register policy %s. Please check policy flags; external policies cannot act as fallback policies, or be started immediately upon registration without interaction with lprocfs\n",
-		       conf->nc_name);
-		return -EINVAL;
+		rc = -EINVAL;
+		CERROR("NRS: failing to register policy %s. Please check policy flags; external policies cannot act as fallback policies, or be started immediately upon registration without interaction with lprocfs: rc = %d\n",
+		       conf->nc_name, rc);
+		return rc;
 	}
 
 	mutex_lock(&nrs_core.nrs_mutex);
 
 	if (nrs_policy_find_desc_locked(conf->nc_name)) {
-		CERROR("NRS: failing to register policy %s which has already been registered with NRS core!\n",
-		       conf->nc_name);
 		rc = -EEXIST;
+		CERROR("NRS: failing to register policy %s which has already been registered with NRS core: rc = %d\n",
+		       conf->nc_name, rc);
 		goto fail;
 	}
 
@@ -1243,14 +1256,15 @@ static int ptlrpc_nrs_policy_register(struct ptlrpc_nrs_pol_conf *conf)
 
 		ptlrpc_service_for_each_part(svcpt, i, svc) {
 			struct ptlrpc_nrs *nrs;
+			char *srv_name = svcpt->scp_service->srv_name;
 			bool hp = false;
 again:
 			nrs = nrs_svcpt2nrs(svcpt, hp);
 			rc = nrs_policy_register(nrs, desc);
 			if (rc != 0) {
-				CERROR("Failed to register NRS policy %s for partition %d of service %s: %d\n",
-				       desc->pd_name, svcpt->scp_cpt,
-				       svcpt->scp_service->srv_name, rc);
+				CERROR("%s.%d NRS: Failed to register policy %s: rc = %d\n",
+				       srv_name, svcpt->scp_cpt,
+				       desc->pd_name, rc);
 
 				rc2 = nrs_policy_unregister_locked(desc);
 				/**
