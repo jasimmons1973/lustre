@@ -4656,14 +4656,8 @@ void lustre_assert_wire_constants(void)
 		 (long long)(int)offsetof(struct hsm_request, hr_data_len));
 	LASSERTF((int)sizeof(((struct hsm_request *)0)->hr_data_len) == 4, "found %lld\n",
 		 (long long)(int)sizeof(((struct hsm_request *)0)->hr_data_len));
-#ifdef HAVE_SERVER_SUPPORT
-	LASSERTF(HSM_FORCE_ACTION == 0x00000001UL, "found 0x%.8xUL\n",
-		 (unsigned int)HSM_FORCE_ACTION);
-	LASSERTF(HSM_GHOST_COPY == 0x00000002UL, "found 0x%.8xUL\n",
-		 (unsigned int)HSM_GHOST_COPY);
 
 	/* Checks for struct hsm_user_request */
-#endif
 	LASSERTF((int)sizeof(struct hsm_user_request) == 24, "found %lld\n",
 		 (long long)(int)sizeof(struct hsm_user_request));
 	LASSERTF((int)offsetof(struct hsm_user_request, hur_request) == 0, "found %lld\n",

@@ -34,9 +34,7 @@
 #define DEBUG_SUBSYSTEM S_RPC
 #include <linux/ctype.h>
 #include <linux/user_namespace.h>
-#ifdef HAVE_UIDGID_HEADER
 #include <linux/uidgid.h>
-#endif
 #include <linux/utsname.h>
 
 #include <obd_support.h>

@@ -1230,21 +1230,6 @@ send_error:
 	return rc;
 }
 
-#ifndef HAVE_NETLINK_CALLBACK_START
-static int lst_old_groups_show_dump(struct sk_buff *msg,
-				    struct netlink_callback *cb)
-{
-	if (!cb->args[0]) {
-		int rc = lst_groups_show_start(cb);
-
-		if (rc < 0)
-			return rc;
-	}
-
-	return lst_groups_show_dump(msg, cb);
-}
-#endif
-
 static const struct genl_multicast_group lst_mcast_grps[] = {
 	{ .name = "sessions",		},
 	{ .name	= "groups",		},
@@ -1258,12 +1243,8 @@ static const struct genl_ops lst_genl_ops[] = {
 	},
 	{
 		.cmd		= LNET_SELFTEST_CMD_GROUPS,
-#ifdef HAVE_NETLINK_CALLBACK_START
 		.start		= lst_groups_show_start,
 		.dumpit		= lst_groups_show_dump,
-#else
-		.dumpit		= lst_old_groups_show_dump,
-#endif
 		.done		= lst_groups_show_done,
 	},
 };
