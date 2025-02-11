@@ -42,13 +42,9 @@
 #include "llite_internal.h"
 #include "vvp_internal.h"
 
-/*****************************************************************************
- *
+/*
  * Vvp device and device type functions.
  *
- */
-
-/*
  * vvp_ prefix stands for "Vfs Vm Posix". It corresponds to historical
  * "llite_" (var. "ll_") prefix.
  */
@@ -297,10 +293,8 @@ void vvp_global_fini(void)
 	lu_kmem_fini(vvp_caches);
 }
 
-/*****************************************************************************
- *
+/*
  * mirror obd-devices into cl devices.
- *
  */
 
 int cl_sb_init(struct super_block *sb)

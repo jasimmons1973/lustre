@@ -974,7 +974,7 @@ static int vvp_io_commit_sync(const struct lu_env *env, struct cl_io *io,
  * v5.2-rc4-224-ge01e060fe0
  *
  */
-void vvp_set_pagevec_dirty(struct pagevec *pvec)
+static void vvp_set_pagevec_dirty(struct pagevec *pvec)
 {
 	struct page *page = pvec->pages[0];
 	struct address_space *mapping = page->mapping;

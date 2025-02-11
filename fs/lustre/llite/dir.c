@@ -1346,7 +1346,7 @@ out:
 	return rc;
 }
 
-int ll_rmfid(struct file *file, void __user *arg)
+static int ll_rmfid(struct file *file, void __user *arg)
 {
 	const struct fid_array __user *ufa = arg;
 	struct inode *inode = file_inode(file);

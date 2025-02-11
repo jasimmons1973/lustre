@@ -795,7 +795,7 @@ pcc_dataset_add(struct pcc_super *super, struct pcc_cmd *cmd)
 	return rc;
 }
 
-struct pcc_dataset *
+static struct pcc_dataset *
 pcc_dataset_get(struct pcc_super *super, enum lu_pcc_type type, u32 id)
 {
 	struct pcc_dataset *dataset;
@@ -2152,8 +2152,8 @@ out:
  * Reset uid, gid or size for the PCC copy masked by @valid.
  * TODO: Set the project ID for PCC copy.
  */
-int pcc_inode_reset_iattr(struct dentry *dentry, unsigned int valid,
-			  kuid_t uid, kgid_t gid, loff_t size)
+static int pcc_inode_reset_iattr(struct dentry *dentry, unsigned int valid,
+				 kuid_t uid, kgid_t gid, loff_t size)
 {
 	struct inode *inode = dentry->d_inode;
 	struct iattr attr;
