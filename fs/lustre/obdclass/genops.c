@@ -36,6 +36,7 @@
  */
 
 #define DEBUG_SUBSYSTEM S_CLASS
+#include <linux/kconfig.h>
 #include <linux/libcfs/libcfs_cpu.h>
 #include <obd_class.h>
 #include <lustre_log.h>
@@ -97,7 +98,7 @@ static struct obd_type *class_get_type(const char *name)
 
 	rcu_read_lock();
 	type = class_search_type(name);
-
+#if IS_MODULE(CONFIG_LUSTRE_FS)
 	if (!type) {
 		const char *modname = name;
 
@@ -111,6 +112,7 @@ static struct obd_type *class_get_type(const char *name)
 		rcu_read_lock();
 		type = class_search_type(name);
 	}
+#endif
 	if (type) {
 		/*
 		 * Holding rcu_read_lock() matches the synchronize_rcu() call
