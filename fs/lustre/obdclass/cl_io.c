@@ -1,55 +1,34 @@
 // SPDX-License-Identifier: GPL-2.0
-/*
- * GPL HEADER START
- *
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 only,
- * as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License version 2 for more details (a copy is included
- * in the LICENSE file that accompanied this code).
- *
- * You should have received a copy of the GNU General Public License
- * version 2 along with this program; If not, see
- * http://www.gnu.org/licenses/gpl-2.0.html
- *
- * GPL HEADER END
- */
+
 /*
  * Copyright (c) 2008, 2010, Oracle and/or its affiliates. All rights reserved.
  * Use is subject to license terms.
  *
  * Copyright (c) 2011, 2017, Intel Corporation.
  */
+
 /*
  * This file is part of Lustre, http://www.lustre.org/
  *
  * Client IO.
  *
- *   Author: Nikita Danilov <nikita.danilov@sun.com>
- *   Author: Jinshan Xiong <jinshan.xiong@intel.com>
+ * Author: Nikita Danilov <nikita.danilov@sun.com>
+ * Author: Jinshan Xiong <jinshan.xiong@intel.com>
  */
 
 #define DEBUG_SUBSYSTEM S_CLASS
 
+#include <linux/sched.h>
+#include <linux/list.h>
+#include <linux/list_sort.h>
 #include <obd_class.h>
 #include <obd_support.h>
 #include <lustre_fid.h>
-#include <linux/list.h>
-#include <linux/list_sort.h>
-#include <linux/sched.h>
 #include <cl_object.h>
 #include "cl_internal.h"
 
-/*****************************************************************************
- *
+/*
  * cl_io interface.
- *
  */
 
 static inline int cl_io_type_is_valid(enum cl_io_type type)
@@ -66,19 +45,15 @@ static inline int cl_io_is_loopable(const struct cl_io *io)
  * cl_io invariant that holds at all times when exported cl_io_*() functions
  * are entered and left.
  */
-static int cl_io_invariant(const struct cl_io *io)
+static inline int cl_io_invariant(const struct cl_io *io)
 {
-	struct cl_io *up;
-
-	up = io->ci_parent;
-	return
-		/*
-		 * io can own pages only when it is ongoing. Sub-io might
-		 * still be in CIS_LOCKED state when top-io is in
-		 * CIS_IO_GOING.
-		 */
-		ergo(io->ci_owned_nr > 0, io->ci_state == CIS_IO_GOING ||
-		     (io->ci_state == CIS_LOCKED && up));
+	/*
+	 * io can own pages only when it is ongoing. Sub-io might
+	 * still be in CIS_LOCKED state when top-io is in
+	 * CIS_IO_GOING.
+	 */
+	return ergo(io->ci_owned_nr > 0, io->ci_state == CIS_IO_GOING ||
+		    (io->ci_state == CIS_LOCKED && io->ci_parent));
 }
 
 /**
@@ -92,8 +67,8 @@ void cl_io_fini(const struct lu_env *env, struct cl_io *io)
 	LINVRNT(cl_io_invariant(io));
 
 	while (!list_empty(&io->ci_layers)) {
-		slice = list_last_entry(&io->ci_layers, struct cl_io_slice,
-					cis_linkage);
+		slice = container_of(io->ci_layers.prev, struct cl_io_slice,
+				     cis_linkage);
 		list_del_init(&slice->cis_linkage);
 		if (slice->cis_iop->op[io->ci_type].cio_fini)
 			slice->cis_iop->op[io->ci_type].cio_fini(env, slice);
@@ -111,7 +86,6 @@ void cl_io_fini(const struct lu_env *env, struct cl_io *io)
 	case CIT_READ:
 	case CIT_WRITE:
 	case CIT_DATA_VERSION:
-		break;
 	case CIT_FAULT:
 		break;
 	case CIT_FSYNC:
@@ -122,7 +96,6 @@ void cl_io_fini(const struct lu_env *env, struct cl_io *io)
 		/* Check ignore layout change conf */
 		LASSERT(ergo(io->ci_ignore_layout || !io->ci_verify_layout,
 			     !io->ci_need_restart));
-		break;
 	case CIT_GLIMPSE:
 		break;
 	case CIT_LADVISE:
@@ -1256,7 +1229,10 @@ void cl_sync_io_note(const struct lu_env *env, struct cl_sync_io *anchor,
 		/*
 		 * Holding the lock across both the decrement and
 		 * the wakeup ensures cl_sync_io_wait() doesn't complete
-		 * before the wakeup completes.
+		 * before the wakeup completes and the contents of
+		 * the anchor become unsafe to access as the owner is free
+		 * to immediately reclaim anchor when cl_sync_io_wait()
+		 * completes.
 		 */
 		wake_up_locked(&anchor->csi_waitq);
 		if (end_io)

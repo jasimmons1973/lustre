@@ -805,7 +805,8 @@ struct cl_page_slice {
 enum cl_lock_mode {
 	CLM_READ,
 	CLM_WRITE,
-	CLM_GROUP
+	CLM_GROUP,
+	CLM_MAX,
 };
 
 /**
@@ -1395,8 +1396,7 @@ typedef void (*cl_commit_cbt)(const struct lu_env *, struct cl_io *,
 			      struct pagevec *);
 
 struct cl_read_ahead {
-	/*
-	 * Maximum page index the readahead window will end.
+	/* Maximum page index the readahead window will end.
 	 * This is determined DLM lock coverage, RPC and stripe boundary.
 	 * cra_end is included.
 	 */
@@ -1411,6 +1411,7 @@ struct cl_read_ahead {
 	/* Callback data for cra_release routine */
 	void				*cra_dlmlock;
 	void				*cra_oio;
+
 	/* whether lock is in contention */
 	bool				cra_contention;
 };
