@@ -2927,10 +2927,11 @@ static int osc_set_lock_data(struct ldlm_lock *lock, void *data)
 	return set;
 }
 
-int osc_enqueue_fini(struct ptlrpc_request *req, osc_enqueue_upcall_f upcall,
-		     void *cookie, struct lustre_handle *lockh,
-		     enum ldlm_mode mode, u64 *flags, int speculative,
-		     int errcode)
+static int osc_enqueue_fini(struct ptlrpc_request *req,
+			    osc_enqueue_upcall_f upcall,
+			    void *cookie, struct lustre_handle *lockh,
+			    enum ldlm_mode mode, u64 *flags,
+			    int speculative, int errcode)
 {
 	bool intent = *flags & LDLM_FL_HAS_INTENT;
 	int rc;
@@ -2962,8 +2963,9 @@ int osc_enqueue_fini(struct ptlrpc_request *req, osc_enqueue_upcall_f upcall,
 	return rc;
 }
 
-int osc_enqueue_interpret(const struct lu_env *env, struct ptlrpc_request *req,
-			  void *args, int rc)
+static int osc_enqueue_interpret(const struct lu_env *env,
+				 struct ptlrpc_request *req,
+				 void *args, int rc)
 {
 	struct osc_enqueue_args *aa = args;
 	struct ldlm_lock *lock;

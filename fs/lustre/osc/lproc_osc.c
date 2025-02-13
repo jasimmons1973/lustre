@@ -840,7 +840,7 @@ static ssize_t osc_stats_seq_write(struct file *file,
 
 LDEBUGFS_SEQ_FOPS(osc_stats);
 
-void lproc_osc_attach_seqstat(struct obd_device *obd)
+static void ldebugfs_osc_attach_seqstat(struct obd_device *obd)
 {
 	debugfs_create_file("osc_stats", 0644, obd->obd_debugfs_entry, obd,
 			    &osc_stats_fops);
@@ -884,16 +884,13 @@ int osc_tunables_init(struct obd_device *obd)
 	if (rc)
 		return rc;
 
+	ldebugfs_osc_attach_seqstat(obd);
+
 	rc = sptlrpc_lprocfs_cliobd_attach(obd);
 	if (rc) {
 		lprocfs_obd_cleanup(obd);
 		return rc;
 	}
-
-	debugfs_create_file("osc_stats", 0644, obd->obd_debugfs_entry, obd,
-			    &osc_stats_fops);
-	debugfs_create_file("rpc_stats", 0644, obd->obd_debugfs_entry, obd,
-			    &osc_rpc_stats_fops);
 
 	ptlrpc_lprocfs_register_obd(obd);
 	return 0;
