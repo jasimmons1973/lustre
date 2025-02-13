@@ -93,12 +93,13 @@ static int mdc_set_dom_lock_data(struct ldlm_lock *lock, void *data)
 	return set;
 }
 
-int mdc_dom_lock_match(const struct lu_env *env, struct obd_export *exp,
-		       struct ldlm_res_id *res_id, enum ldlm_type type,
-		       union ldlm_policy_data *policy, enum ldlm_mode mode,
-		       u64 *flags, struct osc_object *obj,
-		       struct lustre_handle *lockh,
-		       enum ldlm_match_flags match_flags)
+static int mdc_dom_lock_match(const struct lu_env *env, struct obd_export *exp,
+			      struct ldlm_res_id *res_id, enum ldlm_type type,
+			      union ldlm_policy_data *policy,
+			      enum ldlm_mode mode, u64 *flags,
+			      struct osc_object *obj,
+			      struct lustre_handle *lockh,
+			      enum ldlm_match_flags match_flags)
 {
 	struct obd_device *obd = exp->exp_obd;
 	u64 lflags = *flags;
@@ -135,9 +136,10 @@ int mdc_dom_lock_match(const struct lu_env *env, struct obd_export *exp,
  * Finds an existing lock covering a page with given index.
  * Copy of osc_obj_dlmlock_at_pgoff() but for DoM IBITS lock.
  */
-struct ldlm_lock *mdc_dlmlock_at_pgoff(const struct lu_env *env,
-				       struct osc_object *obj, pgoff_t index,
-				       enum osc_dap_flags dap_flags)
+static struct ldlm_lock *mdc_dlmlock_at_pgoff(const struct lu_env *env,
+					      struct osc_object *obj,
+					      pgoff_t index,
+					      enum osc_dap_flags dap_flags)
 {
 	struct osc_thread_info *info = osc_env_info(env);
 	struct ldlm_res_id *resname = &info->oti_resname;
@@ -278,8 +280,8 @@ static int mdc_lock_flush(const struct lu_env *env, struct osc_object *obj,
 	return result;
 }
 
-void mdc_lock_lockless_cancel(const struct lu_env *env,
-			      const struct cl_lock_slice *slice)
+static void mdc_lock_lockless_cancel(const struct lu_env *env,
+				     const struct cl_lock_slice *slice)
 {
 	struct osc_lock *ols = cl2osc_lock(slice);
 	struct osc_object *osc = cl2osc(slice->cls_obj);
@@ -570,10 +572,10 @@ int mdc_fill_lvb(struct req_capsule *pill, struct ost_lvb *lvb)
 	return 0;
 }
 
-int mdc_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
-		     osc_enqueue_upcall_f upcall, void *cookie,
-		     struct lustre_handle *lockh, enum ldlm_mode mode,
-		     u64 *flags, int errcode)
+static int mdc_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
+			    osc_enqueue_upcall_f upcall, void *cookie,
+			    struct lustre_handle *lockh, enum ldlm_mode mode,
+			    u64 *flags, int errcode)
 {
 	struct osc_lock *ols = cookie;
 	bool glimpse = *flags & LDLM_FL_HAS_INTENT;
@@ -627,8 +629,9 @@ int mdc_enqueue_fini(struct obd_export *exp, struct ptlrpc_request *req,
 	return rc;
 }
 
-int mdc_enqueue_interpret(const struct lu_env *env, struct ptlrpc_request *req,
-			  void *args, int rc)
+static int mdc_enqueue_interpret(const struct lu_env *env,
+				 struct ptlrpc_request *req,
+				 void *args, int rc)
 {
 	struct osc_enqueue_args *aa = args;
 	struct ldlm_lock *lock;
@@ -685,11 +688,11 @@ int mdc_enqueue_interpret(const struct lu_env *env, struct ptlrpc_request *req,
  * is excluded from the cluster -- such scenarious make the life difficult, so
  * release locks just after they are obtained.
  */
-int mdc_enqueue_send(const struct lu_env *env, struct obd_export *exp,
-		     struct ldlm_res_id *res_id, u64 *flags,
-		     union ldlm_policy_data *policy, struct ost_lvb *lvb,
-		     osc_enqueue_upcall_f upcall, void *cookie,
-		     struct ldlm_enqueue_info *einfo, int async)
+static int mdc_enqueue_send(const struct lu_env *env, struct obd_export *exp,
+			    struct ldlm_res_id *res_id, u64 *flags,
+			    union ldlm_policy_data *policy, struct ost_lvb *lvb,
+			    osc_enqueue_upcall_f upcall, void *cookie,
+			    struct ldlm_enqueue_info *einfo, int async)
 {
 	struct obd_device *obd = exp->exp_obd;
 	struct lustre_handle lockh = { 0 };
@@ -930,8 +933,8 @@ static const struct cl_lock_operations mdc_lock_ops = {
 	.clo_print	= osc_lock_print,
 };
 
-int mdc_lock_init(const struct lu_env *env, struct cl_object *obj,
-		  struct cl_lock *lock, const struct cl_io *io)
+static int mdc_lock_init(const struct lu_env *env, struct cl_object *obj,
+			 struct cl_lock *lock, const struct cl_io *io)
 {
 	struct osc_lock *ols;
 	u32 enqflags = lock->cll_descr.cld_enq_flags;
@@ -1150,8 +1153,8 @@ static int mdc_io_read_ahead(const struct lu_env *env,
 	return 0;
 }
 
-int mdc_io_fsync_start(const struct lu_env *env,
-		       const struct cl_io_slice *slice)
+static int mdc_io_fsync_start(const struct lu_env *env,
+			      const struct cl_io_slice *slice)
 {
 	struct cl_io *io = slice->cis_io;
 	struct cl_fsync_io *fio = &io->u.ci_fsync;
@@ -1345,8 +1348,8 @@ static const struct cl_io_operations mdc_io_ops = {
 	.cio_extent_release	= osc_io_extent_release,
 };
 
-int mdc_io_init(const struct lu_env *env, struct cl_object *obj,
-		struct cl_io *io)
+static int mdc_io_init(const struct lu_env *env, struct cl_object *obj,
+		       struct cl_io *io)
 {
 	struct osc_io *oio = osc_env_io(env);
 
@@ -1445,7 +1448,7 @@ static int mdc_object_ast_clear(struct ldlm_lock *lock, void *data)
 	return LDLM_ITER_CONTINUE;
 }
 
-int mdc_object_prune(const struct lu_env *env, struct cl_object *obj)
+static int mdc_object_prune(const struct lu_env *env, struct cl_object *obj)
 {
 	struct osc_object *osc = cl2osc(obj);
 	struct ldlm_res_id *resname = &osc_env_info(env)->oti_resname;
@@ -1514,9 +1517,9 @@ static const struct lu_object_operations mdc_lu_obj_ops = {
 	.loo_object_invariant	= NULL
 };
 
-struct lu_object *mdc_object_alloc(const struct lu_env *env,
-				   const struct lu_object_header *unused,
-				   struct lu_device *dev)
+static struct lu_object *mdc_object_alloc(const struct lu_env *env,
+					  const struct lu_object_header *unused,
+					  struct lu_device *dev)
 {
 	struct osc_object *osc;
 	struct lu_object *obj;
