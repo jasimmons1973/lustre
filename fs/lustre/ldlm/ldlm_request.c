@@ -2355,7 +2355,7 @@ static int lock_can_replay(struct obd_import *imp)
 	       1 + min_t(u32, cli->cl_max_rpcs_in_flight, 8);
 }
 
-int __ldlm_replay_locks(struct obd_import *imp, bool rate_limit)
+static int __ldlm_replay_locks(struct obd_import *imp, bool rate_limit)
 {
 	struct ldlm_namespace *ns = imp->imp_obd->obd_namespace;
 	LIST_HEAD(list);
