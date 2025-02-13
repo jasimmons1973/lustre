@@ -1232,7 +1232,7 @@ int quotactl_ioctl(struct super_block *sb, struct if_quotactl *qctl)
 	default:
 		CERROR("%s: unsupported quotactl op: %#x: rc = %d\n",
 		       sbi->ll_fsname, cmd, -EOPNOTSUPP);
-		return -ENOTSUPP;
+		return -EOPNOTSUPP;
 	}
 
 	if (valid != QC_GENERAL) {
@@ -1670,7 +1670,7 @@ lmv_out_free:
 		case LOV_USER_MAGIC_V1:
 			break;
 		default:
-			rc = -ENOTSUPP;
+			rc = -EOPNOTSUPP;
 			goto out;
 		}
 

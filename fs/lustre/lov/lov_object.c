@@ -1980,14 +1980,14 @@ static int lov_object_fiemap(const struct lu_env *env, struct cl_object *obj,
 		if (lsm->lsm_entry_count > 1 ||
 		    (lsm->lsm_entry_count == 1 &&
 		     lsm->lsm_entries[0]->lsme_stripe_count > 1)) {
-			rc = -ENOTSUPP;
+			rc = -EOPNOTSUPP;
 			goto out_lsm;
 		}
 	}
 
 	/* No support for DOM layout yet. */
 	if (lsme_is_dom(lsm->lsm_entries[0])) {
-		rc = -ENOTSUPP;
+		rc = -EOPNOTSUPP;
 		goto out_lsm;
 	}
 
