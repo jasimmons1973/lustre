@@ -1989,7 +1989,7 @@ lstcon_console_init(void)
 	if (rc < 0)
 		goto out;
 
-	rc = blocking_notifier_chain_register(&libcfs_ioctl_list,
+	rc = blocking_notifier_chain_register(&lnet_ioctl_list,
 					      &lstcon_ioctl_handler);
 
 	if (rc < 0) {
@@ -2016,7 +2016,7 @@ lstcon_console_fini(void)
 {
 	int i;
 
-	blocking_notifier_chain_unregister(&libcfs_ioctl_list,
+	blocking_notifier_chain_unregister(&lnet_ioctl_list,
 					   &lstcon_ioctl_handler);
 	lstcon_fini_netlink();
 

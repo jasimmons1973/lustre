@@ -29,7 +29,6 @@
 /*
  * This file is part of Lustre, http://www.lustre.org/
  */
-#include <linux/miscdevice.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/mm.h>
@@ -65,230 +64,26 @@ struct lnet_debugfs_symlink_def {
 
 static struct dentry *lnet_debugfs_root;
 
-BLOCKING_NOTIFIER_HEAD(libcfs_ioctl_list);
-EXPORT_SYMBOL(libcfs_ioctl_list);
-
-static inline size_t libcfs_ioctl_packlen(struct libcfs_ioctl_data *data)
+int libcfs_ioctl(unsigned int cmd, struct libcfs_ioctl_data *data)
 {
-	size_t len = sizeof(*data);
-
-	len += round_up(data->ioc_inllen1, 8);
-	len += round_up(data->ioc_inllen2, 8);
-	return len;
-}
-
-static inline bool libcfs_ioctl_is_invalid(struct libcfs_ioctl_data *data)
-{
-	const int maxlen = 1 << 30;
-
-	if (data->ioc_hdr.ioc_len > maxlen)
-		return true;
-
-	if (data->ioc_inllen1 > maxlen)
-		return true;
-
-	if (data->ioc_inllen2 > maxlen)
-		return true;
-
-	if (data->ioc_inlbuf1 && !data->ioc_inllen1) {
-		CERROR("LIBCFS ioctl: inlbuf1 pointer but 0 length\n");
-		return true;
-	}
-	if (data->ioc_inlbuf2 && !data->ioc_inllen2) {
-		CERROR("LIBCFS ioctl: inlbuf2 pointer but 0 length\n");
-		return true;
-	}
-	if (data->ioc_pbuf1 && !data->ioc_plen1) {
-		CERROR("LIBCFS ioctl: pbuf1 pointer but 0 length\n");
-		return true;
-	}
-	if (data->ioc_pbuf2 && !data->ioc_plen2) {
-		CERROR("LIBCFS ioctl: pbuf2 pointer but 0 length\n");
-		return true;
-	}
-	if (data->ioc_plen1 && !data->ioc_pbuf1) {
-		CERROR("LIBCFS ioctl: plen1 nonzero but no pbuf1 pointer\n");
-		return true;
-	}
-	if (data->ioc_plen2 && !data->ioc_pbuf2) {
-		CERROR("LIBCFS ioctl: plen2 nonzero but no pbuf2 pointer\n");
-		return true;
-	}
-	if ((u32)libcfs_ioctl_packlen(data) != data->ioc_hdr.ioc_len) {
-		CERROR("LIBCFS ioctl: packlen != ioc_len\n");
-		return true;
-	}
-	if (data->ioc_inllen1 &&
-	    data->ioc_bulk[data->ioc_inllen1 - 1] != '\0') {
-		CERROR("LIBCFS ioctl: inlbuf1 not 0 terminated\n");
-		return true;
-	}
-	if (data->ioc_inllen2 &&
-	    data->ioc_bulk[round_up(data->ioc_inllen1, 8) +
-			   data->ioc_inllen2 - 1] != '\0') {
-		CERROR("LIBCFS ioctl: inlbuf2 not 0 terminated\n");
-		return true;
-	}
-	return false;
-}
-
-static int libcfs_ioctl_data_adjust(struct libcfs_ioctl_data *data)
-{
-	if (libcfs_ioctl_is_invalid(data)) {
-		CERROR("libcfs ioctl: parameter not correctly formatted\n");
-		return -EINVAL;
-	}
-
-	if (data->ioc_inllen1)
-		data->ioc_inlbuf1 = &data->ioc_bulk[0];
-
-	if (data->ioc_inllen2)
-		data->ioc_inlbuf2 = &data->ioc_bulk[0] +
-				    round_up(data->ioc_inllen1, 8);
-
-	return 0;
-}
-
-static int libcfs_ioctl_getdata(struct libcfs_ioctl_hdr **hdr_pp,
-				const struct libcfs_ioctl_hdr __user *uhdr)
-{
-	struct libcfs_ioctl_hdr hdr;
-	int err;
-
-	if (copy_from_user(&hdr, uhdr, sizeof(hdr)))
-		return -EFAULT;
-
-	if (hdr.ioc_version != LIBCFS_IOCTL_VERSION &&
-	    hdr.ioc_version != LIBCFS_IOCTL_VERSION2) {
-		CERROR("libcfs ioctl: version mismatch expected %#x, got %#x\n",
-		       LIBCFS_IOCTL_VERSION, hdr.ioc_version);
-		return -EINVAL;
-	}
-
-	if (hdr.ioc_len < sizeof(hdr)) {
-		CERROR("libcfs ioctl: user buffer too small for ioctl\n");
-		return -EINVAL;
-	}
-
-	if (hdr.ioc_len > LIBCFS_IOC_DATA_MAX) {
-		CERROR("libcfs ioctl: user buffer is too large %d/%d\n",
-		       hdr.ioc_len, LIBCFS_IOC_DATA_MAX);
-		return -EINVAL;
-	}
-
-	*hdr_pp = kvmalloc(hdr.ioc_len, GFP_KERNEL);
-	if (!*hdr_pp)
-		return -ENOMEM;
-
-	if (copy_from_user(*hdr_pp, uhdr, hdr.ioc_len)) {
-		err = -EFAULT;
-		goto free;
-	}
-
-	if ((*hdr_pp)->ioc_version != hdr.ioc_version ||
-	    (*hdr_pp)->ioc_len != hdr.ioc_len) {
-		err = -EINVAL;
-		goto free;
-	}
-
-	return 0;
-
-free:
-	kvfree(*hdr_pp);
-	return err;
-}
-
-static int libcfs_ioctl(unsigned long cmd, void __user *uparam)
-{
-	struct libcfs_ioctl_data *data = NULL;
-	struct libcfs_ioctl_hdr *hdr;
-	int err;
-
-	err = libcfs_setup();
-	if (err)
-		return err;
-	/* 'cmd' and permissions get checked in our arch-specific caller */
-	err = libcfs_ioctl_getdata(&hdr, uparam);
-	if (err) {
-		CDEBUG_LIMIT(D_ERROR,
-			     "libcfs ioctl: data header error %d\n", err);
-		return err;
-	}
-
-	if (hdr->ioc_version == LIBCFS_IOCTL_VERSION) {
-		/*
-		 * The libcfs_ioctl_data_adjust() function performs adjustment
-		 * operations on the libcfs_ioctl_data structure to make
-		 * it usable by the code.  This doesn't need to be called
-		 * for new data structures added.
-		 */
-		data = container_of(hdr, struct libcfs_ioctl_data, ioc_hdr);
-		err = libcfs_ioctl_data_adjust(data);
-		if (err)
-			goto out;
-	}
-
-	CDEBUG(D_IOCTL, "libcfs ioctl cmd %lu\n", cmd);
 	switch (cmd) {
 	case IOC_LIBCFS_CLEAR_DEBUG:
 		libcfs_debug_clear_buffer();
 		break;
-
 	case IOC_LIBCFS_MARK_DEBUG:
 		if (!data || !data->ioc_inlbuf1 ||
-		    data->ioc_inlbuf1[data->ioc_inllen1 - 1] != '\0') {
-			err = -EINVAL;
-			goto out;
-		}
+		    data->ioc_inlbuf1[data->ioc_inllen1 - 1] != '\0')
+			return -EINVAL;
+
 		libcfs_debug_mark_buffer(data->ioc_inlbuf1);
 		break;
 
 	default:
-		err = blocking_notifier_call_chain(&libcfs_ioctl_list,
-						   cmd, hdr);
-		if (!(err & NOTIFY_STOP_MASK))
-			/* No-one claimed the ioctl */
-			err = -EINVAL;
-		else
-			err = notifier_to_errno(err);
-		if (copy_to_user(uparam, hdr, hdr->ioc_len) && !err)
-			err = -EFAULT;
-		break;
-	}
-out:
-	kvfree(hdr);
-	return err;
-}
-
-static long
-libcfs_psdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
-{
-	if (!capable(CAP_SYS_ADMIN))
-		return -EACCES;
-
-	if (_IOC_TYPE(cmd) != IOC_LIBCFS_TYPE ||
-	    _IOC_NR(cmd) < IOC_LIBCFS_MIN_NR  ||
-	    _IOC_NR(cmd) > IOC_LIBCFS_MAX_NR) {
-		CDEBUG(D_IOCTL, "invalid ioctl ( type %d, nr %d, size %d )\n",
-		       _IOC_TYPE(cmd), _IOC_NR(cmd), _IOC_SIZE(cmd));
 		return -EINVAL;
 	}
-
-	return libcfs_ioctl(cmd, (void __user *)arg);
+	return 0;
 }
-
-static const struct file_operations libcfs_fops = {
-	.owner			= THIS_MODULE,
-	.unlocked_ioctl		= libcfs_psdev_ioctl,
-};
-
-static struct miscdevice libcfs_dev = {
-	.minor			= MISC_DYNAMIC_MINOR,
-	.name			= "lnet",
-	.fops			= &libcfs_fops,
-};
-
-static int libcfs_dev_registered;
+EXPORT_SYMBOL(libcfs_ioctl);
 
 static int proc_dobitmasks(struct ctl_table *table, int write,
 			   void __user *buffer, size_t *lenp, loff_t *ppos)
@@ -836,9 +631,6 @@ int libcfs_setup(void)
 	if (libcfs_active)
 		goto out;
 
-	if (!libcfs_dev_registered)
-		goto err;
-
 	rc = libcfs_debug_init(5 * 1024 * 1024);
 	if (rc < 0) {
 		pr_err("LustreError: libcfs_debug_init: rc = %d\n", rc);
@@ -880,18 +672,11 @@ EXPORT_SYMBOL(libcfs_setup);
 
 static int libcfs_init(void)
 {
-	int rc;
-
 	lnet_insert_debugfs(lnet_table, THIS_MODULE, &debugfs_state);
 	if (!IS_ERR_OR_NULL(lnet_debugfs_root))
 		lnet_insert_debugfs_links(lnet_debugfs_symlinks);
 
-	rc = misc_register(&libcfs_dev);
-	if (rc)
-		CERROR("misc_register: error %d\n", rc);
-	else
-		libcfs_dev_registered = 1;
-	return rc;
+	return 0;
 }
 
 static void libcfs_exit(void)
@@ -908,9 +693,6 @@ static void libcfs_exit(void)
 		destroy_workqueue(cfs_rehash_wq);
 
 	cfs_crypto_unregister();
-
-	if (libcfs_dev_registered)
-		misc_deregister(&libcfs_dev);
 
 	cfs_cpu_fini();
 

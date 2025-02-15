@@ -36,8 +36,8 @@
  *
  */
 
-#ifndef __LIBCFS_IOCTL_H__
-#define __LIBCFS_IOCTL_H__
+#ifndef __UAPI_LIBCFS_IOCTL_H__
+#define __UAPI_LIBCFS_IOCTL_H__
 
 #include <linux/types.h>
 #include <linux/ioctl.h>
@@ -49,8 +49,8 @@
 #define __user
 #endif
 
-#define LIBCFS_IOCTL_VERSION	0x0001000a
-#define LIBCFS_IOCTL_VERSION2	0x0001000b
+#define LNET_IOCTL_VERSION 0x0001000a
+#define LNET_IOCTL_VERSION2 0x0001000b
 
 struct libcfs_ioctl_hdr {
 	__u32 ioc_len;
@@ -159,4 +159,4 @@ struct libcfs_ioctl_data {
 #define IOC_LIBCFS_SET_PEER		_IOWR(IOC_LIBCFS_TYPE, 112, IOCTL_CONFIG_SIZE)
 #define IOC_LIBCFS_MAX_NR				       112
 
-#endif /* __LIBCFS_IOCTL_H__ */
+#endif /* __UAPI_LIBCFS_IOCTL_H__ */
