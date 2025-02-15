@@ -3711,7 +3711,7 @@ int ll_ioctl_check_project(struct inode *inode, u32 xflags,
 	return 0;
 }
 
-static int ll_set_project(struct inode *inode, u32 xflags, u32 projid)
+int ll_set_project(struct inode *inode, u32 xflags, u32 projid)
 {
 	struct ptlrpc_request *req = NULL;
 	struct md_op_data *op_data;
@@ -5778,6 +5778,7 @@ const struct inode_operations ll_file_inode_operations = {
 	.listxattr		= ll_listxattr,
 	.fiemap			= ll_fiemap,
 	.get_acl		= ll_get_acl,
+	.set_acl		= ll_set_acl,
 };
 
 const struct file_operations *ll_select_file_operations(struct ll_sb_info *sbi)

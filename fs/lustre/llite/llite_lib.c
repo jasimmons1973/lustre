@@ -3001,13 +3001,103 @@ void ll_delete_inode(struct inode *inode)
 	clear_inode(inode);
 }
 
+static int fileattr_get(struct inode *inode, int *flags, u32 *xflags,
+			u32 *projid)
+{
+	struct ll_sb_info *sbi = ll_i2sbi(inode);
+	struct ptlrpc_request *req = NULL;
+	struct md_op_data *op_data;
+	struct mdt_body *body;
+	int rc;
+
+	op_data = ll_prep_md_op_data(NULL, inode, NULL, NULL,
+				     0, 0, LUSTRE_OPC_ANY,
+				     NULL);
+	if (IS_ERR(op_data))
+		return PTR_ERR(op_data);
+
+	op_data->op_valid = OBD_MD_FLFLAGS;
+	rc = md_getattr(sbi->ll_md_exp, op_data, &req);
+	ll_finish_md_op_data(op_data);
+	if (rc) {
+		CERROR("%s: failure inode "DFID": rc = %d\n",
+		       sbi->ll_md_exp->exp_obd->obd_name,
+		       PFID(ll_inode2fid(inode)), rc);
+		return -abs(rc);
+	}
+
+	body = req_capsule_server_get(&req->rq_pill, &RMF_MDT_BODY);
+
+	*flags = body->mbo_flags;
+	/* if Lustre specific LUSTRE_ENCRYPT_FL flag is set, also set
+	 * ext4 equivalent to please lsattr and other e2fsprogs tools
+	 */
+	if (*flags & LUSTRE_ENCRYPT_FL)
+		*flags |= STATX_ATTR_ENCRYPTED;
+
+	ptlrpc_req_finished(req);
+
+	*xflags = ll_inode_flags_to_xflags(inode->i_flags);
+	if (test_bit(LLIF_PROJECT_INHERIT, &ll_i2info(inode)->lli_flags))
+		*xflags |= FS_XFLAG_PROJINHERIT;
+	*projid = ll_i2info(inode)->lli_projid;
+
+	return 0;
+}
+
+static int fileattr_set(struct inode *inode, int flags)
+{
+	struct ll_sb_info *sbi = ll_i2sbi(inode);
+	struct ptlrpc_request *req = NULL;
+	struct md_op_data *op_data;
+	struct cl_object *obj;
+	struct fsxattr fa = { 0 };
+	struct iattr *attr;
+	int rc;
+
+	fa.fsx_projid = ll_i2info(inode)->lli_projid;
+	if (flags & LUSTRE_PROJINHERIT_FL)
+		fa.fsx_xflags = FS_XFLAG_PROJINHERIT;
+
+	rc = ll_ioctl_check_project(inode, fa.fsx_xflags,
+				    fa.fsx_projid);
+	if (rc)
+		return rc;
+
+	op_data = ll_prep_md_op_data(NULL, inode, NULL, NULL, 0, 0,
+				     LUSTRE_OPC_ANY, NULL);
+	if (IS_ERR(op_data))
+		return PTR_ERR(op_data);
+
+	op_data->op_attr_flags = flags;
+	op_data->op_xvalid |= OP_XVALID_FLAGS;
+	rc = md_setattr(sbi->ll_md_exp, op_data, NULL, 0, &req);
+	ll_finish_md_op_data(op_data);
+	ptlrpc_req_finished(req);
+	if (rc)
+		return rc;
+
+	ll_update_inode_flags(inode, flags);
+
+	obj = ll_i2info(inode)->lli_clob;
+	if (!obj)
+		return 0;
+
+	attr = kzalloc(sizeof(*attr), GFP_KERNEL);
+	if (!attr)
+		return -ENOMEM;
+
+	rc = cl_setattr_ost(obj, attr, OP_XVALID_FLAGS, flags);
+	kfree(attr);
+
+	return rc;
+}
+
 /* ioctl commands shared between files and directories */
 int ll_iocontrol(struct inode *inode, struct file *file,
 		 unsigned int cmd, void __user *uarg)
 {
-	struct ll_sb_info *sbi = ll_i2sbi(inode);
-	struct ptlrpc_request *req = NULL;
-	int rc = 0, flags = 0;
+	int rc;
 
 	switch (cmd) {
 	case BLKSSZGET:
@@ -3018,92 +3108,29 @@ int ll_iocontrol(struct inode *inode, struct file *file,
 		rc = put_user(inode->i_generation, (int __user *)uarg);
 		break;
 	case FS_IOC_GETFLAGS: {
-		struct mdt_body *body;
-		struct md_op_data *op_data;
+		u32 xflags = 0, projid = 0;
+		int flags = 0;
 
-		if (!access_ok(uarg, sizeof(int)))
-			return -EFAULT;
-
-		op_data = ll_prep_md_op_data(NULL, inode, NULL, NULL, 0, 0,
-					     LUSTRE_OPC_ANY, NULL);
-		if (IS_ERR(op_data)) {
-			rc = PTR_ERR(op_data);
-			break;
-		}
-		op_data->op_valid = OBD_MD_FLFLAGS;
-		rc = md_getattr(sbi->ll_md_exp, op_data, &req);
-		ll_finish_md_op_data(op_data);
-		if (rc) {
-			CERROR("%s: failure inode " DFID ": rc = %d\n",
-			       sbi->ll_md_exp->exp_obd->obd_name,
-			       PFID(ll_inode2fid(inode)), rc);
-			rc = -abs(rc);
+		if (!access_ok(uarg, sizeof(int))) {
+			rc = -EFAULT;
 			break;
 		}
 
-		body = req_capsule_server_get(&req->rq_pill, &RMF_MDT_BODY);
+		rc = fileattr_get(file->f_inode, &flags, &xflags, &projid);
+		if (rc == 0)
+			rc = put_user(flags, (int __user *)uarg);
 
-		flags = body->mbo_flags;
-		/* if Lustre specific LUSTRE_ENCRYPT_FL flag is set, also set
-		 * ext4 equivalent to please lsattr and other e2fsprogs tools
-		 */
-		if (flags & LUSTRE_ENCRYPT_FL)
-			flags |= STATX_ATTR_ENCRYPTED;
-
-		ptlrpc_req_finished(req);
-
-		rc = put_user(flags, (int __user *)uarg);
 		break;
 	}
 	case FS_IOC_SETFLAGS: {
-		struct md_op_data *op_data;
-		struct cl_object *obj;
-		struct iattr *attr;
-		struct fsxattr fa = { 0 };
+		int flags = 0;
 
 		if (get_user(flags, (int __user *)uarg)) {
 			rc = -EFAULT;
 			break;
 		}
 
-		fa.fsx_projid = ll_i2info(inode)->lli_projid;
-		if (flags & LUSTRE_PROJINHERIT_FL)
-			fa.fsx_xflags = FS_XFLAG_PROJINHERIT;
-
-		rc = ll_ioctl_check_project(inode, fa.fsx_xflags,
-					    fa.fsx_projid);
-		if (rc)
-			break;
-
-		op_data = ll_prep_md_op_data(NULL, inode, NULL, NULL, 0, 0,
-					     LUSTRE_OPC_ANY, NULL);
-		if (IS_ERR(op_data)) {
-			rc = PTR_ERR(op_data);
-			break;
-		}
-
-		op_data->op_attr_flags = flags;
-		op_data->op_xvalid |= OP_XVALID_FLAGS;
-		rc = md_setattr(sbi->ll_md_exp, op_data, NULL, 0, &req);
-		ll_finish_md_op_data(op_data);
-		ptlrpc_req_finished(req);
-		if (rc)
-			break;
-
-		ll_update_inode_flags(inode, flags);
-
-		obj = ll_i2info(inode)->lli_clob;
-		if (!obj)
-			break;
-
-		attr = kzalloc(sizeof(*attr), GFP_NOFS);
-		if (!attr) {
-			rc = -ENOMEM;
-			break;
-		}
-
-		rc = cl_setattr_ost(obj, attr, OP_XVALID_FLAGS, flags);
-		kfree(attr);
+		rc = fileattr_set(file->f_inode, flags);
 		break;
 	}
 	case FS_IOC_FSGETXATTR:
@@ -3197,7 +3224,8 @@ int ll_iocontrol(struct inode *inode, struct file *file,
 		break;
 #ifdef OBD_IOC_GETNAME_OLD
 	case_OBD_IOC_DEPRECATED_FT(OBD_IOC_GETNAME_OLD,
-				   sbi->ll_md_exp->exp_obd->obd_name, 2, 16);
+				   ll_i2sbi(inode)->ll_md_exp->exp_obd->obd_name,
+				   2, 16);
 #endif
 	case OBD_IOC_GETDTNAME:
 		fallthrough;

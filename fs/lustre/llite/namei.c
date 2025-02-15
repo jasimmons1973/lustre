@@ -2227,6 +2227,7 @@ const struct inode_operations ll_dir_inode_operations = {
 	.permission		= ll_inode_permission,
 	.listxattr		= ll_listxattr,
 	.get_acl		= ll_get_acl,
+	.set_acl		= ll_set_acl,
 };
 
 const struct inode_operations ll_special_inode_operations = {
@@ -2235,4 +2236,5 @@ const struct inode_operations ll_special_inode_operations = {
 	.permission		= ll_inode_permission,
 	.listxattr		= ll_listxattr,
 	.get_acl		= ll_get_acl,
+	.set_acl		= ll_set_acl,
 };

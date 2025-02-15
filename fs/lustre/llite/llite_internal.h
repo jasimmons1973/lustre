@@ -1262,6 +1262,7 @@ int ll_get_fid_by_name(struct inode *parent, const char *name,
 		       int namelen, struct lu_fid *fid, struct inode **inode);
 int ll_inode_permission(struct inode *inode, int mask);
 int ll_ioctl_check_project(struct inode *inode, u32 xflags, u32 projid);
+int ll_set_project(struct inode *inode, u32 xflags, u32 projid);
 int ll_ioctl_fsgetxattr(struct inode *inode, unsigned int cmd,
 			void __user *uarg);
 int ll_ioctl_fssetxattr(struct inode *inode, unsigned int cmd,
