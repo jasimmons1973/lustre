@@ -617,29 +617,17 @@ static int mdc_get_lustre_md(struct obd_export *exp, struct req_capsule *pill,
 				goto out;
 			}
 
-			rc = md_unpackmd(md_exp, &md->lmv, lmv, lmv_size);
+			rc = md_stripe_object_create(md_exp, &md->lsm_obj,
+						     lmv, lmv_size);
 			if (rc < 0)
 				goto out;
-
-			if (rc < (int)sizeof(*md->lmv)) {
-				struct lmv_foreign_md *lfm = md->lfm;
-
-				/* short (< sizeof(struct lmv_stripe_md))
-				 * foreign LMV case
-				 */
-				if (lfm->lfm_magic != LMV_MAGIC_FOREIGN) {
-					CDEBUG(D_INFO,
-					       "lmv size too small: %d < %d\n",
-					       rc, (int)sizeof(*md->lmv));
-					rc = -EPROTO;
-					goto out;
-				}
-			}
 		}
 
 		/* since 2.12.58 intent_getattr fetches default LMV */
 		if (md->body->mbo_valid & OBD_MD_DEFAULT_MEA) {
-			lmv_size = sizeof(struct lmv_user_md);
+			lmv_size = req_capsule_get_size(pill,
+							&RMF_DEFAULT_MDT_MD,
+							RCL_SERVER);
 			lmv = req_capsule_server_sized_get(pill,
 							   &RMF_DEFAULT_MDT_MD,
 							   lmv_size);
@@ -648,18 +636,10 @@ static int mdc_get_lustre_md(struct obd_export *exp, struct req_capsule *pill,
 				goto out;
 			}
 
-			rc = md_unpackmd(md_exp, &md->default_lmv, lmv,
-					 lmv_size);
+			rc = md_stripe_object_create(md_exp, &md->def_lsm_obj,
+						     lmv, lmv_size);
 			if (rc < 0)
 				goto out;
-
-			if (rc < (int)sizeof(*md->default_lmv)) {
-				CDEBUG(D_INFO,
-				       "default lmv size too small: %d < %d\n",
-				       rc, (int)sizeof(*md->lmv));
-				rc = -EPROTO;
-				goto out;
-			}
 		}
 	}
 	rc = 0;
@@ -671,17 +651,13 @@ out_acl:
 	 */
 	if (md->body->mbo_valid & OBD_MD_FLACL)
 		rc = mdc_unpack_acl(pill, md);
-
 out:
-	if (rc)
+	if (rc) {
 		lmd_clear_acl(md);
+		md_put_lustre_md(md_exp, md);
+	}
 
 	return rc;
-}
-
-static int mdc_free_lustre_md(struct obd_export *exp, struct lustre_md *md)
-{
-	return 0;
 }
 
 void mdc_replay_open(struct ptlrpc_request *req)
@@ -3030,7 +3006,6 @@ static const struct md_ops mdc_md_ops = {
 	.set_lock_data		= mdc_set_lock_data,
 	.lock_match		= mdc_lock_match,
 	.get_lustre_md		= mdc_get_lustre_md,
-	.free_lustre_md		= mdc_free_lustre_md,
 	.set_open_replay_data	= mdc_set_open_replay_data,
 	.clear_open_replay_data	= mdc_clear_open_replay_data,
 	.intent_getattr_async	= mdc_intent_getattr_async,

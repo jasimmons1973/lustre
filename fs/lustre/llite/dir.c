@@ -167,8 +167,7 @@ void ll_release_page(struct inode *inode, struct page *page, bool remove)
 	/* Always remove the page for striped dir, because the page is
 	 * built from temporarily in LMV layer
 	 */
-	if (inode && S_ISDIR(inode->i_mode) &&
-	    lmv_dir_striped(ll_i2info(inode)->lli_lsm_md)) {
+	if (inode && ll_dir_striped(inode)) {
 		__free_page(page);
 		return;
 	}
@@ -362,8 +361,7 @@ static int ll_readdir(struct file *filp, struct dir_context *ctx)
 	}
 
 	/* foreign dirs are browsed out of Lustre */
-	if (unlikely(op_data->op_mea1 &&
-		     op_data->op_mea1->lsm_md_magic == LMV_MAGIC_FOREIGN)) {
+	if (unlikely(lmv_dir_foreign(op_data->op_lso1))) {
 		ll_finish_md_op_data(op_data);
 		return -ENODATA;
 	}
@@ -656,9 +654,9 @@ static int ll_dir_get_default_lmv(struct inode *inode, struct lmv_user_md *lum)
 	int rc = -ENODATA;
 
 retry:
-	if (lli->lli_default_lsm_md) {
+	if (lli->lli_def_lsm_obj) {
 		down_read(&lli->lli_lsm_sem);
-		lsm = lli->lli_default_lsm_md;
+		lsm = &lli->lli_def_lsm_obj->lso_lsm;
 		if (lsm) {
 			lum->lum_magic = lsm->lsm_md_magic;
 			lum->lum_stripe_count = lsm->lsm_md_stripe_count;
@@ -1984,7 +1982,7 @@ finish_req:
 			 * instead of the client.
 			 */
 			if (cmd == LL_IOC_MDC_GETINFO_V2 &&
-			    ll_i2info(inode)->lli_lsm_md)
+			    ll_dir_striped(inode))
 				valid &= ~(OBD_MD_FLSIZE | OBD_MD_FLBLOCKS);
 
 			if (flagsp && copy_to_user(flagsp, &valid,
