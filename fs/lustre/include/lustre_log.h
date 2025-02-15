@@ -286,10 +286,14 @@ static inline struct llog_ctxt *llog_ctxt_get(struct llog_ctxt *ctxt)
 
 static inline void llog_ctxt_put(struct llog_ctxt *ctxt)
 {
+	int refcount;
+
 	if (!ctxt)
 		return;
-	LASSERT(refcount_read(&ctxt->loc_refcount) > 0);
-	LASSERT(refcount_read(&ctxt->loc_refcount) < LI_POISON);
+
+	refcount = refcount_read(&ctxt->loc_refcount);
+	LASSERT(refcount > 0 && refcount < LI_POISON);
+
 	CDEBUG(D_INFO, "PUTting ctxt %p : new refcount %d\n", ctxt,
 	       refcount_read(&ctxt->loc_refcount) - 1);
 	__llog_ctxt_put(NULL, ctxt);
