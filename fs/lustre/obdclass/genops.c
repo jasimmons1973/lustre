@@ -309,8 +309,6 @@ struct obd_device *class_newdev(const char *type_name, const char *name,
 
 	/* XXX belongs in setup not attach  */
 	init_rwsem(&newdev->obd_observer_link_sem);
-	/* recovery data */
-	init_waitqueue_head(&newdev->obd_evict_inprogress_waitq);
 
 	llog_group_init(&newdev->obd_olg);
 	/* Detach drops this */
