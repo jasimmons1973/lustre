@@ -1505,29 +1505,6 @@ __must_hold(&the_lnet.ln_api_mutex)
 	return 0;
 }
 
-bool
-lnet_net_is_pref_rtr_locked(struct lnet_net *net, struct lnet_nid *rtr_nid)
-{
-	struct lnet_nid_list *ne;
-
-	CDEBUG(D_NET, "%s: rtr pref empty: %d\n",
-	       libcfs_net2str(net->net_id),
-	       list_empty(&net->net_rtr_pref_nids));
-
-	if (list_empty(&net->net_rtr_pref_nids))
-		return false;
-
-	list_for_each_entry(ne, &net->net_rtr_pref_nids, nl_list) {
-		CDEBUG(D_NET, "Comparing pref %s with gw %s\n",
-		       libcfs_nidstr(&ne->nl_nid),
-		       libcfs_nidstr(rtr_nid));
-		if (nid_same(rtr_nid, &ne->nl_nid))
-			return true;
-	}
-
-	return false;
-}
-
 static unsigned int
 lnet_nid4_cpt_hash(lnet_nid_t nid, unsigned int number)
 {
@@ -3388,7 +3365,7 @@ lnet_get_net_config(struct lnet_ioctl_config_data *config)
 	return rc;
 }
 
-int
+static int
 lnet_get_ni_config(struct lnet_ioctl_config_ni *cfg_ni,
 		   struct lnet_ioctl_config_lnd_tunables *tun,
 		   struct lnet_ioctl_element_stats *stats,
@@ -3415,7 +3392,7 @@ lnet_get_ni_config(struct lnet_ioctl_config_ni *cfg_ni,
 	return rc;
 }
 
-int lnet_get_ni_stats(struct lnet_ioctl_element_msg_stats *msg_stats)
+static int lnet_get_ni_stats(struct lnet_ioctl_element_msg_stats *msg_stats)
 {
 	struct lnet_ni *ni;
 	int cpt;
@@ -5379,8 +5356,8 @@ static int lnet_route_show_done(struct netlink_callback *cb)
 	return 0;
 }
 
-int lnet_scan_route(struct lnet_genl_route_list *rlist,
-		    struct lnet_route_properties *settings)
+static int lnet_scan_route(struct lnet_genl_route_list *rlist,
+			   struct lnet_route_properties *settings)
 {
 	struct lnet_remotenet *rnet;
 	struct list_head *rn_list;

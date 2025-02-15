@@ -628,7 +628,7 @@ lnet_resend_msg_locked(struct lnet_msg *msg)
 	complete(&the_lnet.ln_mt_wait_complete);
 }
 
-int
+static int
 lnet_check_finalize_recursion_locked(struct lnet_msg *msg,
 				     struct list_head *containerq,
 				     int nworkers, void **workers)
@@ -654,7 +654,7 @@ lnet_check_finalize_recursion_locked(struct lnet_msg *msg,
 	return my_slot;
 }
 
-int
+static int
 lnet_attempt_msg_resend(struct lnet_msg *msg)
 {
 	struct lnet_msg_container *container;
