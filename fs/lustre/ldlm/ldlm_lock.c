@@ -55,6 +55,7 @@ char *ldlm_lockname[] = {
 	[LCK_NL]	= "NL",
 	[LCK_GROUP]	= "GROUP",
 	[LCK_COS]	= "COS",
+	[LCK_TXN]	= "TXN",
 };
 EXPORT_SYMBOL(ldlm_lockname);
 
@@ -668,7 +669,7 @@ void ldlm_lock_addref_internal_nolock(struct ldlm_lock *lock,
 		lock->l_readers++;
 		lu_ref_add_atomic(&lock->l_reference, "reader", lock);
 	}
-	if (mode & (LCK_EX | LCK_CW | LCK_PW | LCK_GROUP | LCK_COS)) {
+	if (mode & (LCK_EX | LCK_CW | LCK_PW | LCK_GROUP | LCK_COS | LCK_TXN)) {
 		lock->l_writers++;
 		lu_ref_add_atomic(&lock->l_reference, "writer", lock);
 	}
@@ -733,7 +734,7 @@ void ldlm_lock_decref_internal_nolock(struct ldlm_lock *lock,
 		lu_ref_del(&lock->l_reference, "reader", lock);
 		lock->l_readers--;
 	}
-	if (mode & (LCK_EX | LCK_CW | LCK_PW | LCK_GROUP | LCK_COS)) {
+	if (mode & (LCK_EX | LCK_CW | LCK_PW | LCK_GROUP | LCK_COS | LCK_TXN)) {
 		LASSERT(lock->l_writers > 0);
 		lu_ref_del(&lock->l_reference, "writer", lock);
 		lock->l_writers--;
@@ -1980,7 +1981,7 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 
 	case LDLM_IBITS:
 		libcfs_debug_msg(msgdata,
-				 "%pV ns: %s lock: %p/%#llx lrc: %d/%d,%d mode: %s/%s res: " DLDLMRES " bits %#llx rrc: %d type: %s gid %llu flags: %#llx nid: %s remote: %#llx expref: %d pid: %u timeout: %lld lvb_type: %d\n",
+				 "%pV ns: %s lock: %p/%#llx lrc: %d/%d,%d mode: %s/%s res: " DLDLMRES " bits %#llx rrc: %d type: %s gid %llu flags: %#llx nid: %s remote: %#llx expref: %d pid: %u timeout: %lld lvb_type: %d initiator: MDT%d\n",
 				 &vaf,
 				 ldlm_lock_to_ns_name(lock),
 				 lock, lock->l_handle.h_cookie,
@@ -1997,7 +1998,8 @@ void _ldlm_lock_debug(struct ldlm_lock *lock,
 				 lock->l_remote_handle.cookie,
 				 exp ? refcount_read(&exp->exp_handle.h_ref) : -99,
 				 lock->l_pid, lock->l_callback_timestamp,
-				 lock->l_lvb_type);
+				 lock->l_lvb_type,
+				 lock->l_policy_data.l_inodebits.li_initiator_id);
 		break;
 
 	default:

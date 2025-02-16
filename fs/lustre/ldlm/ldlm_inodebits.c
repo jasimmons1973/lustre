@@ -58,6 +58,8 @@ void ldlm_ibits_policy_wire_to_local(const union ldlm_wire_policy_data *wpolicy,
 				     union ldlm_policy_data *lpolicy)
 {
 	lpolicy->l_inodebits.bits = wpolicy->l_inodebits.bits;
+	lpolicy->l_inodebits.li_initiator_id =
+		wpolicy->l_inodebits.li_initiator_id;
 	/**
 	 * try_bits and li_gid are to be handled outside of generic
 	 * write_to_local due to different behavior on a server and client.
@@ -70,6 +72,8 @@ void ldlm_ibits_policy_local_to_wire(const union ldlm_policy_data *lpolicy,
 	memset(wpolicy, 0, sizeof(*wpolicy));
 	wpolicy->l_inodebits.bits = lpolicy->l_inodebits.bits;
 	wpolicy->l_inodebits.li_gid = lpolicy->l_inodebits.li_gid;
+	wpolicy->l_inodebits.li_initiator_id =
+		lpolicy->l_inodebits.li_initiator_id;
 }
 
 /**

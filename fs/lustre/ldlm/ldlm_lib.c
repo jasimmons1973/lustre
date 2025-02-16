@@ -878,6 +878,7 @@ enum ldlm_mode lck_compat_array[] = {
 	[LCK_NL]	= LCK_COMPAT_NL,
 	[LCK_GROUP]	= LCK_COMPAT_GROUP,
 	[LCK_COS]	= LCK_COMPAT_COS,
+	[LCK_TXN]	= LCK_COMPAT_TXN,
 };
 
 /**

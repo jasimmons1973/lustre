@@ -1887,11 +1887,6 @@ static int ptlrpc_handle_rs(struct ptlrpc_reply_state *rs)
 	LASSERT(rs->rs_scheduled);
 	LASSERT(list_empty(&rs->rs_list));
 
-	spin_lock(&exp->exp_lock);
-	/* Noop if removed already */
-	list_del_init(&rs->rs_exp_list);
-	spin_unlock(&exp->exp_lock);
-
 	/*
 	 * The disk commit callback holds exp_uncommitted_replies_lock while it
 	 * iterates over newly committed replies, removing them from
@@ -1920,6 +1915,11 @@ static int ptlrpc_handle_rs(struct ptlrpc_reply_state *rs)
 		list_del_init(&rs->rs_obd_list);
 		spin_unlock(&exp->exp_uncommitted_replies_lock);
 	}
+
+	spin_lock(&exp->exp_lock);
+	/* Noop if removed already */
+	list_del_init(&rs->rs_exp_list);
+	spin_unlock(&exp->exp_lock);
 
 	spin_lock(&rs->rs_lock);
 
