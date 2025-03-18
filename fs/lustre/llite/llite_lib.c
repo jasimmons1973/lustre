@@ -1225,6 +1225,7 @@ void ll_lli_init(struct ll_inode_info *lli)
 	/* ll_cl_context initialize */
 	INIT_LIST_HEAD(&lli->lli_lccs);
 	seqlock_init(&lli->lli_page_inv_lock);
+	lli->lli_inode_lock_owner = NULL;
 }
 
 int ll_fill_super(struct super_block *sb)
@@ -1865,10 +1866,10 @@ static int ll_md_setattr(struct dentry *dentry, struct md_op_data *op_data)
 	 */
 	op_data->op_attr.ia_valid &= ~(TIMES_SET_FLAGS | ATTR_SIZE);
 	if (S_ISREG(inode->i_mode))
-		inode_lock(inode);
+		ll_inode_lock(inode);
 	rc = simple_setattr(dentry, &op_data->op_attr);
 	if (S_ISREG(inode->i_mode))
-		inode_unlock(inode);
+		ll_inode_unlock(inode);
 	op_data->op_attr.ia_valid = ia_valid;
 
 	rc = ll_update_inode(inode, &md);
@@ -2099,6 +2100,9 @@ int ll_setattr_raw(struct dentry *dentry, struct iattr *attr,
 	ktime_t kstart = ktime_get();
 	int rc = 0;
 
+	/* VFS has locked the inode before calling this */
+	ll_set_inode_lock_owner(inode);
+
 	CDEBUG(D_VFSTRACE, "%s: setattr inode " DFID "(%p) from %llu to %llu, valid %x, hsm_import %d\n",
 	       ll_i2sbi(inode)->ll_fsname, PFID(&lli->lli_fid), inode,
 	       i_size_read(inode), attr->ia_size, attr->ia_valid, hsm_import);
@@ -2107,7 +2111,7 @@ int ll_setattr_raw(struct dentry *dentry, struct iattr *attr,
 		/* Check new size against VFS/VM file size limit and rlimit */
 		rc = inode_newsize_ok(inode, attr->ia_size);
 		if (rc)
-			return rc;
+			goto clear;
 
 		/* The maximum Lustre file size is variable, based on the
 		 * OST maximum object size and number of stripes.  This
@@ -2117,7 +2121,8 @@ int ll_setattr_raw(struct dentry *dentry, struct iattr *attr,
 			CDEBUG(D_INODE, "file " DFID " too large %llu > %llu\n",
 			       PFID(&lli->lli_fid), attr->ia_size,
 			       ll_file_maxbytes(inode));
-			return -EFBIG;
+			rc = -EFBIG;
+			goto clear;
 		}
 
 		attr->ia_valid |= ATTR_MTIME | ATTR_CTIME;
@@ -2126,8 +2131,10 @@ int ll_setattr_raw(struct dentry *dentry, struct iattr *attr,
 	/* POSIX: check before ATTR_*TIME_SET set (from setattr_prepare) */
 	if (attr->ia_valid & TIMES_SET_FLAGS) {
 		if ((!uid_eq(current_fsuid(), inode->i_uid)) &&
-		    !capable(CAP_FOWNER))
-			return -EPERM;
+		    !capable(CAP_FOWNER)) {
+			rc = -EPERM;
+			goto clear;
+		}
 	}
 
 	/* We mark all of the fields "set" so MDS/OST does not re-set them */
@@ -2153,7 +2160,7 @@ int ll_setattr_raw(struct dentry *dentry, struct iattr *attr,
 		       (s64)ktime_get_real_seconds());
 
 	if (S_ISREG(inode->i_mode))
-		inode_unlock(inode);
+		ll_inode_unlock(inode);
 
 	/*
 	 * We always do an MDS RPC, even if we're only changing the size;
@@ -2339,7 +2346,7 @@ out:
 		ll_finish_md_op_data(op_data);
 
 	if (S_ISREG(inode->i_mode)) {
-		inode_lock(inode);
+		ll_inode_lock(inode);
 		if ((attr->ia_valid & ATTR_SIZE) && !hsm_import)
 			inode_dio_wait(inode);
 		/* Once we've got the i_mutex, it's safe to set the S_NOSEC
@@ -2355,6 +2362,8 @@ out:
 		ll_stats_ops_tally(ll_i2sbi(inode), attr->ia_valid & ATTR_SIZE ?
 					LPROC_LL_TRUNC : LPROC_LL_SETATTR,
 				   ktime_us_delta(ktime_get(), kstart));
+clear:
+	ll_clear_inode_lock_owner(inode);
 
 	return rc;
 }
@@ -2553,6 +2562,7 @@ void ll_inode_size_lock(struct inode *inode)
 
 	lli = ll_i2info(inode);
 	mutex_lock(&lli->lli_size_mutex);
+	lli->lli_size_lock_owner = current;
 }
 
 void ll_inode_size_unlock(struct inode *inode)
@@ -2560,6 +2570,7 @@ void ll_inode_size_unlock(struct inode *inode)
 	struct ll_inode_info *lli;
 
 	lli = ll_i2info(inode);
+	lli->lli_size_lock_owner = NULL;
 	mutex_unlock(&lli->lli_size_mutex);
 }
 
@@ -2890,14 +2901,16 @@ void ll_update_dir_depth_dmv(struct inode *dir, struct dentry *de)
 		       lli->lli_inherit_depth);
 }
 
-void ll_truncate_inode_pages_final(struct inode *inode, struct cl_io *io)
+void ll_truncate_inode_pages_final(struct inode *inode)
 {
 	struct address_space *mapping = &inode->i_data;
 	unsigned long nrpages;
 	unsigned long flags;
 
-	LASSERTF(io == NULL || inode_is_locked(inode), "io %p (type %d)\n",
-		 io, io ? io->ci_type : 0);
+	LASSERTF((inode->i_state & I_FREEING) || inode_is_locked(inode),
+		 DFID ":inode %p state %#lx, lli_flags %#lx\n",
+		 PFID(ll_inode2fid(inode)), inode, inode->i_state,
+		 ll_i2info(inode)->lli_flags);
 
 	truncate_inode_pages_final(mapping);
 
@@ -2915,10 +2928,11 @@ void ll_truncate_inode_pages_final(struct inode *inode, struct cl_io *io)
 		xa_unlock_irqrestore(&mapping->i_pages, flags);
 	} /* Workaround end */
 
-	LASSERTF(nrpages == 0, "%s: inode="DFID"(%p) nrpages=%lu io %p (io_type %d), see https://jira.whamcloud.com/browse/LU-118\n",
+	LASSERTF(nrpages == 0,
+		 "%s: inode="DFID"(%p) nrpages=%lu state %#lx, lli_flags %#lx, see https://jira.whamcloud.com/browse/LU-118\n",
 		 ll_i2sbi(inode)->ll_fsname,
 		 PFID(ll_inode2fid(inode)), inode, nrpages,
-		 io, io  ? io->ci_type : 0);
+		 inode->i_state, ll_i2info(inode)->lli_flags);
 }
 
 int ll_read_inode2(struct inode *inode, void *opaque)
@@ -2982,7 +2996,7 @@ void ll_delete_inode(struct inode *inode)
 				   CL_FSYNC_LOCAL : CL_FSYNC_DISCARD, 1);
 	}
 
-	ll_truncate_inode_pages_final(inode, NULL);
+	ll_truncate_inode_pages_final(inode);
 	ll_clear_inode(inode);
 	clear_inode(inode);
 }

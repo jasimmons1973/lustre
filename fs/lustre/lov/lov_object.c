@@ -317,10 +317,11 @@ static void lov_subobject_kill(const struct lu_env *env, struct lov_object *lov,
 	LASSERT(!r0->lo_sub[idx]);
 }
 
-static void lov_delete_raid0(const struct lu_env *env, struct lov_object *lov,
+static int lov_delete_raid0(const struct lu_env *env, struct lov_object *lov,
 			     struct lov_layout_entry *lle)
 {
 	struct lov_layout_raid0 *r0 = &lle->lle_raid0;
+	int rc;
 
 	if (r0->lo_sub) {
 		int i;
@@ -329,7 +330,9 @@ static void lov_delete_raid0(const struct lu_env *env, struct lov_object *lov,
 			struct lovsub_object *los = r0->lo_sub[i];
 
 			if (los) {
-				cl_object_prune(env, &los->lso_cl);
+				rc = cl_object_prune(env, &los->lso_cl);
+				if (rc)
+					return rc;
 				/*
 				 * If top-level object is to be evicted from
 				 * the cache, so are its sub-objects.
@@ -338,6 +341,8 @@ static void lov_delete_raid0(const struct lu_env *env, struct lov_object *lov,
 			}
 		}
 	}
+
+	return 0;
 }
 
 static void lov_fini_raid0(const struct lu_env *env,
@@ -848,6 +853,7 @@ static int lov_delete_composite(const struct lu_env *env,
 				union lov_layout_state *state)
 {
 	struct lov_layout_entry *entry;
+	int rc;
 
 	dump_lsm(D_INODE, lov->lo_lsm);
 
@@ -856,7 +862,9 @@ static int lov_delete_composite(const struct lu_env *env,
 		if (entry->lle_lsme && lsme_is_foreign(entry->lle_lsme))
 			continue;
 
-		lov_delete_raid0(env, lov, entry);
+		rc = lov_delete_raid0(env, lov, entry);
+		if (rc)
+			return rc;
 	}
 
 	return 0;
@@ -1339,6 +1347,9 @@ static int lov_conf_set(const struct lu_env *env, struct cl_object *obj,
 {
 	struct lov_stripe_md *lsm = NULL;
 	struct lov_object *lov = cl2lov(obj);
+	struct cl_object *top = cl_object_top(obj);
+	bool unlock_inode = false;
+	bool lock_inode_size = false;
 	int result = 0;
 
 	if (conf->coc_opc == OBJECT_CONF_SET &&
@@ -1357,6 +1368,7 @@ static int lov_conf_set(const struct lu_env *env, struct cl_object *obj,
 		goto out_lsm;
 	}
 
+retry:
 	lov_conf_lock(lov);
 	if (conf->coc_opc == OBJECT_CONF_WAIT) {
 		if (test_bit(LO_LAYOUT_INVALID, &lov->lo_obj_flags) &&
@@ -1408,13 +1420,47 @@ static int lov_conf_set(const struct lu_env *env, struct cl_object *obj,
 	}
 
 	result = lov_layout_change(env, lov, lsm, conf);
-	if (result)
-		set_bit(LO_LAYOUT_INVALID, &lov->lo_obj_flags);
-	else
-		clear_bit(LO_LAYOUT_INVALID, &lov->lo_obj_flags);
+	if (result) {
+		if (result == -EAGAIN) {
+			/**
+			 * we need unlocked lov conf and get inode lock.
+			 * It's possible we have already taken inode's size
+			 * mutex, so we need keep such lock order, lest deadlock
+			 * happens:
+			 *   inode lock		(ll_inode_lock())
+			 *   inode size lock	(ll_inode_size_lock())
+			 *   lov conf lock	(lov_conf_lock())
+			 *
+			 * e.g.
+			 *   vfs_setxattr		 inode locked
+			 *     ll_lov_setstripe_ea_info	 inode size locked
+			 *       ll_prep_inode
+			 *         ll_file_inode_init
+			 *           cl_conf_set
+			 *             lov_conf_set      lov conf locked
+			 */
+			lov_conf_unlock(lov);
+			if (cl_object_inode_ops(env, top, COIO_SIZE_UNLOCK,
+						NULL) == 0)
+				lock_inode_size = true;
 
+			/* take lock in order */
+			if (cl_object_inode_ops(env, top, COIO_INODE_LOCK,
+						NULL) == 0)
+				unlock_inode = true;
+			if (lock_inode_size)
+				cl_object_inode_ops(env, top, COIO_SIZE_LOCK,
+						    NULL);
+			goto retry;
+		}
+		set_bit(LO_LAYOUT_INVALID, &lov->lo_obj_flags);
+	} else {
+		clear_bit(LO_LAYOUT_INVALID, &lov->lo_obj_flags);
+	}
 out:
 	lov_conf_unlock(lov);
+	if (unlock_inode)
+		cl_object_inode_ops(env, top, COIO_INODE_UNLOCK, NULL);
 out_lsm:
 	lov_lsm_put(lsm);
 	CDEBUG(D_INODE, DFID " lo_layout_invalid=%u\n",

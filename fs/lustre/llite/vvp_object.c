@@ -153,7 +153,6 @@ static int vvp_conf_set(const struct lu_env *env, struct cl_object *obj,
 
 static int vvp_prune(const struct lu_env *env, struct cl_object *obj)
 {
-	struct cl_io *io = vvp_env_io(env)->vui_cl.cis_io;
 	struct inode *inode = vvp_object_inode(obj);
 	int rc;
 
@@ -164,14 +163,16 @@ static int vvp_prune(const struct lu_env *env, struct cl_object *obj)
 		return rc;
 	}
 
-	if (io != NULL)
-		inode_lock(inode);
+	if (ll_get_inode_lock_owner(inode) != current)
+		/* ask LOV get inode lock then lo_type_guard */
+		return -EAGAIN;
 
-	ll_truncate_inode_pages_final(inode, io);
+	LASSERTF(inode_is_locked(inode), DFID ":inode %p lli_flags %#lx\n",
+		 PFID(lu_object_fid(&obj->co_lu)), inode,
+		 ll_i2info(inode)->lli_flags);
+
+	ll_truncate_inode_pages_final(inode);
 	mapping_clear_exiting(inode->i_mapping);
-
-	if (io != NULL)
-		inode_unlock(inode);
 
 	return 0;
 }
@@ -224,6 +225,45 @@ static void vvp_req_attr_set(const struct lu_env *env, struct cl_object *obj,
 	memcpy(attr->cra_jobid, &lli->lli_jobid, sizeof(attr->cra_jobid));
 }
 
+static int vvp_inode_ops(const struct lu_env *env, struct cl_object *obj,
+			 enum coo_inode_opc opc, void *data)
+{
+	struct inode *inode = vvp_object_inode(obj);
+	int rc = 0;
+
+	switch (opc) {
+	case COIO_INODE_LOCK:
+		if (ll_get_inode_lock_owner(inode) != current)
+			ll_inode_lock(inode);
+		else
+			rc = -EALREADY;
+		break;
+	case COIO_INODE_UNLOCK:
+		if (ll_get_inode_lock_owner(inode) == current)
+			ll_inode_unlock(inode);
+		else
+			rc = -ENOLCK;
+		break;
+	case COIO_SIZE_LOCK:
+		if (ll_i2info(inode)->lli_size_lock_owner != current)
+			ll_inode_size_lock(inode);
+		else
+			rc = -EALREADY;
+		break;
+	case COIO_SIZE_UNLOCK:
+		if (ll_i2info(inode)->lli_size_lock_owner == current)
+			ll_inode_size_unlock(inode);
+		else
+			rc = -ENOLCK;
+		break;
+	default:
+		rc = -EINVAL;
+		break;
+	}
+
+	return rc;
+}
+
 static const struct cl_object_operations vvp_ops = {
 	.coo_page_init		= vvp_page_init,
 	.coo_io_init		= vvp_io_init,
@@ -232,7 +272,8 @@ static const struct cl_object_operations vvp_ops = {
 	.coo_conf_set		= vvp_conf_set,
 	.coo_prune		= vvp_prune,
 	.coo_glimpse		= vvp_object_glimpse,
-	.coo_req_attr_set	= vvp_req_attr_set
+	.coo_req_attr_set	= vvp_req_attr_set,
+	.coo_inode_ops		= vvp_inode_ops,
 };
 
 static int __vvp_object_init(const struct lu_env *env,
